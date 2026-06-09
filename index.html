@@ -11,20 +11,15 @@
     --silver:#dfe3ec;--silver-deep:#9aa0ad;--red:#e0533d;--today:#f7d873;
   }
   *{box-sizing:border-box;}
-  body{
-    margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    background:
-      radial-gradient(900px 500px at 100% 0%, rgba(212,175,55,.10) 0%, transparent 55%),
-      radial-gradient(1100px 600px at 50% -10%, #161206 0%, var(--bg) 55%);
-    color:var(--ink);line-height:1.5;padding:18px 18px 64px;
-  }
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:radial-gradient(900px 500px at 100% 0%, rgba(212,175,55,.10) 0%, transparent 55%),radial-gradient(1100px 600px at 50% -10%, #161206 0%, var(--bg) 55%);
+    color:var(--ink);line-height:1.5;padding:18px 18px 64px;}
   .wrap{max-width:1080px;margin:0 auto;}
 
-  /* TOOLBAR */
-  .toolbar{display:flex;justify-content:flex-end;gap:10px;margin:0 0 18px;flex-wrap:wrap;}
+  .toolbar{display:flex;justify-content:flex-end;gap:10px;margin:0 0 18px;flex-wrap:wrap;align-items:center;}
   .btn{cursor:pointer;border:1px solid var(--gold-deep);background:#171206;color:var(--gold);
-    font-weight:800;font-size:12px;letter-spacing:.08em;text-transform:uppercase;padding:9px 16px;border-radius:999px;transition:.15s;}
-  .btn:hover{background:var(--gold);color:#0a0a0a;}
+    font-weight:800;font-size:12px;letter-spacing:.08em;text-transform:uppercase;padding:9px 16px;border-radius:999px;transition:.15s;text-decoration:none;display:inline-block;}
+  .btn:hover{background:var(--gold);color:#0a0a0a;text-decoration:none;}
   .btn.gold{background:linear-gradient(90deg,var(--gold-bright),var(--gold));color:#0a0a0a;border-color:var(--gold);}
   .btn.active{background:var(--gold);color:#0a0a0a;box-shadow:0 0 0 3px rgba(212,175,55,.25);}
   .edit-hint{display:none;font-size:12px;color:var(--gold-bright);font-weight:700;align-self:center;margin-right:auto;}
@@ -32,13 +27,12 @@
   body.editing [contenteditable]{outline:1px dashed rgba(212,175,55,.5);outline-offset:3px;border-radius:4px;}
   body.editing [contenteditable]:focus{outline:2px solid var(--gold);background:rgba(212,175,55,.06);}
 
-  /* HERO */
   .hero{position:relative;text-align:center;border:1px solid var(--line);border-radius:22px;padding:34px 26px 30px;overflow:hidden;
     background:linear-gradient(135deg,#15110a 0%,#070705 100%);box-shadow:0 18px 50px rgba(0,0,0,.65);}
   .hero:before{content:"";position:absolute;top:-40%;right:-10%;width:60%;height:180%;transform:rotate(18deg);
     background:linear-gradient(90deg,transparent,rgba(247,216,115,.10),rgba(212,175,55,.04),transparent);pointer-events:none;}
   .emblem{width:72px;height:72px;margin:0 auto 10px;border-radius:50%;display:flex;align-items:center;justify-content:center;
-    background:radial-gradient(circle at 50% 35%,#1c1607,#0b0a05);border:2px solid var(--gold);box-shadow:0 0 22px rgba(212,175,55,.45);position:relative;}
+    background:radial-gradient(circle at 50% 35%,#1c1607,#0b0a05);border:2px solid var(--gold);box-shadow:0 0 22px rgba(212,175,55,.45);}
   .emblem span{font-family:Georgia,"Times New Roman",serif;font-weight:700;font-size:38px;line-height:1;
     background:linear-gradient(180deg,#fff6d8,var(--gold) 55%,var(--gold-deep));-webkit-background-clip:text;background-clip:text;color:transparent;}
   .wordmark{font-family:Georgia,"Times New Roman",serif;letter-spacing:.34em;font-size:15px;font-weight:700;color:var(--gold);text-transform:uppercase;}
@@ -49,19 +43,15 @@
   .ribbon{display:inline-block;margin-top:10px;border:1px solid var(--gold-deep);border-radius:8px;padding:7px 18px;
     font-size:12.5px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--gold-bright);background:rgba(212,175,55,.06);}
   .hero p{margin:14px 0 0;color:var(--muted);font-weight:600;letter-spacing:.04em;font-size:13px;}
-  .hero .cta{margin-top:16px;}
-
-  /* MOTTO STRIP */
   .motto{margin:18px 0 0;text-align:center;font-style:italic;font-weight:800;letter-spacing:.04em;font-size:15px;
     background:linear-gradient(90deg,var(--gold-bright),var(--gold-deep));-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .hero .cta{margin-top:16px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;}
 
-  /* SECTION TITLES */
   .section-title{display:flex;align-items:center;gap:12px;margin:40px 0 16px;font-size:13px;font-weight:900;
     letter-spacing:.22em;text-transform:uppercase;color:var(--gold);}
   .section-title:before,.section-title:after{content:"";height:1px;background:linear-gradient(90deg,transparent,var(--gold-deep),transparent);flex:1;}
   .section-title span{white-space:nowrap;}
 
-  /* SUCCESS SCHEDULE */
   .success-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
   @media(max-width:720px){.success-grid{grid-template-columns:1fr;}}
   .daily-card{border:1px solid var(--line);border-radius:16px;padding:20px 22px;
@@ -72,41 +62,36 @@
   .meta{font-size:13px;color:var(--ink);margin-top:10px;}
   .meta b{color:var(--muted);font-weight:700;}
 
-  /* TZ LINE */
   .tz{font-size:11.5px;color:var(--muted);margin-top:5px;letter-spacing:.02em;}
   .tz b{color:var(--gold);font-weight:800;}
 
-  /* ICS LINK */
-  .ics{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#0a0a0a;
-    background:linear-gradient(90deg,var(--gold-bright),var(--gold));padding:4px 10px;border-radius:999px;margin-top:8px;cursor:pointer;border:none;}
+  /* ADD-TO-CALENDAR BUTTONS */
+  .addbtns{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;}
+  .ics{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;border-radius:999px;padding:5px 11px;text-decoration:none;white-space:nowrap;}
+  .ics.apple{color:#0a0a0a;background:linear-gradient(90deg,var(--gold-bright),var(--gold));border:1px solid var(--gold);}
+  .ics.gg{color:var(--gold);background:#120f07;border:1px solid var(--gold-deep);}
   .ics:hover{filter:brightness(1.08);text-decoration:none;}
 
-  /* WEEK TABLE */
   table{width:100%;border-collapse:separate;border-spacing:0;border:1px solid var(--line);border-radius:16px;overflow:hidden;}
-  thead th{background:#0e0c05;color:var(--gold);text-align:left;font-size:11px;letter-spacing:.14em;text-transform:uppercase;
-    padding:14px 16px;border-bottom:1px solid var(--line);}
+  thead th{background:#0e0c05;color:var(--gold);text-align:left;font-size:11px;letter-spacing:.14em;text-transform:uppercase;padding:14px 16px;border-bottom:1px solid var(--line);}
   tbody td{padding:16px;border-bottom:1px solid var(--line);vertical-align:top;font-size:14px;}
   tbody tr:last-child td{border-bottom:none;}
   tbody tr{border-left:5px solid var(--gold-deep);transition:.2s;}
   .day-cell{font-weight:900;font-size:15px;width:150px;color:#fff6da;text-transform:uppercase;letter-spacing:.04em;}
   .day-cell small{display:block;color:var(--muted);font-weight:600;font-size:11px;letter-spacing:.1em;text-transform:uppercase;margin-top:4px;}
-  .sess{margin:0 0 16px;}
+  .sess{margin:0 0 18px;}
   .sess:last-child{margin-bottom:0;}
   .sess .name{font-weight:800;color:#fff6da;}
   .sess .time{color:var(--gold);font-weight:700;font-size:13px;}
   a{color:var(--gold-bright);text-decoration:none;font-weight:700;}
   a:hover{text-decoration:underline;}
 
-  /* TODAY HIGHLIGHT */
-  tbody tr.today{background:linear-gradient(90deg,rgba(212,175,55,.16),rgba(212,175,55,.04));
-    border-left:5px solid var(--today);box-shadow:inset 0 0 0 1px rgba(247,216,115,.35);}
-  .today-badge{display:none;background:var(--gold-bright);color:#0a0a0a;font-size:10px;font-weight:900;
-    letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border-radius:999px;margin-left:8px;vertical-align:middle;animation:pulse 1.8s ease-in-out infinite;}
+  tbody tr.today{background:linear-gradient(90deg,rgba(212,175,55,.16),rgba(212,175,55,.04));border-left:5px solid var(--today);box-shadow:inset 0 0 0 1px rgba(247,216,115,.35);}
+  .today-badge{display:none;background:var(--gold-bright);color:#0a0a0a;font-size:10px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border-radius:999px;margin-left:8px;vertical-align:middle;animation:pulse 1.8s ease-in-out infinite;}
   tr.today .today-badge{display:inline-block;}
   @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(247,216,115,.6);}50%{box-shadow:0 0 0 6px rgba(247,216,115,0);}}
   .weekend-note{text-align:center;color:var(--muted);font-size:12.5px;margin-top:10px;font-style:italic;}
 
-  /* DETAIL CARDS */
   .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
   @media(max-width:720px){.detail-grid{grid-template-columns:1fr;}}
   .card{border:1px solid var(--line);border-radius:16px;padding:20px 22px;background:var(--panel);}
@@ -118,11 +103,9 @@
   .card .links div{margin-bottom:4px;}
   .tag{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:4px 9px;border-radius:999px;white-space:nowrap;background:rgba(212,175,55,.16);color:var(--gold);border:1px solid var(--gold-deep);}
 
-  /* TZ LEGEND */
   .legend{margin-top:14px;text-align:center;font-size:12px;color:var(--muted);background:rgba(212,175,55,.06);border:1px solid var(--line);border-radius:12px;padding:10px 14px;}
   .legend b{color:var(--gold);}
 
-  /* BOOKING BOX */
   .book{border:1px solid var(--gold-deep);border-radius:18px;padding:24px 26px;background:linear-gradient(160deg,#15110a 0%,#0b0a05 100%);}
   .book .sub{color:var(--muted);font-size:13.5px;font-weight:700;margin:-2px 0 18px;}
   .book-group{margin-bottom:20px;}
@@ -138,7 +121,6 @@
   .book-btn{white-space:nowrap;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#0a0a0a;background:linear-gradient(90deg,var(--gold-bright),var(--gold));padding:8px 14px;border-radius:999px;}
   .book-btn:hover{filter:brightness(1.08);text-decoration:none;}
 
-  /* NON-NEGOTIABLES */
   .nn{border:1px solid var(--gold-deep);border-radius:18px;padding:24px 26px;background:linear-gradient(160deg,#15110a 0%,#0b0a05 100%);}
   .nn h2{margin:0 0 6px;font-size:20px;font-weight:900;color:var(--gold-bright);}
   .nn .sub{color:var(--muted);font-size:13.5px;font-weight:700;margin-bottom:16px;}
@@ -148,7 +130,6 @@
   .nn-item .n{font-size:22px;line-height:1;}
   .nn-foot{margin-top:14px;font-size:12.5px;color:var(--muted);}
 
-  /* WHAT YOU'LL BUILD STRIP */
   .build{margin-top:22px;border:1px solid var(--line);border-radius:18px;padding:22px 20px;background:linear-gradient(160deg,#13100a,#080805);}
   .build h3{text-align:center;margin:0 0 16px;font-size:13px;font-weight:900;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);}
   .build-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;}
@@ -157,7 +138,6 @@
   .build-item .ic{font-size:22px;}
   .build-item .lb{margin-top:8px;font-size:11.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#fff6da;}
 
-  /* MOTIVATION */
   .moti{margin-top:42px;text-align:center;border-radius:20px;padding:36px 28px;background:linear-gradient(135deg,#1a150b 0%,#070604 100%);border:1px solid var(--line);}
   .moti .rocket{font-size:34px;}
   .moti h2{font-size:clamp(22px,4vw,34px);margin:8px 0 14px;font-weight:900;text-transform:uppercase;letter-spacing:.5px;
@@ -170,26 +150,25 @@
 <body>
 <div class="wrap">
 
-  <!-- TOOLBAR -->
   <div class="toolbar">
     <span class="edit-hint">✏️ Edit mode ON — click any text to change it, then Download to save.</span>
-    <button class="btn gold" onclick="dlAll()">📥 Add ALL to Calendar</button>
+    <a class="btn gold" href="https://grindagencies.github.io/smmt-calendar/ics/all.ics">📥 Add ALL (Apple/Outlook)</a>
     <button class="btn" id="editBtn" onclick="toggleEdit()">✏️ Edit Mode</button>
     <button class="btn" onclick="downloadHTML()">💾 Download</button>
   </div>
 
-  <!-- HERO -->
   <div class="hero">
     <div class="emblem"><span>S</span></div>
     <div class="wordmark" contenteditable="false">The Standard <span class="fg">Financial Group</span></div>
     <h1 contenteditable="false"><span class="g">Weekly Training</span><span class="s">Calendar</span></h1>
     <div class="ribbon" contenteditable="false">Leadership &amp; Growth Training</div>
-    <p contenteditable="false">All times shown in PST · MST · CST · EST</p>
+    <p contenteditable="false">All times shown in PST · MST · CST · EST &nbsp;·&nbsp; 🍎 Apple/Outlook &amp; 🟢 Google — one tap to add</p>
     <div class="motto" contenteditable="false">Build Momentum. Create Results. Lead From the Front.</div>
-    <div class="cta"><button class="ics" onclick="dlAll()">📥 Install Full Schedule (.ics)</button></div>
+    <div class="cta">
+      <a class="ics apple" href="https://grindagencies.github.io/smmt-calendar/ics/all.ics">🍎 Add All to Apple / Outlook</a>
+    </div>
   </div>
 
-  <!-- WEEKLY SUCCESS SCHEDULE -->
   <div class="section-title"><span>⭐ Weekly Success Schedule</span></div>
   <div class="success-grid">
     <div class="daily-card">
@@ -197,7 +176,10 @@
       <div class="time" contenteditable="false">⏰ 8:00 AM PST · Mon–Fri</div>
       <div class="tz" contenteditable="false">🕐 <b>PST</b> 8:00 AM · <b>MST</b> 9:00 AM · <b>CST</b> 10:00 AM · <b>EST</b> 11:00 AM</div>
       <div class="desc" contenteditable="false">Daily alignment, goals, wins, accountability, and momentum. Start every day sharp.</div>
-      <button class="ics" onclick="dl('huddle')">📥 Add to Calendar</button>
+      <div class="addbtns">
+        <a class="ics apple" href="https://grindagencies.github.io/smmt-calendar/ics/huddle.ics">🍎 Apple / Outlook</a>
+        <a class="ics gg" href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=TSFG%20Daily%20Morning%20Huddle&dates=20260608T080000%2F20260608T083000&ctz=America%2FLos_Angeles&recur=RRULE%3AFREQ%3DWEEKLY%3BBYDAY%3DMO%2CTU%2CWE%2CTH%2CFR&details=Daily%20alignment%2C%20goals%2C%20wins%2C%20accountability%2C%20and%20momentum." target="_blank" rel="noopener">🟢 Google</a>
+      </div>
     </div>
     <div class="daily-card">
       <h3 contenteditable="false">📞 Phone Zone</h3>
@@ -206,200 +188,202 @@
       <div class="desc" contenteditable="false">Prospecting, follow-up, recruiting, and appointment-setting. Phones up, distractions down.</div>
       <div class="meta" contenteditable="false"><b>Host:</b> Christopher Lorenz &nbsp;|&nbsp; <b>ID:</b> 964 650 9953</div>
       <div class="meta">🔗 <a href="https://zoom.us/j/9646509953">https://zoom.us/j/9646509953</a></div>
-      <button class="ics" onclick="dl('phonezone')">📥 Add to Calendar</button>
+      <div class="addbtns">
+        <a class="ics apple" href="https://grindagencies.github.io/smmt-calendar/ics/phonezone.ics">🍎 Apple / Outlook</a>
+        <a class="ics gg" href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=TSFG%20Phone%20Zone&dates=20260610T120000%2F20260610T140000&ctz=America%2FLos_Angeles&recur=RRULE%3AFREQ%3DWEEKLY%3BBYDAY%3DWE&details=Prospecting%2C%20follow-up%2C%20recruiting%20%26%20appointment-setting.%20Host%3A%20Christopher%20Lorenz.%20Zoom%20ID%20964%20650%209953&location=https%3A%2F%2Fzoom.us%2Fj%2F9646509953" target="_blank" rel="noopener">🟢 Google</a>
+      </div>
     </div>
   </div>
 
-  <!-- TZ LEGEND -->
-  <div class="legend" contenteditable="false">🕐 <b>Heads up:</b> all listed times are in the four U.S. zones — <b>PST · MST · CST · EST</b>. When you tap <b>Add to Calendar</b>, the invite auto-adjusts to <b>your</b> local time zone.</div>
+  <div class="legend" contenteditable="false">🕐 <b>Times shown in PST · MST · CST · EST.</b> Tap <b>🍎 Apple / Outlook</b> to add straight to your phone or Mac calendar, or <b>🟢 Google</b> to add to Google Calendar — both adjust to your local time and repeat weekly automatically.</div>
 
-  <!-- WEEK AT A GLANCE TABLE -->
   <div class="section-title"><span>🗓️ The Week at a Glance</span></div>
   <table>
-    <thead>
-      <tr><th>Day</th><th>Sessions &amp; Times</th><th>Join &amp; Install</th></tr>
-    </thead>
+    <thead><tr><th>Day</th><th>Sessions &amp; Times</th><th>Add to Calendar</th></tr></thead>
     <tbody>
       <tr data-day="1">
         <td class="day-cell">Momentum Monday <span class="today-badge">Today</span><small>Train</small></td>
         <td>
           <div class="sess"><span class="name">🔥 Team Training</span><br>
           <span class="time">6:00 PM PST</span> · Host: Elijah Cox · ID 964 650 9994 · PW: WEALTH
-          <div class="tz">🕐 PST 6:00 PM · MST 7:00 PM · CST 8:00 PM · EST 9:00 PM</div></div>
+          <div class="tz">🕐 PST 6:00 PM · MST 7:00 PM · CST 8:00 PM · EST 9:00 PM</div>
+          🔗 <a href="https://zoom.us/j/9646509994">zoom.us/j/9646509994</a></div>
         </td>
         <td>
-          <a href="https://zoom.us/j/9646509994">Zoom →</a><br>
-          <button class="ics" onclick="dl('training')">📥 Add</button>
+          <div class="addbtns">
+            <a class="ics apple" href="https://grindagencies.github.io/smmt-calendar/ics/training.ics">🍎 Apple</a>
+            <a class="ics gg" href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=TSFG%20Momentum%20Monday%20%E2%80%94%20Team%20Training&dates=20260608T180000%2F20260608T190000&ctz=America%2FLos_Angeles&recur=RRULE%3AFREQ%3DWEEKLY%3BBYDAY%3DMO&details=Leadership%2C%20recruiting%2C%20sales%20%26%20production%20growth%2C%20mindset%20%26%20weekly%20action%20plan.%20Host%3A%20Elijah%20Cox%20%26%20Team.%20Zoom%20ID%20964%20650%209994.%20Password%20WEALTH&location=https%3A%2F%2Fzoom.us%2Fj%2F9646509994" target="_blank" rel="noopener">🟢 Google</a>
+          </div>
         </td>
       </tr>
       <tr data-day="2">
         <td class="day-cell">Tuesday <span class="today-badge">Today</span><small>Onboard</small></td>
         <td>
-          <div class="sess"><span class="name">🚀 CFT Orientation</span><br>
+          <div class="sess"><span class="name">🚀 CFT Orientation (AM)</span><br>
           <span class="time">6:00 – 8:00 AM PST</span> · Host: Christopher Lorenz · ID 964 650 9953
-          <div class="tz">🕐 PST 6–8 AM · MST 7–9 AM · CST 8–10 AM · EST 9–11 AM</div></div>
-          <div class="sess"><span class="name">🚀 CFT Orientation — Evening</span><br>
+          <div class="tz">🕐 PST 6–8 AM · MST 7–9 AM · CST 8–10 AM · EST 9–11 AM</div>
+          <div class="addbtns">
+            <a class="ics apple" href="https://grindagencies.github.io/smmt-calendar/ics/cftAM.ics">🍎 Apple</a>
+            <a class="ics gg" href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=TSFG%20CFT%20Orientation%20%28Morning%29&dates=20260609T060000%2F20260609T080000&ctz=America%2FLos_Angeles&recur=RRULE%3AFREQ%3DWEEKLY%3BBYDAY%3DTU%2CFR&details=New%20agent%20onboarding%2C%20systems%20training%2C%20licensing%20guidance%20%26%20culture.%20Host%3A%20Christopher%20Lorenz.%20Zoom%20ID%20964%20650%209953&location=https%3A%2F%2Fzoom.us%2Fj%2F9646509953" target="_blank" rel="noopener">🟢 Google</a>
+          </div></div>
+          <div class="sess"><span class="name">🚀 CFT Orientation (PM)</span><br>
           <span class="time">7:00 – 9:00 PM PST</span> · Host: Christopher Lorenz · ID 964 650 9953
-          <div class="tz">🕐 PST 7–9 PM · MST 8–10 PM · CST 9–11 PM · EST 10 PM–12 AM</div></div>
+          <div class="tz">🕐 PST 7–9 PM · MST 8–10 PM · CST 9–11 PM · EST 10 PM–12 AM</div>
+          <div class="addbtns">
+            <a class="ics apple" href="https://grindagencies.github.io/smmt-calendar/ics/cftPM.ics">🍎 Apple</a>
+            <a class="ics gg" href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=TSFG%20CFT%20Orientation%20%28Evening%29&dates=20260609T190000%2F20260609T210000&ctz=America%2FLos_Angeles&recur=RRULE%3AFREQ%3DWEEKLY%3BBYDAY%3DTU%2CFR&details=New%20agent%20onboarding%2C%20systems%20training%2C%20licensing%20guidance%20%26%20culture.%20Host%3A%20Christopher%20Lorenz.%20Zoom%20ID%20964%20650%209953&location=https%3A%2F%2Fzoom.us%2Fj%2F9646509953" target="_blank" rel="noopener">🟢 Google</a>
+          </div></div>
+          🔗 <a href="https://zoom.us/j/9646509953">zoom.us/j/9646509953</a>
         </td>
-        <td>
-          <a href="https://zoom.us/j/9646509953">Zoom →</a><br>
-          <button class="ics" onclick="dl('cftAM')">📥 AM</button>
-          <button class="ics" onclick="dl('cftPM')">📥 PM</button>
-        </td>
+        <td><span class="tz">Buttons inline →</span></td>
       </tr>
       <tr data-day="3">
         <td class="day-cell">Wednesday <span class="today-badge">Today</span><small>Military</small></td>
         <td>
           <div class="sess"><span class="name">📞 Phone Zone</span><br>
-          <span class="time">12:00 – 2:00 PM PST</span> · Host: Christopher Lorenz · ID 964 650 9953
-          <div class="tz">🕐 PST 12–2 PM · MST 1–3 PM · CST 2–4 PM · EST 3–5 PM</div></div>
+          <span class="time">12:00 – 2:00 PM PST</span> · ID 964 650 9953
+          <div class="tz">🕐 PST 12–2 PM · MST 1–3 PM · CST 2–4 PM · EST 3–5 PM</div>
+          <div class="addbtns">
+            <a class="ics apple" href="https://grindagencies.github.io/smmt-calendar/ics/phonezone.ics">🍎 Apple</a>
+            <a class="ics gg" href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=TSFG%20Phone%20Zone&dates=20260610T120000%2F20260610T140000&ctz=America%2FLos_Angeles&recur=RRULE%3AFREQ%3DWEEKLY%3BBYDAY%3DWE&details=Prospecting%2C%20follow-up%2C%20recruiting%20%26%20appointment-setting.%20Host%3A%20Christopher%20Lorenz.%20Zoom%20ID%20964%20650%209953&location=https%3A%2F%2Fzoom.us%2Fj%2F9646509953" target="_blank" rel="noopener">🟢 Google</a>
+          </div></div>
           <div class="sess"><span class="name">🇺🇸 Armed Forces Call</span><br>
           <span class="time">5:00 PM PST</span> · Zoom ID 680 683 9747
-          <div class="tz">🕐 PST 5:00 PM · MST 6:00 PM · CST 7:00 PM · EST 8:00 PM</div></div>
+          <div class="tz">🕐 PST 5:00 PM · MST 6:00 PM · CST 7:00 PM · EST 8:00 PM</div>
+          <div class="addbtns">
+            <a class="ics apple" href="https://grindagencies.github.io/smmt-calendar/ics/armedforces.ics">🍎 Apple</a>
+            <a class="ics gg" href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=TSFG%20Armed%20Forces%20Call&dates=20260610T170000%2F20260610T180000&ctz=America%2FLos_Angeles&recur=RRULE%3AFREQ%3DWEEKLY%3BBYDAY%3DWE&details=Military%20market%20training%2C%20recruiting%20strategies%2C%20leadership%20updates%20%26%20field%20support.%20Zoom%20ID%20680%20683%209747&location=https%3A%2F%2Fzoom.us%2Fj%2F6806839747" target="_blank" rel="noopener">🟢 Google</a>
+          </div></div>
           <div class="sess"><span class="name">🎯 Orientation Day 1</span><br>
           <span class="time">6:00 PM PST</span> · Host: Elijah Cox · ID 964 950 9994
-          <div class="tz">🕐 PST 6:00 PM · MST 7:00 PM · CST 8:00 PM · EST 9:00 PM</div></div>
+          <div class="tz">🕐 PST 6:00 PM · MST 7:00 PM · CST 8:00 PM · EST 9:00 PM</div>
+          <div class="addbtns">
+            <a class="ics apple" href="https://grindagencies.github.io/smmt-calendar/ics/orient1.ics">🍎 Apple</a>
+            <a class="ics gg" href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=TSFG%20Orientation%20Day%201&dates=20260610T180000%2F20260610T190000&ctz=America%2FLos_Angeles&recur=RRULE%3AFREQ%3DWEEKLY%3BBYDAY%3DWE&details=Onboarding%20foundation%2C%20systems%20setup%2C%20expectations%20%26%20first-week%20success%20plan.%20Host%3A%20Elijah%20Cox.%20Zoom%20ID%20964%20950%209994&location=https%3A%2F%2Fzoom.us%2Fj%2F9649509994" target="_blank" rel="noopener">🟢 Google</a>
+          </div></div>
         </td>
-        <td>
-          <a href="https://zoom.us/j/9646509953">Phone Zone →</a> <button class="ics" onclick="dl('phonezone')">📥</button><br>
-          <a href="https://zoom.us/j/6806839747">AF Zoom →</a> <button class="ics" onclick="dl('armedforces')">📥</button><br>
-          <a href="https://zoom.us/j/9649509994">Orient →</a> <button class="ics" onclick="dl('orient1')">📥</button>
-        </td>
+        <td><span class="tz">Buttons inline →</span></td>
       </tr>
       <tr data-day="4">
         <td class="day-cell">Thursday <span class="today-badge">Today</span><small>Onboard</small></td>
         <td>
           <div class="sess"><span class="name">🎯 Orientation Day 2</span><br>
           <span class="time">6:00 PM PST</span> · Host: Elijah Cox · ID 964 950 9994
-          <div class="tz">🕐 PST 6:00 PM · MST 7:00 PM · CST 8:00 PM · EST 9:00 PM</div></div>
+          <div class="tz">🕐 PST 6:00 PM · MST 7:00 PM · CST 8:00 PM · EST 9:00 PM</div>
+          🔗 <a href="https://zoom.us/j/9649509994">zoom.us/j/9649509994</a></div>
         </td>
         <td>
-          <a href="https://zoom.us/j/9649509994">Zoom →</a><br>
-          <button class="ics" onclick="dl('orient2')">📥 Add</button>
+          <div class="addbtns">
+            <a class="ics apple" href="https://grindagencies.github.io/smmt-calendar/ics/orient2.ics">🍎 Apple</a>
+            <a class="ics gg" href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=TSFG%20Orientation%20Day%202&dates=20260611T180000%2F20260611T190000&ctz=America%2FLos_Angeles&recur=RRULE%3AFREQ%3DWEEKLY%3BBYDAY%3DTH&details=Advanced%20onboarding%2C%20systems%20setup%2C%20expectations%20%26%20first-week%20success%20plan.%20Host%3A%20Elijah%20Cox.%20Zoom%20ID%20964%20950%209994&location=https%3A%2F%2Fzoom.us%2Fj%2F9649509994" target="_blank" rel="noopener">🟢 Google</a>
+          </div>
         </td>
       </tr>
       <tr data-day="5">
         <td class="day-cell">Friday <span class="today-badge">Today</span><small>Onboard</small></td>
         <td>
-          <div class="sess"><span class="name">🚀 CFT Orientation</span><br>
+          <div class="sess"><span class="name">🚀 CFT Orientation (AM)</span><br>
           <span class="time">6:00 – 8:00 AM PST</span> · Host: Christopher Lorenz · ID 964 650 9953
-          <div class="tz">🕐 PST 6–8 AM · MST 7–9 AM · CST 8–10 AM · EST 9–11 AM</div></div>
-          <div class="sess"><span class="name">🚀 CFT Orientation — Evening</span><br>
+          <div class="tz">🕐 PST 6–8 AM · MST 7–9 AM · CST 8–10 AM · EST 9–11 AM</div>
+          <div class="addbtns">
+            <a class="ics apple" href="https://grindagencies.github.io/smmt-calendar/ics/cftAM.ics">🍎 Apple</a>
+            <a class="ics gg" href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=TSFG%20CFT%20Orientation%20%28Morning%29&dates=20260609T060000%2F20260609T080000&ctz=America%2FLos_Angeles&recur=RRULE%3AFREQ%3DWEEKLY%3BBYDAY%3DTU%2CFR&details=New%20agent%20onboarding%2C%20systems%20training%2C%20licensing%20guidance%20%26%20culture.%20Host%3A%20Christopher%20Lorenz.%20Zoom%20ID%20964%20650%209953&location=https%3A%2F%2Fzoom.us%2Fj%2F9646509953" target="_blank" rel="noopener">🟢 Google</a>
+          </div></div>
+          <div class="sess"><span class="name">🚀 CFT Orientation (PM)</span><br>
           <span class="time">7:00 – 9:00 PM PST</span> · Host: Christopher Lorenz · ID 964 650 9953
-          <div class="tz">🕐 PST 7–9 PM · MST 8–10 PM · CST 9–11 PM · EST 10 PM–12 AM</div></div>
+          <div class="tz">🕐 PST 7–9 PM · MST 8–10 PM · CST 9–11 PM · EST 10 PM–12 AM</div>
+          <div class="addbtns">
+            <a class="ics apple" href="https://grindagencies.github.io/smmt-calendar/ics/cftPM.ics">🍎 Apple</a>
+            <a class="ics gg" href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=TSFG%20CFT%20Orientation%20%28Evening%29&dates=20260609T190000%2F20260609T210000&ctz=America%2FLos_Angeles&recur=RRULE%3AFREQ%3DWEEKLY%3BBYDAY%3DTU%2CFR&details=New%20agent%20onboarding%2C%20systems%20training%2C%20licensing%20guidance%20%26%20culture.%20Host%3A%20Christopher%20Lorenz.%20Zoom%20ID%20964%20650%209953&location=https%3A%2F%2Fzoom.us%2Fj%2F9646509953" target="_blank" rel="noopener">🟢 Google</a>
+          </div></div>
+          🔗 <a href="https://zoom.us/j/9646509953">zoom.us/j/9646509953</a>
         </td>
-        <td>
-          <a href="https://zoom.us/j/9646509953">Zoom →</a><br>
-          <button class="ics" onclick="dl('cftAM')">📥 AM</button>
-          <button class="ics" onclick="dl('cftPM')">📥 PM</button>
-        </td>
+        <td><span class="tz">Buttons inline →</span></td>
       </tr>
     </tbody>
   </table>
   <div class="weekend-note" id="weekendNote"></div>
 
-  <!-- SESSION DETAILS -->
   <div class="section-title"><span>📋 Session Details &amp; Purpose</span></div>
   <div class="detail-grid">
     <div class="card">
-      <div class="top">
-        <div><h3 contenteditable="false">🔥 Momentum Monday — Team Training</h3><div class="when" contenteditable="false">Mon · 6:00 PM PST</div></div>
-        <span class="tag">Training</span>
-      </div>
+      <div class="top"><div><h3 contenteditable="false">🔥 Momentum Monday — Team Training</h3><div class="when" contenteditable="false">Mon · 6:00 PM PST</div></div><span class="tag">Training</span></div>
       <div class="desc" contenteditable="false">Start the week with momentum: leadership development, recruiting strategies, sales &amp; production growth, mindset, and the weekly action plan. The cornerstone of how we lead from the front.</div>
       <div class="links">
         <div contenteditable="false"><b>Host:</b> Elijah Cox &amp; Team &nbsp;|&nbsp; <b>ID:</b> 964 650 9994 &nbsp;|&nbsp; <b>PW:</b> WEALTH</div>
         <div>🔗 <a href="https://zoom.us/j/9646509994">https://zoom.us/j/9646509994</a></div>
-        <button class="ics" onclick="dl('training')">📥 Add to Calendar</button>
+        <div class="addbtns">
+          <a class="ics apple" href="https://grindagencies.github.io/smmt-calendar/ics/training.ics">🍎 Apple / Outlook</a>
+          <a class="ics gg" href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=TSFG%20Momentum%20Monday%20%E2%80%94%20Team%20Training&dates=20260608T180000%2F20260608T190000&ctz=America%2FLos_Angeles&recur=RRULE%3AFREQ%3DWEEKLY%3BBYDAY%3DMO&details=Leadership%2C%20recruiting%2C%20sales%20%26%20production%20growth%2C%20mindset%20%26%20weekly%20action%20plan.%20Host%3A%20Elijah%20Cox%20%26%20Team.%20Zoom%20ID%20964%20650%209994.%20Password%20WEALTH&location=https%3A%2F%2Fzoom.us%2Fj%2F9646509994" target="_blank" rel="noopener">🟢 Google</a>
+        </div>
       </div>
     </div>
 
     <div class="card">
-      <div class="top">
-        <div><h3 contenteditable="false">🚀 CFT Orientation</h3><div class="when" contenteditable="false">Tue &amp; Fri · 6–8 AM &amp; 7–9 PM PST</div></div>
-        <span class="tag">Onboarding</span>
-      </div>
+      <div class="top"><div><h3 contenteditable="false">🚀 CFT Orientation</h3><div class="when" contenteditable="false">Tue &amp; Fri · 6–8 AM &amp; 7–9 PM PST</div></div><span class="tag">Onboarding</span></div>
       <div class="desc" contenteditable="false">New agent onboarding, systems training, licensing guidance, and culture introduction. Two sessions a day so every new agent can plug in around their schedule.</div>
       <div class="links">
         <div contenteditable="false"><b>Host:</b> Christopher Lorenz &nbsp;|&nbsp; <b>ID:</b> 964 650 9953</div>
         <div>🔗 <a href="https://zoom.us/j/9646509953">https://zoom.us/j/9646509953</a></div>
-        <button class="ics" onclick="dl('cftAM')">📥 Add Morning</button>
-        <button class="ics" onclick="dl('cftPM')">📥 Add Evening</button>
+        <div class="addbtns">
+          <a class="ics apple" href="https://grindagencies.github.io/smmt-calendar/ics/cftAM.ics">🍎 AM</a>
+          <a class="ics gg" href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=TSFG%20CFT%20Orientation%20%28Morning%29&dates=20260609T060000%2F20260609T080000&ctz=America%2FLos_Angeles&recur=RRULE%3AFREQ%3DWEEKLY%3BBYDAY%3DTU%2CFR&details=New%20agent%20onboarding%2C%20systems%20training%2C%20licensing%20guidance%20%26%20culture.%20Host%3A%20Christopher%20Lorenz.%20Zoom%20ID%20964%20650%209953&location=https%3A%2F%2Fzoom.us%2Fj%2F9646509953" target="_blank" rel="noopener">🟢 AM</a>
+          <a class="ics apple" href="https://grindagencies.github.io/smmt-calendar/ics/cftPM.ics">🍎 PM</a>
+          <a class="ics gg" href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=TSFG%20CFT%20Orientation%20%28Evening%29&dates=20260609T190000%2F20260609T210000&ctz=America%2FLos_Angeles&recur=RRULE%3AFREQ%3DWEEKLY%3BBYDAY%3DTU%2CFR&details=New%20agent%20onboarding%2C%20systems%20training%2C%20licensing%20guidance%20%26%20culture.%20Host%3A%20Christopher%20Lorenz.%20Zoom%20ID%20964%20650%209953&location=https%3A%2F%2Fzoom.us%2Fj%2F9646509953" target="_blank" rel="noopener">🟢 PM</a>
+        </div>
       </div>
     </div>
 
     <div class="card">
-      <div class="top">
-        <div><h3 contenteditable="false">🇺🇸 Armed Forces Call</h3><div class="when" contenteditable="false">Wed · 5:00 PM PST</div></div>
-        <span class="tag">Military</span>
-      </div>
+      <div class="top"><div><h3 contenteditable="false">🇺🇸 Armed Forces Call</h3><div class="when" contenteditable="false">Wed · 5:00 PM PST</div></div><span class="tag">Military</span></div>
       <div class="desc" contenteditable="false">Military market training, recruiting strategies, leadership updates, and field support. Built for agents serving and selling in the armed forces market.</div>
       <div class="links">
         <div contenteditable="false"><b>Zoom ID:</b> 680 683 9747</div>
         <div>🔗 <a href="https://zoom.us/j/6806839747">https://zoom.us/j/6806839747</a></div>
-        <button class="ics" onclick="dl('armedforces')">📥 Add to Calendar</button>
+        <div class="addbtns">
+          <a class="ics apple" href="https://grindagencies.github.io/smmt-calendar/ics/armedforces.ics">🍎 Apple / Outlook</a>
+          <a class="ics gg" href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=TSFG%20Armed%20Forces%20Call&dates=20260610T170000%2F20260610T180000&ctz=America%2FLos_Angeles&recur=RRULE%3AFREQ%3DWEEKLY%3BBYDAY%3DWE&details=Military%20market%20training%2C%20recruiting%20strategies%2C%20leadership%20updates%20%26%20field%20support.%20Zoom%20ID%20680%20683%209747&location=https%3A%2F%2Fzoom.us%2Fj%2F6806839747" target="_blank" rel="noopener">🟢 Google</a>
+        </div>
       </div>
     </div>
 
     <div class="card">
-      <div class="top">
-        <div><h3 contenteditable="false">🎯 Orientation Day 1 &amp; Day 2</h3><div class="when" contenteditable="false">Wed &amp; Thu · 6:00 PM PST</div></div>
-        <span class="tag">Onboarding</span>
-      </div>
+      <div class="top"><div><h3 contenteditable="false">🎯 Orientation Day 1 &amp; Day 2</h3><div class="when" contenteditable="false">Wed &amp; Thu · 6:00 PM PST</div></div><span class="tag">Onboarding</span></div>
       <div class="desc" contenteditable="false">Advanced onboarding, systems setup, expectations, and the first-week success plan. Day 1 lays the foundation; Day 2 gets every new agent ready to produce.</div>
       <div class="links">
         <div contenteditable="false"><b>Host:</b> Elijah Cox &nbsp;|&nbsp; <b>ID:</b> 964 950 9994</div>
         <div>🔗 <a href="https://zoom.us/j/9649509994">https://zoom.us/j/9649509994</a></div>
-        <button class="ics" onclick="dl('orient1')">📥 Add Day 1</button>
-        <button class="ics" onclick="dl('orient2')">📥 Add Day 2</button>
+        <div class="addbtns">
+          <a class="ics apple" href="https://grindagencies.github.io/smmt-calendar/ics/orient1.ics">🍎 Day 1</a>
+          <a class="ics gg" href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=TSFG%20Orientation%20Day%201&dates=20260610T180000%2F20260610T190000&ctz=America%2FLos_Angeles&recur=RRULE%3AFREQ%3DWEEKLY%3BBYDAY%3DWE&details=Onboarding%20foundation%2C%20systems%20setup%2C%20expectations%20%26%20first-week%20success%20plan.%20Host%3A%20Elijah%20Cox.%20Zoom%20ID%20964%20950%209994&location=https%3A%2F%2Fzoom.us%2Fj%2F9649509994" target="_blank" rel="noopener">🟢 Day 1</a>
+          <a class="ics apple" href="https://grindagencies.github.io/smmt-calendar/ics/orient2.ics">🍎 Day 2</a>
+          <a class="ics gg" href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=TSFG%20Orientation%20Day%202&dates=20260611T180000%2F20260611T190000&ctz=America%2FLos_Angeles&recur=RRULE%3AFREQ%3DWEEKLY%3BBYDAY%3DTH&details=Advanced%20onboarding%2C%20systems%20setup%2C%20expectations%20%26%20first-week%20success%20plan.%20Host%3A%20Elijah%20Cox.%20Zoom%20ID%20964%20950%209994&location=https%3A%2F%2Fzoom.us%2Fj%2F9649509994" target="_blank" rel="noopener">🟢 Day 2</a>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- BOOKING / CALENDLY -->
   <div class="section-title"><span>📅 Book a CFT Practice / Appointment</span></div>
   <div class="book">
     <div class="sub" contenteditable="false">Tap a name to book on their Calendly. <span class="es">★ Spanish</span> available where marked.</div>
-
     <div class="book-group">
       <h3>🎖️ Managing Directors (MD) <span class="line"></span></h3>
       <div class="book-grid">
-        <div class="book-card">
-          <div><span class="who" contenteditable="false">Christopher Lorenz</span><span class="role" contenteditable="false">MD</span></div>
-          <a class="book-btn" href="https://calendly.com/GrindAgenciesInc">📅 Book</a>
-        </div>
-        <div class="book-card">
-          <div><span class="who" contenteditable="false">Edgar Zavala</span><span class="role" contenteditable="false">MD · <span class="es">★ Spanish</span></span></div>
-          <a class="book-btn" href="https://calendly.com/zavalaedgar25/1hour?month=2025-10">📅 Book</a>
-        </div>
+        <div class="book-card"><div><span class="who" contenteditable="false">Christopher Lorenz</span><span class="role" contenteditable="false">MD</span></div><a class="book-btn" href="https://calendly.com/GrindAgenciesInc">📅 Book</a></div>
+        <div class="book-card"><div><span class="who" contenteditable="false">Edgar Zavala</span><span class="role" contenteditable="false">MD · <span class="es">★ Spanish</span></span></div><a class="book-btn" href="https://calendly.com/zavalaedgar25/1hour?month=2025-10">📅 Book</a></div>
       </div>
     </div>
-
     <div class="book-group">
       <h3>⚔️ CFTs <span class="line"></span></h3>
       <div class="book-grid">
-        <div class="book-card">
-          <div><span class="who" contenteditable="false">Cassandra Akenson</span><span class="role" contenteditable="false">CFT</span></div>
-          <a class="book-btn" href="https://calendly.com/gficassandra">📅 Book</a>
-        </div>
-        <div class="book-card">
-          <div><span class="who" contenteditable="false">Nikki Buccholz</span><span class="role" contenteditable="false">CFT</span></div>
-          <a class="book-btn" href="https://calendly.com/GFInikki">📅 Book</a>
-        </div>
-        <div class="book-card">
-          <div><span class="who" contenteditable="false">Michael Bachelor</span><span class="role" contenteditable="false">CFT</span></div>
-          <a class="book-btn" href="https://calendly.com/GFIBachelor">📅 Book</a>
-        </div>
-        <div class="book-card">
-          <div><span class="who" contenteditable="false">Cesar Coss</span><span class="role" contenteditable="false">CFT · <span class="es">★ Spanish</span></span></div>
-          <a class="book-btn" href="https://calendly.com/CesarCoss">📅 Book</a>
-        </div>
+        <div class="book-card"><div><span class="who" contenteditable="false">Cassandra Akenson</span><span class="role" contenteditable="false">CFT</span></div><a class="book-btn" href="https://calendly.com/gficassandra">📅 Book</a></div>
+        <div class="book-card"><div><span class="who" contenteditable="false">Nikki Buccholz</span><span class="role" contenteditable="false">CFT</span></div><a class="book-btn" href="https://calendly.com/GFInikki">📅 Book</a></div>
+        <div class="book-card"><div><span class="who" contenteditable="false">Michael Bachelor</span><span class="role" contenteditable="false">CFT</span></div><a class="book-btn" href="https://calendly.com/GFIBachelor">📅 Book</a></div>
+        <div class="book-card"><div><span class="who" contenteditable="false">Cesar Coss</span><span class="role" contenteditable="false">CFT · <span class="es">★ Spanish</span></span></div><a class="book-btn" href="https://calendly.com/CesarCoss">📅 Book</a></div>
       </div>
     </div>
   </div>
 
-  <!-- NON-NEGOTIABLES (CFT-scoped) -->
   <div class="section-title"><span>⚔️ Non-Negotiables — If You're Not a CFT</span></div>
   <div class="nn">
     <h2 contenteditable="false">Not a CFT yet? These two are locked in.</h2>
@@ -411,7 +395,6 @@
     <div class="nn-foot" contenteditable="false">Hit these two and you're in the game. CFTs, you already know the standard is higher.</div>
   </div>
 
-  <!-- WHAT YOU'LL BUILD -->
   <div class="build">
     <h3 contenteditable="false">What You'll Build</h3>
     <div class="build-row">
@@ -423,7 +406,6 @@
     </div>
   </div>
 
-  <!-- MOTIVATION -->
   <div class="moti">
     <div class="rocket">🚀</div>
     <h2 contenteditable="false">We Don't Hope to Win. We Train to Win.</h2>
@@ -437,83 +419,28 @@
 </div>
 
 <script>
-  /* ===================== ICS CALENDAR INVITES ===================== */
-  var TZBLOCK =
-    "BEGIN:VTIMEZONE\r\n"+
-    "TZID:America/Los_Angeles\r\n"+
-    "BEGIN:DAYLIGHT\r\nTZOFFSETFROM:-0800\r\nTZOFFSETTO:-0700\r\nTZNAME:PDT\r\n"+
-    "DTSTART:19700308T020000\r\nRRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=2SU\r\nEND:DAYLIGHT\r\n"+
-    "BEGIN:STANDARD\r\nTZOFFSETFROM:-0700\r\nTZOFFSETTO:-0800\r\nTZNAME:PST\r\n"+
-    "DTSTART:19701101T020000\r\nRRULE:FREQ=YEARLY;BYMONTH=11;BYDAY=1SU\r\nEND:STANDARD\r\n"+
-    "END:VTIMEZONE\r\n";
-
-  function V(uid,summary,start,end,byday,desc,zoom){
-    var s =
-      "BEGIN:VEVENT\r\n"+
-      "UID:"+uid+"@standard-financial-group\r\n"+
-      "DTSTAMP:20260608T120000Z\r\n"+
-      "SUMMARY:"+summary+"\r\n"+
-      "DTSTART;TZID=America/Los_Angeles:"+start+"\r\n"+
-      "DTEND;TZID=America/Los_Angeles:"+end+"\r\n"+
-      "RRULE:FREQ=WEEKLY;BYDAY="+byday+"\r\n";
-    if(zoom){ s += "LOCATION:"+zoom+"\r\nURL:"+zoom+"\r\n"; }
-    s += "DESCRIPTION:"+desc+(zoom?("\\n"+zoom):"")+"\r\n"+"END:VEVENT\r\n";
-    return s;
-  }
-
-  var EV = {
-    huddle:      V("huddle","TSFG Daily Morning Huddle","20260608T080000","20260608T083000","MO,TU,WE,TH,FR","Daily alignment\\, goals\\, wins\\, accountability\\, and momentum.",""),
-    phonezone:   V("phonezone","TSFG Phone Zone","20260610T120000","20260610T140000","WE","Prospecting\\, follow-up\\, recruiting & appointment-setting. Host: Christopher Lorenz. Zoom ID 964 650 9953","https://zoom.us/j/9646509953"),
-    training:    V("training","TSFG Momentum Monday — Team Training","20260608T180000","20260608T190000","MO","Leadership\\, recruiting\\, sales & production growth\\, mindset & weekly action plan. Host: Elijah Cox & Team. Zoom ID 964 650 9994. Password WEALTH","https://zoom.us/j/9646509994"),
-    cftAM:       V("cft-am","TSFG CFT Orientation (Morning)","20260609T060000","20260609T080000","TU,FR","New agent onboarding\\, systems training\\, licensing guidance & culture. Host: Christopher Lorenz. Zoom ID 964 650 9953","https://zoom.us/j/9646509953"),
-    cftPM:       V("cft-pm","TSFG CFT Orientation (Evening)","20260609T190000","20260609T210000","TU,FR","New agent onboarding\\, systems training\\, licensing guidance & culture. Host: Christopher Lorenz. Zoom ID 964 650 9953","https://zoom.us/j/9646509953"),
-    armedforces: V("armed-forces","TSFG Armed Forces Call","20260610T170000","20260610T180000","WE","Military market training\\, recruiting strategies\\, leadership updates & field support. Zoom ID 680 683 9747","https://zoom.us/j/6806839747"),
-    orient1:     V("orientation-day1","TSFG Orientation Day 1","20260610T180000","20260610T190000","WE","Onboarding foundation\\, systems setup\\, expectations & first-week success plan. Host: Elijah Cox. Zoom ID 964 950 9994","https://zoom.us/j/9649509994"),
-    orient2:     V("orientation-day2","TSFG Orientation Day 2","20260611T180000","20260611T190000","TH","Advanced onboarding\\, systems setup\\, expectations & first-week success plan. Host: Elijah Cox. Zoom ID 964 950 9994","https://zoom.us/j/9649509994")
-  };
-
-  function wrap(body){
-    return "BEGIN:VCALENDAR\r\nVERSION:2.0\r\n"+
-           "PRODID:-//The Standard Financial Group//Training Calendar//EN\r\nCALSCALE:GREGORIAN\r\nMETHOD:PUBLISH\r\n"+
-           "X-WR-CALNAME:TSFG Training Calendar\r\nX-WR-TIMEZONE:America/Los_Angeles\r\n"+
-           TZBLOCK + body + "END:VCALENDAR\r\n";
-  }
-  function download(name, text){
-    var blob = new Blob([text], {type:'text/calendar;charset=utf-8'});
-    var a = document.createElement('a');
-    a.href = URL.createObjectURL(blob); a.download = name;
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    URL.revokeObjectURL(a.href);
-  }
-  function dl(key){ if(EV[key]) download(key+'.ics', wrap(EV[key])); }
-  function dlAll(){ var b=''; for(var k in EV){ b+=EV[k]; } download('TSFG_Training_Calendar.ics', wrap(b)); }
-
-  /* ===================== HIGHLIGHT TODAY (Pacific) ===================== */
   (function(){
     var pstDay;
     try{
       var f = new Intl.DateTimeFormat('en-US',{weekday:'long',timeZone:'America/Los_Angeles'});
-      var name = f.format(new Date());
       var map = {Sunday:0,Monday:1,Tuesday:2,Wednesday:3,Thursday:4,Friday:5,Saturday:6};
-      pstDay = map[name];
+      pstDay = map[f.format(new Date())];
     }catch(e){ pstDay = new Date().getDay(); }
     var row = document.querySelector('tr[data-day="'+pstDay+'"]');
     if(row){ row.classList.add('today'); }
-    else{ var note=document.getElementById('weekendNote'); if(note) note.textContent="It's the weekend — recharge, then come back Monday with momentum. 🚀"; }
+    else{ var n=document.getElementById('weekendNote'); if(n) n.textContent="It's the weekend — recharge, then come back Monday with momentum. 🚀"; }
   })();
-
-  /* ===================== EDIT MODE ===================== */
   function toggleEdit(){
     var on = document.body.classList.toggle('editing');
     document.getElementById('editBtn').classList.toggle('active', on);
-    document.querySelectorAll('[contenteditable]').forEach(function(el){
-      el.setAttribute('contenteditable', on ? 'true' : 'false');
-    });
+    document.querySelectorAll('[contenteditable]').forEach(function(el){ el.setAttribute('contenteditable', on ? 'true' : 'false'); });
   }
   function downloadHTML(){
     if(document.body.classList.contains('editing')) toggleEdit();
     var html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
-    download('TSFG_Training_Calendar.html', html);
+    var blob = new Blob([html], {type:'text/html'});
+    var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'TSFG_Training_Calendar.html';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(a.href);
   }
 </script>
 </body>
