@@ -29,6 +29,8 @@ SUMMARY:TSFG Daily Morning Huddle
 DTSTART;TZID=America/Los_Angeles:20260608T080000
 DTEND;TZID=America/Los_Angeles:20260608T083000
 RRULE:FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR
-DESCRIPTION:Daily alignment\, goals\, wins\, accountability\, and momentum.
+LOCATION:https://zoom.us/j/9646509994
+URL:https://zoom.us/j/9646509994
+DESCRIPTION:Daily alignment\, goals\, wins\, accountability\, and momentum. Zoom ID 964 650 9994\nhttps://zoom.us/j/9646509994
 END:VEVENT
 END:VCALENDAR
