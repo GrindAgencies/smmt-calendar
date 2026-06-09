@@ -1,0 +1,111 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//The Standard Financial Group//Training Calendar//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+X-WR-CALNAME:TSFG Training Calendar
+X-WR-TIMEZONE:America/Los_Angeles
+BEGIN:VTIMEZONE
+TZID:America/Los_Angeles
+BEGIN:DAYLIGHT
+TZOFFSETFROM:-0800
+TZOFFSETTO:-0700
+TZNAME:PDT
+DTSTART:19700308T020000
+RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=2SU
+END:DAYLIGHT
+BEGIN:STANDARD
+TZOFFSETFROM:-0700
+TZOFFSETTO:-0800
+TZNAME:PST
+DTSTART:19701101T020000
+RRULE:FREQ=YEARLY;BYMONTH=11;BYDAY=1SU
+END:STANDARD
+END:VTIMEZONE
+BEGIN:VEVENT
+UID:huddle@standard-financial-group
+DTSTAMP:20260608T120000Z
+SUMMARY:TSFG Daily Morning Huddle
+DTSTART;TZID=America/Los_Angeles:20260608T080000
+DTEND;TZID=America/Los_Angeles:20260608T083000
+RRULE:FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR
+DESCRIPTION:Daily alignment\, goals\, wins\, accountability\, and momentum.
+END:VEVENT
+BEGIN:VEVENT
+UID:phonezone@standard-financial-group
+DTSTAMP:20260608T120000Z
+SUMMARY:TSFG Phone Zone
+DTSTART;TZID=America/Los_Angeles:20260610T120000
+DTEND;TZID=America/Los_Angeles:20260610T140000
+RRULE:FREQ=WEEKLY;BYDAY=WE
+LOCATION:https://zoom.us/j/9646509953
+URL:https://zoom.us/j/9646509953
+DESCRIPTION:Prospecting\, follow-up\, recruiting & appointment-setting. Host: Christopher Lorenz. Zoom ID 964 650 9953\nhttps://zoom.us/j/9646509953
+END:VEVENT
+BEGIN:VEVENT
+UID:training@standard-financial-group
+DTSTAMP:20260608T120000Z
+SUMMARY:TSFG Momentum Monday — Team Training
+DTSTART;TZID=America/Los_Angeles:20260608T180000
+DTEND;TZID=America/Los_Angeles:20260608T190000
+RRULE:FREQ=WEEKLY;BYDAY=MO
+LOCATION:https://zoom.us/j/9646509994
+URL:https://zoom.us/j/9646509994
+DESCRIPTION:Leadership\, recruiting\, sales & production growth\, mindset & weekly action plan. Host: Elijah Cox & Team. Zoom ID 964 650 9994. Password WEALTH\nhttps://zoom.us/j/9646509994
+END:VEVENT
+BEGIN:VEVENT
+UID:cftAM@standard-financial-group
+DTSTAMP:20260608T120000Z
+SUMMARY:TSFG CFT Orientation (Morning)
+DTSTART;TZID=America/Los_Angeles:20260609T060000
+DTEND;TZID=America/Los_Angeles:20260609T080000
+RRULE:FREQ=WEEKLY;BYDAY=TU,FR
+LOCATION:https://zoom.us/j/9646509953
+URL:https://zoom.us/j/9646509953
+DESCRIPTION:New agent onboarding\, systems training\, licensing guidance & culture. Host: Christopher Lorenz. Zoom ID 964 650 9953\nhttps://zoom.us/j/9646509953
+END:VEVENT
+BEGIN:VEVENT
+UID:cftPM@standard-financial-group
+DTSTAMP:20260608T120000Z
+SUMMARY:TSFG CFT Orientation (Evening)
+DTSTART;TZID=America/Los_Angeles:20260609T190000
+DTEND;TZID=America/Los_Angeles:20260609T210000
+RRULE:FREQ=WEEKLY;BYDAY=TU,FR
+LOCATION:https://zoom.us/j/9646509953
+URL:https://zoom.us/j/9646509953
+DESCRIPTION:New agent onboarding\, systems training\, licensing guidance & culture. Host: Christopher Lorenz. Zoom ID 964 650 9953\nhttps://zoom.us/j/9646509953
+END:VEVENT
+BEGIN:VEVENT
+UID:armedforces@standard-financial-group
+DTSTAMP:20260608T120000Z
+SUMMARY:TSFG Armed Forces Call
+DTSTART;TZID=America/Los_Angeles:20260610T170000
+DTEND;TZID=America/Los_Angeles:20260610T180000
+RRULE:FREQ=WEEKLY;BYDAY=WE
+LOCATION:https://zoom.us/j/6806839747
+URL:https://zoom.us/j/6806839747
+DESCRIPTION:Military market training\, recruiting strategies\, leadership updates & field support. Zoom ID 680 683 9747\nhttps://zoom.us/j/6806839747
+END:VEVENT
+BEGIN:VEVENT
+UID:orient1@standard-financial-group
+DTSTAMP:20260608T120000Z
+SUMMARY:TSFG Orientation Day 1
+DTSTART;TZID=America/Los_Angeles:20260610T180000
+DTEND;TZID=America/Los_Angeles:20260610T190000
+RRULE:FREQ=WEEKLY;BYDAY=WE
+LOCATION:https://zoom.us/j/9649509994
+URL:https://zoom.us/j/9649509994
+DESCRIPTION:Onboarding foundation\, systems setup\, expectations & first-week success plan. Host: Elijah Cox. Zoom ID 964 950 9994\nhttps://zoom.us/j/9649509994
+END:VEVENT
+BEGIN:VEVENT
+UID:orient2@standard-financial-group
+DTSTAMP:20260608T120000Z
+SUMMARY:TSFG Orientation Day 2
+DTSTART;TZID=America/Los_Angeles:20260611T180000
+DTEND;TZID=America/Los_Angeles:20260611T190000
+RRULE:FREQ=WEEKLY;BYDAY=TH
+LOCATION:https://zoom.us/j/9649509994
+URL:https://zoom.us/j/9649509994
+DESCRIPTION:Advanced onboarding\, systems setup\, expectations & first-week success plan. Host: Elijah Cox. Zoom ID 964 950 9994\nhttps://zoom.us/j/9649509994
+END:VEVENT
+END:VCALENDAR
