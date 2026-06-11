@@ -29,8 +29,8 @@ SUMMARY:TSFG Orientation Day 1
 DTSTART;TZID=America/Los_Angeles:20260610T180000
 DTEND;TZID=America/Los_Angeles:20260610T190000
 RRULE:FREQ=WEEKLY;BYDAY=WE
-LOCATION:https://zoom.us/j/9646509994
-URL:https://zoom.us/j/9646509994
-DESCRIPTION:Onboarding foundation\, systems setup\, expectations & first-week success plan. Host: Elijah Cox. Zoom ID 964 650 9994\nhttps://zoom.us/j/9646509994
+LOCATION:https://us02web.zoom.us/j/9646509994?pwd=a2s1OXhzeTB3N3BBOWRkUmw1VHE2Zz09
+URL:https://us02web.zoom.us/j/9646509994?pwd=a2s1OXhzeTB3N3BBOWRkUmw1VHE2Zz09
+DESCRIPTION:Onboarding foundation\, systems setup\, expectations & first-week success plan. Host: Elijah Cox. Zoom ID 964 650 9994\nhttps://us02web.zoom.us/j/9646509994?pwd=a2s1OXhzeTB3N3BBOWRkUmw1VHE2Zz09
 END:VEVENT
 END:VCALENDAR
