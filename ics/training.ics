@@ -29,8 +29,8 @@ SUMMARY:TSFG Momentum Monday — Team Training
 DTSTART;TZID=America/Los_Angeles:20260608T180000
 DTEND;TZID=America/Los_Angeles:20260608T190000
 RRULE:FREQ=WEEKLY;BYDAY=MO
-LOCATION:https://zoom.us/j/9646509994
-URL:https://zoom.us/j/9646509994
-DESCRIPTION:Leadership\, recruiting\, sales & production growth\, mindset & weekly action plan. Host: Elijah Cox & Team. Zoom ID 964 650 9994. Password WEALTH\nhttps://zoom.us/j/9646509994
+LOCATION:https://us02web.zoom.us/j/9646509994?pwd=a2s1OXhzeTB3N3BBOWRkUmw1VHE2Zz09
+URL:https://us02web.zoom.us/j/9646509994?pwd=a2s1OXhzeTB3N3BBOWRkUmw1VHE2Zz09
+DESCRIPTION:Leadership\, recruiting\, sales & production growth\, mindset & weekly action plan. Host: Elijah Cox & Team. Zoom ID 964 650 9994. Password WEALTH\nhttps://us02web.zoom.us/j/9646509994?pwd=a2s1OXhzeTB3N3BBOWRkUmw1VHE2Zz09
 END:VEVENT
 END:VCALENDAR
