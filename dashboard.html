@@ -56,6 +56,11 @@
   .pwrap .pn{font-weight:800;color:#fff6da;min-width:38px;}
   .done100{color:var(--green) !important;}
   .ago{color:var(--muted);font-size:12.5px;}
+  .pill{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.03em;padding:4px 9px;border-radius:999px;white-space:nowrap;}
+  .pill.bld{color:#bcdcff;background:rgba(59,110,165,.18);border:1px solid #3b6ea5;}
+  .pill.prd{color:#bff2da;background:rgba(62,143,106,.18);border:1px solid #3e8f6a;}
+  .pill.non{color:var(--muted);background:rgba(182,169,130,.10);border:1px solid var(--line);}
+  .strk{font-weight:800;color:var(--gold-bright);}
   .sheet{margin-top:24px;border:1px solid var(--gold-deep);border-radius:16px;padding:18px 20px;background:linear-gradient(160deg,#15110a,#0a0905);}
   .sheet h3{margin:0 0 8px;color:var(--gold);font-size:14px;text-transform:uppercase;letter-spacing:.06em;}
   .sheet p{font-size:13px;color:var(--ink);margin:0 0 10px;}
@@ -90,7 +95,7 @@
     <div class="stats">
       <div class="stat"><div class="n" id="sAgents">0</div><div class="l">Agents</div></div>
       <div class="stat"><div class="n" id="sAvg">0%</div><div class="l">Avg Progress</div></div>
-      <div class="stat"><div class="n" id="sDone">0</div><div class="l">Completed (100%)</div></div>
+      <div class="stat"><div class="n" id="sPaths">0 / 0</div><div class="l">Builders / Producers</div></div>
       <div class="stat"><div class="n" id="sActive">0</div><div class="l">Active (updated 7d)</div></div>
     </div>
     <div class="toolbar">
@@ -101,8 +106,11 @@
       <thead><tr>
         <th onclick="sortBy('name')">Agent</th>
         <th onclick="sortBy('code')">GFI Code</th>
+        <th onclick="sortBy('pathway')">Pathway</th>
         <th onclick="sortBy('pct')">Progress</th>
         <th onclick="sortBy('done')">Steps</th>
+        <th onclick="sortBy('ftDone')">Field Trainings</th>
+        <th onclick="sortBy('streak')">🔥 Streak</th>
         <th onclick="sortBy('updated')">Last Updated</th>
       </tr></thead>
       <tbody id="rows"></tbody>
@@ -150,11 +158,13 @@
     return Math.floor(s/86400)+"d ago";
   }
   function render(agents){
-    data=(agents||[]).map(function(a){return {name:(a.first_name+' '+a.last_name),code:a.code,pct:a.pct||0,done:a.done_count||0,total:a.total||33,updated:a.updated_at};});
+    data=(agents||[]).map(function(a){return {name:(a.first_name+' '+a.last_name),code:a.code,pathway:a.pathway||'',pct:a.pct||0,done:a.done_count||0,total:a.total||35,ftDone:a.ft_done||0,ftPace:a.ft_pace_per_wk||0,streak:a.live_streak||0,best:a.best_streak||0,lastDaily:a.last_daily||'',updated:a.updated_at};});
     // stats
     el('sAgents').textContent=data.length;
     el('sAvg').textContent=(data.length?Math.round(data.reduce(function(s,a){return s+a.pct;},0)/data.length):0)+'%';
-    el('sDone').textContent=data.filter(function(a){return a.pct>=100;}).length;
+    var nb=data.filter(function(a){return a.pathway==='builder';}).length;
+    var np=data.filter(function(a){return a.pathway==='producer';}).length;
+    el('sPaths').textContent=nb+' / '+np;
     var wk=Date.now()-7*86400000;
     el('sActive').textContent=data.filter(function(a){return a.updated&&new Date(a.updated).getTime()>wk;}).length;
     draw();
@@ -170,10 +180,17 @@
     el('empty').style.display=data.length?'none':'block';
     data.forEach(function(a){
       var tr=document.createElement('tr');
+      var pth = a.pathway==='builder' ? '<span class="pill bld">🔨 Builder</span>' : a.pathway==='producer' ? '<span class="pill prd">💰 Producer</span>' : '<span class="pill non">— not set</span>';
+      var pace = a.ftDone>=2 ? (a.ftPace+'/wk') : (a.ftDone>0?'started':'—');
+      var strk = a.streak>0 ? ('<span class="strk">🔥 '+a.streak+'d</span>') : '<span class="ago">—</span>';
+      var strkB = a.best>0 ? (' <span class="ago">(best '+a.best+')</span>') : '';
       tr.innerHTML='<td class="nm">'+esc(a.name)+'</td>'+
         '<td class="cd">'+esc(a.code)+'</td>'+
+        '<td>'+pth+'</td>'+
         '<td><div class="pwrap"><div class="pbar"><span style="width:'+a.pct+'%"></span></div><span class="pn'+(a.pct>=100?' done100':'')+'">'+a.pct+'%</span></div></td>'+
         '<td>'+a.done+' / '+a.total+'</td>'+
+        '<td>'+a.ftDone+' <span class="ago">('+pace+')</span></td>'+
+        '<td>'+strk+strkB+'</td>'+
         '<td class="ago">'+timeAgo(a.updated)+'</td>';
       tb.appendChild(tr);
     });
