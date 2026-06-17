@@ -17,35 +17,58 @@
     color:var(--ink);line-height:1.5;padding:14px 16px 80px;}
   .wrap{max-width:920px;margin:0 auto;}
 
-  /* TABS */
-  .tabs{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:0 0 18px;}
+  /* GATE */
+  .gate{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:18px;
+    background:radial-gradient(700px 400px at 50% 0%, rgba(212,175,55,.10), transparent 60%), #050504;}
+  .gate-card{width:100%;max-width:430px;border:1px solid var(--gold-deep);border-radius:20px;padding:30px 26px;background:linear-gradient(160deg,#15110a,#0a0905);box-shadow:0 24px 60px rgba(0,0,0,.7);text-align:center;}
+  .gate-card img{height:72px;margin:0 auto 6px;display:block;mix-blend-mode:screen;filter:drop-shadow(0 5px 14px rgba(212,175,55,.35));}
+  .gate-card .wm{font-family:Georgia,serif;letter-spacing:.28em;font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;}
+  .gate-card h1{margin:10px 0 2px;font-size:24px;font-weight:900;text-transform:uppercase;color:#fff6da;letter-spacing:.5px;}
+  .gate-card .tag{color:var(--muted);font-size:13px;margin-bottom:18px;}
+  .fld{text-align:left;margin-bottom:12px;}
+  .fld label{display:block;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);margin-bottom:5px;}
+  .fld input{width:100%;padding:13px 14px;border-radius:11px;border:1px solid var(--line);background:#0c0b05;color:#fff6da;font-size:15px;outline:none;transition:.15s;}
+  .fld input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(212,175,55,.18);}
+  .fld input#gCode{text-transform:uppercase;letter-spacing:.12em;font-weight:800;}
+  .gate-btn{width:100%;margin-top:6px;padding:14px;border:none;border-radius:12px;cursor:pointer;font-weight:900;font-size:14px;letter-spacing:.06em;text-transform:uppercase;color:#0a0a0a;background:linear-gradient(90deg,var(--gold-bright),var(--gold));}
+  .gate-btn:hover{filter:brightness(1.07);}
+  .gate-btn:disabled{opacity:.6;cursor:default;}
+  .gate-msg{min-height:18px;margin-top:10px;font-size:13px;color:var(--red);font-weight:700;}
+  .gate-foot{margin-top:14px;font-size:11.5px;color:var(--muted);}
+  .gate-foot a{color:var(--gold-bright);text-decoration:none;}
+
+  /* APP */
+  #app{display:none;}
+  .tabs{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:0 0 14px;}
   .tab{flex:1;min-width:200px;text-align:center;text-decoration:none;font-weight:900;font-size:14px;letter-spacing:.04em;text-transform:uppercase;
     padding:14px 18px;border-radius:14px;border:1px solid var(--gold-deep);color:var(--gold);background:#141005;transition:.15s;}
   .tab:hover{background:#1d1607;}
   .tab.active{color:#0a0a0a;background:linear-gradient(90deg,var(--gold-bright),var(--gold));border-color:var(--gold);box-shadow:0 6px 18px rgba(212,175,55,.25);}
 
-  /* HERO */
-  .hero{text-align:center;border:1px solid var(--line);border-radius:20px;padding:26px 22px;background:linear-gradient(135deg,#15110a 0%,#070705 100%);box-shadow:0 16px 44px rgba(0,0,0,.6);}
-  .hero img{height:78px;margin:0 auto 8px;display:block;mix-blend-mode:screen;filter:drop-shadow(0 5px 14px rgba(212,175,55,.35));}
+  .whobar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 14px;padding:10px 14px;border:1px solid var(--line);border-radius:12px;background:rgba(212,175,55,.05);}
+  .whobar .who{font-weight:800;color:#fff6da;font-size:13.5px;}
+  .whobar .who b{color:var(--gold);}
+  .whobar .out{font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);background:none;border:1px solid var(--line);border-radius:999px;padding:6px 12px;cursor:pointer;}
+  .whobar .out:hover{color:var(--red);border-color:var(--red);}
+
+  .hero{text-align:center;border:1px solid var(--line);border-radius:20px;padding:24px 22px;background:linear-gradient(135deg,#15110a 0%,#070705 100%);box-shadow:0 16px 44px rgba(0,0,0,.6);}
+  .hero img{height:70px;margin:0 auto 8px;display:block;mix-blend-mode:screen;filter:drop-shadow(0 5px 14px rgba(212,175,55,.35));}
   .hero .wm{font-family:Georgia,serif;letter-spacing:.3em;font-size:12px;font-weight:700;color:var(--gold);text-transform:uppercase;}
-  .hero h1{margin:10px 0 4px;font-weight:900;text-transform:uppercase;line-height:1;font-size:clamp(26px,5vw,44px);
+  .hero h1{margin:10px 0 4px;font-weight:900;text-transform:uppercase;line-height:1;font-size:clamp(24px,5vw,40px);
     background:linear-gradient(180deg,#fff4cf,var(--gold-bright) 45%,var(--gold-deep));-webkit-background-clip:text;background-clip:text;color:transparent;}
   .hero .sub{color:var(--silver);font-weight:800;letter-spacing:.06em;font-size:15px;}
-  .hero .quote{margin:14px auto 0;max-width:640px;color:var(--muted);font-style:italic;font-size:13.5px;}
+  .hero .quote{margin:12px auto 0;max-width:640px;color:var(--muted);font-style:italic;font-size:13px;}
   .hero .quote b{color:var(--gold);font-style:normal;}
 
-  /* PROGRESS */
-  .progress-wrap{position:sticky;top:0;z-index:5;margin:18px 0 8px;padding:14px 16px;border:1px solid var(--gold-deep);border-radius:14px;
-    background:rgba(8,7,4,.96);backdrop-filter:blur(4px);box-shadow:0 8px 24px rgba(0,0,0,.5);}
+  .progress-wrap{position:sticky;top:0;z-index:5;margin:16px 0 8px;padding:14px 16px;border:1px solid var(--gold-deep);border-radius:14px;background:rgba(8,7,4,.96);backdrop-filter:blur(4px);box-shadow:0 8px 24px rgba(0,0,0,.5);}
   .progress-top{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:8px;flex-wrap:wrap;}
   .progress-top .lbl{font-weight:900;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--gold-bright);}
   .progress-top .pct{font-weight:900;font-size:15px;color:#fff6da;}
   .bar{height:12px;border-radius:999px;background:#241d0c;overflow:hidden;border:1px solid var(--line);}
   .bar span{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--gold),var(--gold-bright));transition:width .35s ease;}
-  .reset{margin-top:10px;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);background:none;border:1px solid var(--line);border-radius:999px;padding:6px 12px;cursor:pointer;}
-  .reset:hover{color:var(--red);border-color:var(--red);}
+  .savestat{margin-top:8px;font-size:11.5px;color:var(--muted);font-weight:700;}
+  .savestat.ok{color:var(--green);}
 
-  /* INFO BANNERS */
   .promise{margin-top:18px;border:1px solid var(--gold-deep);border-radius:16px;padding:20px 22px;background:linear-gradient(160deg,#1c1608,#0b0a05);}
   .promise h2{margin:0 0 10px;font-size:14px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);}
   .promise ul{margin:0;padding-left:0;list-style:none;}
@@ -57,7 +80,6 @@
   .std .t{font-size:12.5px;color:var(--muted);margin-top:4px;}
   .mantra{text-align:center;margin:14px 0 0;font-weight:900;letter-spacing:.04em;font-style:italic;color:var(--gold);}
 
-  /* SECTIONS */
   .sec{margin-top:26px;border:1px solid var(--line);border-radius:16px;overflow:hidden;background:var(--panel);}
   .sec-head{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:16px 18px;background:linear-gradient(90deg,#171206,#0d0b05);border-bottom:1px solid var(--line);}
   .sec-head h3{margin:0;font-size:16px;font-weight:900;color:#fff6da;text-transform:uppercase;letter-spacing:.04em;}
@@ -66,7 +88,6 @@
   .sec-body{padding:8px 18px 16px;}
   .marker{font-size:12.5px;color:var(--muted);font-style:italic;padding:10px 0 4px;border-bottom:1px dashed var(--line);margin-bottom:6px;}
 
-  /* CHECK ITEMS */
   .item{display:flex;gap:12px;align-items:flex-start;padding:11px 0;border-bottom:1px solid rgba(43,36,16,.6);}
   .item:last-child{border-bottom:none;}
   .item input{appearance:none;-webkit-appearance:none;flex:0 0 auto;width:24px;height:24px;border-radius:7px;border:2px solid var(--gold-deep);background:#0b0a05;cursor:pointer;position:relative;margin-top:1px;transition:.12s;}
@@ -78,12 +99,9 @@
   .item input:checked + label{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--gold-deep);}
   .item input:checked + label .meta{text-decoration:line-through;}
   .sub-note{font-size:12px;color:var(--muted);padding:6px 0 0 36px;}
-
-  /* TIER / milestone emphasis */
   .item.tier label{font-weight:800;color:#fff6da;}
   .item.tier{background:rgba(212,175,55,.04);border-radius:8px;padding-left:8px;padding-right:8px;}
 
-  /* RESOURCES / SUPPORT */
   .res{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
   @media(max-width:680px){.res{grid-template-columns:1fr;}}
   .res-card{border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:rgba(212,175,55,.05);}
@@ -92,7 +110,6 @@
   .res-card a{color:var(--gold-bright);text-decoration:none;font-weight:700;word-break:break-word;}
   .res-card a:hover{text-decoration:underline;}
 
-  /* RED FLAGS */
   .flags{border:1px solid var(--red);border-radius:16px;padding:18px 20px;background:linear-gradient(160deg,#241010,#0c0805);margin-top:26px;}
   .flags h3{margin:0 0 6px;color:#ff8b7a;font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:.04em;}
   .flags ul{margin:8px 0 0;padding-left:20px;}
@@ -100,20 +117,42 @@
   .flags .hot{color:#ff8b7a;font-weight:800;}
   .flags .foot{margin-top:10px;font-style:italic;color:#ffb3a6;font-size:13px;}
 
-  /* COMMITMENT */
   .commit{margin-top:26px;text-align:center;border:1px solid var(--gold);border-radius:16px;padding:28px 24px;background:linear-gradient(135deg,#1c1608,#0a0903);}
   .commit .q{font-size:clamp(17px,3.2vw,22px);font-weight:900;color:#fff6da;max-width:680px;margin:0 auto;line-height:1.45;}
   .commit .sig{margin-top:14px;color:var(--gold);font-weight:800;font-size:13px;letter-spacing:.05em;}
   .foot{text-align:center;color:var(--muted);font-size:12px;margin-top:30px;}
-  .tealnote{text-align:center;font-size:12px;color:var(--muted);margin-top:8px;}
 </style>
 </head>
 <body>
+
+<!-- ===================== REGISTRATION GATE ===================== -->
+<div class="gate" id="gate" style="display:none;">
+  <div class="gate-card">
+    <img src="https://grindagencies.github.io/smmt-calendar/logo.png" alt="The Standard Financial Group">
+    <div class="wm">The Standard Financial Group</div>
+    <h1>90-Day Tracker</h1>
+    <div class="tag">Sign in with your GFI code to open your personal tracker.</div>
+    <div class="fld"><label for="gFirst">First Name</label><input id="gFirst" type="text" autocomplete="given-name" placeholder="First name"></div>
+    <div class="fld"><label for="gLast">Last Name</label><input id="gLast" type="text" autocomplete="family-name" placeholder="Last name"></div>
+    <div class="fld"><label for="gCode">GFI Code</label><input id="gCode" type="text" autocomplete="off" placeholder="e.g. C1991"></div>
+    <button class="gate-btn" id="gBtn" onclick="register()">Start My Tracker →</button>
+    <div class="gate-msg" id="gMsg"></div>
+    <div class="gate-foot">First time? Enter your details to register. Returning? Same code loads your saved progress on any device.<br>No GFI code yet? Ask your mentor or <a href="https://calendly.com/impactagency-ops/licensing">Operations</a>.</div>
+  </div>
+</div>
+
+<!-- ===================== APP ===================== -->
+<div id="app">
 <div class="wrap">
 
   <div class="tabs">
     <a class="tab" href="https://grindagencies.github.io/smmt-calendar/index.html">📅 Training Calendar</a>
     <a class="tab active" href="https://grindagencies.github.io/smmt-calendar/checklist.html">✅ New Agent · 90-Day Tracker</a>
+  </div>
+
+  <div class="whobar">
+    <div class="who">Signed in: <b id="who">—</b></div>
+    <button class="out" onclick="signOut()">Sign out</button>
   </div>
 
   <div class="hero">
@@ -124,18 +163,15 @@
     <div class="quote">"Welcome aboard. This is the path. Run it the way it's written and you'll be promoted. Skip steps and you'll stall." — <b>Chris Lorenz</b></div>
   </div>
 
-  <!-- PROGRESS -->
   <div class="progress-wrap">
     <div class="progress-top">
       <span class="lbl">Your Progress</span>
-      <span class="pct"><span id="pctNum">0</span>% &nbsp;·&nbsp; <span id="doneNum">0</span> of <span id="totNum">0</span> steps</span>
+      <span class="pct"><span id="pctNum">0</span>% &nbsp;·&nbsp; <span id="doneNum">0</span> of <span id="totNum">33</span> steps</span>
     </div>
     <div class="bar"><span id="barFill"></span></div>
-    <button class="reset" onclick="resetProgress()">↺ Reset my progress</button>
+    <div class="savestat" id="saveStat">Your progress saves to your GFI code automatically.</div>
   </div>
-  <div class="tealnote">Your check-offs save automatically on this device — come back anytime and pick up where you left off.</div>
 
-  <!-- THE PROMISE -->
   <div class="promise">
     <h2>🎯 The Promise — By Day 90 You Will Be</h2>
     <ul>
@@ -152,7 +188,6 @@
     <div class="mantra">We move fast or we move on.</div>
   </div>
 
-  <!-- WEEK 1 -->
   <div class="sec">
     <div class="sec-head"><h3>Week 1 — The Foundation</h3><span class="days">Days 1–7</span></div>
     <div class="sec-body">
@@ -168,7 +203,6 @@
     </div>
   </div>
 
-  <!-- WEEK 2 -->
   <div class="sec">
     <div class="sec-head"><h3>Week 2 — Building &amp; Activating</h3><span class="days">Days 8–14</span></div>
     <div class="sec-body">
@@ -180,7 +214,6 @@
     </div>
   </div>
 
-  <!-- WEEK 3 -->
   <div class="sec">
     <div class="sec-head"><h3>Week 3 — Licensing &amp; First Field Work</h3><span class="days">Days 15–21</span></div>
     <div class="sec-body">
@@ -192,7 +225,6 @@
     </div>
   </div>
 
-  <!-- POST-EXAM -->
   <div class="sec">
     <div class="sec-head"><h3>Post-Exam 1-on-1 Trainings</h3><span class="days lock">🔒 Unlocks when you pass</span></div>
     <div class="sec-body">
@@ -203,7 +235,6 @@
     </div>
   </div>
 
-  <!-- DAYS 22-60 -->
   <div class="sec">
     <div class="sec-head"><h3>Activation</h3><span class="days">Days 22–60</span></div>
     <div class="sec-body">
@@ -218,7 +249,6 @@
     </div>
   </div>
 
-  <!-- DAYS 60-90 -->
   <div class="sec">
     <div class="sec-head"><h3>Momentum</h3><span class="days">Days 60–90</span></div>
     <div class="sec-body">
@@ -229,11 +259,10 @@
     </div>
   </div>
 
-  <!-- DAILY NON-NEGOTIABLES -->
   <div class="sec">
     <div class="sec-head"><h3>Your Daily Non-Negotiables</h3><span class="days lock">Every day</span></div>
     <div class="sec-body">
-      <div class="marker">Reference — live these daily (no need to check off; build the habit).</div>
+      <div class="marker">Build the habit — check these off as you live them each day.</div>
       <div class="item"><input type="checkbox" class="chk" id="dnA"><label for="dnA">Talk to people every single day — momentum comes from conversations, not perfection</label></div>
       <div class="item"><input type="checkbox" class="chk" id="dnB"><label for="dnB">Be in GroupMe daily — read the briefings, respond</label></div>
       <div class="item"><input type="checkbox" class="chk" id="dnC"><label for="dnC">One PFR booked or completed every weekday, minimum</label></div>
@@ -242,7 +271,6 @@
     </div>
   </div>
 
-  <!-- SUPPORT -->
   <div class="sec">
     <div class="sec-head"><h3>Your Support System</h3><span class="days lock">Always on</span></div>
     <div class="sec-body">
@@ -257,7 +285,6 @@
     </div>
   </div>
 
-  <!-- RED FLAGS -->
   <div class="flags">
     <h3>🚩 Red Flags — How We Know You're Off-Track</h3>
     <ul>
@@ -273,7 +300,6 @@
     <div class="foot">Hit any of these and expect a same-day call. We'd rather move you than lose you.</div>
   </div>
 
-  <!-- COMMITMENT -->
   <div class="commit">
     <div class="q">"I'll do the work, trust the system, ask for help, and refuse to quit before the math has a chance to work for me."</div>
     <div class="sig">Read it daily. Understand it daily. Live it daily. — The Standard Financial Group</div>
@@ -282,37 +308,87 @@
   <div class="foot">The Standard Financial Group · New Agent 90-Day Tracker · Build Momentum. Create Results. Lead From the Front.</div>
 
 </div>
+</div>
 
 <script>
-  var KEY="tsfg90_v1";
+  var API="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/tracker-api";
   var boxes=Array.prototype.slice.call(document.querySelectorAll('.chk'));
-  function load(){
-    var saved={};
-    try{ saved=JSON.parse(localStorage.getItem(KEY)||"{}"); }catch(e){ saved={}; }
-    boxes.forEach(function(b){ if(saved[b.id]) b.checked=true; });
-  }
-  function save(){
-    var o={};
-    boxes.forEach(function(b){ if(b.checked) o[b.id]=1; });
-    try{ localStorage.setItem(KEY, JSON.stringify(o)); }catch(e){}
-  }
+  var code=null, saveTimer=null;
+
+  function el(id){return document.getElementById(id);}
+  function val(id){return (el(id).value||"").trim();}
+  function progressMap(){var o={};boxes.forEach(function(b){if(b.checked)o[b.id]=1;});return o;}
+  function applyProgress(p){p=p||{};boxes.forEach(function(b){b.checked=!!p[b.id];});update();}
   function update(){
     var done=boxes.filter(function(b){return b.checked;}).length;
-    var tot=boxes.length;
-    var pct=tot?Math.round(done*100/tot):0;
-    document.getElementById('doneNum').textContent=done;
-    document.getElementById('totNum').textContent=tot;
-    document.getElementById('pctNum').textContent=pct;
-    document.getElementById('barFill').style.width=pct+'%';
+    var pct=Math.round(done*100/boxes.length);
+    el('doneNum').textContent=done; el('totNum').textContent=boxes.length;
+    el('pctNum').textContent=pct; el('barFill').style.width=pct+'%';
   }
-  boxes.forEach(function(b){ b.addEventListener('change', function(){ save(); update(); }); });
-  function resetProgress(){
-    if(!confirm("Reset all your progress on this device?")) return;
-    boxes.forEach(function(b){ b.checked=false; });
-    try{ localStorage.removeItem(KEY); }catch(e){}
-    update();
+  function setStat(t,ok){var s=el('saveStat');s.textContent=t;s.className='savestat'+(ok?' ok':'');}
+  function cacheKey(){return 'tsfg_prog_'+code;}
+  function showApp(name){el('gate').style.display='none';el('app').style.display='block';el('who').textContent=name+' · GFI '+code;}
+  function showGate(){el('app').style.display='none';el('gate').style.display='flex';}
+
+  function api(payload){
+    return fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).then(function(r){return r.json();});
   }
-  load(); update();
+
+  function register(){
+    var first=val('gFirst'),last=val('gLast'),c=val('gCode').toUpperCase();
+    if(!first||!last||!c){el('gMsg').textContent="Please enter your first name, last name, and GFI code.";return;}
+    var btn=el('gBtn');btn.disabled=true;btn.textContent="Loading…";el('gMsg').textContent="";
+    api({action:'register',code:c,first:first,last:last}).then(function(res){
+      if(!res||!res.ok){el('gMsg').textContent=(res&&res.error)||"Could not sign in. Try again.";btn.disabled=false;btn.textContent="Start My Tracker →";return;}
+      code=c;
+      try{localStorage.setItem('tsfg_code',code);localStorage.setItem('tsfg_name',res.agent.first_name+' '+res.agent.last_name);}catch(e){}
+      applyProgress(res.agent.progress);
+      try{localStorage.setItem(cacheKey(),JSON.stringify(progressMap()));}catch(e){}
+      showApp(res.agent.first_name+' '+res.agent.last_name);
+      setStat(res.returning?'Welcome back — progress loaded ✓':'Tracker created — let’s go ✓',true);
+      btn.disabled=false;btn.textContent="Start My Tracker →";
+    }).catch(function(){el('gMsg').textContent="Network issue — please try again.";btn.disabled=false;btn.textContent="Start My Tracker →";});
+  }
+
+  function saveSoon(){
+    try{localStorage.setItem(cacheKey(),JSON.stringify(progressMap()));}catch(e){}
+    setStat('Saving…',false);
+    clearTimeout(saveTimer);
+    saveTimer=setTimeout(function(){
+      api({action:'save',code:code,progress:progressMap()}).then(function(res){
+        setStat(res&&res.ok?'Saved ✓':'Saved on this device',res&&res.ok);
+      }).catch(function(){setStat('Saved on this device (offline)',false);});
+    },600);
+  }
+
+  boxes.forEach(function(b){b.addEventListener('change',function(){update();if(code)saveSoon();});});
+
+  function signOut(){
+    try{localStorage.removeItem('tsfg_code');}catch(e){}
+    code=null;applyProgress({});showGate();
+    el('gFirst').value="";el('gLast').value="";el('gCode').value="";el('gMsg').textContent="";
+  }
+
+  function boot(){
+    try{code=localStorage.getItem('tsfg_code');}catch(e){code=null;}
+    if(!code){showGate();return;}
+    api({action:'load',code:code}).then(function(res){
+      if(res&&res.ok){applyProgress(res.agent.progress);showApp(res.agent.first_name+' '+res.agent.last_name);setStat('Progress loaded ✓',true);return;}
+      // code not found in DB anymore
+      try{localStorage.removeItem('tsfg_code');}catch(e){}
+      code=null;showGate();
+    }).catch(function(){
+      // offline fallback to local cache
+      var cached=null;try{cached=localStorage.getItem('tsfg_prog_'+code);}catch(e){}
+      applyProgress(cached?JSON.parse(cached):{});
+      showApp((localStorage.getItem('tsfg_name')||('GFI '+code)));
+      setStat('Offline — showing your last saved progress',false);
+    });
+  }
+
+  // Enter key submits the gate
+  ['gFirst','gLast','gCode'].forEach(function(id){el(id).addEventListener('keydown',function(e){if(e.key==='Enter')register();});});
+  boot();
 </script>
 </body>
 </html>
