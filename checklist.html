@@ -195,8 +195,11 @@
 
   /* warm-market list */
   #wmList{display:flex;flex-direction:column;gap:10px;}
-  .wm-card{display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:rgba(212,175,55,.05);}
-  .wm-card.done{opacity:.55;}
+  .wm-card{display:flex;flex-direction:column;gap:9px;border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:rgba(212,175,55,.05);}
+  .wm-card.oc-win{border-color:#3e8f6a;background:rgba(62,143,106,.08);}
+  .wm-card.oc-lose{border-color:#7a2c22;background:rgba(224,83,61,.06);}
+  .wm-card .wm-top{display:flex;align-items:center;gap:12px;}
+  .wm-card.done{opacity:.6;}
   .wm-card .wm-chk{appearance:none;-webkit-appearance:none;flex:0 0 auto;width:22px;height:22px;border-radius:6px;border:2px solid var(--gold-deep);background:#0b0a05;cursor:pointer;position:relative;}
   .wm-card .wm-chk:checked{background:linear-gradient(135deg,var(--gold-bright),var(--gold));border-color:var(--gold);}
   .wm-card .wm-chk:checked::after{content:"✓";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#0a0a0a;font-weight:900;font-size:13px;}
@@ -208,6 +211,17 @@
   .wm-card .wm-date{font-size:11px;color:var(--muted);white-space:nowrap;}
   .wm-card .wm-del{cursor:pointer;border:none;background:none;color:var(--muted);font-size:16px;padding:4px 6px;}
   .wm-card .wm-del:hover{color:var(--red);}
+  .wm-card .wm-outcome{display:flex;gap:6px;flex:0 0 auto;}
+  .wm-card .wl{cursor:pointer;font-size:11px;font-weight:800;letter-spacing:.02em;border-radius:999px;padding:6px 10px;border:1px solid var(--line);background:#120f07;color:var(--muted);white-space:nowrap;}
+  .wm-card .wl-w:hover,.wm-card .wl-w.on{background:#3e8f6a;border-color:#3e8f6a;color:#06150e;}
+  .wm-card .wl-l:hover,.wm-card .wl-l.on{background:var(--red);border-color:var(--red);color:#fff;}
+  .wm-card .wm-notes{width:100%;resize:vertical;min-height:38px;padding:9px 11px;border-radius:9px;border:1px solid var(--line);background:#0c0b05;color:#f4efe2;font-size:13px;font-family:inherit;outline:none;transition:.15s;}
+  .wm-card .wm-notes::placeholder{color:#7a6f4d;}
+  .wm-card .wm-notes:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(212,175,55,.14);}
+  .wm-score{font-size:13px;font-weight:800;color:#fff6da;background:rgba(212,175,55,.05);border:1px solid var(--line);border-radius:10px;padding:10px 13px;margin:0 0 12px;}
+  .wm-score .wl-win{color:#3ec98a;}
+  .wm-score .wl-lose{color:var(--red);}
+  @media(max-width:560px){.wm-card .wm-top{flex-wrap:wrap;}.wm-card .wm-outcome{order:3;}.wm-card .wm-date{order:2;}}
   .wm-empty{text-align:center;color:var(--muted);font-style:italic;padding:24px 10px;font-size:13px;}
 
   .res{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
@@ -573,7 +587,8 @@
     <div class="sec" style="margin-top:0;">
       <div class="sec-head"><h3>🔥 Warm Market — Your People</h3><span class="days lock"><span id="wmTotal">0</span> leads</span></div>
       <div class="sec-body">
-        <div class="marker">Every person you talk to lives here as a follow-up reminder. Work this list — your warm market is your first paycheck.</div>
+        <div class="marker">Every person you talk to lives here as a follow-up reminder. Add notes, and mark <b>Win</b> when you earn the business or <b>Lose</b> when you don't — your close rate is tracked for you and your leaders.</div>
+        <div class="wm-score" id="wmScore">No outcomes logged yet</div>
         <div class="wm-log" style="margin:8px 0 14px;">
           <div class="wm-log-h">➕ Add a contact</div>
           <div class="wm-rows" id="wmRows2"></div>
@@ -727,23 +742,38 @@
   function logContacts2(){logFrom('wmRows2','wmLogNote2');}
   function wmToggle(id){for(var i=0;i<warmMarket.length;i++){if(warmMarket[i].id===id){warmMarket[i].done=!warmMarket[i].done;break;}}renderWarm();saveNow();}
   function wmRemove(id){warmMarket=warmMarket.filter(function(x){return x.id!==id;});renderWarm();saveNow();}
+  function wmOutcome(id,outcome){for(var i=0;i<warmMarket.length;i++){if(warmMarket[i].id===id){warmMarket[i].outcome=(warmMarket[i].outcome===outcome)?'':outcome;break;}}renderWarm();saveNow();}
+  var wmNoteTimer=null;
+  function wmNote(id,val){for(var i=0;i<warmMarket.length;i++){if(warmMarket[i].id===id){warmMarket[i].notes=val;break;}}setStat('Saving…',false);clearTimeout(wmNoteTimer);wmNoteTimer=setTimeout(function(){if(code)saveNow();},700);}
   function renderWarm(){
     var n=warmMarket.length;
+    var wins=warmMarket.filter(function(c){return c.outcome==='win';}).length;
+    var losses=warmMarket.filter(function(c){return c.outcome==='lose';}).length;
     if(el('vWarmCount'))el('vWarmCount').textContent=n;
     if(el('wmTotal'))el('wmTotal').textContent=n;
+    if(el('wmScore')){var dec=wins+losses;var rate=dec?Math.round(wins*100/dec):0;
+      el('wmScore').innerHTML = dec ? ('🏆 <span class="wl-win">'+wins+' Won</span> &nbsp;·&nbsp; <span class="wl-lose">'+losses+' Lost</span> &nbsp;·&nbsp; '+rate+'% close rate') : 'No outcomes logged yet — mark Win/Lose on your contacts below.';}
     if(el('wmEmpty'))el('wmEmpty').style.display=n?'none':'block';
     var L=el('wmList');if(!L)return;L.innerHTML='';
     warmMarket.forEach(function(c){
       var meta=[];
       if(c.phone)meta.push('<a href="tel:'+escH(c.phone)+'">'+escH(c.phone)+'</a>');
       if(c.email)meta.push('<a href="mailto:'+escH(c.email)+'">'+escH(c.email)+'</a>');
-      var d=document.createElement('div');d.className='wm-card'+(c.done?' done':'');
-      d.innerHTML='<input type="checkbox" class="wm-chk" '+(c.done?'checked':'')+' title="Mark followed up">'+
+      var oc=c.outcome||'';
+      var d=document.createElement('div');d.className='wm-card'+(c.done?' done':'')+(oc?(' oc-'+oc):'');
+      d.innerHTML='<div class="wm-top">'+
+        '<input type="checkbox" class="wm-chk" '+(c.done?'checked':'')+' title="Mark followed up">'+
         '<div class="wm-main"><div class="wm-name">'+escH(c.name||'(no name)')+'</div><div class="wm-meta">'+(meta.join(' · ')||'no contact info')+'</div></div>'+
+        '<div class="wm-outcome"><button class="wl wl-w'+(oc==='win'?' on':'')+'" title="Won the business">✓ Win</button><button class="wl wl-l'+(oc==='lose'?' on':'')+'" title="Lost the business">✕ Lose</button></div>'+
         '<div class="wm-date">'+escH(c.date||'')+'</div>'+
-        '<button class="wm-del" title="Remove">🗑</button>';
+        '<button class="wm-del" title="Remove">🗑</button>'+
+        '</div>'+
+        '<textarea class="wm-notes" rows="2" placeholder="Notes — what was discussed, next steps, objections…">'+escH(c.notes||'')+'</textarea>';
       d.querySelector('.wm-chk').addEventListener('change',function(){wmToggle(c.id);});
+      d.querySelector('.wl-w').addEventListener('click',function(){wmOutcome(c.id,'win');});
+      d.querySelector('.wl-l').addEventListener('click',function(){wmOutcome(c.id,'lose');});
       d.querySelector('.wm-del').addEventListener('click',function(){wmRemove(c.id);});
+      d.querySelector('.wm-notes').addEventListener('input',function(){wmNote(c.id,this.value);});
       L.appendChild(d);
     });
   }
