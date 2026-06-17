@@ -96,6 +96,12 @@
   .item input:checked + label{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--gold-deep);}
   .item input:checked + label .meta{text-decoration:line-through;}
   .sub-note{font-size:12px;color:var(--muted);padding:6px 0 0 36px;}
+  .emd-pick{border:1px solid var(--gold-deep);border-radius:12px;padding:13px 15px;margin:8px 0;background:rgba(212,175,55,.06);}
+  .emd-pick > label{display:block;font-weight:900;color:#fff6da;font-size:14px;letter-spacing:.02em;}
+  .emd-pick .emd-sub{font-size:12.5px;color:var(--muted);margin:4px 0 9px;}
+  .emd-pick select{width:100%;padding:12px 13px;border-radius:10px;border:1px solid var(--gold-deep);background:#0c0b05;color:#fff6da;font-size:15px;font-weight:800;outline:none;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--gold) 50%),linear-gradient(135deg,var(--gold) 50%,transparent 50%);background-position:calc(100% - 18px) 50%,calc(100% - 13px) 50%;background-size:5px 5px,5px 5px;background-repeat:no-repeat;}
+  .emd-pick select:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(212,175,55,.16);}
+  .emd-pick .emd-note{font-size:12px;color:var(--green);font-weight:700;margin-top:7px;min-height:14px;}
   .item.tier label{font-weight:800;color:#fff6da;}
   .item.tier{background:rgba(212,175,55,.04);border-radius:8px;padding-left:8px;padding-right:8px;}
 
@@ -311,6 +317,18 @@
       <div class="item"><input type="checkbox" class="chk" id="w1_exam"><label for="w1_exam"><b>4. Schedule your state exam</b> <span class="meta">Lock the exam date on your calendar — Day 21 maximum</span></label></div>
       <div class="item"><input type="checkbox" class="chk" id="w1_prep"><label for="w1_prep"><b>5. Lock in your exam prep</b> <span class="meta">Daily cadence — minimum 1–2 hours per day</span></label></div>
       <div class="item"><input type="checkbox" class="chk" id="w1_day1"><label for="w1_day1"><b>6. Complete Day 1 Training</b> <span class="meta">Wed 6 PM PST · <a href="https://us02web.zoom.us/j/9646509994?pwd=a2s1OXhzeTB3N3BBOWRkUmw1VHE2Zz09" target="_blank" rel="noopener">Join Zoom →</a> · <a href="https://grindagencies.github.io/smmt-calendar/index.html" target="_blank" rel="noopener">Add from Calendar →</a><br>8 Wealth Categories · IUL / Family Bank · FIA · "Your Next 90 Days"</span></label></div>
+      <div class="emd-pick">
+        <label for="emdSel">🎖️ Choose Your EMD</label>
+        <div class="emd-sub">Lock in your direct EMD (your upline leader). This aligns you with your leader and groups your tracking under them.</div>
+        <select id="emdSel">
+          <option value="">— Select your EMD —</option>
+          <option value="Elijah Cox">Elijah Cox</option>
+          <option value="Yonatan Kenzo">Yonatan Kenzo</option>
+          <option value="Seale Mosle">Seale Mosle</option>
+          <option value="Jianfeng Zhao">Jianfeng Zhao</option>
+        </select>
+        <div class="emd-note" id="emdNote"></div>
+      </div>
       <div class="item"><input type="checkbox" class="chk" id="w1_day2"><label for="w1_day2"><b>7. Complete Day 2 Training</b> <span class="meta">Thu 6 PM PST · <a href="https://us02web.zoom.us/j/9646509994?pwd=a2s1OXhzeTB3N3BBOWRkUmw1VHE2Zz09" target="_blank" rel="noopener">Join Zoom →</a> · <a href="https://grindagencies.github.io/smmt-calendar/index.html" target="_blank" rel="noopener">Add from Calendar →</a><br>Top 6 framework · Reference Script · E.T.H.O.R. Script</span></label></div>
       <div class="item"><input type="checkbox" class="chk" id="w1_md"><label for="w1_md"><b>8. Schedule your 1-on-1 sit-down with your Marketing Director (Day 3)</b></label></div>
       <div class="marker" style="border-bottom:none;color:var(--green);font-weight:800;font-style:normal;">✅ Week 1 complete — your foundation is set.</div>
@@ -563,7 +581,7 @@
   var dboxes=Array.prototype.slice.call(document.querySelectorAll('.dchk'));
   var carchks=Array.prototype.slice.call(document.querySelectorAll('.carchk'));
   var carcodes=Array.prototype.slice.call(document.querySelectorAll('.car-code'));
-  var code=null, saveTimer=null, currentPath=null, ftLog={}, warmMarket=[];
+  var code=null, saveTimer=null, currentPath=null, ftLog={}, warmMarket=[], emd="";
 
   function el(id){return document.getElementById(id);}
   function val(id){return (el(id).value||"").trim();}
@@ -620,7 +638,7 @@
     clearTimeout(saveTimer);
     saveTimer=setTimeout(function(){
       var vis=boxes.filter(function(b){return b.offsetParent!==null;}).length;
-      api({action:'save',code:code,progress:progressMap(),total:vis,pathway:currentPath,ft_log:ftLog,carrier_codes:carriersPayload(),warm_market:warmMarket}).then(function(res){
+      api({action:'save',code:code,progress:progressMap(),total:vis,pathway:currentPath,emd:emd,ft_log:ftLog,carrier_codes:carriersPayload(),warm_market:warmMarket}).then(function(res){
         setStat(res&&res.ok?'Saved ✓':'Saved on this device',res&&res.ok);
       }).catch(function(){setStat('Saved on this device (offline)',false);});
     },600);
@@ -637,7 +655,9 @@
 
   /* ---- WARM MARKET ---- */
   function escH(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
-  function saveNow(){if(!code)return;var vis=boxes.filter(function(b){return b.offsetParent!==null;}).length;setStat('Saving…',false);api({action:'save',code:code,progress:progressMap(),total:vis,pathway:currentPath,ft_log:ftLog,carrier_codes:carriersPayload(),warm_market:warmMarket}).then(function(r){setStat(r&&r.ok?'Saved ✓':'Saved on this device',r&&r.ok);}).catch(function(){setStat('Saved on this device (offline)',false);});}
+  function saveNow(){if(!code)return;var vis=boxes.filter(function(b){return b.offsetParent!==null;}).length;setStat('Saving…',false);api({action:'save',code:code,progress:progressMap(),total:vis,pathway:currentPath,emd:emd,ft_log:ftLog,carrier_codes:carriersPayload(),warm_market:warmMarket}).then(function(r){setStat(r&&r.ok?'Saved ✓':'Saved on this device',r&&r.ok);}).catch(function(){setStat('Saved on this device (offline)',false);});}
+  function restoreEmd(v){emd=v||"";var s=el('emdSel');if(s)s.value=emd;}
+  (function(){var s=el('emdSel');if(s)s.addEventListener('change',function(){emd=s.value;if(el('emdNote'))el('emdNote').textContent=emd?('Aligned with '+emd+' ✓'):'';if(code)saveNow();});})();
   function wmRowHTML(){return '<div class="wm-row"><input class="wm-n" type="text" placeholder="Name" autocomplete="off"><input class="wm-p" type="tel" placeholder="Phone" autocomplete="off"><input class="wm-e" type="email" placeholder="Email" autocomplete="off"><button type="button" class="wm-x" onclick="this.parentNode.remove()">×</button></div>';}
   function addWmRow(){el('wmRows').insertAdjacentHTML('beforeend',wmRowHTML());}
   function addWmRow2(){el('wmRows2').insertAdjacentHTML('beforeend',wmRowHTML());}
@@ -735,7 +755,7 @@
       ftLog=res.agent.ft_log||{};
       applyProgress(res.agent.progress);
       applyCarriers(res.agent.carrier_codes); bizCount();
-      warmMarket=res.agent.warm_market||[]; renderWarm();
+      warmMarket=res.agent.warm_market||[]; renderWarm(); restoreEmd(res.agent.emd);
       showApp(res.agent.first_name+' '+res.agent.last_name);
       restorePath(res.agent.pathway);
       update(); loadDaily(res.agent);
@@ -743,7 +763,7 @@
       btn.disabled=false;btn.textContent="Start My Tracker →";
     }).catch(function(){el('gMsg').textContent="Network issue — please try again.";btn.disabled=false;btn.textContent="Start My Tracker →";});
   }
-  function signOut(){try{localStorage.removeItem('tsfg_code');}catch(e){}code=null;currentPath=null;ftLog={};warmMarket=[];applyProgress({});applyCarriers({});bizCount();renderWarm();setView('tracker');dboxes.forEach(function(b){b.checked=false;});showGate();el('gFirst').value="";el('gLast').value="";el('gCode').value="";el('gMsg').textContent="";}
+  function signOut(){try{localStorage.removeItem('tsfg_code');}catch(e){}code=null;currentPath=null;ftLog={};warmMarket=[];emd="";restoreEmd("");applyProgress({});applyCarriers({});bizCount();renderWarm();setView('tracker');dboxes.forEach(function(b){b.checked=false;});showGate();el('gFirst').value="";el('gLast').value="";el('gCode').value="";el('gMsg').textContent="";}
 
   function boot(){
     try{code=localStorage.getItem('tsfg_code');}catch(e){code=null;}
@@ -753,7 +773,7 @@
         ftLog=res.agent.ft_log||{};
         applyProgress(res.agent.progress);
         applyCarriers(res.agent.carrier_codes); bizCount();
-        warmMarket=res.agent.warm_market||[]; renderWarm();
+        warmMarket=res.agent.warm_market||[]; renderWarm(); restoreEmd(res.agent.emd);
         showApp(res.agent.first_name+' '+res.agent.last_name);
         restorePath(res.agent.pathway);
         update(); loadDaily(res.agent);
