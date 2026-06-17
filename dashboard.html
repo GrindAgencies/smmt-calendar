@@ -158,7 +158,7 @@
     return Math.floor(s/86400)+"d ago";
   }
   function render(agents){
-    data=(agents||[]).map(function(a){return {name:(a.first_name+' '+a.last_name),code:a.code,pathway:a.pathway||'',pct:a.pct||0,done:a.done_count||0,total:a.total||35,ftDone:a.ft_done||0,ftPace:a.ft_pace_per_wk||0,streak:a.live_streak||0,best:a.best_streak||0,lastDaily:a.last_daily||'',updated:a.updated_at};});
+    data=(agents||[]).map(function(a){return {name:(a.first_name+' '+a.last_name),code:a.code,pathway:a.pathway||'',pct:a.pct||0,done:a.done_count||0,total:a.total||35,ftDone:a.ft_done||0,ftPace:a.ft_pace_per_wk||0,biz:a.biz_submitted||0,streak:a.live_streak||0,best:a.best_streak||0,lastDaily:a.last_daily||'',updated:a.updated_at};});
     // stats
     el('sAgents').textContent=data.length;
     el('sAvg').textContent=(data.length?Math.round(data.reduce(function(s,a){return s+a.pct;},0)/data.length):0)+'%';
@@ -182,6 +182,7 @@
       var tr=document.createElement('tr');
       var pth = a.pathway==='builder' ? '<span class="pill bld">🔨 Builder</span>' : a.pathway==='producer' ? '<span class="pill prd">💰 Producer</span>' : '<span class="pill non">— not set</span>';
       var pace = a.ftDone>=2 ? (a.ftPace+'/wk') : (a.ftDone>0?'started':'—');
+      var bizTxt = a.pathway==='producer' ? (' · 📝 '+a.biz+' biz') : '';
       var strk = a.streak>0 ? ('<span class="strk">🔥 '+a.streak+'d</span>') : '<span class="ago">—</span>';
       var strkB = a.best>0 ? (' <span class="ago">(best '+a.best+')</span>') : '';
       tr.innerHTML='<td class="nm">'+esc(a.name)+'</td>'+
@@ -189,7 +190,7 @@
         '<td>'+pth+'</td>'+
         '<td><div class="pwrap"><div class="pbar"><span style="width:'+a.pct+'%"></span></div><span class="pn'+(a.pct>=100?' done100':'')+'">'+a.pct+'%</span></div></td>'+
         '<td>'+a.done+' / '+a.total+'</td>'+
-        '<td>'+a.ftDone+' <span class="ago">('+pace+')</span></td>'+
+        '<td>'+a.ftDone+' <span class="ago">('+pace+')'+bizTxt+'</span></td>'+
         '<td>'+strk+strkB+'</td>'+
         '<td class="ago">'+timeAgo(a.updated)+'</td>';
       tb.appendChild(tr);
