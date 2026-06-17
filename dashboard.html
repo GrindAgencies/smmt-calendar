@@ -13,6 +13,11 @@
     background:radial-gradient(900px 500px at 100% 0%, rgba(212,175,55,.10) 0%, transparent 55%),radial-gradient(1100px 600px at 50% -10%, #161206 0%, var(--bg) 55%);
     color:var(--ink);line-height:1.5;padding:18px 16px 70px;}
   .wrap{max-width:1040px;margin:0 auto;}
+  .switch{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:0 auto 18px;max-width:560px;}
+  .switch a{flex:1;min-width:180px;text-align:center;text-decoration:none;font-weight:900;font-size:13px;letter-spacing:.04em;text-transform:uppercase;
+    padding:12px 16px;border-radius:12px;border:1px solid var(--gold-deep);color:var(--gold);background:#141005;transition:.15s;}
+  .switch a:hover{background:#1d1607;}
+  .switch a.active{color:#0a0a0a;background:linear-gradient(90deg,var(--gold-bright),var(--gold));border-color:var(--gold);box-shadow:0 6px 18px rgba(212,175,55,.25);}
   .head{text-align:center;margin-bottom:18px;}
   .head img{height:60px;mix-blend-mode:screen;filter:drop-shadow(0 5px 14px rgba(212,175,55,.35));}
   .head .wm{font-family:Georgia,serif;letter-spacing:.28em;font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;margin-top:6px;}
@@ -62,6 +67,10 @@
 </head>
 <body>
 <div class="wrap">
+  <div class="switch">
+    <a class="active" href="https://grindagencies.github.io/smmt-calendar/dashboard.html">🔑 Leadership Access</a>
+    <a href="https://grindagencies.github.io/smmt-calendar/checklist.html">✅ Agent Sign-In</a>
+  </div>
   <div class="head">
     <img src="https://grindagencies.github.io/smmt-calendar/logo.png" alt="TSFG">
     <div class="wm">The Standard Financial Group</div>
