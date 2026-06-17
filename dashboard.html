@@ -61,6 +61,11 @@
   .pill.prd{color:#bff2da;background:rgba(62,143,106,.18);border:1px solid #3e8f6a;}
   .pill.non{color:var(--muted);background:rgba(182,169,130,.10);border:1px solid var(--line);}
   .strk{font-weight:800;color:var(--gold-bright);}
+  .emdpill{display:inline-block;font-size:11.5px;font-weight:800;color:#fff6da;background:rgba(212,175,55,.14);border:1px solid var(--gold-deep);padding:4px 9px;border-radius:999px;white-space:nowrap;}
+  .tools-r{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .emdfilter{font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--gold);display:flex;align-items:center;gap:6px;}
+  .emdfilter select{font-size:12px;font-weight:800;color:#fff6da;background:#0c0b05;border:1px solid var(--gold-deep);border-radius:999px;padding:7px 12px;cursor:pointer;outline:none;}
+  .emdfilter select:focus{border-color:var(--gold);}
   .sheet{margin-top:24px;border:1px solid var(--gold-deep);border-radius:16px;padding:18px 20px;background:linear-gradient(160deg,#15110a,#0a0905);}
   .sheet h3{margin:0 0 8px;color:var(--gold);font-size:14px;text-transform:uppercase;letter-spacing:.06em;}
   .sheet p{font-size:13px;color:var(--ink);margin:0 0 10px;}
@@ -100,12 +105,20 @@
     </div>
     <div class="toolbar">
       <div class="t">Agent Progress</div>
-      <div><button onclick="refresh()">↻ Refresh</button> <button onclick="signout()">Sign out</button></div>
+      <div class="tools-r">
+        <label class="emdfilter">EMD:
+          <select id="emdFilter" onchange="draw()">
+            <option value="">All EMDs</option>
+          </select>
+        </label>
+        <button onclick="refresh()">↻ Refresh</button> <button onclick="signout()">Sign out</button>
+      </div>
     </div>
     <table>
       <thead><tr>
         <th onclick="sortBy('name')">Agent</th>
         <th onclick="sortBy('code')">GFI Code</th>
+        <th onclick="sortBy('emd')">EMD</th>
         <th onclick="sortBy('pathway')">Pathway</th>
         <th onclick="sortBy('pct')">Progress</th>
         <th onclick="sortBy('done')">Steps</th>
@@ -158,7 +171,7 @@
     return Math.floor(s/86400)+"d ago";
   }
   function render(agents){
-    data=(agents||[]).map(function(a){return {name:(a.first_name+' '+a.last_name),code:a.code,pathway:a.pathway||'',pct:a.pct||0,done:a.done_count||0,total:a.total||35,ftDone:a.ft_done||0,ftPace:a.ft_pace_per_wk||0,biz:a.biz_submitted||0,streak:a.live_streak||0,best:a.best_streak||0,lastDaily:a.last_daily||'',updated:a.updated_at};});
+    data=(agents||[]).map(function(a){return {name:(a.first_name+' '+a.last_name),code:a.code,emd:a.emd||'',pathway:a.pathway||'',pct:a.pct||0,done:a.done_count||0,total:a.total||35,ftDone:a.ft_done||0,ftPace:a.ft_pace_per_wk||0,biz:a.biz_submitted||0,streak:a.live_streak||0,best:a.best_streak||0,lastDaily:a.last_daily||'',updated:a.updated_at};});
     // stats
     el('sAgents').textContent=data.length;
     el('sAvg').textContent=(data.length?Math.round(data.reduce(function(s,a){return s+a.pct;},0)/data.length):0)+'%';
@@ -167,7 +180,19 @@
     el('sPaths').textContent=nb+' / '+np;
     var wk=Date.now()-7*86400000;
     el('sActive').textContent=data.filter(function(a){return a.updated&&new Date(a.updated).getTime()>wk;}).length;
+    buildEmdFilter();
     draw();
+  }
+  function buildEmdFilter(){
+    var sel=el('emdFilter');if(!sel)return;
+    var cur=sel.value;
+    var emds={};data.forEach(function(a){if(a.emd)emds[a.emd]=(emds[a.emd]||0)+1;});
+    var names=Object.keys(emds).sort();
+    var unassigned=data.filter(function(a){return !a.emd;}).length;
+    var html='<option value="">All EMDs ('+data.length+')</option>';
+    names.forEach(function(n){html+='<option value="'+esc(n)+'">'+esc(n)+' ('+emds[n]+')</option>';});
+    if(unassigned)html+='<option value="__none__">— No EMD set ('+unassigned+')</option>';
+    sel.innerHTML=html; sel.value=cur;
   }
   function draw(){
     data.sort(function(a,b){
@@ -176,17 +201,21 @@
       if(typeof x==='string'){return sortDir*x.localeCompare(y);}
       return sortDir*((x>y?1:x<y?-1:0));
     });
+    var f=el('emdFilter')?el('emdFilter').value:'';
+    var rowsData=data.filter(function(a){ if(!f)return true; if(f==='__none__')return !a.emd; return a.emd===f; });
     var tb=el('rows');tb.innerHTML="";
-    el('empty').style.display=data.length?'none':'block';
-    data.forEach(function(a){
+    el('empty').style.display=rowsData.length?'none':'block';
+    rowsData.forEach(function(a){
       var tr=document.createElement('tr');
       var pth = a.pathway==='builder' ? '<span class="pill bld">🔨 Builder</span>' : a.pathway==='producer' ? '<span class="pill prd">💰 Producer</span>' : '<span class="pill non">— not set</span>';
       var pace = a.ftDone>=2 ? (a.ftPace+'/wk') : (a.ftDone>0?'started':'—');
       var bizTxt = a.pathway==='producer' ? (' · 📝 '+a.biz+' biz') : '';
       var strk = a.streak>0 ? ('<span class="strk">🔥 '+a.streak+'d</span>') : '<span class="ago">—</span>';
       var strkB = a.best>0 ? (' <span class="ago">(best '+a.best+')</span>') : '';
+      var emdTxt = a.emd ? '<span class="emdpill">'+esc(a.emd)+'</span>' : '<span class="ago">—</span>';
       tr.innerHTML='<td class="nm">'+esc(a.name)+'</td>'+
         '<td class="cd">'+esc(a.code)+'</td>'+
+        '<td>'+emdTxt+'</td>'+
         '<td>'+pth+'</td>'+
         '<td><div class="pwrap"><div class="pbar"><span style="width:'+a.pct+'%"></span></div><span class="pn'+(a.pct>=100?' done100':'')+'">'+a.pct+'%</span></div></td>'+
         '<td>'+a.done+' / '+a.total+'</td>'+
