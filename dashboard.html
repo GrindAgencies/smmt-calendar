@@ -63,6 +63,18 @@
   .strk{font-weight:800;color:var(--gold-bright);}
   .emdpill{display:inline-block;font-size:11.5px;font-weight:800;color:var(--gold-bright);background:rgba(212,175,55,.14);border:1px solid var(--gold-deep);padding:4px 9px;border-radius:999px;white-space:nowrap;}
   .mdpill{display:inline-block;font-size:11.5px;font-weight:800;color:#bcdcff;background:rgba(59,110,165,.18);border:1px solid #3b6ea5;padding:4px 9px;border-radius:999px;white-space:nowrap;}
+  tr.qrow td{opacity:.5;text-decoration:line-through;text-decoration-color:var(--red);}
+  tr.qrow td.actions{opacity:1;text-decoration:none;}
+  tr.qrow td.nm{text-decoration:none;}
+  .quitbadge{display:inline-block;font-size:9.5px;font-weight:900;letter-spacing:.06em;color:#fff;background:var(--red);padding:2px 6px;border-radius:5px;vertical-align:middle;text-decoration:none;}
+  td.actions{white-space:nowrap;}
+  .act{font-size:11px;font-weight:800;letter-spacing:.03em;border-radius:999px;padding:6px 11px;cursor:pointer;border:1px solid var(--line);background:#171206;color:var(--muted);margin-right:5px;}
+  .act-quit{border-color:var(--gold-deep);color:var(--gold);}
+  .act-quit:hover{background:var(--gold);color:#0a0a0a;}
+  .act-reactivate{border-color:#3e8f6a;color:#bff2da;}
+  .act-reactivate:hover{background:#3e8f6a;color:#06150e;}
+  .act-del{border-color:#7a2c22;color:#e0937f;}
+  .act-del:hover{background:var(--red);color:#fff;border-color:var(--red);}
   .tools-r{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
   .emdfilter{font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--gold);display:flex;align-items:center;gap:6px;}
   .emdfilter select{font-size:12px;font-weight:800;color:#fff6da;background:#0c0b05;border:1px solid var(--gold-deep);border-radius:999px;padding:7px 12px;cursor:pointer;outline:none;}
@@ -102,7 +114,7 @@
       <div class="stat"><div class="n" id="sAgents">0</div><div class="l">Agents</div></div>
       <div class="stat"><div class="n" id="sAvg">0%</div><div class="l">Avg Progress</div></div>
       <div class="stat"><div class="n" id="sPaths">0 / 0</div><div class="l">Builders / Producers</div></div>
-      <div class="stat"><div class="n" id="sActive">0</div><div class="l">Active (updated 7d)</div></div>
+      <div class="stat"><div class="n" id="sQuit">0</div><div class="l">Quit (inactive)</div></div>
     </div>
     <div class="toolbar">
       <div class="t">Agent Progress</div>
@@ -117,6 +129,7 @@
             <option value="">All Senior Brokers</option>
           </select>
         </label>
+        <button id="quitToggle" onclick="toggleQuit()">Hide quit</button>
         <button onclick="refresh()">↻ Refresh</button> <button onclick="signout()">Sign out</button>
       </div>
     </div>
@@ -132,6 +145,7 @@
         <th onclick="sortBy('ftDone')">Field Trainings</th>
         <th onclick="sortBy('streak')">🔥 Streak</th>
         <th onclick="sortBy('updated')">Last Updated</th>
+        <th>Actions</th>
       </tr></thead>
       <tbody id="rows"></tbody>
     </table>
@@ -149,7 +163,7 @@
 
 <script>
   var API="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/tracker-api";
-  var token=null, data=[], sortKey='pct', sortDir=-1;
+  var token=null, data=[], sortKey='pct', sortDir=-1, showQuit=true;
 
   function el(id){return document.getElementById(id);}
   function enter(){
@@ -178,15 +192,15 @@
     return Math.floor(s/86400)+"d ago";
   }
   function render(agents){
-    data=(agents||[]).map(function(a){return {name:(a.first_name+' '+a.last_name),code:a.code,emd:a.emd||'',md:a.md||'',pathway:a.pathway||'',pct:a.pct||0,done:a.done_count||0,total:a.total||35,ftDone:a.ft_done||0,ftPace:a.ft_pace_per_wk||0,biz:a.biz_submitted||0,streak:a.live_streak||0,best:a.best_streak||0,lastDaily:a.last_daily||'',updated:a.updated_at};});
-    // stats
-    el('sAgents').textContent=data.length;
-    el('sAvg').textContent=(data.length?Math.round(data.reduce(function(s,a){return s+a.pct;},0)/data.length):0)+'%';
-    var nb=data.filter(function(a){return a.pathway==='builder';}).length;
-    var np=data.filter(function(a){return a.pathway==='producer';}).length;
+    data=(agents||[]).map(function(a){return {name:(a.first_name+' '+a.last_name),code:a.code,status:a.status||'active',emd:a.emd||'',md:a.md||'',pathway:a.pathway||'',pct:a.pct||0,done:a.done_count||0,total:a.total||35,ftDone:a.ft_done||0,ftPace:a.ft_pace_per_wk||0,biz:a.biz_submitted||0,streak:a.live_streak||0,best:a.best_streak||0,lastDaily:a.last_daily||'',updated:a.updated_at};});
+    // stats over ACTIVE only
+    var act=data.filter(function(a){return a.status!=='quit';});
+    el('sAgents').textContent=act.length;
+    el('sAvg').textContent=(act.length?Math.round(act.reduce(function(s,a){return s+a.pct;},0)/act.length):0)+'%';
+    var nb=act.filter(function(a){return a.pathway==='builder';}).length;
+    var np=act.filter(function(a){return a.pathway==='producer';}).length;
     el('sPaths').textContent=nb+' / '+np;
-    var wk=Date.now()-7*86400000;
-    el('sActive').textContent=data.filter(function(a){return a.updated&&new Date(a.updated).getTime()>wk;}).length;
+    el('sQuit').textContent=data.filter(function(a){return a.status==='quit';}).length;
     buildEmdFilter();
     buildMdFilter();
     draw();
@@ -226,12 +240,16 @@
     var rowsData=data.filter(function(a){
       if(f){ if(f==='__none__'){ if(a.emd)return false; } else if(a.emd!==f)return false; }
       if(mf && a.md!==mf)return false;
+      if(!showQuit && a.status==='quit')return false;
       return true;
     });
+    // quit brokers always sort to the bottom
+    rowsData.sort(function(a,b){return (a.status==='quit'?1:0)-(b.status==='quit'?1:0);});
     var tb=el('rows');tb.innerHTML="";
     el('empty').style.display=rowsData.length?'none':'block';
     rowsData.forEach(function(a){
       var tr=document.createElement('tr');
+      if(a.status==='quit')tr.className='qrow';
       var pth = a.pathway==='builder' ? '<span class="pill bld">🔨 Builder</span>' : a.pathway==='producer' ? '<span class="pill prd">💰 Producer</span>' : '<span class="pill non">— not set</span>';
       var pace = a.ftDone>=2 ? (a.ftPace+'/wk') : (a.ftDone>0?'started':'—');
       var bizTxt = a.pathway==='producer' ? (' · 📝 '+a.biz+' biz') : '';
@@ -239,7 +257,12 @@
       var strkB = a.best>0 ? (' <span class="ago">(best '+a.best+')</span>') : '';
       var emdTxt = a.emd ? '<span class="emdpill">'+esc(a.emd)+'</span>' : '<span class="ago">—</span>';
       var mdTxt = a.md ? '<span class="mdpill">'+esc(a.md)+'</span>' : '<span class="ago">—</span>';
-      tr.innerHTML='<td class="nm">'+esc(a.name)+'</td>'+
+      var nameCell = esc(a.name) + (a.status==='quit' ? ' <span class="quitbadge">QUIT</span>' : '');
+      var quitBtn = a.status==='quit'
+        ? '<button class="act act-reactivate" data-code="'+esc(a.code)+'" data-name="'+esc(a.name)+'" data-act="reactivate">Reactivate</button>'
+        : '<button class="act act-quit" data-code="'+esc(a.code)+'" data-name="'+esc(a.name)+'" data-act="quit">Quit</button>';
+      var delBtn = '<button class="act act-del" data-code="'+esc(a.code)+'" data-name="'+esc(a.name)+'" data-act="delete">Delete</button>';
+      tr.innerHTML='<td class="nm">'+nameCell+'</td>'+
         '<td class="cd">'+esc(a.code)+'</td>'+
         '<td>'+emdTxt+'</td>'+
         '<td>'+mdTxt+'</td>'+
@@ -248,14 +271,41 @@
         '<td>'+a.done+' / '+a.total+'</td>'+
         '<td>'+a.ftDone+' <span class="ago">('+pace+')'+bizTxt+'</span></td>'+
         '<td>'+strk+strkB+'</td>'+
-        '<td class="ago">'+timeAgo(a.updated)+'</td>';
+        '<td class="ago">'+timeAgo(a.updated)+'</td>'+
+        '<td class="actions">'+quitBtn+delBtn+'</td>';
       tb.appendChild(tr);
     });
   }
   function sortBy(k){ if(sortKey===k)sortDir=-sortDir; else {sortKey=k;sortDir=(k==='name'||k==='code')?1:-1;} draw(); }
+  function toggleQuit(){ showQuit=!showQuit; el('quitToggle').textContent=showQuit?'Hide quit':'Show quit'; draw(); }
+  function postAction(payload, okMsg){
+    if(!token)return;
+    fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+      .then(function(r){return r.json();})
+      .then(function(res){ if(res&&res.ok){ refresh(); } else { alert('Action failed'+(res&&res.error?(': '+res.error):'')); } })
+      .catch(function(){ alert('Network issue — please try again.'); });
+  }
+  function doAction(act,code,name){
+    if(act==='delete'){
+      if(!confirm('PERMANENTLY DELETE '+name+' ('+code+')?\n\nThis removes their account and all data. It cannot be undone. Use this only for mistaken / misspelled registrations.'))return;
+      postAction({action:'delete',token:token,code:code});
+    } else if(act==='quit'){
+      if(!confirm('Mark '+name+' ('+code+') as QUIT?\n\nTheir progress and info are kept, but they are struck from the active list and removed from active counts.'))return;
+      postAction({action:'setstatus',token:token,code:code,status:'quit'});
+    } else if(act==='reactivate'){
+      postAction({action:'setstatus',token:token,code:code,status:'active'});
+    }
+  }
   function esc(s){return (s==null?'':String(s)).replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c];});}
   function setFormula(){ el('formula').textContent='=IMPORTDATA("'+API+'?action=export&token='+token+'")'; }
   function copyFormula(){ navigator.clipboard.writeText(el('formula').textContent).then(function(){var b=event.target;b.textContent="Copied ✓";setTimeout(function(){b.textContent="Copy formula";},1500);}); }
+
+  // action button delegation
+  el('rows').addEventListener('click',function(e){
+    var b=e.target&&e.target.closest?e.target.closest('.act'):null;
+    if(!b)return;
+    doAction(b.getAttribute('data-act'),b.getAttribute('data-code'),b.getAttribute('data-name'));
+  });
 
   // auto-enter if session has token
   (function(){ var t=null; try{t=sessionStorage.getItem('tsfg_admin');}catch(e){} if(t){el('pass').value=t;enter();} })();
