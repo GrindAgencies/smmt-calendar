@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>New Agent 90-Day Tracker — The Standard Financial Group</title>
+<link rel="icon" href="https://grindagencies.github.io/smmt-calendar/logo.png">
+<style>
+  :root{
+    --bg:#060606;--panel:#0f0e09;--ink:#f4efe2;--muted:#b6a982;--line:#2b2410;
+    --gold:#d4af37;--gold-bright:#f7d873;--gold-deep:#a8841f;--silver:#dfe3ec;--silver-deep:#9aa0ad;
+    --red:#e0533d;--green:#3ec98a;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:radial-gradient(900px 500px at 100% 0%, rgba(212,175,55,.10) 0%, transparent 55%),radial-gradient(1100px 600px at 50% -10%, #161206 0%, var(--bg) 55%);
+    color:var(--ink);line-height:1.5;padding:14px 16px 80px;}
+  .wrap{max-width:920px;margin:0 auto;}
+
+  /* TABS */
+  .tabs{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:0 0 18px;}
+  .tab{flex:1;min-width:200px;text-align:center;text-decoration:none;font-weight:900;font-size:14px;letter-spacing:.04em;text-transform:uppercase;
+    padding:14px 18px;border-radius:14px;border:1px solid var(--gold-deep);color:var(--gold);background:#141005;transition:.15s;}
+  .tab:hover{background:#1d1607;}
+  .tab.active{color:#0a0a0a;background:linear-gradient(90deg,var(--gold-bright),var(--gold));border-color:var(--gold);box-shadow:0 6px 18px rgba(212,175,55,.25);}
+
+  /* HERO */
+  .hero{text-align:center;border:1px solid var(--line);border-radius:20px;padding:26px 22px;background:linear-gradient(135deg,#15110a 0%,#070705 100%);box-shadow:0 16px 44px rgba(0,0,0,.6);}
+  .hero img{height:78px;margin:0 auto 8px;display:block;mix-blend-mode:screen;filter:drop-shadow(0 5px 14px rgba(212,175,55,.35));}
+  .hero .wm{font-family:Georgia,serif;letter-spacing:.3em;font-size:12px;font-weight:700;color:var(--gold);text-transform:uppercase;}
+  .hero h1{margin:10px 0 4px;font-weight:900;text-transform:uppercase;line-height:1;font-size:clamp(26px,5vw,44px);
+    background:linear-gradient(180deg,#fff4cf,var(--gold-bright) 45%,var(--gold-deep));-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .hero .sub{color:var(--silver);font-weight:800;letter-spacing:.06em;font-size:15px;}
+  .hero .quote{margin:14px auto 0;max-width:640px;color:var(--muted);font-style:italic;font-size:13.5px;}
+  .hero .quote b{color:var(--gold);font-style:normal;}
+
+  /* PROGRESS */
+  .progress-wrap{position:sticky;top:0;z-index:5;margin:18px 0 8px;padding:14px 16px;border:1px solid var(--gold-deep);border-radius:14px;
+    background:rgba(8,7,4,.96);backdrop-filter:blur(4px);box-shadow:0 8px 24px rgba(0,0,0,.5);}
+  .progress-top{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:8px;flex-wrap:wrap;}
+  .progress-top .lbl{font-weight:900;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--gold-bright);}
+  .progress-top .pct{font-weight:900;font-size:15px;color:#fff6da;}
+  .bar{height:12px;border-radius:999px;background:#241d0c;overflow:hidden;border:1px solid var(--line);}
+  .bar span{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--gold),var(--gold-bright));transition:width .35s ease;}
+  .reset{margin-top:10px;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);background:none;border:1px solid var(--line);border-radius:999px;padding:6px 12px;cursor:pointer;}
+  .reset:hover{color:var(--red);border-color:var(--red);}
+
+  /* INFO BANNERS */
+  .promise{margin-top:18px;border:1px solid var(--gold-deep);border-radius:16px;padding:20px 22px;background:linear-gradient(160deg,#1c1608,#0b0a05);}
+  .promise h2{margin:0 0 10px;font-size:14px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);}
+  .promise ul{margin:0;padding-left:0;list-style:none;}
+  .promise li{padding:5px 0;font-weight:700;color:#fff6da;font-size:14.5px;}
+  .standards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:14px;}
+  @media(max-width:680px){.standards{grid-template-columns:1fr;}}
+  .std{border:1px solid var(--line);border-radius:12px;padding:14px;background:rgba(212,175,55,.05);}
+  .std .d{font-weight:900;font-size:22px;color:var(--gold-bright);}
+  .std .t{font-size:12.5px;color:var(--muted);margin-top:4px;}
+  .mantra{text-align:center;margin:14px 0 0;font-weight:900;letter-spacing:.04em;font-style:italic;color:var(--gold);}
+
+  /* SECTIONS */
+  .sec{margin-top:26px;border:1px solid var(--line);border-radius:16px;overflow:hidden;background:var(--panel);}
+  .sec-head{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:16px 18px;background:linear-gradient(90deg,#171206,#0d0b05);border-bottom:1px solid var(--line);}
+  .sec-head h3{margin:0;font-size:16px;font-weight:900;color:#fff6da;text-transform:uppercase;letter-spacing:.04em;}
+  .sec-head .days{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#0a0a0a;background:linear-gradient(90deg,var(--gold-bright),var(--gold));padding:5px 11px;border-radius:999px;white-space:nowrap;}
+  .sec-head .days.lock{background:#241d0c;color:var(--gold);border:1px solid var(--gold-deep);}
+  .sec-body{padding:8px 18px 16px;}
+  .marker{font-size:12.5px;color:var(--muted);font-style:italic;padding:10px 0 4px;border-bottom:1px dashed var(--line);margin-bottom:6px;}
+
+  /* CHECK ITEMS */
+  .item{display:flex;gap:12px;align-items:flex-start;padding:11px 0;border-bottom:1px solid rgba(43,36,16,.6);}
+  .item:last-child{border-bottom:none;}
+  .item input{appearance:none;-webkit-appearance:none;flex:0 0 auto;width:24px;height:24px;border-radius:7px;border:2px solid var(--gold-deep);background:#0b0a05;cursor:pointer;position:relative;margin-top:1px;transition:.12s;}
+  .item input:hover{border-color:var(--gold);}
+  .item input:checked{background:linear-gradient(135deg,var(--gold-bright),var(--gold));border-color:var(--gold);}
+  .item input:checked::after{content:"✓";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#0a0a0a;font-weight:900;font-size:15px;}
+  .item label{flex:1;cursor:pointer;font-size:14.5px;color:#f4efe2;}
+  .item label .meta{display:block;color:var(--muted);font-size:12.5px;margin-top:3px;}
+  .item input:checked + label{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--gold-deep);}
+  .item input:checked + label .meta{text-decoration:line-through;}
+  .sub-note{font-size:12px;color:var(--muted);padding:6px 0 0 36px;}
+
+  /* TIER / milestone emphasis */
+  .item.tier label{font-weight:800;color:#fff6da;}
+  .item.tier{background:rgba(212,175,55,.04);border-radius:8px;padding-left:8px;padding-right:8px;}
+
+  /* RESOURCES / SUPPORT */
+  .res{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media(max-width:680px){.res{grid-template-columns:1fr;}}
+  .res-card{border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:rgba(212,175,55,.05);}
+  .res-card .who{font-weight:800;color:#fff6da;font-size:14px;}
+  .res-card .det{font-size:12.5px;color:var(--muted);margin-top:6px;}
+  .res-card a{color:var(--gold-bright);text-decoration:none;font-weight:700;word-break:break-word;}
+  .res-card a:hover{text-decoration:underline;}
+
+  /* RED FLAGS */
+  .flags{border:1px solid var(--red);border-radius:16px;padding:18px 20px;background:linear-gradient(160deg,#241010,#0c0805);margin-top:26px;}
+  .flags h3{margin:0 0 6px;color:#ff8b7a;font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:.04em;}
+  .flags ul{margin:8px 0 0;padding-left:20px;}
+  .flags li{font-size:13.5px;color:#f4efe2;margin-bottom:5px;}
+  .flags .hot{color:#ff8b7a;font-weight:800;}
+  .flags .foot{margin-top:10px;font-style:italic;color:#ffb3a6;font-size:13px;}
+
+  /* COMMITMENT */
+  .commit{margin-top:26px;text-align:center;border:1px solid var(--gold);border-radius:16px;padding:28px 24px;background:linear-gradient(135deg,#1c1608,#0a0903);}
+  .commit .q{font-size:clamp(17px,3.2vw,22px);font-weight:900;color:#fff6da;max-width:680px;margin:0 auto;line-height:1.45;}
+  .commit .sig{margin-top:14px;color:var(--gold);font-weight:800;font-size:13px;letter-spacing:.05em;}
+  .foot{text-align:center;color:var(--muted);font-size:12px;margin-top:30px;}
+  .tealnote{text-align:center;font-size:12px;color:var(--muted);margin-top:8px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="tabs">
+    <a class="tab" href="https://grindagencies.github.io/smmt-calendar/index.html">📅 Training Calendar</a>
+    <a class="tab active" href="https://grindagencies.github.io/smmt-calendar/checklist.html">✅ New Agent · 90-Day Tracker</a>
+  </div>
+
+  <div class="hero">
+    <img src="https://grindagencies.github.io/smmt-calendar/logo.png" alt="The Standard Financial Group">
+    <div class="wm">The Standard Financial Group</div>
+    <h1>New Agent Onboarding</h1>
+    <div class="sub">Your First 90 Days</div>
+    <div class="quote">"Welcome aboard. This is the path. Run it the way it's written and you'll be promoted. Skip steps and you'll stall." — <b>Chris Lorenz</b></div>
+  </div>
+
+  <!-- PROGRESS -->
+  <div class="progress-wrap">
+    <div class="progress-top">
+      <span class="lbl">Your Progress</span>
+      <span class="pct"><span id="pctNum">0</span>% &nbsp;·&nbsp; <span id="doneNum">0</span> of <span id="totNum">0</span> steps</span>
+    </div>
+    <div class="bar"><span id="barFill"></span></div>
+    <button class="reset" onclick="resetProgress()">↺ Reset my progress</button>
+  </div>
+  <div class="tealnote">Your check-offs save automatically on this device — come back anytime and pick up where you left off.</div>
+
+  <!-- THE PROMISE -->
+  <div class="promise">
+    <h2>🎯 The Promise — By Day 90 You Will Be</h2>
+    <ul>
+      <li>✅ State-licensed</li>
+      <li>✅ At least Senior Associate tier (50% contract)</li>
+      <li>✅ Earning your first income from a Business Partner you brought on</li>
+      <li>✅ Helping families full-time</li>
+    </ul>
+    <div class="standards">
+      <div class="std"><div class="d">7-Day</div><div class="t">Everything in Week 1 happens inside the first 7 days. No exceptions.</div></div>
+      <div class="std"><div class="d">14-Day</div><div class="t">Top 6 warmest-contact appointments completed within 14 days (Day 21 is the absolute outside edge).</div></div>
+      <div class="std"><div class="d">21-Day</div><div class="t">Pass the state life-insurance exam by Day 21 — a MAXIMUM, not a target.</div></div>
+    </div>
+    <div class="mantra">We move fast or we move on.</div>
+  </div>
+
+  <!-- WEEK 1 -->
+  <div class="sec">
+    <div class="sec-head"><h3>Week 1 — The Foundation</h3><span class="days">Days 1–7</span></div>
+    <div class="sec-body">
+      <div class="marker">Completed inside the first 7 days — not staged across the week.</div>
+      <div class="item"><input type="checkbox" class="chk" id="w1a"><label for="w1a">Sign the Independent Contractor Agreement (ICA)</label></div>
+      <div class="item"><input type="checkbox" class="chk" id="w1b"><label for="w1b">Submit background check</label></div>
+      <div class="item"><input type="checkbox" class="chk" id="w1c"><label for="w1c">Join the Team GroupMe</label></div>
+      <div class="item"><input type="checkbox" class="chk" id="w1d"><label for="w1d">Complete Day 1 Training <span class="meta">Wed 6 PM PST · Zoom 9646509994 / WEALTH — 8 Wealth Categories · IUL / Family Bank · Fixed Indexed Annuity · "Your Next 90 Days"</span></label></div>
+      <div class="item"><input type="checkbox" class="chk" id="w1e"><label for="w1e">Complete Day 2 Training <span class="meta">Thu 6 PM PST · same Zoom — Top 6 warmest-contact framework · Reference Script · E.T.H.O.R. Script</span></label></div>
+      <div class="item"><input type="checkbox" class="chk" id="w1f"><label for="w1f">Enroll in the pre-license course</label></div>
+      <div class="item"><input type="checkbox" class="chk" id="w1g"><label for="w1g">Schedule your state exam — exam date on the calendar</label></div>
+      <div class="item"><input type="checkbox" class="chk" id="w1h"><label for="w1h">Lock in your exam-prep cadence</label></div>
+    </div>
+  </div>
+
+  <!-- WEEK 2 -->
+  <div class="sec">
+    <div class="sec-head"><h3>Week 2 — Building &amp; Activating</h3><span class="days">Days 8–14</span></div>
+    <div class="sec-body">
+      <div class="marker">From "watching" to "actively running." Markers: Top 100 submitted, Top 6 scheduled &amp; underway, exam prep on track.</div>
+      <div class="item"><input type="checkbox" class="chk" id="w2a"><label for="w2a">Build your Top 100 list — brain-dump 100 warm-market names into the template, submit to mentor</label></div>
+      <div class="item"><input type="checkbox" class="chk" id="w2b"><label for="w2b">Start your Top 6 appointments <span class="meta">Schedule and begin running your 6 warmest-contact appointments — all 6 done by Day 14 (7-day buffer to Day 21 if needed)</span></label></div>
+      <div class="item"><input type="checkbox" class="chk" id="w2c"><label for="w2c">Exam prep — daily cadence, minimum 1–2 hours per day</label></div>
+      <div class="sub-note">Note: Day 3 &amp; Day 4 trainings are 1-on-1 with your mentor — they unlock only after you pass your exam.</div>
+    </div>
+  </div>
+
+  <!-- WEEK 3 -->
+  <div class="sec">
+    <div class="sec-head"><h3>Week 3 — Licensing &amp; First Field Work</h3><span class="days">Days 15–21</span></div>
+    <div class="sec-body">
+      <div class="item tier"><input type="checkbox" class="chk" id="w3a"><label for="w3a">⭐ Pass the state life-insurance exam <span class="meta">Day 21 MAXIMUM</span></label></div>
+      <div class="item"><input type="checkbox" class="chk" id="w3b"><label for="w3b">Wrap up your Top 6 appointments — complete any remaining (using the 7-day buffer)</label></div>
+      <div class="item"><input type="checkbox" class="chk" id="w3c"><label for="w3c">Field training appointments continuing — observe → assist → solo progression</label></div>
+      <div class="item"><input type="checkbox" class="chk" id="w3d"><label for="w3d">Run your first 1–2 PFRs solo — with mentor debrief after</label></div>
+      <div class="sub-note">Reschedule rule: if your exam gets pushed, your mentor calls within 24 hours. 5+ days in reschedule limbo = HIGH-priority flag.</div>
+    </div>
+  </div>
+
+  <!-- POST-EXAM -->
+  <div class="sec">
+    <div class="sec-head"><h3>Post-Exam 1-on-1 Trainings</h3><span class="days lock">🔒 Unlocks when you pass</span></div>
+    <div class="sec-body">
+      <div class="marker">Delivered 1-on-1 by your mentor (not in the Zoom room) — about scaling and team-building.</div>
+      <div class="item"><input type="checkbox" class="chk" id="peA"><label for="peA">Day 3 Training <span class="meta">Schedule within 3 days of passing — Cashflow Quadrant · Contract Levels · Marketing Director track economics</span></label></div>
+      <div class="item"><input type="checkbox" class="chk" id="peB"><label for="peB">Day 4 Training <span class="meta">Schedule within 7 days of passing — Field Training Appointment timeline · Business Partner marketing plan (your 100 list ≈ $20K of value) · 3 Good Qualities Script</span></label></div>
+      <div class="item"><input type="checkbox" class="chk" id="peC"><label for="peC">Receive your tracker (given on Day 3 of training) and update it daily</label></div>
+    </div>
+  </div>
+
+  <!-- DAYS 22-60 -->
+  <div class="sec">
+    <div class="sec-head"><h3>Activation</h3><span class="days">Days 22–60</span></div>
+    <div class="sec-body">
+      <div class="item tier"><input type="checkbox" class="chk" id="acA"><label for="acA">✅ Become an Associate (40% contract) <span class="meta">Automatic the moment you're licensed</span></label></div>
+      <div class="marker">By Day 30 — reach Senior Associate (50% contract). All three required:</div>
+      <div class="item"><input type="checkbox" class="chk" id="acB"><label for="acB">Bring on 3 direct Business Partners</label></div>
+      <div class="item"><input type="checkbox" class="chk" id="acC"><label for="acC">Help 3 families — PFRs completed &amp; policies written</label></div>
+      <div class="item"><input type="checkbox" class="chk" id="acD"><label for="acD">$10K in cashflow</label></div>
+      <div class="item tier"><input type="checkbox" class="chk" id="acE"><label for="acE">🏆 Reach Senior Associate (50%) by Day 30</label></div>
+      <div class="item"><input type="checkbox" class="chk" id="acF"><label for="acF">By Day 60 — building beyond Senior Associate: adding Business Partners, helping more families, earning first income from your team's production</label></div>
+      <div class="sub-note">Not at Senior Associate by Day 30 → we re-coach. Still not there by Day 45 → candid conversation about fit.</div>
+    </div>
+  </div>
+
+  <!-- DAYS 60-90 -->
+  <div class="sec">
+    <div class="sec-head"><h3>Momentum</h3><span class="days">Days 60–90</span></div>
+    <div class="sec-body">
+      <div class="item"><input type="checkbox" class="chk" id="moA"><label for="moA">Build your team — bringing on Business Partners, not just producing personally</label></div>
+      <div class="item"><input type="checkbox" class="chk" id="moB"><label for="moB">First income checks from your Business Partners' production land</label></div>
+      <div class="item"><input type="checkbox" class="chk" id="moC"><label for="moC">Start tracking toward the Marketing Director track <span class="meta">$75K cashflow / 45K pts in 3 months / 5 licensed</span></label></div>
+      <div class="item"><input type="checkbox" class="chk" id="moD"><label for="moD">Attend Summit and regional events</label></div>
+    </div>
+  </div>
+
+  <!-- DAILY NON-NEGOTIABLES -->
+  <div class="sec">
+    <div class="sec-head"><h3>Your Daily Non-Negotiables</h3><span class="days lock">Every day</span></div>
+    <div class="sec-body">
+      <div class="marker">Reference — live these daily (no need to check off; build the habit).</div>
+      <div class="item"><input type="checkbox" class="chk" id="dnA"><label for="dnA">Talk to people every single day — momentum comes from conversations, not perfection</label></div>
+      <div class="item"><input type="checkbox" class="chk" id="dnB"><label for="dnB">Be in GroupMe daily — read the briefings, respond</label></div>
+      <div class="item"><input type="checkbox" class="chk" id="dnC"><label for="dnC">One PFR booked or completed every weekday, minimum</label></div>
+      <div class="item"><input type="checkbox" class="chk" id="dnD"><label for="dnD">Update your tracker before end of day, every day</label></div>
+      <div class="item"><input type="checkbox" class="chk" id="dnE"><label for="dnE">Plug into live trainings weekly — Mon Team Training · Wed Day 1 · Thu Day 2 (all 6 PM PST · Zoom 9646509994 / WEALTH)</label></div>
+    </div>
+  </div>
+
+  <!-- SUPPORT -->
+  <div class="sec">
+    <div class="sec-head"><h3>Your Support System</h3><span class="days lock">Always on</span></div>
+    <div class="sec-body">
+      <div class="res">
+        <div class="res-card"><div class="who">Chris Lorenz — Founder</div><div class="det">Book mentoring: <a href="https://calendly.com/GrindAgenciesInc">calendly.com/GrindAgenciesInc</a><br>Phone (FUB): <a href="tel:+16197596185">619-759-6185</a><br>Email: <a href="mailto:admin@grindagencies.com">admin@grindagencies.com</a></div></div>
+        <div class="res-card"><div class="who">Operations — Anais</div><div class="det">Admin · scheduling · tracker updates · licensing<br>Book: <a href="https://calendly.com/impactagency-ops/licensing">calendly.com/impactagency-ops/licensing</a><br>Phone: <a href="tel:+18584334429">858-433-4429</a><br>Email: <a href="mailto:impactagency.ops@gmail.com">impactagency.ops@gmail.com</a></div></div>
+        <div class="res-card"><div class="who">Live Training Zoom</div><div class="det">Mon Team · Wed Day 1 · Thu Day 2 — all 6 PM PST<br><a href="https://us02web.zoom.us/j/9646509994?pwd=a2s1OXhzeTB3N3BBOWRkUmw1VHE2Zz09">Join Zoom</a> · ID 9646509994 · PW WEALTH<br>Host: Elijah Cox, National VP</div></div>
+        <div class="res-card"><div class="who">Team GroupMe</div><div class="det"><a href="https://groupme.com/join_group/112844775/AeY1yIfq">Join the GroupMe →</a></div></div>
+        <div class="res-card"><div class="who">BLDRs Drive Folder</div><div class="det"><a href="https://drive.google.com/drive/folders/1O82d4KtDXxcwg59Zf1A0-sX1ukK6xKwg">Open the resource folder →</a></div></div>
+        <div class="res-card"><div class="who">Daily Briefings</div><div class="det">8 AM morning · 6 PM evening (sent to your mentor + operations)<br>Carrier portals listed in your onboarding pack.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RED FLAGS -->
+  <div class="flags">
+    <h3>🚩 Red Flags — How We Know You're Off-Track</h3>
+    <ul>
+      <li>ICA signed but Week 1 trainings not done by Day 7</li>
+      <li>Top 100 list not submitted by Day 14</li>
+      <li>Top 6 appointments not completed by Day 21 (buffer used up)</li>
+      <li>Exam not passed by Day 21</li>
+      <li>Day 3 training not scheduled within 3 days of passing</li>
+      <li class="hot">Passed exam but 0 field-training appointments in 7 days ← the team's #1 bottleneck</li>
+      <li>Licensed but $0 cashflow at Day 30</li>
+      <li>Going dark on GroupMe / not responding to mentor</li>
+    </ul>
+    <div class="foot">Hit any of these and expect a same-day call. We'd rather move you than lose you.</div>
+  </div>
+
+  <!-- COMMITMENT -->
+  <div class="commit">
+    <div class="q">"I'll do the work, trust the system, ask for help, and refuse to quit before the math has a chance to work for me."</div>
+    <div class="sig">Read it daily. Understand it daily. Live it daily. — The Standard Financial Group</div>
+  </div>
+
+  <div class="foot">The Standard Financial Group · New Agent 90-Day Tracker · Build Momentum. Create Results. Lead From the Front.</div>
+
+</div>
+
+<script>
+  var KEY="tsfg90_v1";
+  var boxes=Array.prototype.slice.call(document.querySelectorAll('.chk'));
+  function load(){
+    var saved={};
+    try{ saved=JSON.parse(localStorage.getItem(KEY)||"{}"); }catch(e){ saved={}; }
+    boxes.forEach(function(b){ if(saved[b.id]) b.checked=true; });
+  }
+  function save(){
+    var o={};
+    boxes.forEach(function(b){ if(b.checked) o[b.id]=1; });
+    try{ localStorage.setItem(KEY, JSON.stringify(o)); }catch(e){}
+  }
+  function update(){
+    var done=boxes.filter(function(b){return b.checked;}).length;
+    var tot=boxes.length;
+    var pct=tot?Math.round(done*100/tot):0;
+    document.getElementById('doneNum').textContent=done;
+    document.getElementById('totNum').textContent=tot;
+    document.getElementById('pctNum').textContent=pct;
+    document.getElementById('barFill').style.width=pct+'%';
+  }
+  boxes.forEach(function(b){ b.addEventListener('change', function(){ save(); update(); }); });
+  function resetProgress(){
+    if(!confirm("Reset all your progress on this device?")) return;
+    boxes.forEach(function(b){ b.checked=false; });
+    try{ localStorage.removeItem(KEY); }catch(e){}
+    update();
+  }
+  load(); update();
+</script>
+</body>
+</html>
