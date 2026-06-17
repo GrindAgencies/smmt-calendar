@@ -661,7 +661,7 @@
     clearTimeout(saveTimer);
     saveTimer=setTimeout(function(){
       var vis=boxes.filter(function(b){return b.offsetParent!==null;}).length;
-      api({action:'save',code:code,progress:progressMap(),total:vis,pathway:currentPath,emd:emd,ft_log:ftLog,carrier_codes:carriersPayload(),warm_market:warmMarket}).then(function(res){
+      api({action:'save',code:code,progress:progressMap(),total:vis,pathway:currentPath,emd:emd,md:md,ft_log:ftLog,carrier_codes:carriersPayload(),warm_market:warmMarket}).then(function(res){
         setStat(res&&res.ok?'Saved ✓':'Saved on this device',res&&res.ok);
       }).catch(function(){setStat('Saved on this device (offline)',false);});
     },600);
@@ -700,8 +700,8 @@
   }
   function restoreUpline(eVal,mVal){emd=eVal||"";md=mVal||"";var s=el('emdSel');if(s)s.value=emd;populateMd(md);renderChain();}
   (function(){
-    var es=el('emdSel'); if(es)es.addEventListener('change',function(){emd=es.value;md="";populateMd("");renderChain();if(el('emdNote'))el('emdNote').textContent=emd?('Aligned under '+emd+' ✓'):'';if(code)saveNow();});
-    var ms=el('mdSel'); if(ms)ms.addEventListener('change',function(){md=ms.value;renderChain();if(el('emdNote'))el('emdNote').textContent=md?('Upline locked: '+md+' → '+emd+' ✓'):(emd?('Aligned under '+emd+' ✓'):'');if(code)saveNow();});
+    var es=el('emdSel'); if(es)es.addEventListener('change',function(){emd=es.value;md="";populateMd("");renderChain();if(el('emdNote'))el('emdNote').textContent=emd?('Aligned under '+emd+' ✓'):'';if(code)saveSoon();});
+    var ms=el('mdSel'); if(ms)ms.addEventListener('change',function(){md=ms.value;renderChain();if(el('emdNote'))el('emdNote').textContent=md?('Upline locked: '+md+' → '+emd+' ✓'):(emd?('Aligned under '+emd+' ✓'):'');if(code)saveSoon();});
   })();
   function wmRowHTML(){return '<div class="wm-row"><input class="wm-n" type="text" placeholder="Name" autocomplete="off"><input class="wm-p" type="tel" placeholder="Phone" autocomplete="off"><input class="wm-e" type="email" placeholder="Email" autocomplete="off"><button type="button" class="wm-x" onclick="this.parentNode.remove()">×</button></div>';}
   function addWmRow(){el('wmRows').insertAdjacentHTML('beforeend',wmRowHTML());}
