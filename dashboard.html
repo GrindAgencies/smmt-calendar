@@ -68,6 +68,12 @@
   tr.qrow td.nm{text-decoration:none;}
   .quitbadge{display:inline-block;font-size:9.5px;font-weight:900;letter-spacing:.06em;color:#fff;background:var(--red);padding:2px 6px;border-radius:5px;vertical-align:middle;text-decoration:none;}
   td.actions{white-space:nowrap;}
+  select.assign{font-size:11.5px;font-weight:700;color:#fff6da;background:#0c0b05;border:1px solid var(--line);border-radius:8px;padding:6px 8px;cursor:pointer;outline:none;max-width:130px;}
+  select.assign:hover{border-color:var(--gold-deep);}
+  select.assign:focus{border-color:var(--gold);box-shadow:0 0 0 2px rgba(212,175,55,.16);}
+  select.assign:disabled{opacity:.5;cursor:not-allowed;}
+  select.assign-emd{color:var(--gold-bright);}
+  select.assign-md{color:#bcdcff;}
   .act{font-size:11px;font-weight:800;letter-spacing:.03em;border-radius:999px;padding:6px 11px;cursor:pointer;border:1px solid var(--line);background:#171206;color:var(--muted);margin-right:5px;}
   .act-quit{border-color:var(--gold-deep);color:var(--gold);}
   .act-quit:hover{background:var(--gold);color:#0a0a0a;}
@@ -164,6 +170,11 @@
 <script>
   var API="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/tracker-api";
   var token=null, data=[], sortKey='pct', sortDir=-1, showQuit=true;
+  var UPLINE={'Elijah Cox':['Christopher Lorenz','Edgar Zavala'],'Yonatan Kenzo':[],'Seale Mosle':[],'Jianfeng Zhao':[]};
+  var EMDS=Object.keys(UPLINE);
+  function emdSelectHTML(code,cur){var h='<select class="assign assign-emd" data-code="'+esc(code)+'"><option value="">— assign —</option>';EMDS.forEach(function(n){h+='<option value="'+esc(n)+'"'+(n===cur?' selected':'')+'>'+esc(n)+'</option>';});return h+'</select>';}
+  function mdSelectHTML(code,emd,cur){var mds=UPLINE[emd]||[];var dis=(!emd||mds.length===0)?' disabled':'';var h='<select class="assign assign-md" data-code="'+esc(code)+'"'+dis+'><option value="">'+(emd?(mds.length?'— assign —':'— none —'):'— set EMD —')+'</option>';mds.forEach(function(n){h+='<option value="'+esc(n)+'"'+(n===cur?' selected':'')+'>'+esc(n)+'</option>';});return h+'</select>';}
+  function emdFor(code){for(var i=0;i<data.length;i++){if(data[i].code===code)return data[i].emd;}return '';}
 
   function el(id){return document.getElementById(id);}
   function enter(){
@@ -255,8 +266,8 @@
       var bizTxt = a.pathway==='producer' ? (' · 📝 '+a.biz+' biz') : '';
       var strk = a.streak>0 ? ('<span class="strk">🔥 '+a.streak+'d</span>') : '<span class="ago">—</span>';
       var strkB = a.best>0 ? (' <span class="ago">(best '+a.best+')</span>') : '';
-      var emdTxt = a.emd ? '<span class="emdpill">'+esc(a.emd)+'</span>' : '<span class="ago">—</span>';
-      var mdTxt = a.md ? '<span class="mdpill">'+esc(a.md)+'</span>' : '<span class="ago">—</span>';
+      var emdTxt = emdSelectHTML(a.code, a.emd);
+      var mdTxt = mdSelectHTML(a.code, a.emd, a.md);
       var nameCell = esc(a.name) + (a.status==='quit' ? ' <span class="quitbadge">QUIT</span>' : '');
       var quitBtn = a.status==='quit'
         ? '<button class="act act-reactivate" data-code="'+esc(a.code)+'" data-name="'+esc(a.name)+'" data-act="reactivate">Reactivate</button>'
@@ -285,6 +296,7 @@
       .then(function(res){ if(res&&res.ok){ refresh(); } else { alert('Action failed'+(res&&res.error?(': '+res.error):'')); } })
       .catch(function(){ alert('Network issue — please try again.'); });
   }
+  function assignUpline(code,emd,md){ postAction({action:'setupline',token:token,code:code,emd:emd,md:md}); }
   function doAction(act,code,name){
     if(act==='delete'){
       if(!confirm('PERMANENTLY DELETE '+name+' ('+code+')?\n\nThis removes their account and all data. It cannot be undone. Use this only for mistaken / misspelled registrations.'))return;
@@ -305,6 +317,12 @@
     var b=e.target&&e.target.closest?e.target.closest('.act'):null;
     if(!b)return;
     doAction(b.getAttribute('data-act'),b.getAttribute('data-code'),b.getAttribute('data-name'));
+  });
+  // manual upline assignment (Exec Broker / Senior Broker dropdowns)
+  el('rows').addEventListener('change',function(e){
+    var t=e.target; if(!t||!t.classList)return;
+    if(t.classList.contains('assign-emd')){ assignUpline(t.getAttribute('data-code'), t.value, ''); }
+    else if(t.classList.contains('assign-md')){ var code=t.getAttribute('data-code'); assignUpline(code, emdFor(code), t.value); }
   });
 
   // auto-enter if session has token
