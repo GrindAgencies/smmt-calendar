@@ -17,6 +17,13 @@
     color:var(--ink);line-height:1.5;padding:18px 18px 64px;}
   .wrap{max-width:1080px;margin:0 auto;}
 
+  /* TABS */
+  .tabs{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:0 0 16px;}
+  .tabs a{flex:1;min-width:210px;text-align:center;text-decoration:none;font-weight:900;font-size:14px;letter-spacing:.04em;text-transform:uppercase;
+    padding:14px 18px;border-radius:14px;border:1px solid var(--gold-deep);color:var(--gold);background:#141005;transition:.15s;}
+  .tabs a:hover{background:#1d1607;text-decoration:none;}
+  .tabs a.active{color:#0a0a0a;background:linear-gradient(90deg,var(--gold-bright),var(--gold));border-color:var(--gold);box-shadow:0 6px 18px rgba(212,175,55,.25);}
+
   .toolbar{display:flex;justify-content:flex-end;gap:10px;margin:0 0 18px;flex-wrap:wrap;align-items:center;}
   .btn{cursor:pointer;border:1px solid var(--gold-deep);background:#171206;color:var(--gold);
     font-weight:800;font-size:12px;letter-spacing:.08em;text-transform:uppercase;padding:9px 16px;border-radius:999px;transition:.15s;text-decoration:none;display:inline-block;}
@@ -165,6 +172,11 @@
 </head>
 <body>
 <div class="wrap">
+
+  <div class="tabs">
+    <a class="active" href="https://grindagencies.github.io/smmt-calendar/index.html">📅 Training Calendar</a>
+    <a href="https://grindagencies.github.io/smmt-calendar/checklist.html">✅ New Agent · 90-Day Tracker</a>
+  </div>
 
   <div class="toolbar">
     <span class="edit-hint">✏️ Edit mode ON — click any text to change it, then Download to save.</span>
