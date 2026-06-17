@@ -35,8 +35,9 @@
   .gate .err{min-height:16px;margin-top:10px;color:var(--red);font-size:13px;font-weight:700;}
 
   #board{display:none;}
-  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;}
-  @media(max-width:680px){.stats{grid-template-columns:1fr 1fr;}}
+  .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px;}
+  @media(max-width:880px){.stats{grid-template-columns:1fr 1fr 1fr;}}
+  @media(max-width:560px){.stats{grid-template-columns:1fr 1fr;}}
   .stat{border:1px solid var(--line);border-radius:14px;padding:16px;background:rgba(212,175,55,.05);text-align:center;}
   .stat .n{font-size:26px;font-weight:900;color:var(--gold-bright);}
   .stat .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:2px;}
@@ -61,6 +62,8 @@
   .pill.prd{color:#bff2da;background:rgba(62,143,106,.18);border:1px solid #3e8f6a;}
   .pill.non{color:var(--muted);background:rgba(182,169,130,.10);border:1px solid var(--line);}
   .strk{font-weight:800;color:var(--gold-bright);}
+  .wl-win{font-weight:900;color:var(--green);}
+  .wl-lose{font-weight:900;color:var(--red);}
   .emdpill{display:inline-block;font-size:11.5px;font-weight:800;color:var(--gold-bright);background:rgba(212,175,55,.14);border:1px solid var(--gold-deep);padding:4px 9px;border-radius:999px;white-space:nowrap;}
   .mdpill{display:inline-block;font-size:11.5px;font-weight:800;color:#bcdcff;background:rgba(59,110,165,.18);border:1px solid #3b6ea5;padding:4px 9px;border-radius:999px;white-space:nowrap;}
   tr.qrow td{opacity:.5;text-decoration:line-through;text-decoration-color:var(--red);}
@@ -120,6 +123,7 @@
       <div class="stat"><div class="n" id="sAgents">0</div><div class="l">Agents</div></div>
       <div class="stat"><div class="n" id="sAvg">0%</div><div class="l">Avg Progress</div></div>
       <div class="stat"><div class="n" id="sPaths">0 / 0</div><div class="l">Builders / Producers</div></div>
+      <div class="stat"><div class="n" id="sClose">—</div><div class="l">Team Close Rate</div></div>
       <div class="stat"><div class="n" id="sQuit">0</div><div class="l">Quit (inactive)</div></div>
     </div>
     <div class="toolbar">
@@ -150,6 +154,7 @@
         <th onclick="sortBy('done')">Steps</th>
         <th onclick="sortBy('ftDone')">Field Trainings</th>
         <th onclick="sortBy('streak')">🔥 Streak</th>
+        <th onclick="sortBy('closeRate')">🎯 Closing</th>
         <th onclick="sortBy('updated')">Last Updated</th>
         <th>Actions</th>
       </tr></thead>
@@ -203,7 +208,7 @@
     return Math.floor(s/86400)+"d ago";
   }
   function render(agents){
-    data=(agents||[]).map(function(a){return {name:(a.first_name+' '+a.last_name),code:a.code,status:a.status||'active',emd:a.emd||'',md:a.md||'',pathway:a.pathway||'',pct:a.pct||0,done:a.done_count||0,total:a.total||35,ftDone:a.ft_done||0,ftPace:a.ft_pace_per_wk||0,biz:a.biz_submitted||0,streak:a.live_streak||0,best:a.best_streak||0,lastDaily:a.last_daily||'',updated:a.updated_at};});
+    data=(agents||[]).map(function(a){return {name:(a.first_name+' '+a.last_name),code:a.code,status:a.status||'active',emd:a.emd||'',md:a.md||'',pathway:a.pathway||'',pct:a.pct||0,done:a.done_count||0,total:a.total||35,ftDone:a.ft_done||0,ftPace:a.ft_pace_per_wk||0,biz:a.biz_submitted||0,wins:a.wm_wins||0,losses:a.wm_losses||0,closeRate:(a.wm_close_rate==null?-1:a.wm_close_rate),streak:a.live_streak||0,best:a.best_streak||0,lastDaily:a.last_daily||'',updated:a.updated_at};});
     // stats over ACTIVE only
     var act=data.filter(function(a){return a.status!=='quit';});
     el('sAgents').textContent=act.length;
@@ -212,6 +217,10 @@
     var np=act.filter(function(a){return a.pathway==='producer';}).length;
     el('sPaths').textContent=nb+' / '+np;
     el('sQuit').textContent=data.filter(function(a){return a.status==='quit';}).length;
+    // team close rate (active brokers' warm-market outcomes)
+    var tw=0,tl=0; act.forEach(function(a){tw+=a.wins;tl+=a.losses;});
+    el('sClose').textContent=(tw+tl)?(Math.round(tw*100/(tw+tl))+'%'):'—';
+    el('sClose').title=tw+' won / '+tl+' lost';
     buildEmdFilter();
     buildMdFilter();
     draw();
@@ -266,6 +275,7 @@
       var bizTxt = a.pathway==='producer' ? (' · 📝 '+a.biz+' biz') : '';
       var strk = a.streak>0 ? ('<span class="strk">🔥 '+a.streak+'d</span>') : '<span class="ago">—</span>';
       var strkB = a.best>0 ? (' <span class="ago">(best '+a.best+')</span>') : '';
+      var closeTxt = (a.wins+a.losses)>0 ? ('<span class="wl-win">'+a.wins+'W</span> · <span class="wl-lose">'+a.losses+'L</span> <span class="ago">('+a.closeRate+'%)</span>') : '<span class="ago">—</span>';
       var emdTxt = emdSelectHTML(a.code, a.emd);
       var mdTxt = mdSelectHTML(a.code, a.emd, a.md);
       var nameCell = esc(a.name) + (a.status==='quit' ? ' <span class="quitbadge">QUIT</span>' : '');
@@ -282,6 +292,7 @@
         '<td>'+a.done+' / '+a.total+'</td>'+
         '<td>'+a.ftDone+' <span class="ago">('+pace+')'+bizTxt+'</span></td>'+
         '<td>'+strk+strkB+'</td>'+
+        '<td>'+closeTxt+'</td>'+
         '<td class="ago">'+timeAgo(a.updated)+'</td>'+
         '<td class="actions">'+quitBtn+delBtn+'</td>';
       tb.appendChild(tr);
