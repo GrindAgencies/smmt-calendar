@@ -118,6 +118,21 @@
   .ftgrid{display:grid;grid-template-columns:1fr 1fr;gap:4px 18px;}
   @media(max-width:560px){.ftgrid{grid-template-columns:1fr;}}
   .ftgrid .item{padding:8px 0;}
+  .bizcount{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:#bff2da;background:rgba(62,143,106,.18);border:1px solid #3e8f6a;padding:5px 11px;border-radius:999px;}
+
+  /* carrier contracting rows */
+  .carlist{display:flex;flex-direction:column;gap:6px;}
+  .car-row{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid rgba(43,36,16,.6);}
+  .car-row:last-child{border-bottom:none;}
+  .carchk{appearance:none;-webkit-appearance:none;flex:0 0 auto;width:22px;height:22px;border-radius:6px;border:2px solid var(--gold-deep);background:#0b0a05;cursor:pointer;position:relative;transition:.12s;}
+  .carchk:hover{border-color:var(--gold);}
+  .carchk:checked{background:linear-gradient(135deg,var(--gold-bright),var(--gold));border-color:var(--gold);}
+  .carchk:checked::after{content:"✓";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#0a0a0a;font-weight:900;font-size:13px;}
+  .car-name{flex:1;min-width:120px;font-size:14.5px;font-weight:700;color:#f4efe2;}
+  .car-code{flex:0 0 150px;width:150px;padding:9px 11px;border-radius:9px;border:1px solid var(--line);background:#0c0b05;color:var(--gold-bright);font-size:13px;font-weight:800;letter-spacing:.04em;outline:none;transition:.15s;}
+  .car-code::placeholder{color:#7a6f4d;font-weight:600;letter-spacing:0;}
+  .car-code:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(212,175,55,.16);}
+  @media(max-width:560px){.car-code{flex:0 0 110px;width:110px;}}
 
   /* DAILY */
   .daily{margin-top:26px;border:1px solid var(--gold);border-radius:16px;overflow:hidden;background:linear-gradient(160deg,#1c1608,#0b0a05);}
@@ -297,7 +312,19 @@
     <div class="sec-body">
       <div class="item tier"><input type="checkbox" class="chk" id="w3_exam"><label for="w3_exam">⭐ <b>Pass your state exam</b> <span class="meta">Day 21 maximum</span></label></div>
       <div class="item"><input type="checkbox" class="chk" id="w3_apply"><label for="w3_apply">Apply to the state</label></div>
-      <div class="item"><input type="checkbox" class="chk" id="w3_approved"><label for="w3_approved">Get approved by your resident state</label></div>
+      <div class="item"><input type="checkbox" class="chk" id="w3_fingerprints"><label for="w3_fingerprints">Get fingerprints done</label></div>
+      <div class="item"><input type="checkbox" class="chk" id="w3_reslic"><label for="w3_reslic">Get approved by resident licensing</label></div>
+      <div class="item"><input type="checkbox" class="chk" id="w3_aml"><label for="w3_aml">Complete AML course <span class="meta">Anti-Money-Laundering certification</span></label></div>
+      <div class="item"><input type="checkbox" class="chk" id="w3_eo"><label for="w3_eo">Complete Errors &amp; Omissions (E&amp;O)</label></div>
+      <div class="item"><input type="checkbox" class="chk" id="w3_tevah"><label for="w3_tevah">Enroll in Tevah</label></div>
+      <div class="item"><input type="checkbox" class="chk" id="w3_carriers"><label for="w3_carriers"><b>Contract with carriers!</b> <span class="meta">Get appointed and record your writing code for each carrier below</span></label></div>
+
+      <div class="block">
+        <div class="block-h">🏛️ Carrier Contracting &amp; Writing Codes</div>
+        <div class="block-sub">Check each carrier as you're contracted, and enter your writing code/number for submission. Codes save to your profile automatically.</div>
+        <div class="carlist" id="carlist"></div>
+      </div>
+
       <div class="item"><input type="checkbox" class="chk" id="w3_top10"><label for="w3_top10">Wrap up your Top 10 appointments</label></div>
       <div class="item"><input type="checkbox" class="chk" id="w3_pfr"><label for="w3_pfr">Run your first 1–2 PFRs solo <span class="meta">With mentor debrief after</span></label></div>
       <div class="item"><input type="checkbox" class="chk" id="w3_md"><label for="w3_md">Schedule a post-exam 1-on-1 with your Marketing Director <span class="meta"><a href="https://calendly.com/GrindAgenciesInc" target="_blank" rel="noopener">Book on the MD Calendar →</a></span></label></div>
@@ -327,7 +354,12 @@
   <div class="sec producer" id="producerSec" style="display:none;">
     <div class="sec-head"><h3>💰 Producer Track — Field Training Mastery</h3><span class="days prd">Cashflow</span></div>
     <div class="sec-body">
-      <div class="marker">Your focus is production — run the reps. 25 field trainings, no recruiting required. Master the craft, help families, build cashflow.</div>
+      <div class="marker">Your focus is production — run the reps. Track every piece of business and master the craft. No recruiting required.</div>
+      <div class="block">
+        <div class="block-h">📝 Pieces of Business Submitted <span class="bizcount" id="bizCount">0 submitted</span></div>
+        <div class="block-sub">Check off each application you submit. This is your production scoreboard — Operations sees your count.</div>
+        <div class="ftgrid" id="bizGrid"></div>
+      </div>
       <div class="block">
         <div class="block-h">📋 25 Field Trainings</div>
         <div class="block-sub">Check each field training as you run it. Speed and consistency are tracked for Operations.</div>
@@ -423,11 +455,18 @@
 
 <script>
   var API="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/tracker-api";
-  // build the 25 producer field-training checkboxes
-  (function(){var g=document.getElementById('pfGrid');var h='';for(var i=1;i<=25;i++){h+='<div class="item"><input type="checkbox" class="chk" id="pf'+i+'"><label for="pf'+i+'">Field Training #'+i+'</label></div>';}g.innerHTML=h;})();
+  var CARRIERS=[['na','North American'],['fng','F&G'],['corebridge','Corebridge'],['amequity','American Equity'],['ethos','Ethos'],['foresters','Foresters'],['moo','Mutual of Omaha'],['quility','Quility'],['allianz','Allianz'],['ameritas','Ameritas'],['symetra','Symetra']];
+  // build producer field trainings (25), business-submitted slots (12), and carrier rows
+  (function(){
+    var g=document.getElementById('pfGrid');var h='';for(var i=1;i<=25;i++){h+='<div class="item"><input type="checkbox" class="chk" id="pf'+i+'"><label for="pf'+i+'">Field Training #'+i+'</label></div>';}g.innerHTML=h;
+    var bz=document.getElementById('bizGrid');var b='';for(var j=1;j<=12;j++){b+='<div class="item"><input type="checkbox" class="chk" id="biz'+j+'"><label for="biz'+j+'">Piece of Business #'+j+' — Submitted</label></div>';}bz.innerHTML=b;
+    var cl=document.getElementById('carlist');var c='';CARRIERS.forEach(function(x){c+='<div class="car-row"><input type="checkbox" class="carchk" id="car_'+x[0]+'" data-car="'+x[0]+'"><label class="car-name" for="car_'+x[0]+'">'+x[1]+'</label><input type="text" class="car-code" data-car="'+x[0]+'" placeholder="Writing code" autocomplete="off"></div>';});cl.innerHTML=c;
+  })();
 
   var boxes=Array.prototype.slice.call(document.querySelectorAll('.chk'));
   var dboxes=Array.prototype.slice.call(document.querySelectorAll('.dchk'));
+  var carchks=Array.prototype.slice.call(document.querySelectorAll('.carchk'));
+  var carcodes=Array.prototype.slice.call(document.querySelectorAll('.car-code'));
   var code=null, saveTimer=null, currentPath=null, ftLog={};
 
   function el(id){return document.getElementById(id);}
@@ -443,6 +482,9 @@
     var pct=Math.round(done*100/total);
     el('doneNum').textContent=done;el('totNum').textContent=vis.length;el('pctNum').textContent=pct;el('barFill').style.width=pct+'%';
   }
+  function bizCount(){var n=0;for(var i=1;i<=12;i++){var b=el('biz'+i);if(b&&b.checked)n++;}var c=el('bizCount');if(c)c.textContent=n+' submitted';}
+  function carriersPayload(){var o={};carchks.forEach(function(b){var k=b.getAttribute('data-car');o[k]=o[k]||{};o[k].done=b.checked;});carcodes.forEach(function(t){var k=t.getAttribute('data-car');o[k]=o[k]||{};o[k].code=t.value.trim();});return o;}
+  function applyCarriers(cc){cc=cc||{};carchks.forEach(function(b){var k=b.getAttribute('data-car');b.checked=!!(cc[k]&&cc[k].done);});carcodes.forEach(function(t){var k=t.getAttribute('data-car');t.value=(cc[k]&&cc[k].code)?cc[k].code:'';});}
   function setStat(t,ok){var s=el('saveStat');s.textContent=t;s.className='savestat'+(ok?' ok':'');}
   function showApp(name){el('gate').style.display='none';el('app').style.display='block';el('who').textContent=name+' · GFI '+code;}
   function showGate(){el('app').style.display='none';el('gate').style.display='flex';}
@@ -482,15 +524,20 @@
     clearTimeout(saveTimer);
     saveTimer=setTimeout(function(){
       var vis=boxes.filter(function(b){return b.offsetParent!==null;}).length;
-      api({action:'save',code:code,progress:progressMap(),total:vis,pathway:currentPath,ft_log:ftLog}).then(function(res){
+      api({action:'save',code:code,progress:progressMap(),total:vis,pathway:currentPath,ft_log:ftLog,carrier_codes:carriersPayload()}).then(function(res){
         setStat(res&&res.ok?'Saved ✓':'Saved on this device',res&&res.ok);
       }).catch(function(){setStat('Saved on this device (offline)',false);});
     },600);
   }
   boxes.forEach(function(b){b.addEventListener('change',function(){
     if(b.checked && /^(ft|pf)/.test(b.id) && !ftLog[b.id]) ftLog[b.id]=ptToday();
+    if(/^biz/.test(b.id)) bizCount();
     update(); if(code) saveSoon();
   });});
+  // carrier contracting: checkbox + writing-code inputs
+  carchks.forEach(function(b){b.addEventListener('change',function(){if(code)saveSoon();});});
+  var carTimer=null;
+  carcodes.forEach(function(t){t.addEventListener('input',function(){setStat('Saving…',false);clearTimeout(carTimer);carTimer=setTimeout(function(){if(code)saveSoon();},700);});});
 
   /* ---- DAILY STREAK ---- */
   function dailyKey(){return 'tsfg_daily_'+code;}
@@ -547,6 +594,7 @@
       try{localStorage.setItem('tsfg_code',code);localStorage.setItem('tsfg_name',res.agent.first_name+' '+res.agent.last_name);}catch(e){}
       ftLog=res.agent.ft_log||{};
       applyProgress(res.agent.progress);
+      applyCarriers(res.agent.carrier_codes); bizCount();
       showApp(res.agent.first_name+' '+res.agent.last_name);
       restorePath(res.agent.pathway);
       update(); loadDaily(res.agent);
@@ -554,7 +602,7 @@
       btn.disabled=false;btn.textContent="Start My Tracker →";
     }).catch(function(){el('gMsg').textContent="Network issue — please try again.";btn.disabled=false;btn.textContent="Start My Tracker →";});
   }
-  function signOut(){try{localStorage.removeItem('tsfg_code');}catch(e){}code=null;currentPath=null;ftLog={};applyProgress({});dboxes.forEach(function(b){b.checked=false;});showGate();el('gFirst').value="";el('gLast').value="";el('gCode').value="";el('gMsg').textContent="";}
+  function signOut(){try{localStorage.removeItem('tsfg_code');}catch(e){}code=null;currentPath=null;ftLog={};applyProgress({});applyCarriers({});bizCount();dboxes.forEach(function(b){b.checked=false;});showGate();el('gFirst').value="";el('gLast').value="";el('gCode').value="";el('gMsg').textContent="";}
 
   function boot(){
     try{code=localStorage.getItem('tsfg_code');}catch(e){code=null;}
@@ -563,6 +611,7 @@
       if(res&&res.ok){
         ftLog=res.agent.ft_log||{};
         applyProgress(res.agent.progress);
+        applyCarriers(res.agent.carrier_codes); bizCount();
         showApp(res.agent.first_name+' '+res.agent.last_name);
         restorePath(res.agent.pathway);
         update(); loadDaily(res.agent);
