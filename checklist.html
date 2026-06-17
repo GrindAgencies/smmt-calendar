@@ -143,6 +143,50 @@
   .streakbar .milestones{font-size:11px;color:var(--muted);}
   .dailystat{font-size:12.5px;color:var(--gold-bright);font-weight:700;padding:0 18px 12px;}
 
+  /* view toggle (Tracker / Warm Market) */
+  .viewtog{display:flex;gap:10px;margin:0 0 14px;}
+  @media(max-width:560px){.viewtog{flex-direction:column;}}
+  .viewtog button{flex:1;cursor:pointer;border:1px solid var(--gold-deep);background:#141005;color:var(--gold);border-radius:12px;padding:12px;font-weight:900;font-size:14px;text-transform:uppercase;letter-spacing:.04em;transition:.15s;}
+  .viewtog button:hover{background:#1d1607;}
+  .viewtog button.on{color:#0a0a0a;background:linear-gradient(90deg,var(--gold-bright),var(--gold));border-color:var(--gold);box-shadow:0 6px 18px rgba(212,175,55,.22);}
+  .vcount{display:inline-block;min-width:20px;padding:1px 7px;margin-left:4px;border-radius:999px;background:rgba(224,83,61,.85);color:#fff;font-size:11px;font-weight:900;vertical-align:middle;}
+  .viewtog button.on .vcount{background:#0a0a0a;color:var(--gold-bright);}
+
+  /* warm-market logging */
+  .wm-log{border:1px dashed var(--gold-deep);border-radius:12px;padding:12px 13px;margin:8px 0 4px;background:rgba(212,175,55,.04);}
+  .wm-log-h{font-weight:800;color:#fff6da;font-size:13.5px;margin-bottom:8px;}
+  .wm-rows{display:flex;flex-direction:column;gap:8px;}
+  .wm-row{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;align-items:center;}
+  @media(max-width:620px){.wm-row{grid-template-columns:1fr 1fr;}}
+  .wm-row input{padding:10px 11px;border-radius:9px;border:1px solid var(--line);background:#0c0b05;color:#fff6da;font-size:13.5px;outline:none;transition:.15s;width:100%;}
+  .wm-row input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(212,175,55,.16);}
+  .wm-row .wm-x{cursor:pointer;border:1px solid var(--line);background:#120f07;color:var(--muted);border-radius:9px;padding:9px 12px;font-weight:900;}
+  .wm-row .wm-x:hover{color:var(--red);border-color:var(--red);}
+  @media(max-width:620px){.wm-row .wm-x{grid-column:span 2;}}
+  .wm-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;}
+  .wm-add{cursor:pointer;border:1px solid var(--gold-deep);background:#141005;color:var(--gold);border-radius:999px;padding:9px 15px;font-weight:800;font-size:12.5px;}
+  .wm-add:hover{background:#1d1607;}
+  .wm-save{cursor:pointer;border:none;border-radius:999px;padding:9px 16px;font-weight:900;font-size:12.5px;text-transform:uppercase;letter-spacing:.04em;color:#0a0a0a;background:linear-gradient(90deg,var(--gold-bright),var(--gold));}
+  .wm-save:hover{filter:brightness(1.08);}
+  .wm-note{font-size:12px;color:var(--green);font-weight:700;margin-top:8px;min-height:14px;}
+
+  /* warm-market list */
+  #wmList{display:flex;flex-direction:column;gap:10px;}
+  .wm-card{display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:rgba(212,175,55,.05);}
+  .wm-card.done{opacity:.55;}
+  .wm-card .wm-chk{appearance:none;-webkit-appearance:none;flex:0 0 auto;width:22px;height:22px;border-radius:6px;border:2px solid var(--gold-deep);background:#0b0a05;cursor:pointer;position:relative;}
+  .wm-card .wm-chk:checked{background:linear-gradient(135deg,var(--gold-bright),var(--gold));border-color:var(--gold);}
+  .wm-card .wm-chk:checked::after{content:"✓";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#0a0a0a;font-weight:900;font-size:13px;}
+  .wm-card .wm-main{flex:1;min-width:0;}
+  .wm-card .wm-name{font-weight:800;color:#fff6da;font-size:14.5px;}
+  .wm-card.done .wm-name{text-decoration:line-through;text-decoration-color:var(--gold-deep);}
+  .wm-card .wm-meta{font-size:12.5px;color:var(--muted);margin-top:2px;}
+  .wm-card .wm-meta a{color:var(--gold-bright);text-decoration:none;font-weight:700;}
+  .wm-card .wm-date{font-size:11px;color:var(--muted);white-space:nowrap;}
+  .wm-card .wm-del{cursor:pointer;border:none;background:none;color:var(--muted);font-size:16px;padding:4px 6px;}
+  .wm-card .wm-del:hover{color:var(--red);}
+  .wm-empty{text-align:center;color:var(--muted);font-style:italic;padding:24px 10px;font-size:13px;}
+
   .res{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
   @media(max-width:680px){.res{grid-template-columns:1fr;}}
   .res-card{border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:rgba(212,175,55,.05);}
@@ -216,6 +260,12 @@
     <button class="out" onclick="signOut()">Sign out</button>
   </div>
 
+  <div class="viewtog">
+    <button id="vTracker" class="on" onclick="setView('tracker')">📋 90-Day Tracker</button>
+    <button id="vWarm" onclick="setView('warm')">🔥 Warm Market <span class="vcount" id="vWarmCount">0</span></button>
+  </div>
+
+  <div id="trackerView">
   <div class="hero">
     <img src="https://grindagencies.github.io/smmt-calendar/logo.png" alt="The Standard Financial Group">
     <div class="wm">The Standard Financial Group</div>
@@ -295,6 +345,11 @@
         <div class="item"><input type="checkbox" class="chk" id="ft8"><label for="ft8">FT8: <b>Master Closing</b></label></div>
         <div class="item"><input type="checkbox" class="chk" id="ft9"><label for="ft9">FT9: <b>Master Closing</b> (more reps)</label></div>
         <div class="item"><input type="checkbox" class="chk" id="ft10"><label for="ft10">FT10: <b>Ready for Sign-Off</b></label></div>
+        <div class="marker">Product Mastery — illustrate &amp; submit each product type:</div>
+        <div class="item"><input type="checkbox" class="chk" id="ft_iul"><label for="ft_iul">Master <b>IUL</b> illustration &amp; submission</label></div>
+        <div class="item"><input type="checkbox" class="chk" id="ft_annuity"><label for="ft_annuity">Master <b>Annuity</b> illustration &amp; submission</label></div>
+        <div class="item"><input type="checkbox" class="chk" id="ft_term"><label for="ft_term">Master <b>Term</b> illustration &amp; submission</label></div>
+        <div class="item"><input type="checkbox" class="chk" id="ft_mdb"><label for="ft_mdb">Master <b>Million Dollar Baby</b> illustration &amp; submission</label></div>
       </div>
 
       <div class="block">
@@ -345,7 +400,16 @@
       <div class="item"><input type="checkbox" class="chk" id="b_f1"><label for="b_f1">Client Helped 1</label></div>
       <div class="item"><input type="checkbox" class="chk" id="b_f2"><label for="b_f2">Client Helped 2</label></div>
       <div class="item"><input type="checkbox" class="chk" id="b_f3"><label for="b_f3">Client Helped 3</label></div>
-      <div class="item"><input type="checkbox" class="chk" id="b_10k"><label for="b_10k">$10K cashflow (Net License — first $1,000+ rolling to $10K)</label></div>
+      <div class="block">
+        <div class="block-h">📜 Net License Pathway <span class="meta" style="font-weight:700;color:var(--muted);">— your #1 tracked metric</span></div>
+        <div class="block-sub">Net License is the metric leadership tracks hardest. Stack your net licenses before chasing the $10K cashflow milestone.</div>
+        <div class="item"><input type="checkbox" class="chk" id="nl1"><label for="nl1">Net License 1</label></div>
+        <div class="item"><input type="checkbox" class="chk" id="nl2"><label for="nl2">Net License 2</label></div>
+        <div class="item"><input type="checkbox" class="chk" id="nl3"><label for="nl3">Net License 3</label></div>
+        <div class="item"><input type="checkbox" class="chk" id="nl4"><label for="nl4">Net License 4</label></div>
+        <div class="item"><input type="checkbox" class="chk" id="nl5"><label for="nl5">Net License 5</label></div>
+      </div>
+      <div class="item"><input type="checkbox" class="chk" id="b_10k"><label for="b_10k">$10K cashflow (first $1,000+ rolling to $10K)</label></div>
       <div class="item tier"><input type="checkbox" class="chk" id="b_senior"><label for="b_senior">🏆 Senior Associate Promotion (50% contract) by Day 30</label></div>
     </div>
   </div>
@@ -412,6 +476,15 @@
     <div class="sec-body">
       <div class="item"><input type="checkbox" class="dchk" id="dnHuddle"><label for="dnHuddle"><b>Attend the 8 AM Morning Huddle</b> <span class="meta">8:00 AM PST · <a href="https://us02web.zoom.us/j/9646509994?pwd=a2s1OXhzeTB3N3BBOWRkUmw1VHE2Zz09" target="_blank" rel="noopener">Join Zoom →</a> · <a href="https://grindagencies.github.io/smmt-calendar/ics/huddle.ics" target="_blank" rel="noopener">Add to Calendar →</a></span></label></div>
       <div class="item"><input type="checkbox" class="dchk" id="dnTalk"><label for="dnTalk">Talk to people every single day — momentum comes from conversations</label></div>
+      <div class="wm-log">
+        <div class="wm-log-h">📇 Log who you talked to <span class="meta" style="color:var(--muted);font-weight:700;">→ saved to your Warm Market tab as a follow-up</span></div>
+        <div class="wm-rows" id="wmRows"></div>
+        <div class="wm-actions">
+          <button type="button" class="wm-add" onclick="addWmRow()">＋ Add another person</button>
+          <button type="button" class="wm-save" onclick="logContacts()">Log to Warm Market →</button>
+        </div>
+        <div class="wm-note" id="wmLogNote"></div>
+      </div>
       <div class="item"><input type="checkbox" class="dchk" id="dnGroup"><label for="dnGroup">Be in GroupMe daily — read the briefings, respond</label></div>
       <div class="item"><input type="checkbox" class="dchk" id="dnPFR"><label for="dnPFR">One PFR booked or completed (weekday minimum)</label></div>
       <div class="item"><input type="checkbox" class="dchk" id="dnTracker"><label for="dnTracker">Update your tracker before end of day</label></div>
@@ -448,6 +521,28 @@
     <div class="sig">Read it daily. Understand it daily. Live it daily. — The Standard Financial Group</div>
   </div>
 
+  </div><!-- /trackerView -->
+
+  <div id="warmView" style="display:none;">
+    <div class="sec" style="margin-top:0;">
+      <div class="sec-head"><h3>🔥 Warm Market — Your People</h3><span class="days lock"><span id="wmTotal">0</span> leads</span></div>
+      <div class="sec-body">
+        <div class="marker">Every person you talk to lives here as a follow-up reminder. Work this list — your warm market is your first paycheck.</div>
+        <div class="wm-log" style="margin:8px 0 14px;">
+          <div class="wm-log-h">➕ Add a contact</div>
+          <div class="wm-rows" id="wmRows2"></div>
+          <div class="wm-actions">
+            <button type="button" class="wm-add" onclick="addWmRow2()">＋ Add another person</button>
+            <button type="button" class="wm-save" onclick="logContacts2()">Save to Warm Market →</button>
+          </div>
+          <div class="wm-note" id="wmLogNote2"></div>
+        </div>
+        <div id="wmList"></div>
+        <div class="wm-empty" id="wmEmpty">No leads yet. Log the people you talk to from the Tracker tab's Daily Non-Negotiables — they'll show up here.</div>
+      </div>
+    </div>
+  </div>
+
   <div class="foot">The Standard Financial Group · New Agent 90-Day Tracker · Build Momentum. Create Results. Lead From the Front.</div>
 
 </div>
@@ -467,7 +562,7 @@
   var dboxes=Array.prototype.slice.call(document.querySelectorAll('.dchk'));
   var carchks=Array.prototype.slice.call(document.querySelectorAll('.carchk'));
   var carcodes=Array.prototype.slice.call(document.querySelectorAll('.car-code'));
-  var code=null, saveTimer=null, currentPath=null, ftLog={};
+  var code=null, saveTimer=null, currentPath=null, ftLog={}, warmMarket=[];
 
   function el(id){return document.getElementById(id);}
   function val(id){return (el(id).value||"").trim();}
@@ -524,7 +619,7 @@
     clearTimeout(saveTimer);
     saveTimer=setTimeout(function(){
       var vis=boxes.filter(function(b){return b.offsetParent!==null;}).length;
-      api({action:'save',code:code,progress:progressMap(),total:vis,pathway:currentPath,ft_log:ftLog,carrier_codes:carriersPayload()}).then(function(res){
+      api({action:'save',code:code,progress:progressMap(),total:vis,pathway:currentPath,ft_log:ftLog,carrier_codes:carriersPayload(),warm_market:warmMarket}).then(function(res){
         setStat(res&&res.ok?'Saved ✓':'Saved on this device',res&&res.ok);
       }).catch(function(){setStat('Saved on this device (offline)',false);});
     },600);
@@ -538,6 +633,50 @@
   carchks.forEach(function(b){b.addEventListener('change',function(){if(code)saveSoon();});});
   var carTimer=null;
   carcodes.forEach(function(t){t.addEventListener('input',function(){setStat('Saving…',false);clearTimeout(carTimer);carTimer=setTimeout(function(){if(code)saveSoon();},700);});});
+
+  /* ---- WARM MARKET ---- */
+  function escH(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function saveNow(){if(!code)return;var vis=boxes.filter(function(b){return b.offsetParent!==null;}).length;setStat('Saving…',false);api({action:'save',code:code,progress:progressMap(),total:vis,pathway:currentPath,ft_log:ftLog,carrier_codes:carriersPayload(),warm_market:warmMarket}).then(function(r){setStat(r&&r.ok?'Saved ✓':'Saved on this device',r&&r.ok);}).catch(function(){setStat('Saved on this device (offline)',false);});}
+  function wmRowHTML(){return '<div class="wm-row"><input class="wm-n" type="text" placeholder="Name" autocomplete="off"><input class="wm-p" type="tel" placeholder="Phone" autocomplete="off"><input class="wm-e" type="email" placeholder="Email" autocomplete="off"><button type="button" class="wm-x" onclick="this.parentNode.remove()">×</button></div>';}
+  function addWmRow(){el('wmRows').insertAdjacentHTML('beforeend',wmRowHTML());}
+  function addWmRow2(){el('wmRows2').insertAdjacentHTML('beforeend',wmRowHTML());}
+  function resetRows(id){el(id).innerHTML=wmRowHTML();}
+  function gatherRows(container){var rows=container.querySelectorAll('.wm-row');var added=0;rows.forEach(function(r){var n=r.querySelector('.wm-n').value.trim();var p=r.querySelector('.wm-p').value.trim();var e=r.querySelector('.wm-e').value.trim();if(n||p||e){warmMarket.unshift({id:'wm'+Date.now()+Math.floor(Math.random()*1000),name:n,phone:p,email:e,date:ptToday(),done:false});added++;}});return added;}
+  function logFrom(rowsId,noteId){var n=gatherRows(el(rowsId));if(!n){el(noteId).style.color='var(--red)';el(noteId).textContent='Enter at least a name, phone, or email.';return;}el(noteId).style.color='var(--green)';el(noteId).textContent=n+' contact'+(n>1?'s':'')+' saved to Warm Market ✓';resetRows(rowsId);renderWarm();saveNow();setTimeout(function(){el(noteId).textContent='';},3500);}
+  function logContacts(){logFrom('wmRows','wmLogNote');}
+  function logContacts2(){logFrom('wmRows2','wmLogNote2');}
+  function wmToggle(id){for(var i=0;i<warmMarket.length;i++){if(warmMarket[i].id===id){warmMarket[i].done=!warmMarket[i].done;break;}}renderWarm();saveNow();}
+  function wmRemove(id){warmMarket=warmMarket.filter(function(x){return x.id!==id;});renderWarm();saveNow();}
+  function renderWarm(){
+    var n=warmMarket.length;
+    if(el('vWarmCount'))el('vWarmCount').textContent=n;
+    if(el('wmTotal'))el('wmTotal').textContent=n;
+    if(el('wmEmpty'))el('wmEmpty').style.display=n?'none':'block';
+    var L=el('wmList');if(!L)return;L.innerHTML='';
+    warmMarket.forEach(function(c){
+      var meta=[];
+      if(c.phone)meta.push('<a href="tel:'+escH(c.phone)+'">'+escH(c.phone)+'</a>');
+      if(c.email)meta.push('<a href="mailto:'+escH(c.email)+'">'+escH(c.email)+'</a>');
+      var d=document.createElement('div');d.className='wm-card'+(c.done?' done':'');
+      d.innerHTML='<input type="checkbox" class="wm-chk" '+(c.done?'checked':'')+' title="Mark followed up">'+
+        '<div class="wm-main"><div class="wm-name">'+escH(c.name||'(no name)')+'</div><div class="wm-meta">'+(meta.join(' · ')||'no contact info')+'</div></div>'+
+        '<div class="wm-date">'+escH(c.date||'')+'</div>'+
+        '<button class="wm-del" title="Remove">🗑</button>';
+      d.querySelector('.wm-chk').addEventListener('change',function(){wmToggle(c.id);});
+      d.querySelector('.wm-del').addEventListener('click',function(){wmRemove(c.id);});
+      L.appendChild(d);
+    });
+  }
+  function setView(v){
+    var warm=(v==='warm');
+    el('trackerView').style.display=warm?'none':'block';
+    el('warmView').style.display=warm?'block':'none';
+    el('vTracker').classList.toggle('on',!warm);
+    el('vWarm').classList.toggle('on',warm);
+    window.scrollTo(0,0);
+  }
+  // seed one blank row in each add-form
+  resetRows('wmRows'); resetRows('wmRows2');
 
   /* ---- DAILY STREAK ---- */
   function dailyKey(){return 'tsfg_daily_'+code;}
@@ -595,6 +734,7 @@
       ftLog=res.agent.ft_log||{};
       applyProgress(res.agent.progress);
       applyCarriers(res.agent.carrier_codes); bizCount();
+      warmMarket=res.agent.warm_market||[]; renderWarm();
       showApp(res.agent.first_name+' '+res.agent.last_name);
       restorePath(res.agent.pathway);
       update(); loadDaily(res.agent);
@@ -602,7 +742,7 @@
       btn.disabled=false;btn.textContent="Start My Tracker →";
     }).catch(function(){el('gMsg').textContent="Network issue — please try again.";btn.disabled=false;btn.textContent="Start My Tracker →";});
   }
-  function signOut(){try{localStorage.removeItem('tsfg_code');}catch(e){}code=null;currentPath=null;ftLog={};applyProgress({});applyCarriers({});bizCount();dboxes.forEach(function(b){b.checked=false;});showGate();el('gFirst').value="";el('gLast').value="";el('gCode').value="";el('gMsg').textContent="";}
+  function signOut(){try{localStorage.removeItem('tsfg_code');}catch(e){}code=null;currentPath=null;ftLog={};warmMarket=[];applyProgress({});applyCarriers({});bizCount();renderWarm();setView('tracker');dboxes.forEach(function(b){b.checked=false;});showGate();el('gFirst').value="";el('gLast').value="";el('gCode').value="";el('gMsg').textContent="";}
 
   function boot(){
     try{code=localStorage.getItem('tsfg_code');}catch(e){code=null;}
@@ -612,6 +752,7 @@
         ftLog=res.agent.ft_log||{};
         applyProgress(res.agent.progress);
         applyCarriers(res.agent.carrier_codes); bizCount();
+        warmMarket=res.agent.warm_market||[]; renderWarm();
         showApp(res.agent.first_name+' '+res.agent.last_name);
         restorePath(res.agent.pathway);
         update(); loadDaily(res.agent);
@@ -621,7 +762,7 @@
       try{localStorage.removeItem('tsfg_code');}catch(e){}code=null;showGate();
     }).catch(function(){
       var cached=null;try{cached=JSON.parse(localStorage.getItem('tsfg_prog_'+code)||'null');}catch(e){}
-      applyProgress(cached||{});showApp((localStorage.getItem('tsfg_name')||('GFI '+code)));restorePath();update();loadDaily(null);
+      applyProgress(cached||{});showApp((localStorage.getItem('tsfg_name')||('GFI '+code)));restorePath();update();loadDaily(null);renderWarm();
       setStat('Offline — showing your last saved progress',false);
     });
   }
