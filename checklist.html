@@ -140,17 +140,22 @@
 
   /* carrier contracting rows */
   .carlist{display:flex;flex-direction:column;gap:6px;}
-  .car-row{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid rgba(43,36,16,.6);}
+  .car-head{display:flex;align-items:center;gap:10px;padding:0 0 4px;}
+  .car-head .ch-name{flex:1 1 120px;min-width:90px;}
+  .car-head .ch-code{flex:0 0 120px;width:120px;font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--gold);text-align:left;}
+  .car-head .ch-code:first-of-type{margin-left:32px;}
+  @media(max-width:600px){.car-head{display:none;}}
+  .car-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(43,36,16,.6);flex-wrap:wrap;}
   .car-row:last-child{border-bottom:none;}
   .carchk{appearance:none;-webkit-appearance:none;flex:0 0 auto;width:22px;height:22px;border-radius:6px;border:2px solid var(--gold-deep);background:#0b0a05;cursor:pointer;position:relative;transition:.12s;}
   .carchk:hover{border-color:var(--gold);}
   .carchk:checked{background:linear-gradient(135deg,var(--gold-bright),var(--gold));border-color:var(--gold);}
   .carchk:checked::after{content:"✓";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#0a0a0a;font-weight:900;font-size:13px;}
-  .car-name{flex:1;min-width:120px;font-size:14.5px;font-weight:700;color:#f4efe2;}
-  .car-code{flex:0 0 150px;width:150px;padding:9px 11px;border-radius:9px;border:1px solid var(--line);background:#0c0b05;color:var(--gold-bright);font-size:13px;font-weight:800;letter-spacing:.04em;outline:none;transition:.15s;}
-  .car-code::placeholder{color:#7a6f4d;font-weight:600;letter-spacing:0;}
-  .car-code:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(212,175,55,.16);}
-  @media(max-width:560px){.car-code{flex:0 0 110px;width:110px;}}
+  .car-name{flex:1 1 120px;min-width:90px;font-size:14.5px;font-weight:700;color:#f4efe2;}
+  .car-life,.car-annuity{flex:0 0 120px;width:120px;padding:9px 11px;border-radius:9px;border:1px solid var(--line);background:#0c0b05;color:var(--gold-bright);font-size:13px;font-weight:800;letter-spacing:.04em;outline:none;transition:.15s;}
+  .car-life::placeholder,.car-annuity::placeholder{color:#7a6f4d;font-weight:600;letter-spacing:0;}
+  .car-life:focus,.car-annuity:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(212,175,55,.16);}
+  @media(max-width:600px){.car-name{flex:1 1 100%;}.car-life,.car-annuity{flex:1 1 46%;width:auto;}}
 
   /* DAILY */
   .daily{margin-top:26px;border:1px solid var(--gold);border-radius:16px;overflow:hidden;background:linear-gradient(160deg,#1c1608,#0b0a05);}
@@ -417,7 +422,7 @@
 
       <div class="block">
         <div class="block-h">🏛️ Carrier Contracting &amp; Writing Codes</div>
-        <div class="block-sub">Check each carrier as you're contracted, and enter your writing code/number for submission. Codes save to your profile automatically.</div>
+        <div class="block-sub">Check each carrier as you're contracted, and enter both your <b>Life</b> and <b>Annuity</b> writing codes for submission. Codes save to your profile automatically.</div>
         <div class="carlist" id="carlist"></div>
       </div>
 
@@ -596,13 +601,15 @@
   (function(){
     var g=document.getElementById('pfGrid');var h='';for(var i=1;i<=25;i++){h+='<div class="item"><input type="checkbox" class="chk" id="pf'+i+'"><label for="pf'+i+'">Field Training #'+i+'</label></div>';}g.innerHTML=h;
     var bz=document.getElementById('bizGrid');var b='';for(var j=1;j<=12;j++){b+='<div class="item"><input type="checkbox" class="chk" id="biz'+j+'"><label for="biz'+j+'">Piece of Business #'+j+' — Submitted</label></div>';}bz.innerHTML=b;
-    var cl=document.getElementById('carlist');var c='';CARRIERS.forEach(function(x){c+='<div class="car-row"><input type="checkbox" class="carchk" id="car_'+x[0]+'" data-car="'+x[0]+'"><label class="car-name" for="car_'+x[0]+'">'+x[1]+'</label><input type="text" class="car-code" data-car="'+x[0]+'" placeholder="Writing code" autocomplete="off"></div>';});cl.innerHTML=c;
+    var cl=document.getElementById('carlist');var c='<div class="car-head"><span class="ch-name"></span><span class="ch-code">Life code</span><span class="ch-code">Annuity code</span></div>';CARRIERS.forEach(function(x){c+='<div class="car-row"><input type="checkbox" class="carchk" id="car_'+x[0]+'" data-car="'+x[0]+'"><label class="car-name" for="car_'+x[0]+'">'+x[1]+'</label><input type="text" class="car-life" data-car="'+x[0]+'" placeholder="Life code" autocomplete="off"><input type="text" class="car-annuity" data-car="'+x[0]+'" placeholder="Annuity code" autocomplete="off"></div>';});cl.innerHTML=c;
   })();
 
   var boxes=Array.prototype.slice.call(document.querySelectorAll('.chk'));
   var dboxes=Array.prototype.slice.call(document.querySelectorAll('.dchk'));
   var carchks=Array.prototype.slice.call(document.querySelectorAll('.carchk'));
-  var carcodes=Array.prototype.slice.call(document.querySelectorAll('.car-code'));
+  var carlifes=Array.prototype.slice.call(document.querySelectorAll('.car-life'));
+  var carannu=Array.prototype.slice.call(document.querySelectorAll('.car-annuity'));
+  var carinputs=carlifes.concat(carannu);
   var code=null, saveTimer=null, currentPath=null, ftLog={}, warmMarket=[], emd="", md="";
   var UPLINE={'Elijah Cox':['Christopher Lorenz','Edgar Zavala'],'Yonatan Kenzo':[],'Seale Mosle':[],'Jianfeng Zhao':[]};
 
@@ -620,8 +627,15 @@
     el('doneNum').textContent=done;el('totNum').textContent=vis.length;el('pctNum').textContent=pct;el('barFill').style.width=pct+'%';
   }
   function bizCount(){var n=0;for(var i=1;i<=12;i++){var b=el('biz'+i);if(b&&b.checked)n++;}var c=el('bizCount');if(c)c.textContent=n+' submitted';}
-  function carriersPayload(){var o={};carchks.forEach(function(b){var k=b.getAttribute('data-car');o[k]=o[k]||{};o[k].done=b.checked;});carcodes.forEach(function(t){var k=t.getAttribute('data-car');o[k]=o[k]||{};o[k].code=t.value.trim();});return o;}
-  function applyCarriers(cc){cc=cc||{};carchks.forEach(function(b){var k=b.getAttribute('data-car');b.checked=!!(cc[k]&&cc[k].done);});carcodes.forEach(function(t){var k=t.getAttribute('data-car');t.value=(cc[k]&&cc[k].code)?cc[k].code:'';});}
+  function carriersPayload(){var o={};
+    carchks.forEach(function(b){var k=b.getAttribute('data-car');o[k]=o[k]||{};o[k].done=b.checked;});
+    carlifes.forEach(function(t){var k=t.getAttribute('data-car');o[k]=o[k]||{};o[k].life=t.value.trim();});
+    carannu.forEach(function(t){var k=t.getAttribute('data-car');o[k]=o[k]||{};o[k].annuity=t.value.trim();});
+    return o;}
+  function applyCarriers(cc){cc=cc||{};
+    carchks.forEach(function(b){var k=b.getAttribute('data-car');b.checked=!!(cc[k]&&cc[k].done);});
+    carlifes.forEach(function(t){var k=t.getAttribute('data-car');var v=cc[k]||{};t.value=v.life||v.code||'';});
+    carannu.forEach(function(t){var k=t.getAttribute('data-car');var v=cc[k]||{};t.value=v.annuity||'';});}
   function setStat(t,ok){var s=el('saveStat');s.textContent=t;s.className='savestat'+(ok?' ok':'');}
   function showApp(name){el('gate').style.display='none';el('app').style.display='block';el('who').textContent=name+' · GFI '+code;}
   function showGate(){el('app').style.display='none';el('gate').style.display='flex';}
@@ -674,7 +688,7 @@
   // carrier contracting: checkbox + writing-code inputs
   carchks.forEach(function(b){b.addEventListener('change',function(){if(code)saveSoon();});});
   var carTimer=null;
-  carcodes.forEach(function(t){t.addEventListener('input',function(){setStat('Saving…',false);clearTimeout(carTimer);carTimer=setTimeout(function(){if(code)saveSoon();},700);});});
+  carinputs.forEach(function(t){t.addEventListener('input',function(){setStat('Saving…',false);clearTimeout(carTimer);carTimer=setTimeout(function(){if(code)saveSoon();},700);});});
 
   /* ---- WARM MARKET ---- */
   function escH(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
