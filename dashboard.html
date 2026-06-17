@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Onboarding Dashboard — The Standard Financial Group (Leadership)</title>
+<link rel="icon" href="https://grindagencies.github.io/smmt-calendar/logo.png">
+<style>
+  :root{--bg:#060606;--panel:#0f0e09;--ink:#f4efe2;--muted:#b6a982;--line:#2b2410;
+    --gold:#d4af37;--gold-bright:#f7d873;--gold-deep:#a8841f;--green:#3ec98a;--red:#e0533d;}
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:radial-gradient(900px 500px at 100% 0%, rgba(212,175,55,.10) 0%, transparent 55%),radial-gradient(1100px 600px at 50% -10%, #161206 0%, var(--bg) 55%);
+    color:var(--ink);line-height:1.5;padding:18px 16px 70px;}
+  .wrap{max-width:1040px;margin:0 auto;}
+  .head{text-align:center;margin-bottom:18px;}
+  .head img{height:60px;mix-blend-mode:screen;filter:drop-shadow(0 5px 14px rgba(212,175,55,.35));}
+  .head .wm{font-family:Georgia,serif;letter-spacing:.28em;font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;margin-top:6px;}
+  .head h1{margin:8px 0 0;font-weight:900;text-transform:uppercase;font-size:clamp(22px,4vw,32px);
+    background:linear-gradient(180deg,#fff4cf,var(--gold-bright) 45%,var(--gold-deep));-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .head .sub{color:var(--muted);font-size:13px;}
+
+  /* GATE */
+  .gate{max-width:380px;margin:30px auto;border:1px solid var(--gold-deep);border-radius:18px;padding:26px;background:linear-gradient(160deg,#15110a,#0a0905);text-align:center;}
+  .gate h2{margin:0 0 4px;color:#fff6da;font-size:18px;text-transform:uppercase;letter-spacing:.04em;}
+  .gate p{color:var(--muted);font-size:12.5px;margin:0 0 16px;}
+  .gate input{width:100%;padding:13px 14px;border-radius:11px;border:1px solid var(--line);background:#0c0b05;color:#fff6da;font-size:15px;outline:none;letter-spacing:.06em;}
+  .gate input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(212,175,55,.18);}
+  .gate button{width:100%;margin-top:12px;padding:13px;border:none;border-radius:12px;cursor:pointer;font-weight:900;font-size:14px;letter-spacing:.06em;text-transform:uppercase;color:#0a0a0a;background:linear-gradient(90deg,var(--gold-bright),var(--gold));}
+  .gate .err{min-height:16px;margin-top:10px;color:var(--red);font-size:13px;font-weight:700;}
+
+  #board{display:none;}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;}
+  @media(max-width:680px){.stats{grid-template-columns:1fr 1fr;}}
+  .stat{border:1px solid var(--line);border-radius:14px;padding:16px;background:rgba(212,175,55,.05);text-align:center;}
+  .stat .n{font-size:26px;font-weight:900;color:var(--gold-bright);}
+  .stat .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:2px;}
+  .toolbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;}
+  .toolbar .t{font-weight:900;text-transform:uppercase;letter-spacing:.08em;color:var(--gold);font-size:13px;}
+  .toolbar button{font-size:12px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--gold);background:#171206;border:1px solid var(--gold-deep);border-radius:999px;padding:8px 14px;cursor:pointer;}
+  .toolbar button:hover{background:var(--gold);color:#0a0a0a;}
+  table{width:100%;border-collapse:separate;border-spacing:0;border:1px solid var(--line);border-radius:14px;overflow:hidden;}
+  th{background:#0e0c05;color:var(--gold);text-align:left;font-size:11px;letter-spacing:.1em;text-transform:uppercase;padding:12px 14px;border-bottom:1px solid var(--line);cursor:pointer;}
+  td{padding:12px 14px;border-bottom:1px solid var(--line);font-size:14px;vertical-align:middle;}
+  tr:last-child td{border-bottom:none;}
+  .nm{font-weight:800;color:#fff6da;}
+  .cd{font-weight:800;color:var(--gold);letter-spacing:.05em;}
+  .pbar{height:9px;border-radius:999px;background:#241d0c;overflow:hidden;border:1px solid var(--line);min-width:90px;}
+  .pbar span{display:block;height:100%;background:linear-gradient(90deg,var(--gold),var(--gold-bright));}
+  .pwrap{display:flex;align-items:center;gap:10px;}
+  .pwrap .pn{font-weight:800;color:#fff6da;min-width:38px;}
+  .done100{color:var(--green) !important;}
+  .ago{color:var(--muted);font-size:12.5px;}
+  .sheet{margin-top:24px;border:1px solid var(--gold-deep);border-radius:16px;padding:18px 20px;background:linear-gradient(160deg,#15110a,#0a0905);}
+  .sheet h3{margin:0 0 8px;color:var(--gold);font-size:14px;text-transform:uppercase;letter-spacing:.06em;}
+  .sheet p{font-size:13px;color:var(--ink);margin:0 0 10px;}
+  .sheet code{display:block;background:#0c0b05;border:1px solid var(--line);border-radius:10px;padding:12px;color:var(--gold-bright);font-size:12px;word-break:break-all;margin-bottom:8px;}
+  .sheet button{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#0a0a0a;background:linear-gradient(90deg,var(--gold-bright),var(--gold));border:none;border-radius:999px;padding:9px 16px;cursor:pointer;}
+  .empty{text-align:center;color:var(--muted);padding:30px;font-style:italic;}
+  .foot{text-align:center;color:var(--muted);font-size:12px;margin-top:24px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <img src="https://grindagencies.github.io/smmt-calendar/logo.png" alt="TSFG">
+    <div class="wm">The Standard Financial Group</div>
+    <h1>Onboarding Dashboard</h1>
+    <div class="sub">Leadership view — every agent's 90-day progress by GFI code</div>
+  </div>
+
+  <div class="gate" id="gate">
+    <h2>Leadership Access</h2>
+    <p>Enter the ops passcode to view all agents.</p>
+    <input id="pass" type="password" placeholder="Passcode" autocomplete="off">
+    <button onclick="enter()">View Dashboard →</button>
+    <div class="err" id="err"></div>
+  </div>
+
+  <div id="board">
+    <div class="stats">
+      <div class="stat"><div class="n" id="sAgents">0</div><div class="l">Agents</div></div>
+      <div class="stat"><div class="n" id="sAvg">0%</div><div class="l">Avg Progress</div></div>
+      <div class="stat"><div class="n" id="sDone">0</div><div class="l">Completed (100%)</div></div>
+      <div class="stat"><div class="n" id="sActive">0</div><div class="l">Active (updated 7d)</div></div>
+    </div>
+    <div class="toolbar">
+      <div class="t">Agent Progress</div>
+      <div><button onclick="refresh()">↻ Refresh</button> <button onclick="signout()">Sign out</button></div>
+    </div>
+    <table>
+      <thead><tr>
+        <th onclick="sortBy('name')">Agent</th>
+        <th onclick="sortBy('code')">GFI Code</th>
+        <th onclick="sortBy('pct')">Progress</th>
+        <th onclick="sortBy('done')">Steps</th>
+        <th onclick="sortBy('updated')">Last Updated</th>
+      </tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <div class="empty" id="empty" style="display:none;">No agents have registered yet.</div>
+
+    <div class="sheet">
+      <h3>📊 Live Google Sheet sync</h3>
+      <p>Open a new Google Sheet, click cell <b>A1</b>, paste this formula and press Enter. The sheet auto-refreshes with every agent's progress (Google re-pulls roughly hourly):</p>
+      <code id="formula"></code>
+      <button onclick="copyFormula()">Copy formula</button>
+    </div>
+    <div class="foot">The Standard Financial Group · Onboarding Dashboard · Data live from the agent tracker</div>
+  </div>
+</div>
+
+<script>
+  var API="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/tracker-api";
+  var token=null, data=[], sortKey='pct', sortDir=-1;
+
+  function el(id){return document.getElementById(id);}
+  function enter(){
+    var t=el('pass').value.trim();
+    if(!t){el('err').textContent="Enter the passcode.";return;}
+    el('err').textContent="Checking…";
+    fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'list',token:t})})
+      .then(function(r){return r.json();})
+      .then(function(res){
+        if(!res||!res.ok){el('err').textContent="Incorrect passcode.";return;}
+        token=t; try{sessionStorage.setItem('tsfg_admin',t);}catch(e){}
+        el('gate').style.display='none'; el('board').style.display='block';
+        setFormula(); render(res.agents);
+      }).catch(function(){el('err').textContent="Network issue — try again.";});
+  }
+  function refresh(){
+    if(!token)return;
+    fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'list',token:token})})
+      .then(function(r){return r.json();}).then(function(res){if(res&&res.ok)render(res.agents);});
+  }
+  function signout(){try{sessionStorage.removeItem('tsfg_admin');}catch(e){}token=null;el('board').style.display='none';el('gate').style.display='block';el('pass').value="";el('err').textContent="";}
+
+  function timeAgo(iso){
+    if(!iso)return"—";var d=new Date(iso),s=(Date.now()-d.getTime())/1000;
+    if(s<60)return"just now";if(s<3600)return Math.floor(s/60)+"m ago";if(s<86400)return Math.floor(s/3600)+"h ago";
+    return Math.floor(s/86400)+"d ago";
+  }
+  function render(agents){
+    data=(agents||[]).map(function(a){return {name:(a.first_name+' '+a.last_name),code:a.code,pct:a.pct||0,done:a.done_count||0,total:a.total||33,updated:a.updated_at};});
+    // stats
+    el('sAgents').textContent=data.length;
+    el('sAvg').textContent=(data.length?Math.round(data.reduce(function(s,a){return s+a.pct;},0)/data.length):0)+'%';
+    el('sDone').textContent=data.filter(function(a){return a.pct>=100;}).length;
+    var wk=Date.now()-7*86400000;
+    el('sActive').textContent=data.filter(function(a){return a.updated&&new Date(a.updated).getTime()>wk;}).length;
+    draw();
+  }
+  function draw(){
+    data.sort(function(a,b){
+      var x=a[sortKey],y=b[sortKey];
+      if(sortKey==='updated'){x=a.updated?new Date(a.updated).getTime():0;y=b.updated?new Date(b.updated).getTime():0;}
+      if(typeof x==='string'){return sortDir*x.localeCompare(y);}
+      return sortDir*((x>y?1:x<y?-1:0));
+    });
+    var tb=el('rows');tb.innerHTML="";
+    el('empty').style.display=data.length?'none':'block';
+    data.forEach(function(a){
+      var tr=document.createElement('tr');
+      tr.innerHTML='<td class="nm">'+esc(a.name)+'</td>'+
+        '<td class="cd">'+esc(a.code)+'</td>'+
+        '<td><div class="pwrap"><div class="pbar"><span style="width:'+a.pct+'%"></span></div><span class="pn'+(a.pct>=100?' done100':'')+'">'+a.pct+'%</span></div></td>'+
+        '<td>'+a.done+' / '+a.total+'</td>'+
+        '<td class="ago">'+timeAgo(a.updated)+'</td>';
+      tb.appendChild(tr);
+    });
+  }
+  function sortBy(k){ if(sortKey===k)sortDir=-sortDir; else {sortKey=k;sortDir=(k==='name'||k==='code')?1:-1;} draw(); }
+  function esc(s){return (s==null?'':String(s)).replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c];});}
+  function setFormula(){ el('formula').textContent='=IMPORTDATA("'+API+'?action=export&token='+token+'")'; }
+  function copyFormula(){ navigator.clipboard.writeText(el('formula').textContent).then(function(){var b=event.target;b.textContent="Copied ✓";setTimeout(function(){b.textContent="Copy formula";},1500);}); }
+
+  // auto-enter if session has token
+  (function(){ var t=null; try{t=sessionStorage.getItem('tsfg_admin');}catch(e){} if(t){el('pass').value=t;enter();} })();
+  el('pass').addEventListener('keydown',function(e){if(e.key==='Enter')enter();});
+</script>
+</body>
+</html>
