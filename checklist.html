@@ -102,6 +102,23 @@
   .item.tier label{font-weight:800;color:#fff6da;}
   .item.tier{background:rgba(212,175,55,.04);border-radius:8px;padding-left:8px;padding-right:8px;}
 
+  /* PATHWAY TOGGLE + BLOCKS */
+  .pathtog{display:flex;gap:10px;margin:8px 0 12px;}
+  @media(max-width:560px){.pathtog{flex-direction:column;}}
+  .pathtog button{flex:1;cursor:pointer;border:1px solid var(--gold-deep);background:#141005;color:var(--gold);border-radius:12px;padding:12px;font-weight:900;font-size:14px;text-transform:uppercase;letter-spacing:.04em;display:flex;flex-direction:column;align-items:center;gap:3px;transition:.15s;}
+  .pathtog button span{font-size:10.5px;font-weight:700;letter-spacing:.02em;text-transform:none;color:var(--muted);}
+  .pathtog button:hover{background:#1d1607;}
+  .pathtog button.on{color:#0a0a0a;background:linear-gradient(90deg,var(--gold-bright),var(--gold));border-color:var(--gold);box-shadow:0 6px 18px rgba(212,175,55,.22);}
+  .pathtog button.on span{color:#3a2e08;}
+  .pathfocus{font-size:13px;color:var(--gold-bright);font-weight:700;background:rgba(212,175,55,.06);border:1px solid var(--line);border-radius:10px;padding:11px 13px;margin-bottom:14px;}
+  .block{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:12px;background:rgba(212,175,55,.03);}
+  .block-h{font-weight:900;color:#fff6da;font-size:14.5px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;}
+  .blink{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:#0a0a0a;background:linear-gradient(90deg,var(--gold-bright),var(--gold));padding:6px 11px;border-radius:999px;text-decoration:none;}
+  .blink:hover{filter:brightness(1.08);text-decoration:none;}
+  .block-sub{font-size:12.5px;color:var(--muted);margin:5px 0 8px;}
+  .copy-reminder{font-size:12px;color:var(--gold-bright);background:rgba(224,83,61,.08);border:1px solid var(--gold-deep);border-radius:8px;padding:9px 11px;margin-top:8px;}
+  .item label a{color:var(--gold-bright);font-weight:800;}
+
   .res{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
   @media(max-width:680px){.res{grid-template-columns:1fr;}}
   .res-card{border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:rgba(212,175,55,.05);}
@@ -192,26 +209,54 @@
   <div class="sec">
     <div class="sec-head"><h3>Week 1 — The Foundation</h3><span class="days">Days 1–7</span></div>
     <div class="sec-body">
-      <div class="marker">Completed inside the first 7 days — not staged across the week.</div>
-      <div class="item"><input type="checkbox" class="chk" id="w1a"><label for="w1a">Sign the Independent Contractor Agreement (ICA)</label></div>
-      <div class="item"><input type="checkbox" class="chk" id="w1b"><label for="w1b">Submit background check</label></div>
-      <div class="item"><input type="checkbox" class="chk" id="w1c"><label for="w1c">Join the Team GroupMe</label></div>
-      <div class="item"><input type="checkbox" class="chk" id="w1d"><label for="w1d">Complete Day 1 Training <span class="meta">Wed 6 PM PST · Zoom 9646509994 / WEALTH — 8 Wealth Categories · IUL / Family Bank · Fixed Indexed Annuity · "Your Next 90 Days"</span></label></div>
-      <div class="item"><input type="checkbox" class="chk" id="w1e"><label for="w1e">Complete Day 2 Training <span class="meta">Thu 6 PM PST · same Zoom — Top 6 warmest-contact framework · Reference Script · E.T.H.O.R. Script</span></label></div>
-      <div class="item"><input type="checkbox" class="chk" id="w1f"><label for="w1f">Enroll in the pre-license course</label></div>
-      <div class="item"><input type="checkbox" class="chk" id="w1g"><label for="w1g">Schedule your state exam — exam date on the calendar</label></div>
-      <div class="item"><input type="checkbox" class="chk" id="w1h"><label for="w1h">Lock in your exam-prep cadence</label></div>
+      <div class="marker">Completed inside the first 7 days — in this order.</div>
+      <div class="item"><input type="checkbox" class="chk" id="w1_group"><label for="w1_group"><b>1. Join the Team GroupMe</b> <span class="meta"><a href="https://groupme.com/join_group/112844775/AeY1yIfq" target="_blank" rel="noopener">Join the GroupMe →</a></span></label></div>
+      <div class="item"><input type="checkbox" class="chk" id="w1_prelic"><label for="w1_prelic"><b>2. Enroll with the Pre-Licensing Coordinator</b> <span class="meta">Book your licensing kickoff with Operations → <a href="https://calendly.com/impactagency-ops/licensing" target="_blank" rel="noopener">Operations Calendar →</a></span></label></div>
+      <div class="item"><input type="checkbox" class="chk" id="w1_exam"><label for="w1_exam"><b>3. Schedule your state exam</b> <span class="meta">Lock the exam date on your calendar — Day 21 maximum</span></label></div>
+      <div class="item"><input type="checkbox" class="chk" id="w1_prep"><label for="w1_prep"><b>4. Lock in your exam prep</b> <span class="meta">Daily cadence — minimum 1–2 hours per day</span></label></div>
+      <div class="item"><input type="checkbox" class="chk" id="w1_day1"><label for="w1_day1"><b>5. Complete Day 1 Training</b> <span class="meta">Wed 6 PM PST · <a href="https://us02web.zoom.us/j/9646509994?pwd=a2s1OXhzeTB3N3BBOWRkUmw1VHE2Zz09" target="_blank" rel="noopener">Join Zoom →</a> · <a href="https://grindagencies.github.io/smmt-calendar/index.html" target="_blank" rel="noopener">Add from Calendar →</a><br>8 Wealth Categories · IUL / Family Bank · Fixed Indexed Annuity · "Your Next 90 Days"</span></label></div>
+      <div class="item"><input type="checkbox" class="chk" id="w1_day2"><label for="w1_day2"><b>6. Complete Day 2 Training</b> <span class="meta">Thu 6 PM PST · <a href="https://us02web.zoom.us/j/9646509994?pwd=a2s1OXhzeTB3N3BBOWRkUmw1VHE2Zz09" target="_blank" rel="noopener">Join Zoom →</a> · <a href="https://grindagencies.github.io/smmt-calendar/index.html" target="_blank" rel="noopener">Add from Calendar →</a><br>Top 6 warmest-contact framework · Reference Script · E.T.H.O.R. Script</span></label></div>
+      <div class="item"><input type="checkbox" class="chk" id="w1_md"><label for="w1_md"><b>7. Schedule your 1-on-1 sit-down with your Marketing Director (Day 3)</b> <span class="meta">Map your Business Marketing Plan with your MD</span></label></div>
+      <div class="marker" style="border-bottom:none;color:var(--green);font-weight:800;font-style:normal;">✅ Week 1 complete — your foundation is set.</div>
     </div>
   </div>
 
   <div class="sec">
-    <div class="sec-head"><h3>Week 2 — Building &amp; Activating</h3><span class="days">Days 8–14</span></div>
+    <div class="sec-head"><h3>Week 2 — Choose Your Pathway</h3><span class="days">Days 8–14</span></div>
     <div class="sec-body">
-      <div class="marker">From "watching" to "actively running." Markers: Top 100 submitted, Top 6 scheduled &amp; underway, exam prep on track.</div>
-      <div class="item"><input type="checkbox" class="chk" id="w2a"><label for="w2a">Build your Top 100 list — brain-dump 100 warm-market names into the template, submit to mentor</label></div>
-      <div class="item"><input type="checkbox" class="chk" id="w2b"><label for="w2b">Start your Top 6 appointments <span class="meta">Schedule and begin running your 6 warmest-contact appointments — all 6 done by Day 14 (7-day buffer to Day 21 if needed)</span></label></div>
-      <div class="item"><input type="checkbox" class="chk" id="w2c"><label for="w2c">Exam prep — daily cadence, minimum 1–2 hours per day</label></div>
-      <div class="sub-note">Note: Day 3 &amp; Day 4 trainings are 1-on-1 with your mentor — they unlock only after you pass your exam.</div>
+      <div class="marker">Week 2 splits into two pathways. Pick your focus — the foundation work below is the same either way.</div>
+      <div class="pathtog">
+        <button id="pathBuilder" onclick="setPath('builder')">🔨 Builder<span>Recruiting focused</span></button>
+        <button id="pathProducer" onclick="setPath('producer')">💰 Producer<span>Cashflow to $10K</span></button>
+      </div>
+      <div class="pathfocus" id="pathFocus">Choose <b>Builder</b> or <b>Producer</b> above to set your focus.</div>
+
+      <div class="block">
+        <div class="block-h">🎯 Top 6 Warmest Appointments <a class="blink" href="https://grindagencies.github.io/smmt-calendar/index.html" target="_blank" rel="noopener">Book on a CFT / MD Calendly →</a></div>
+        <div class="block-sub">Your 6 warmest contacts — these are also Field Trainings 1–6. Check each off as it's run (all 6 by Day 14, buffer to Day 21).</div>
+        <div class="item"><input type="checkbox" class="chk" id="ft1"><label for="ft1">Top 6 · #1 — FT1: <b>Strictly Shadow</b></label></div>
+        <div class="item"><input type="checkbox" class="chk" id="ft2"><label for="ft2">Top 6 · #2 — FT2: <b>Master Building Rapport</b></label></div>
+        <div class="item"><input type="checkbox" class="chk" id="ft3"><label for="ft3">Top 6 · #3 — FT3: <b>Master Credibility Slide</b></label></div>
+        <div class="item"><input type="checkbox" class="chk" id="ft4"><label for="ft4">Top 6 · #4 — FT4: <b>Master Client Services Menu</b></label></div>
+        <div class="item"><input type="checkbox" class="chk" id="ft5"><label for="ft5">Top 6 · #5 — FT5: <b>Master Rule of 72</b></label></div>
+        <div class="item"><input type="checkbox" class="chk" id="ft6"><label for="ft6">Top 6 · #6 — FT6: <b>Master How Money is Taxed</b></label></div>
+      </div>
+
+      <div class="block">
+        <div class="block-h">📈 Field Trainings 7–10 — How to Train</div>
+        <div class="block-sub">Run the full 10-appointment progression. Each stage masters the next part of the presentation, building to your sign-off.</div>
+        <div class="item"><input type="checkbox" class="chk" id="ft7"><label for="ft7">FT7: <b>Master How Money Grows</b></label></div>
+        <div class="item"><input type="checkbox" class="chk" id="ft8"><label for="ft8">FT8: <b>Master Closing</b></label></div>
+        <div class="item"><input type="checkbox" class="chk" id="ft9"><label for="ft9">FT9: <b>Master Closing</b> (more reps)</label></div>
+        <div class="item"><input type="checkbox" class="chk" id="ft10"><label for="ft10">FT10: <b>Ready for Sign-Off</b></label></div>
+      </div>
+
+      <div class="block">
+        <div class="block-h">📇 Build Your Top 100 — Get Into Your Warm Market</div>
+        <div class="block-sub">Brain-dump your warm market into the Business Marketing Plan, then work the list every day.</div>
+        <div class="item"><input type="checkbox" class="chk" id="w2_top100"><label for="w2_top100">Build &amp; submit your Top 100 <span class="meta"><a href="https://docs.google.com/spreadsheets/d/1GZVGkg1BMDrQR8B-Q96MwHSqabxF1JnqHqnmqY095IY/edit?gid=0#gid=0" target="_blank" rel="noopener">Open the Business Marketing Plan →</a></span></label></div>
+        <div class="copy-reminder">⚠️ Make your OWN copy first — in the sheet go to <b>File → Make a copy</b>. Don't edit the master.</div>
+      </div>
     </div>
   </div>
 
@@ -328,7 +373,17 @@
   }
   function setStat(t,ok){var s=el('saveStat');s.textContent=t;s.className='savestat'+(ok?' ok':'');}
   function cacheKey(){return 'tsfg_prog_'+code;}
-  function showApp(name){el('gate').style.display='none';el('app').style.display='block';el('who').textContent=name+' · GFI '+code;}
+  function showApp(name){el('gate').style.display='none';el('app').style.display='block';el('who').textContent=name+' · GFI '+code;restorePath();}
+
+  function setPath(p){
+    try{localStorage.setItem('tsfg_path',p);}catch(e){}
+    if(el('pathBuilder'))el('pathBuilder').classList.toggle('on',p==='builder');
+    if(el('pathProducer'))el('pathProducer').classList.toggle('on',p==='producer');
+    if(el('pathFocus'))el('pathFocus').innerHTML = p==='builder'
+      ? '🔨 <b>Builder focus — recruiting.</b> Goal: bring on 3 Business Partners (Directs). Treat every field training as a recruiting conversation too.'
+      : '💰 <b>Producer focus — cashflow.</b> Goal: $10,000 paid out. Every field training is a family helped and a policy written.';
+  }
+  function restorePath(){var p=null;try{p=localStorage.getItem('tsfg_path');}catch(e){}if(p)setPath(p);}
   function showGate(){el('app').style.display='none';el('gate').style.display='flex';}
 
   function api(payload){
@@ -356,7 +411,7 @@
     setStat('Saving…',false);
     clearTimeout(saveTimer);
     saveTimer=setTimeout(function(){
-      api({action:'save',code:code,progress:progressMap()}).then(function(res){
+      api({action:'save',code:code,progress:progressMap(),total:boxes.length}).then(function(res){
         setStat(res&&res.ok?'Saved ✓':'Saved on this device',res&&res.ok);
       }).catch(function(){setStat('Saved on this device (offline)',false);});
     },600);
