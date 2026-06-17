@@ -102,6 +102,18 @@
   .emd-pick select{width:100%;padding:12px 13px;border-radius:10px;border:1px solid var(--gold-deep);background:#0c0b05;color:#fff6da;font-size:15px;font-weight:800;outline:none;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--gold) 50%),linear-gradient(135deg,var(--gold) 50%,transparent 50%);background-position:calc(100% - 18px) 50%,calc(100% - 13px) 50%;background-size:5px 5px,5px 5px;background-repeat:no-repeat;}
   .emd-pick select:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(212,175,55,.16);}
   .emd-pick .emd-note{font-size:12px;color:var(--green);font-weight:700;margin-top:7px;min-height:14px;}
+  .upline-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media(max-width:560px){.upline-grid{grid-template-columns:1fr;}}
+  .up-field{display:flex;flex-direction:column;gap:5px;}
+  .up-lbl{font-size:10.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--gold);}
+  .upline-chain{margin-top:12px;padding:11px 13px;border:1px solid var(--line);border-radius:10px;background:rgba(212,175,55,.05);font-size:13.5px;font-weight:800;color:#fff6da;line-height:1.9;}
+  .upline-chain .up-seg{display:inline-block;padding:3px 10px;border-radius:999px;margin:2px 0;}
+  .upline-chain .up-you{background:rgba(62,143,106,.2);border:1px solid #3e8f6a;color:#bff2da;}
+  .upline-chain .up-md{background:rgba(59,110,165,.2);border:1px solid #3b6ea5;color:#bcdcff;}
+  .upline-chain .up-emd{background:rgba(212,175,55,.18);border:1px solid var(--gold-deep);color:var(--gold-bright);}
+  .upline-chain .up-top{background:#120f07;border:1px solid var(--line);color:var(--muted);}
+  .upline-chain .up-pending{color:var(--muted);font-style:italic;font-weight:700;}
+  .upline-chain .up-arrow{color:var(--gold-deep);font-weight:900;padding:0 3px;}
   .item.tier label{font-weight:800;color:#fff6da;}
   .item.tier{background:rgba(212,175,55,.04);border-radius:8px;padding-left:8px;padding-right:8px;}
 
@@ -318,15 +330,25 @@
       <div class="item"><input type="checkbox" class="chk" id="w1_prep"><label for="w1_prep"><b>5. Lock in your exam prep</b> <span class="meta">Daily cadence — minimum 1–2 hours per day</span></label></div>
       <div class="item"><input type="checkbox" class="chk" id="w1_day1"><label for="w1_day1"><b>6. Complete Day 1 Training</b> <span class="meta">Wed 6 PM PST · <a href="https://us02web.zoom.us/j/9646509994?pwd=a2s1OXhzeTB3N3BBOWRkUmw1VHE2Zz09" target="_blank" rel="noopener">Join Zoom →</a> · <a href="https://grindagencies.github.io/smmt-calendar/index.html" target="_blank" rel="noopener">Add from Calendar →</a><br>8 Wealth Categories · IUL / Family Bank · FIA · "Your Next 90 Days"</span></label></div>
       <div class="emd-pick">
-        <label for="emdSel">🎖️ Choose Your EMD</label>
-        <div class="emd-sub">Lock in your direct EMD (your upline leader). This aligns you with your leader and groups your tracking under them.</div>
-        <select id="emdSel">
-          <option value="">— Select your EMD —</option>
-          <option value="Elijah Cox">Elijah Cox</option>
-          <option value="Yonatan Kenzo">Yonatan Kenzo</option>
-          <option value="Seale Mosle">Seale Mosle</option>
-          <option value="Jianfeng Zhao">Jianfeng Zhao</option>
-        </select>
+        <label>🎖️ Your Upline Chain</label>
+        <div class="emd-sub">Lock in your leadership line so your tracking groups under the right leaders. Pick your EMD first, then your MD.</div>
+        <div class="upline-grid">
+          <div class="up-field">
+            <span class="up-lbl">EMD — Executive Marketing Director</span>
+            <select id="emdSel">
+              <option value="">— Select your EMD —</option>
+              <option value="Elijah Cox">Elijah Cox</option>
+              <option value="Yonatan Kenzo">Yonatan Kenzo</option>
+              <option value="Seale Mosle">Seale Mosle</option>
+              <option value="Jianfeng Zhao">Jianfeng Zhao</option>
+            </select>
+          </div>
+          <div class="up-field">
+            <span class="up-lbl">MD — Marketing Director (your direct upline)</span>
+            <select id="mdSel"><option value="">— Select your EMD first —</option></select>
+          </div>
+        </div>
+        <div class="upline-chain" id="uplineChain"></div>
         <div class="emd-note" id="emdNote"></div>
       </div>
       <div class="item"><input type="checkbox" class="chk" id="w1_day2"><label for="w1_day2"><b>7. Complete Day 2 Training</b> <span class="meta">Thu 6 PM PST · <a href="https://us02web.zoom.us/j/9646509994?pwd=a2s1OXhzeTB3N3BBOWRkUmw1VHE2Zz09" target="_blank" rel="noopener">Join Zoom →</a> · <a href="https://grindagencies.github.io/smmt-calendar/index.html" target="_blank" rel="noopener">Add from Calendar →</a><br>Top 6 framework · Reference Script · E.T.H.O.R. Script</span></label></div>
@@ -581,7 +603,8 @@
   var dboxes=Array.prototype.slice.call(document.querySelectorAll('.dchk'));
   var carchks=Array.prototype.slice.call(document.querySelectorAll('.carchk'));
   var carcodes=Array.prototype.slice.call(document.querySelectorAll('.car-code'));
-  var code=null, saveTimer=null, currentPath=null, ftLog={}, warmMarket=[], emd="";
+  var code=null, saveTimer=null, currentPath=null, ftLog={}, warmMarket=[], emd="", md="";
+  var UPLINE={'Elijah Cox':['Christopher Lorenz','Edgar Zavala'],'Yonatan Kenzo':[],'Seale Mosle':[],'Jianfeng Zhao':[]};
 
   function el(id){return document.getElementById(id);}
   function val(id){return (el(id).value||"").trim();}
@@ -655,9 +678,31 @@
 
   /* ---- WARM MARKET ---- */
   function escH(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
-  function saveNow(){if(!code)return;var vis=boxes.filter(function(b){return b.offsetParent!==null;}).length;setStat('Saving…',false);api({action:'save',code:code,progress:progressMap(),total:vis,pathway:currentPath,emd:emd,ft_log:ftLog,carrier_codes:carriersPayload(),warm_market:warmMarket}).then(function(r){setStat(r&&r.ok?'Saved ✓':'Saved on this device',r&&r.ok);}).catch(function(){setStat('Saved on this device (offline)',false);});}
-  function restoreEmd(v){emd=v||"";var s=el('emdSel');if(s)s.value=emd;}
-  (function(){var s=el('emdSel');if(s)s.addEventListener('change',function(){emd=s.value;if(el('emdNote'))el('emdNote').textContent=emd?('Aligned with '+emd+' ✓'):'';if(code)saveNow();});})();
+  function saveNow(){if(!code)return;var vis=boxes.filter(function(b){return b.offsetParent!==null;}).length;setStat('Saving…',false);api({action:'save',code:code,progress:progressMap(),total:vis,pathway:currentPath,emd:emd,md:md,ft_log:ftLog,carrier_codes:carriersPayload(),warm_market:warmMarket}).then(function(r){setStat(r&&r.ok?'Saved ✓':'Saved on this device',r&&r.ok);}).catch(function(){setStat('Saved on this device (offline)',false);});}
+  function populateMd(selected){
+    var sel=el('mdSel');if(!sel)return;
+    if(!emd){sel.innerHTML='<option value="">— Select your EMD first —</option>';sel.disabled=true;return;}
+    var mds=UPLINE[emd]||[];
+    sel.disabled=(mds.length===0);
+    if(mds.length===0){sel.innerHTML='<option value="">MDs coming soon for '+escH(emd)+'</option>';return;}
+    var h='<option value="">— Select your MD —</option>';
+    mds.forEach(function(m){h+='<option value="'+escH(m)+'">'+escH(m)+'</option>';});
+    sel.innerHTML=h; if(selected)sel.value=selected;
+  }
+  function renderChain(){
+    var c=el('uplineChain');if(!c)return;
+    if(!emd){c.innerHTML='<span class="up-pending">Select your EMD to see your upline chain.</span>';return;}
+    var you='<span class="up-seg up-you">You</span>';
+    var mdSeg = md ? '<span class="up-seg up-md">'+escH(md)+' · MD</span>' : '<span class="up-pending">your MD</span>';
+    var emdSeg='<span class="up-seg up-emd">'+escH(emd)+' · EMD</span>';
+    var top='<span class="up-seg up-top">The Standard Financial Group</span>';
+    c.innerHTML=you+'<span class="up-arrow">→</span>'+mdSeg+'<span class="up-arrow">→</span>'+emdSeg+'<span class="up-arrow">→</span>'+top;
+  }
+  function restoreUpline(eVal,mVal){emd=eVal||"";md=mVal||"";var s=el('emdSel');if(s)s.value=emd;populateMd(md);renderChain();}
+  (function(){
+    var es=el('emdSel'); if(es)es.addEventListener('change',function(){emd=es.value;md="";populateMd("");renderChain();if(el('emdNote'))el('emdNote').textContent=emd?('Aligned under '+emd+' ✓'):'';if(code)saveNow();});
+    var ms=el('mdSel'); if(ms)ms.addEventListener('change',function(){md=ms.value;renderChain();if(el('emdNote'))el('emdNote').textContent=md?('Upline locked: '+md+' → '+emd+' ✓'):(emd?('Aligned under '+emd+' ✓'):'');if(code)saveNow();});
+  })();
   function wmRowHTML(){return '<div class="wm-row"><input class="wm-n" type="text" placeholder="Name" autocomplete="off"><input class="wm-p" type="tel" placeholder="Phone" autocomplete="off"><input class="wm-e" type="email" placeholder="Email" autocomplete="off"><button type="button" class="wm-x" onclick="this.parentNode.remove()">×</button></div>';}
   function addWmRow(){el('wmRows').insertAdjacentHTML('beforeend',wmRowHTML());}
   function addWmRow2(){el('wmRows2').insertAdjacentHTML('beforeend',wmRowHTML());}
@@ -755,7 +800,7 @@
       ftLog=res.agent.ft_log||{};
       applyProgress(res.agent.progress);
       applyCarriers(res.agent.carrier_codes); bizCount();
-      warmMarket=res.agent.warm_market||[]; renderWarm(); restoreEmd(res.agent.emd);
+      warmMarket=res.agent.warm_market||[]; renderWarm(); restoreUpline(res.agent.emd,res.agent.md);
       showApp(res.agent.first_name+' '+res.agent.last_name);
       restorePath(res.agent.pathway);
       update(); loadDaily(res.agent);
@@ -763,7 +808,7 @@
       btn.disabled=false;btn.textContent="Start My Tracker →";
     }).catch(function(){el('gMsg').textContent="Network issue — please try again.";btn.disabled=false;btn.textContent="Start My Tracker →";});
   }
-  function signOut(){try{localStorage.removeItem('tsfg_code');}catch(e){}code=null;currentPath=null;ftLog={};warmMarket=[];emd="";restoreEmd("");applyProgress({});applyCarriers({});bizCount();renderWarm();setView('tracker');dboxes.forEach(function(b){b.checked=false;});showGate();el('gFirst').value="";el('gLast').value="";el('gCode').value="";el('gMsg').textContent="";}
+  function signOut(){try{localStorage.removeItem('tsfg_code');}catch(e){}code=null;currentPath=null;ftLog={};warmMarket=[];emd="";md="";restoreUpline("","");applyProgress({});applyCarriers({});bizCount();renderWarm();setView('tracker');dboxes.forEach(function(b){b.checked=false;});showGate();el('gFirst').value="";el('gLast').value="";el('gCode').value="";el('gMsg').textContent="";}
 
   function boot(){
     try{code=localStorage.getItem('tsfg_code');}catch(e){code=null;}
@@ -773,7 +818,7 @@
         ftLog=res.agent.ft_log||{};
         applyProgress(res.agent.progress);
         applyCarriers(res.agent.carrier_codes); bizCount();
-        warmMarket=res.agent.warm_market||[]; renderWarm(); restoreEmd(res.agent.emd);
+        warmMarket=res.agent.warm_market||[]; renderWarm(); restoreUpline(res.agent.emd,res.agent.md);
         showApp(res.agent.first_name+' '+res.agent.last_name);
         restorePath(res.agent.pathway);
         update(); loadDaily(res.agent);
