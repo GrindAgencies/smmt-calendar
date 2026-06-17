@@ -181,6 +181,8 @@
   .wm-rows{display:flex;flex-direction:column;gap:8px;}
   .wm-row{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;align-items:center;}
   @media(max-width:620px){.wm-row{grid-template-columns:1fr 1fr;}}
+  .wm-row .wm-note-in{grid-column:1 / -1;padding:10px 11px;border-radius:9px;border:1px solid var(--line);background:#0c0b05;color:#f4efe2;font-size:13.5px;outline:none;width:100%;transition:.15s;}
+  .wm-row .wm-note-in:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(212,175,55,.16);}
   .wm-row input{padding:10px 11px;border-radius:9px;border:1px solid var(--line);background:#0c0b05;color:#fff6da;font-size:13.5px;outline:none;transition:.15s;width:100%;}
   .wm-row input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(212,175,55,.16);}
   .wm-row .wm-x{cursor:pointer;border:1px solid var(--line);background:#120f07;color:var(--muted);border-radius:9px;padding:9px 12px;font-weight:900;}
@@ -732,11 +734,11 @@
     var es=el('emdSel'); if(es)es.addEventListener('change',function(){emd=es.value;md="";populateMd("");renderChain();if(el('emdNote'))el('emdNote').textContent=emd?('Aligned under '+emd+' ✓'):'';if(code)saveSoon();});
     var ms=el('mdSel'); if(ms)ms.addEventListener('change',function(){md=ms.value;renderChain();if(el('emdNote'))el('emdNote').textContent=md?('Broker line locked: '+md+' → '+emd+' ✓'):(emd?('Aligned under '+emd+' ✓'):'');if(code)saveSoon();});
   })();
-  function wmRowHTML(){return '<div class="wm-row"><input class="wm-n" type="text" placeholder="Name" autocomplete="off"><input class="wm-p" type="tel" placeholder="Phone" autocomplete="off"><input class="wm-e" type="email" placeholder="Email" autocomplete="off"><button type="button" class="wm-x" onclick="this.parentNode.remove()">×</button></div>';}
+  function wmRowHTML(){return '<div class="wm-row"><input class="wm-n" type="text" placeholder="Name" autocomplete="off"><input class="wm-p" type="tel" placeholder="Phone" autocomplete="off"><input class="wm-e" type="email" placeholder="Email" autocomplete="off"><button type="button" class="wm-x" onclick="this.parentNode.remove()">×</button><input class="wm-note-in" type="text" placeholder="Notes — how you know them, what you talked about, next step…" autocomplete="off"></div>';}
   function addWmRow(){el('wmRows').insertAdjacentHTML('beforeend',wmRowHTML());}
   function addWmRow2(){el('wmRows2').insertAdjacentHTML('beforeend',wmRowHTML());}
   function resetRows(id){el(id).innerHTML=wmRowHTML();}
-  function gatherRows(container){var rows=container.querySelectorAll('.wm-row');var added=0;rows.forEach(function(r){var n=r.querySelector('.wm-n').value.trim();var p=r.querySelector('.wm-p').value.trim();var e=r.querySelector('.wm-e').value.trim();if(n||p||e){warmMarket.unshift({id:'wm'+Date.now()+Math.floor(Math.random()*1000),name:n,phone:p,email:e,date:ptToday(),done:false});added++;}});return added;}
+  function gatherRows(container){var rows=container.querySelectorAll('.wm-row');var added=0;rows.forEach(function(r){var n=r.querySelector('.wm-n').value.trim();var p=r.querySelector('.wm-p').value.trim();var e=r.querySelector('.wm-e').value.trim();var ni=r.querySelector('.wm-note-in');var notes=ni?ni.value.trim():'';if(n||p||e){warmMarket.unshift({id:'wm'+Date.now()+Math.floor(Math.random()*1000),name:n,phone:p,email:e,notes:notes,outcome:'',date:ptToday(),done:false});added++;}});return added;}
   function logFrom(rowsId,noteId){var n=gatherRows(el(rowsId));if(!n){el(noteId).style.color='var(--red)';el(noteId).textContent='Enter at least a name, phone, or email.';return;}el(noteId).style.color='var(--green)';el(noteId).textContent=n+' contact'+(n>1?'s':'')+' saved to Warm Market ✓';resetRows(rowsId);renderWarm();saveNow();setTimeout(function(){el(noteId).textContent='';},3500);}
   function logContacts(){logFrom('wmRows','wmLogNote');}
   function logContacts2(){logFrom('wmRows2','wmLogNote2');}
