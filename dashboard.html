@@ -107,14 +107,14 @@
     <div class="toolbar">
       <div class="t">Agent Progress</div>
       <div class="tools-r">
-        <label class="emdfilter">EMD:
+        <label class="emdfilter">Exec Broker:
           <select id="emdFilter" onchange="onEmdFilter()">
-            <option value="">All EMDs</option>
+            <option value="">All Exec Brokers</option>
           </select>
         </label>
-        <label class="emdfilter">MD:
+        <label class="emdfilter">Senior Broker:
           <select id="mdFilter" onchange="draw()">
-            <option value="">All MDs</option>
+            <option value="">All Senior Brokers</option>
           </select>
         </label>
         <button onclick="refresh()">↻ Refresh</button> <button onclick="signout()">Sign out</button>
@@ -124,8 +124,8 @@
       <thead><tr>
         <th onclick="sortBy('name')">Agent</th>
         <th onclick="sortBy('code')">GFI Code</th>
-        <th onclick="sortBy('emd')">EMD</th>
-        <th onclick="sortBy('md')">MD</th>
+        <th onclick="sortBy('emd')">Exec Broker</th>
+        <th onclick="sortBy('md')">Senior Broker</th>
         <th onclick="sortBy('pathway')">Pathway</th>
         <th onclick="sortBy('pct')">Progress</th>
         <th onclick="sortBy('done')">Steps</th>
@@ -197,9 +197,9 @@
     var emds={};data.forEach(function(a){if(a.emd)emds[a.emd]=(emds[a.emd]||0)+1;});
     var names=Object.keys(emds).sort();
     var unassigned=data.filter(function(a){return !a.emd;}).length;
-    var html='<option value="">All EMDs ('+data.length+')</option>';
+    var html='<option value="">All Exec Brokers ('+data.length+')</option>';
     names.forEach(function(n){html+='<option value="'+esc(n)+'">'+esc(n)+' ('+emds[n]+')</option>';});
-    if(unassigned)html+='<option value="__none__">— No EMD set ('+unassigned+')</option>';
+    if(unassigned)html+='<option value="__none__">— No Exec Broker set ('+unassigned+')</option>';
     sel.innerHTML=html; sel.value=cur;
   }
   function buildMdFilter(){
@@ -209,7 +209,7 @@
     var scope=data.filter(function(a){ if(!ef)return true; if(ef==='__none__')return !a.emd; return a.emd===ef; });
     var mds={};scope.forEach(function(a){if(a.md)mds[a.md]=(mds[a.md]||0)+1;});
     var names=Object.keys(mds).sort();
-    var html='<option value="">All MDs</option>';
+    var html='<option value="">All Senior Brokers</option>';
     names.forEach(function(n){html+='<option value="'+esc(n)+'">'+esc(n)+' ('+mds[n]+')</option>';});
     sel.innerHTML=html; sel.value=cur; if(sel.value!==cur)sel.value='';
   }
