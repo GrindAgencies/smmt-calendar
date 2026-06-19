@@ -65,6 +65,7 @@
   .owner{font-weight:800;color:#fff6da;font-size:12.5px;}
   .owner .oc{color:var(--gold);font-weight:700;}
   .owner .em{display:block;font-size:11px;color:var(--blueink);font-weight:700;margin-top:1px;}
+  .qtag{display:inline-block;font-size:9.5px;font-weight:900;letter-spacing:.04em;color:#fff;background:var(--red);padding:1px 6px;border-radius:5px;vertical-align:middle;}
   .ago{color:var(--muted);font-size:12px;white-space:nowrap;}
   .ocb{display:inline-block;font-size:10.5px;font-weight:900;letter-spacing:.04em;padding:3px 8px;border-radius:999px;white-space:nowrap;}
   .ocb.win{color:#06150e;background:var(--green);}
@@ -196,7 +197,7 @@
   function isFresh(l){ return !l.contacted && !l.outcome; }
 
   function render(list){
-    leads=(list||[]).filter(function(l){return l.agent_status!=='quit';});
+    leads=(list||[]);
     el('sTotal').textContent=leads.length;
     el('sFresh').textContent=leads.filter(isFresh).length;
     el('sAppt').textContent=leads.filter(function(l){return l.appt_date;}).length;
@@ -261,7 +262,7 @@
         '<td>'+(l.direct_to?'<span class="tag">'+esc(l.direct_to)+'</span>':'<span class="ago">—</span>')+'</td>'+
         '<td>'+(l.appt_date?'<span class="appt">📅 '+esc(l.appt_date)+'</span>':'<span class="ago">—</span>')+'</td>'+
         '<td>'+ocb+'</td>'+
-        '<td class="owner">'+esc(l.agent_name)+' <span class="oc">'+esc(l.agent_code)+'</span>'+(l.emd?'<span class="em">'+esc(l.emd)+(l.md?(' › '+esc(l.md)):'')+'</span>':'')+'</td>'+
+        '<td class="owner">'+esc(l.agent_name)+' <span class="oc">'+esc(l.agent_code)+'</span>'+(l.agent_status==='quit'?' <span class="qtag">POOL</span>':'')+(l.emd?'<span class="em">'+esc(l.emd)+(l.md?(' › '+esc(l.md)):'')+'</span>':'')+'</td>'+
         '<td class="notes">'+(l.notes?esc(l.notes):'<span class="ago">—</span>')+'</td>'+
         '<td class="ago">'+timeAgo(l.date)+'</td>';
       tb.appendChild(tr);
