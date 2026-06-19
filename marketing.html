@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fresh Leads Database — The Standard Financial Group (Leadership)</title>
+<link rel="icon" href="https://grindagencies.github.io/smmt-calendar/logo.png">
+<style>
+  :root{--bg:#060606;--panel:#0f0e09;--ink:#f4efe2;--muted:#b6a982;--line:#2b2410;
+    --gold:#d4af37;--gold-bright:#f7d873;--gold-deep:#a8841f;--green:#3ec98a;--red:#e0533d;--blue:#3b6ea5;--blueink:#bcdcff;}
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:radial-gradient(900px 500px at 100% 0%, rgba(212,175,55,.10) 0%, transparent 55%),radial-gradient(1100px 600px at 50% -10%, #161206 0%, var(--bg) 55%);
+    color:var(--ink);line-height:1.5;padding:18px 16px 70px;}
+  .wrap{max-width:1280px;margin:0 auto;}
+  .switch{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:0 auto 18px;max-width:760px;}
+  .switch a{flex:1;min-width:170px;text-align:center;text-decoration:none;font-weight:900;font-size:13px;letter-spacing:.04em;text-transform:uppercase;
+    padding:12px 16px;border-radius:12px;border:1px solid var(--gold-deep);color:var(--gold);background:#141005;transition:.15s;}
+  .switch a:hover{background:#1d1607;}
+  .switch a.active{color:#0a0a0a;background:linear-gradient(90deg,var(--gold-bright),var(--gold));border-color:var(--gold);box-shadow:0 6px 18px rgba(212,175,55,.25);}
+  .head{text-align:center;margin-bottom:18px;}
+  .head img{height:60px;mix-blend-mode:screen;filter:drop-shadow(0 5px 14px rgba(212,175,55,.35));}
+  .head .wm{font-family:Georgia,serif;letter-spacing:.28em;font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;margin-top:6px;}
+  .head h1{margin:8px 0 0;font-weight:900;text-transform:uppercase;font-size:clamp(22px,4vw,32px);
+    background:linear-gradient(180deg,#fff4cf,var(--gold-bright) 45%,var(--gold-deep));-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .head .sub{color:var(--muted);font-size:13px;}
+
+  .gate{max-width:380px;margin:30px auto;border:1px solid var(--gold-deep);border-radius:18px;padding:26px;background:linear-gradient(160deg,#15110a,#0a0905);text-align:center;}
+  .gate h2{margin:0 0 4px;color:#fff6da;font-size:18px;text-transform:uppercase;letter-spacing:.04em;}
+  .gate p{color:var(--muted);font-size:12.5px;margin:0 0 16px;}
+  .gate input{width:100%;padding:13px 14px;border-radius:11px;border:1px solid var(--line);background:#0c0b05;color:#fff6da;font-size:15px;outline:none;letter-spacing:.06em;}
+  .gate input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(212,175,55,.18);}
+  .gate button{width:100%;margin-top:12px;padding:13px;border:none;border-radius:12px;cursor:pointer;font-weight:900;font-size:14px;letter-spacing:.06em;text-transform:uppercase;color:#0a0a0a;background:linear-gradient(90deg,var(--gold-bright),var(--gold));}
+  .gate .err{min-height:16px;margin-top:10px;color:var(--red);font-size:13px;font-weight:700;}
+
+  #board{display:none;}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;}
+  @media(max-width:680px){.stats{grid-template-columns:1fr 1fr;}}
+  .stat{border:1px solid var(--line);border-radius:14px;padding:16px;background:rgba(212,175,55,.05);text-align:center;}
+  .stat .n{font-size:26px;font-weight:900;color:var(--gold-bright);}
+  .stat .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:2px;}
+  .stat.fresh .n{color:var(--green);}
+
+  .toolbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;}
+  .toolbar .t{font-weight:900;text-transform:uppercase;letter-spacing:.08em;color:var(--gold);font-size:13px;}
+  .tools-r{display:flex;align-items:center;gap:9px;flex-wrap:wrap;}
+  .search{padding:9px 13px;border-radius:999px;border:1px solid var(--gold-deep);background:#0c0b05;color:#fff6da;font-size:13px;font-weight:700;outline:none;min-width:200px;}
+  .search:focus{border-color:var(--gold);}
+  .fl{font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--gold);display:flex;align-items:center;gap:6px;}
+  .fl select{font-size:12px;font-weight:800;color:#fff6da;background:#0c0b05;border:1px solid var(--gold-deep);border-radius:999px;padding:7px 12px;cursor:pointer;outline:none;}
+  .toolbar button{font-size:12px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--gold);background:#171206;border:1px solid var(--gold-deep);border-radius:999px;padding:8px 14px;cursor:pointer;}
+  .toolbar button:hover{background:var(--gold);color:#0a0a0a;}
+  .toolbar button.gold{color:#0a0a0a;background:linear-gradient(90deg,var(--gold-bright),var(--gold));}
+
+  .tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:14px;}
+  table{width:100%;border-collapse:separate;border-spacing:0;min-width:1100px;}
+  th{background:#0e0c05;color:var(--gold);text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:11px 12px;border-bottom:1px solid var(--line);cursor:pointer;white-space:nowrap;}
+  td{padding:11px 12px;border-bottom:1px solid var(--line);font-size:13.5px;vertical-align:top;}
+  tr:last-child td{border-bottom:none;}
+  tr.fresh-row td{background:rgba(62,143,106,.05);}
+  .ld-name{font-weight:800;color:#fff6da;}
+  .ph a{color:var(--gold-bright);text-decoration:none;font-weight:800;white-space:nowrap;}
+  .ph a:hover{text-decoration:underline;}
+  .prof{font-size:12px;color:var(--muted);white-space:nowrap;}
+  .owner{font-weight:800;color:#fff6da;font-size:12.5px;}
+  .owner .oc{color:var(--gold);font-weight:700;}
+  .owner .em{display:block;font-size:11px;color:var(--blueink);font-weight:700;margin-top:1px;}
+  .ago{color:var(--muted);font-size:12px;white-space:nowrap;}
+  .ocb{display:inline-block;font-size:10.5px;font-weight:900;letter-spacing:.04em;padding:3px 8px;border-radius:999px;white-space:nowrap;}
+  .ocb.win{color:#06150e;background:var(--green);}
+  .ocb.lose{color:#fff;background:var(--red);}
+  .ocb.fresh{color:var(--green);background:rgba(62,143,106,.16);border:1px solid var(--green);}
+  .notes{color:var(--ink);font-size:12.5px;max-width:240px;}
+  .appt{font-weight:800;color:var(--gold-bright);white-space:nowrap;}
+  .tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 7px;border-radius:6px;margin:1px 2px 1px 0;background:rgba(212,175,55,.08);color:var(--muted);border:1px solid var(--line);}
+  .empty{text-align:center;color:var(--muted);padding:30px;font-style:italic;}
+
+  .sheet{margin-top:22px;border:1px solid var(--gold-deep);border-radius:16px;padding:18px 20px;background:linear-gradient(160deg,#15110a,#0a0905);}
+  .sheet h3{margin:0 0 8px;color:var(--gold);font-size:14px;text-transform:uppercase;letter-spacing:.06em;}
+  .sheet p{font-size:13px;color:var(--ink);margin:0 0 10px;}
+  .sheet code{display:block;background:#0c0b05;border:1px solid var(--line);border-radius:10px;padding:12px;color:var(--gold-bright);font-size:12px;word-break:break-all;margin-bottom:8px;}
+  .sheet button{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#0a0a0a;background:linear-gradient(90deg,var(--gold-bright),var(--gold));border:none;border-radius:999px;padding:9px 16px;cursor:pointer;}
+  .foot{text-align:center;color:var(--muted);font-size:12px;margin-top:24px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="switch">
+    <a href="https://grindagencies.github.io/smmt-calendar/dashboard.html">🔑 Leadership Dashboard</a>
+    <a class="active" href="https://grindagencies.github.io/smmt-calendar/marketing.html">📋 Fresh Leads Database</a>
+    <a href="https://grindagencies.github.io/smmt-calendar/checklist.html">✅ Agent Sign-In</a>
+  </div>
+  <div class="head">
+    <img src="https://grindagencies.github.io/smmt-calendar/logo.png" alt="TSFG">
+    <div class="wm">The Standard Financial Group</div>
+    <h1>Fresh Leads Database</h1>
+    <div class="sub">Every agent's Marketing Plan in one place — call, schedule, and close</div>
+  </div>
+
+  <div class="gate" id="gate">
+    <h2>Leadership Access</h2>
+    <p>Enter the ops passcode to view all leads.</p>
+    <input id="pass" type="password" placeholder="Passcode" autocomplete="off">
+    <button onclick="enter()">Open Fresh Leads →</button>
+    <div class="err" id="err"></div>
+  </div>
+
+  <div id="board">
+    <div class="stats">
+      <div class="stat"><div class="n" id="sTotal">0</div><div class="l">Total Leads</div></div>
+      <div class="stat fresh"><div class="n" id="sFresh">0</div><div class="l">Fresh (uncalled)</div></div>
+      <div class="stat"><div class="n" id="sAppt">0</div><div class="l">Appointments Set</div></div>
+      <div class="stat"><div class="n" id="sWon">0</div><div class="l">Won</div></div>
+    </div>
+    <div class="toolbar">
+      <div class="t">All Leads</div>
+      <div class="tools-r">
+        <input class="search" id="search" placeholder="🔎 Search name, phone, agent, notes…" oninput="draw()">
+        <label class="fl">Status
+          <select id="statusFilter" onchange="draw()">
+            <option value="">All</option>
+            <option value="fresh">Fresh (uncalled)</option>
+            <option value="appt">Appt set</option>
+            <option value="win">Won</option>
+            <option value="lose">Lost</option>
+          </select>
+        </label>
+        <label class="fl">Exec Broker
+          <select id="emdFilter" onchange="onEmdFilter()"><option value="">All</option></select>
+        </label>
+        <label class="fl">Agent
+          <select id="agentFilter" onchange="draw()"><option value="">All</option></select>
+        </label>
+        <button class="gold" onclick="downloadCsv()">⬇ CSV</button>
+        <button onclick="refresh()">↻ Refresh</button>
+        <button onclick="signout()">Sign out</button>
+      </div>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr>
+          <th onclick="sortBy('name')">Lead</th>
+          <th onclick="sortBy('phone')">Phone</th>
+          <th onclick="sortBy('how_know')">How You Know</th>
+          <th>Profile</th>
+          <th onclick="sortBy('direct_to')">Direct To</th>
+          <th onclick="sortBy('appt_date')">Appt</th>
+          <th onclick="sortBy('outcome')">Status</th>
+          <th onclick="sortBy('agent_name')">Agent (Owner)</th>
+          <th>Notes</th>
+          <th onclick="sortBy('date')">Added</th>
+        </tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    <div class="empty" id="empty" style="display:none;">No leads match.</div>
+
+    <div class="sheet">
+      <h3>📊 Live Google Sheet sync — Fresh Leads</h3>
+      <p>Paste this into cell <b>A1</b> of a Google Sheet to pull every agent's leads automatically (Google refreshes ~hourly):</p>
+      <code id="formula"></code>
+      <button onclick="copyFormula()">Copy formula</button>
+    </div>
+    <div class="foot">The Standard Financial Group · Fresh Leads Database · Each lead tied to the agent who added them</div>
+  </div>
+</div>
+
+<script>
+  var API="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/tracker-api";
+  var token=null, leads=[], sortKey='date', sortDir=-1;
+  function el(id){return document.getElementById(id);}
+  function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+
+  function enter(){
+    var t=el('pass').value.trim();
+    if(!t){el('err').textContent="Enter the passcode.";return;}
+    el('err').textContent="Checking…";
+    fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'marketing',token:t})})
+      .then(function(r){return r.json();})
+      .then(function(res){
+        if(!res||!res.ok){el('err').textContent="Incorrect passcode.";return;}
+        token=t; try{sessionStorage.setItem('tsfg_admin',t);}catch(e){}
+        el('gate').style.display='none'; el('board').style.display='block';
+        setFormula(); render(res.leads);
+      }).catch(function(){el('err').textContent="Network issue — try again.";});
+  }
+  function refresh(){ if(!token)return; fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'marketing',token:token})}).then(function(r){return r.json();}).then(function(res){if(res&&res.ok)render(res.leads);}); }
+  function signout(){try{sessionStorage.removeItem('tsfg_admin');}catch(e){}token=null;el('board').style.display='none';el('gate').style.display='block';el('pass').value="";el('err').textContent="";}
+
+  function timeAgo(iso){ if(!iso)return"—"; var d=new Date(iso); if(isNaN(d))return esc(iso); var s=(Date.now()-d.getTime())/86400000; if(s<1)return"today"; if(s<2)return"1d ago"; return Math.floor(s)+"d ago"; }
+  function isFresh(l){ return !l.outcome; }
+
+  function render(list){
+    leads=(list||[]).filter(function(l){return l.agent_status!=='quit';});
+    el('sTotal').textContent=leads.length;
+    el('sFresh').textContent=leads.filter(isFresh).length;
+    el('sAppt').textContent=leads.filter(function(l){return l.appt_date;}).length;
+    el('sWon').textContent=leads.filter(function(l){return l.outcome==='win';}).length;
+    // build filters
+    var emds={},agents={};
+    leads.forEach(function(l){ if(l.emd)emds[l.emd]=(emds[l.emd]||0)+1; var a=l.agent_name+' ('+l.agent_code+')'; agents[a]=(agents[a]||0)+1; });
+    fillSel('emdFilter', emds, 'All Exec Brokers');
+    fillSel('agentFilter', agents, 'All Agents');
+    draw();
+  }
+  function fillSel(id, counts, allLabel){
+    var sel=el(id); if(!sel)return; var cur=sel.value;
+    var names=Object.keys(counts).sort();
+    var h='<option value="">'+allLabel+'</option>';
+    names.forEach(function(n){h+='<option value="'+esc(n)+'">'+esc(n)+' ('+counts[n]+')</option>';});
+    sel.innerHTML=h; sel.value=cur;
+  }
+  function onEmdFilter(){
+    // narrow agent filter to chosen EMD
+    var ef=el('emdFilter').value;
+    var agents={};
+    leads.forEach(function(l){ if(ef && l.emd!==ef)return; var a=l.agent_name+' ('+l.agent_code+')'; agents[a]=(agents[a]||0)+1; });
+    var cur=el('agentFilter').value;
+    fillSel('agentFilter', agents, 'All Agents');
+    if(el('agentFilter').value!==cur)el('agentFilter').value='';
+    draw();
+  }
+  function draw(){
+    var q=(el('search').value||'').trim().toLowerCase();
+    var sf=el('statusFilter').value, ef=el('emdFilter').value, af=el('agentFilter').value;
+    var rows=leads.filter(function(l){
+      if(ef && l.emd!==ef)return false;
+      if(af && (l.agent_name+' ('+l.agent_code+')')!==af)return false;
+      if(sf==='fresh' && !isFresh(l))return false;
+      if(sf==='appt' && !l.appt_date)return false;
+      if(sf==='win' && l.outcome!=='win')return false;
+      if(sf==='lose' && l.outcome!=='lose')return false;
+      if(q){ var hay=(l.name+' '+l.phone+' '+l.email+' '+l.agent_name+' '+l.agent_code+' '+l.how_know+' '+l.notes+' '+l.direct_to+' '+l.traits).toLowerCase(); if(hay.indexOf(q)===-1)return false; }
+      return true;
+    });
+    rows.sort(function(a,b){ var x=a[sortKey]||'',y=b[sortKey]||''; if(sortKey==='date'){x=a.date||'';y=b.date||'';} return sortDir*String(x).localeCompare(String(y)); });
+    var tb=el('rows'); tb.innerHTML="";
+    el('empty').style.display=rows.length?'none':'block';
+    rows.forEach(function(l){
+      var tr=document.createElement('tr');
+      if(isFresh(l))tr.className='fresh-row';
+      var prof=[];
+      if(l.age)prof.push(esc(l.age)+'y');
+      if(l.married)prof.push('💍');
+      if(l.children)prof.push('👶');
+      if(l.time_zone)prof.push(esc(l.time_zone));
+      var ocb = l.outcome==='win' ? '<span class="ocb win">WON</span>' : l.outcome==='lose' ? '<span class="ocb lose">LOST</span>' : '<span class="ocb fresh">FRESH</span>';
+      var phone = l.phone ? '<span class="ph"><a href="tel:'+esc(l.phone)+'">'+esc(l.phone)+'</a></span>' : '<span class="ago">—</span>';
+      tr.innerHTML='<td class="ld-name">'+esc(l.name||'(no name)')+'</td>'+
+        '<td>'+phone+'</td>'+
+        '<td>'+(l.how_know?esc(l.how_know):'<span class="ago">—</span>')+'</td>'+
+        '<td class="prof">'+(prof.join(' · ')||'<span class="ago">—</span>')+'</td>'+
+        '<td>'+(l.direct_to?'<span class="tag">'+esc(l.direct_to)+'</span>':'<span class="ago">—</span>')+'</td>'+
+        '<td>'+(l.appt_date?'<span class="appt">📅 '+esc(l.appt_date)+'</span>':'<span class="ago">—</span>')+'</td>'+
+        '<td>'+ocb+'</td>'+
+        '<td class="owner">'+esc(l.agent_name)+' <span class="oc">'+esc(l.agent_code)+'</span>'+(l.emd?'<span class="em">'+esc(l.emd)+(l.md?(' › '+esc(l.md)):'')+'</span>':'')+'</td>'+
+        '<td class="notes">'+(l.notes?esc(l.notes):'<span class="ago">—</span>')+'</td>'+
+        '<td class="ago">'+timeAgo(l.date)+'</td>';
+      tb.appendChild(tr);
+    });
+  }
+  function sortBy(k){ if(sortKey===k)sortDir=-sortDir; else {sortKey=k;sortDir=1;} draw(); }
+  function setFormula(){ el('formula').textContent='=IMPORTDATA("'+API+'?action=marketing&format=csv&token='+token+'")'; }
+  function copyFormula(){ navigator.clipboard.writeText(el('formula').textContent).then(function(){var b=event.target;b.textContent="Copied ✓";setTimeout(function(){b.textContent="Copy formula";},1500);}); }
+  function downloadCsv(){ if(!token)return; window.open(API+'?action=marketing&format=csv&token='+encodeURIComponent(token),'_blank'); }
+
+  (function(){ var t=null; try{t=sessionStorage.getItem('tsfg_admin');}catch(e){} if(t){el('pass').value=t;enter();} })();
+  el('pass').addEventListener('keydown',function(e){if(e.key==='Enter')enter();});
+</script>
+</body>
+</html>
