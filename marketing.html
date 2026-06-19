@@ -72,6 +72,7 @@
   .ocb.fresh{color:var(--green);background:rgba(62,143,106,.16);border:1px solid var(--green);}
   .ocb.done{color:#06150e;background:var(--green);}
   .ocb.todo{color:var(--gold-bright);background:rgba(212,175,55,.12);border:1px solid var(--gold-deep);}
+  .ocb.working{color:#bcdcff;background:rgba(59,110,165,.18);border:1px solid var(--blue);}
   .notes{color:var(--ink);font-size:12.5px;max-width:240px;}
   .appt{font-weight:800;color:var(--gold-bright);white-space:nowrap;}
   .tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 7px;border-radius:6px;margin:1px 2px 1px 0;background:rgba(212,175,55,.08);color:var(--muted);border:1px solid var(--line);}
@@ -249,7 +250,7 @@
       if(l.married)prof.push('💍');
       if(l.children)prof.push('👶');
       if(l.time_zone)prof.push(esc(l.time_zone));
-      var ocb = l.outcome==='win' ? '<span class="ocb win">WON</span>' : l.outcome==='lose' ? '<span class="ocb lose">LOST</span>' : '<span class="ocb fresh">FRESH</span>';
+      var ocb = l.outcome==='win' ? '<span class="ocb win">WON</span>' : l.outcome==='lose' ? '<span class="ocb lose">LOST</span>' : l.contacted ? '<span class="ocb working">WORKING</span>' : '<span class="ocb fresh">FRESH</span>';
       var phone = l.phone ? '<span class="ph"><a href="tel:'+esc(l.phone)+'">'+esc(l.phone)+'</a></span>' : '<span class="ago">—</span>';
       var cb = l.contacted ? '<span class="ocb done">✓ Yes</span>' : '<span class="ocb todo">☎ No</span>';
       tr.innerHTML='<td class="ld-name">'+esc(l.name||'(no name)')+'</td>'+
