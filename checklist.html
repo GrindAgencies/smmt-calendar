@@ -245,6 +245,30 @@
   .wm-tg{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:700;color:#f4efe2;cursor:pointer;}
   .wm-tg input{width:18px;height:18px;accent-color:var(--gold);cursor:pointer;}
   .wm-empty{text-align:center;color:var(--muted);font-style:italic;padding:24px 10px;font-size:13px;}
+  /* marketing-plan spreadsheet view */
+  .mp-viewtog{display:flex;gap:8px;margin:0 0 12px;}
+  .mp-viewtog button{cursor:pointer;border:1px solid var(--gold-deep);background:#141005;color:var(--gold);border-radius:999px;padding:7px 14px;font-weight:800;font-size:12px;}
+  .mp-viewtog button.on{color:#0a0a0a;background:linear-gradient(90deg,var(--gold-bright),var(--gold));}
+  .mp-tablescroll{overflow:auto;max-height:70vh;border:1px solid var(--line);border-radius:10px;}
+  .mp-table{border-collapse:separate;border-spacing:0;min-width:1180px;width:100%;}
+  .mp-table th{position:sticky;top:0;z-index:2;background:#0e0c05;color:var(--gold);font-size:10px;letter-spacing:.03em;text-transform:uppercase;text-align:left;padding:9px 8px;border-bottom:1px solid var(--gold-deep);white-space:nowrap;}
+  .mp-table td{padding:4px 6px;border-bottom:1px solid rgba(43,36,16,.6);}
+  .mp-table tr.oc-win td{background:rgba(62,143,106,.07);}
+  .mp-table tr.oc-lose td{background:rgba(224,83,61,.05);}
+  .mp-num{color:var(--muted);font-weight:800;font-size:12px;text-align:center;min-width:26px;}
+  .mp-table input[type=text],.mp-table input[type=tel],.mp-table input[type=date],.mp-table select{width:100%;min-width:88px;padding:6px 7px;border-radius:6px;border:1px solid var(--line);background:#0c0b05;color:#f4efe2;font-size:12.5px;outline:none;font-family:inherit;}
+  .mp-table input:focus,.mp-table select:focus{border-color:var(--gold);box-shadow:0 0 0 2px rgba(212,175,55,.14);}
+  .mp-table td.mp-c{text-align:center;}
+  .mp-c input{width:18px;height:18px;accent-color:var(--gold);cursor:pointer;}
+  .mp-st{white-space:nowrap;}
+  .mp-st .wl{padding:5px 9px;font-size:11px;font-weight:800;margin-right:3px;border:1px solid var(--line);background:#120f07;color:var(--muted);border-radius:6px;cursor:pointer;}
+  .mp-st .wl-w.on,.mp-st .wl-w:hover{background:#3e8f6a;border-color:#3e8f6a;color:#06150e;}
+  .mp-st .wl-l.on,.mp-st .wl-l:hover{background:var(--red);border-color:var(--red);color:#fff;}
+  .mp-del{border:none;background:none;color:var(--muted);cursor:pointer;font-size:15px;}
+  .mp-del:hover{color:var(--red);}
+  .mp-addrow{display:flex;gap:8px;margin-top:9px;flex-wrap:wrap;}
+  .mp-addrow button{cursor:pointer;border:1px solid var(--gold-deep);background:#141005;color:var(--gold);border-radius:999px;padding:9px 15px;font-weight:800;font-size:12.5px;}
+  .mp-addrow button:hover{background:#1d1607;}
 
   .res{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
   @media(max-width:680px){.res{grid-template-columns:1fr;}}
@@ -624,7 +648,12 @@
           </div>
           <div class="wm-note" id="wmLogNote2"></div>
         </div>
+        <div class="mp-viewtog">
+          <button id="mpCards" class="on" onclick="setMPView('cards')">🪪 Cards</button>
+          <button id="mpTable" onclick="setMPView('table')">🗂 Spreadsheet</button>
+        </div>
         <div id="wmList"></div>
+        <div id="wmTableWrap" style="display:none;"></div>
         <div class="wm-empty" id="wmEmpty">No leads yet. Add people above, or log them from the Daily Non-Negotiables — they'll show up here.</div>
       </div>
     </div>
@@ -651,7 +680,7 @@
   var carlifes=Array.prototype.slice.call(document.querySelectorAll('.car-life'));
   var carannu=Array.prototype.slice.call(document.querySelectorAll('.car-annuity'));
   var carinputs=carlifes.concat(carannu);
-  var code=null, saveTimer=null, currentPath=null, ftLog={}, warmMarket=[], emd="", md="";
+  var code=null, saveTimer=null, currentPath=null, ftLog={}, warmMarket=[], emd="", md="", wmViewMode="cards";
   var UPLINE={'Elijah Cox':['Christopher Lorenz','Edgar Zavala'],'Yonatan Kenzo':[],'Seale Mosle':[],'Jianfeng Zhao':[]};
 
   function el(id){return document.getElementById(id);}
@@ -773,6 +802,34 @@
   function wmField(id,field,val,immediate){for(var i=0;i<warmMarket.length;i++){if(warmMarket[i].id===id){warmMarket[i][field]=val;break;}}if(immediate){if(code)saveNow();}else{setStat('Saving…',false);clearTimeout(wmFieldTimer);wmFieldTimer=setTimeout(function(){if(code)saveNow();},700);}}
   function wmFld(label,f,val,type){return '<label class="wm-fld"><span>'+label+'</span><input data-f="'+f+'" type="'+(type||'text')+'" value="'+escH(val||'')+'" placeholder="'+escH(label)+'" autocomplete="off"></label>';}
   function wmTz(val){var z=['','PST','MST','CST','EST','HST','AKST'];var o='';z.forEach(function(t){o+='<option value="'+t+'"'+(t===(val||'')?' selected':'')+'>'+(t||'— time zone —')+'</option>';});return '<label class="wm-fld"><span>Time zone</span><select data-f="timeZone">'+o+'</select></label>';}
+  function setMPView(m){wmViewMode=m;if(el('mpCards'))el('mpCards').classList.toggle('on',m==='cards');if(el('mpTable'))el('mpTable').classList.toggle('on',m==='table');renderWarm();}
+  function addMPRows(k){for(var i=0;i<k;i++){warmMarket.push({id:'wm'+Date.now()+Math.floor(Math.random()*100000)+i,name:'',phone:'',date:ptToday(),outcome:'',done:false});}if(code)saveNow();renderWarm();}
+  var MP_COLS=[['name','Name','text'],['phone','Number','tel'],['directTo','Direct To','text'],['agentId','Agent ID','text'],['timeZone','Time Zone','tz'],['age','Age','text'],['married','Married','chk'],['children','Children','chk'],['howKnow','How You Know Them','text'],['apptDate','Appt Date','date'],['traits','3 Character Traits','text']];
+  function renderTable(){
+    var w=el('wmTableWrap');if(!w)return;
+    var TZ=['','PST','MST','CST','EST','HST','AKST'];
+    var th='<th>#</th>'+MP_COLS.map(function(c){return '<th>'+c[1]+'</th>';}).join('')+'<th>Win / Lose</th><th></th>';
+    var rows='';
+    warmMarket.forEach(function(c,idx){
+      var tds='<td class="mp-num">'+(idx+1)+'</td>';
+      MP_COLS.forEach(function(col){
+        var f=col[0],t=col[2],v=c[f];
+        if(t==='chk'){tds+='<td class="mp-c"><input type="checkbox" data-id="'+c.id+'" data-f="'+f+'" '+(v?'checked':'')+'></td>';}
+        else if(t==='tz'){tds+='<td><select data-id="'+c.id+'" data-f="'+f+'">'+TZ.map(function(o){return '<option value="'+o+'"'+(o===(v||'')?' selected':'')+'>'+(o||'—')+'</option>';}).join('')+'</select></td>';}
+        else{tds+='<td><input type="'+t+'" data-id="'+c.id+'" data-f="'+f+'" value="'+escH(v||'')+'" autocomplete="off"></td>';}
+      });
+      var oc=c.outcome||'';
+      tds+='<td class="mp-st"><button class="wl wl-w'+(oc==='win'?' on':'')+'" data-id="'+c.id+'" data-oc="win" title="Won">W</button><button class="wl wl-l'+(oc==='lose'?' on':'')+'" data-id="'+c.id+'" data-oc="lose" title="Lost">L</button></td>';
+      tds+='<td><button class="mp-del" data-id="'+c.id+'" title="Remove">🗑</button></td>';
+      rows+='<tr'+(oc?(' class="oc-'+oc+'"'):'')+'>'+tds+'</tr>';
+    });
+    w.innerHTML='<div class="mp-tablescroll"><table class="mp-table"><thead><tr>'+th+'</tr></thead><tbody>'+rows+'</tbody></table></div>'+
+      '<div class="mp-addrow"><button onclick="addMPRows(1)">＋ Add row</button><button onclick="addMPRows(5)">＋ Add 5 rows</button><button onclick="addMPRows(10)">＋ Add 10 rows</button></div>';
+    var tbl=w.querySelector('.mp-table');
+    tbl.addEventListener('input',function(e){var t=e.target;var f=t.getAttribute&&t.getAttribute('data-f');if(f&&t.type!=='checkbox'&&t.tagName!=='SELECT'&&t.type!=='date'){wmField(t.getAttribute('data-id'),f,t.value,false);}});
+    tbl.addEventListener('change',function(e){var t=e.target;var f=t.getAttribute&&t.getAttribute('data-f');if(!f)return;if(t.type==='checkbox'){wmField(t.getAttribute('data-id'),f,t.checked,true);}else if(t.tagName==='SELECT'||t.type==='date'){wmField(t.getAttribute('data-id'),f,t.value,true);}});
+    tbl.addEventListener('click',function(e){var t=e.target;if(t.getAttribute&&t.getAttribute('data-oc')){wmOutcome(t.getAttribute('data-id'),t.getAttribute('data-oc'));}else if(t.classList&&t.classList.contains('mp-del')){if(confirm('Remove this lead?'))wmRemove(t.getAttribute('data-id'));}});
+  }
   function renderWarm(){
     var n=warmMarket.length;
     var wins=warmMarket.filter(function(c){return c.outcome==='win';}).length;
@@ -784,7 +841,9 @@
     if(el('wmGoalTxt')){el('wmGoalTxt').textContent=n+' / 100';el('wmGoalFill').style.width=Math.min(100,n)+'%';
       el('wmGoalNote').textContent = (n>=100)?('🏆 100+ built — '+n+' in your book. Next stop: 300!') : (n>=1)?((100-n)+' to go — add everyone you know.') : 'Add everyone you know — aim for 100+ names.';}
     if(el('wmEmpty'))el('wmEmpty').style.display=n?'none':'block';
-    var L=el('wmList');if(!L)return;L.innerHTML='';
+    if(wmViewMode==='table'){ if(el('wmList'))el('wmList').style.display='none'; if(el('wmTableWrap'))el('wmTableWrap').style.display='block'; if(el('wmEmpty'))el('wmEmpty').style.display='none'; renderTable(); return; }
+    if(el('wmTableWrap'))el('wmTableWrap').style.display='none';
+    var L=el('wmList');if(!L)return;L.style.display='block';L.innerHTML='';
     warmMarket.forEach(function(c){
       var meta=[];
       if(c.phone)meta.push('<a href="tel:'+escH(c.phone)+'">'+escH(c.phone)+'</a>');
