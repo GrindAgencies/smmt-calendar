@@ -220,6 +220,12 @@
   .wm-card .wm-notes{width:100%;resize:vertical;min-height:38px;padding:9px 11px;border-radius:9px;border:1px solid var(--line);background:#0c0b05;color:#f4efe2;font-size:13px;font-family:inherit;outline:none;transition:.15s;}
   .wm-card .wm-notes::placeholder{color:#7a6f4d;}
   .wm-card .wm-notes:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(212,175,55,.14);}
+  .wm-goal{margin:0 0 12px;padding:12px 14px;border:1px solid var(--gold-deep);border-radius:12px;background:linear-gradient(160deg,rgba(212,175,55,.08),rgba(212,175,55,.02));}
+  .wm-goal-top{display:flex;justify-content:space-between;align-items:center;gap:10px;font-weight:900;font-size:13px;color:#fff6da;margin-bottom:8px;}
+  .wm-goal-top span:last-child{color:var(--gold-bright);}
+  .wm-goal-bar{height:12px;border-radius:999px;background:#241d0c;overflow:hidden;border:1px solid var(--line);}
+  .wm-goal-bar span{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--gold),var(--gold-bright));transition:width .4s ease;}
+  .wm-goal-note{font-size:12px;color:var(--muted);margin-top:7px;}
   .wm-score{font-size:13px;font-weight:800;color:#fff6da;background:rgba(212,175,55,.05);border:1px solid var(--line);border-radius:10px;padding:10px 13px;margin:0 0 12px;}
   .wm-score .wl-win{color:#3ec98a;}
   .wm-score .wl-lose{color:var(--red);}
@@ -429,10 +435,9 @@
       </div>
 
       <div class="block">
-        <div class="block-h">📇 Build Your Top 100 — Get Into Your Warm Market</div>
-        <div class="block-sub">Brain-dump your warm market into the Business Marketing Plan, then work the list.</div>
-        <div class="item"><input type="checkbox" class="chk" id="w2_top100"><label for="w2_top100">Build &amp; submit your Top 100 <span class="meta"><a href="https://docs.google.com/spreadsheets/d/1GZVGkg1BMDrQR8B-Q96MwHSqabxF1JnqHqnmqY095IY/edit?gid=0#gid=0" target="_blank" rel="noopener">Open the Business Marketing Plan →</a></span></label></div>
-        <div class="copy-reminder">⚠️ Make your OWN copy first — in the sheet go to <b>File → Make a copy</b>. Don't edit the master.</div>
+        <div class="block-h">📇 Build Your Top 100 — Your Marketing Plan</div>
+        <div class="block-sub">Your personal lead list lives right here in the app — no spreadsheets, no copies. Brain-dump everyone you know into your Marketing Plan, fill in their details, and work the list. Your leaders pull from it as fresh leads.</div>
+        <div class="item"><input type="checkbox" class="chk" id="w2_top100"><label for="w2_top100">Build your Top 100 in your Marketing Plan <span class="meta"><a href="#" onclick="setView('warm');window.scrollTo(0,0);return false;">📋 Open My Marketing Plan →</a></span></label></div>
       </div>
     </div>
   </div>
@@ -604,6 +609,11 @@
       <div class="sec-head"><h3>📋 Business Marketing Plan</h3><span class="days lock"><span id="wmTotal">0</span> leads</span></div>
       <div class="sec-body">
         <div class="marker">Your personal book of business. Add everyone you know, fill in their details, and tap <b>Details</b> to complete each profile. Leadership pulls these as <b>fresh leads</b> to call and book appointments. Mark <b>Win</b> when you earn the business or <b>Lose</b> when you don't.</div>
+        <div class="wm-goal">
+          <div class="wm-goal-top"><span>🎯 Top 100 Goal — build your book</span><span id="wmGoalTxt">0 / 100</span></div>
+          <div class="wm-goal-bar"><span id="wmGoalFill"></span></div>
+          <div class="wm-goal-note" id="wmGoalNote">Add everyone you know — aim for 100+ names.</div>
+        </div>
         <div class="wm-score" id="wmScore">No outcomes logged yet</div>
         <div class="wm-log" style="margin:8px 0 14px;">
           <div class="wm-log-h">➕ Add to your Marketing Plan</div>
@@ -771,6 +781,8 @@
     if(el('wmTotal'))el('wmTotal').textContent=n;
     if(el('wmScore')){var dec=wins+losses;var rate=dec?Math.round(wins*100/dec):0;
       el('wmScore').innerHTML = dec ? ('🏆 <span class="wl-win">'+wins+' Won</span> &nbsp;·&nbsp; <span class="wl-lose">'+losses+' Lost</span> &nbsp;·&nbsp; '+rate+'% close rate') : 'No outcomes logged yet — mark Win/Lose on your contacts below.';}
+    if(el('wmGoalTxt')){el('wmGoalTxt').textContent=n+' / 100';el('wmGoalFill').style.width=Math.min(100,n)+'%';
+      el('wmGoalNote').textContent = (n>=100)?('🏆 100+ built — '+n+' in your book. Next stop: 300!') : (n>=1)?((100-n)+' to go — add everyone you know.') : 'Add everyone you know — aim for 100+ names.';}
     if(el('wmEmpty'))el('wmEmpty').style.display=n?'none':'block';
     var L=el('wmList');if(!L)return;L.innerHTML='';
     warmMarket.forEach(function(c){
