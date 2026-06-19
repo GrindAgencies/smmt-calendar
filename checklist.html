@@ -201,6 +201,11 @@
   .wm-card.oc-win{border-color:#3e8f6a;background:rgba(62,143,106,.08);}
   .wm-card.oc-lose{border-color:#7a2c22;background:rgba(224,83,61,.06);}
   .wm-card .wm-top{display:flex;align-items:center;gap:12px;}
+  .wm-card .wm-head{display:flex;align-items:center;gap:10px;}
+  .wm-card .wm-name-in{flex:1;min-width:0;padding:9px 12px;border-radius:9px;border:1px solid var(--gold-deep);background:#0c0b05;color:#fff6da;font-size:15px;font-weight:800;outline:none;}
+  .wm-card .wm-name-in:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(212,175,55,.16);}
+  .wm-card .wm-name-in::placeholder{color:#7a6f4d;font-weight:600;}
+  @media(max-width:560px){.wm-card .wm-head{flex-wrap:wrap;}.wm-card .wm-name-in{flex:1 1 100%;order:-1;}}
   .wm-card.done{opacity:.6;}
   .wm-card .wm-chk{appearance:none;-webkit-appearance:none;flex:0 0 auto;width:22px;height:22px;border-radius:6px;border:2px solid var(--gold-deep);background:#0b0a05;cursor:pointer;position:relative;}
   .wm-card .wm-chk:checked{background:linear-gradient(135deg,var(--gold-bright),var(--gold));border-color:var(--gold);}
@@ -648,12 +653,8 @@
           </div>
           <div class="wm-note" id="wmLogNote2"></div>
         </div>
-        <div class="mp-viewtog">
-          <button id="mpCards" class="on" onclick="setMPView('cards')">🪪 Cards</button>
-          <button id="mpTable" onclick="setMPView('table')">🗂 Spreadsheet</button>
-        </div>
         <div id="wmList"></div>
-        <div id="wmTableWrap" style="display:none;"></div>
+        <div class="mp-addrow" id="wmAddRow" style="display:none;"><button onclick="addBlankLead()">＋ Add blank lead</button></div>
         <div class="wm-empty" id="wmEmpty">No leads yet. Add people above, or log them from the Daily Non-Negotiables — they'll show up here.</div>
       </div>
     </div>
@@ -792,7 +793,7 @@
   function addWmRow2(){el('wmRows2').insertAdjacentHTML('beforeend',wmRowHTML());}
   function resetRows(id){el(id).innerHTML=wmRowHTML();}
   function gatherRows(container){var rows=container.querySelectorAll('.wm-row');var added=0;rows.forEach(function(r){var n=r.querySelector('.wm-n').value.trim();var p=r.querySelector('.wm-p').value.trim();var e=r.querySelector('.wm-e').value.trim();var ni=r.querySelector('.wm-note-in');var notes=ni?ni.value.trim():'';if(n||p||e){warmMarket.unshift({id:'wm'+Date.now()+Math.floor(Math.random()*1000),name:n,phone:p,email:e,notes:notes,outcome:'',date:ptToday(),done:false});added++;}});return added;}
-  function logFrom(rowsId,noteId){var n=gatherRows(el(rowsId));if(!n){el(noteId).style.color='var(--red)';el(noteId).textContent='Enter at least a name, phone, or email.';return;}el(noteId).style.color='var(--green)';el(noteId).textContent=n+' contact'+(n>1?'s':'')+' saved to Warm Market ✓';resetRows(rowsId);renderWarm();saveNow();setTimeout(function(){el(noteId).textContent='';},3500);}
+  function logFrom(rowsId,noteId){var n=gatherRows(el(rowsId));if(!n){el(noteId).style.color='var(--red)';el(noteId).textContent='Enter at least a name, phone, or email.';return;}el(noteId).style.color='var(--green)';el(noteId).textContent=n+' contact'+(n>1?'s':'')+' added to your Marketing Plan ✓';resetRows(rowsId);renderWarm();saveNow();setTimeout(function(){el(noteId).textContent='';},3500);}
   function logContacts(){logFrom('wmRows','wmLogNote');}
   function logContacts2(){logFrom('wmRows2','wmLogNote2');}
   function wmToggle(id){for(var i=0;i<warmMarket.length;i++){if(warmMarket[i].id===id){warmMarket[i].done=!warmMarket[i].done;break;}}renderWarm();saveNow();}
@@ -802,34 +803,7 @@
   function wmField(id,field,val,immediate){for(var i=0;i<warmMarket.length;i++){if(warmMarket[i].id===id){warmMarket[i][field]=val;break;}}if(immediate){if(code)saveNow();}else{setStat('Saving…',false);clearTimeout(wmFieldTimer);wmFieldTimer=setTimeout(function(){if(code)saveNow();},700);}}
   function wmFld(label,f,val,type){return '<label class="wm-fld"><span>'+label+'</span><input data-f="'+f+'" type="'+(type||'text')+'" value="'+escH(val||'')+'" placeholder="'+escH(label)+'" autocomplete="off"></label>';}
   function wmTz(val){var z=['','PST','MST','CST','EST','HST','AKST'];var o='';z.forEach(function(t){o+='<option value="'+t+'"'+(t===(val||'')?' selected':'')+'>'+(t||'— time zone —')+'</option>';});return '<label class="wm-fld"><span>Time zone</span><select data-f="timeZone">'+o+'</select></label>';}
-  function setMPView(m){wmViewMode=m;if(el('mpCards'))el('mpCards').classList.toggle('on',m==='cards');if(el('mpTable'))el('mpTable').classList.toggle('on',m==='table');renderWarm();}
-  function addMPRows(k){for(var i=0;i<k;i++){warmMarket.push({id:'wm'+Date.now()+Math.floor(Math.random()*100000)+i,name:'',phone:'',date:ptToday(),outcome:'',done:false});}if(code)saveNow();renderWarm();}
-  var MP_COLS=[['name','Name','text'],['phone','Number','tel'],['directTo','Direct To','text'],['agentId','Agent ID','text'],['timeZone','Time Zone','tz'],['age','Age','text'],['married','Married','chk'],['children','Children','chk'],['howKnow','How You Know Them','text'],['apptDate','Appt Date','date'],['traits','3 Character Traits','text']];
-  function renderTable(){
-    var w=el('wmTableWrap');if(!w)return;
-    var TZ=['','PST','MST','CST','EST','HST','AKST'];
-    var th='<th>#</th>'+MP_COLS.map(function(c){return '<th>'+c[1]+'</th>';}).join('')+'<th>Win / Lose</th><th></th>';
-    var rows='';
-    warmMarket.forEach(function(c,idx){
-      var tds='<td class="mp-num">'+(idx+1)+'</td>';
-      MP_COLS.forEach(function(col){
-        var f=col[0],t=col[2],v=c[f];
-        if(t==='chk'){tds+='<td class="mp-c"><input type="checkbox" data-id="'+c.id+'" data-f="'+f+'" '+(v?'checked':'')+'></td>';}
-        else if(t==='tz'){tds+='<td><select data-id="'+c.id+'" data-f="'+f+'">'+TZ.map(function(o){return '<option value="'+o+'"'+(o===(v||'')?' selected':'')+'>'+(o||'—')+'</option>';}).join('')+'</select></td>';}
-        else{tds+='<td><input type="'+t+'" data-id="'+c.id+'" data-f="'+f+'" value="'+escH(v||'')+'" autocomplete="off"></td>';}
-      });
-      var oc=c.outcome||'';
-      tds+='<td class="mp-st"><button class="wl wl-w'+(oc==='win'?' on':'')+'" data-id="'+c.id+'" data-oc="win" title="Won">W</button><button class="wl wl-l'+(oc==='lose'?' on':'')+'" data-id="'+c.id+'" data-oc="lose" title="Lost">L</button></td>';
-      tds+='<td><button class="mp-del" data-id="'+c.id+'" title="Remove">🗑</button></td>';
-      rows+='<tr'+(oc?(' class="oc-'+oc+'"'):'')+'>'+tds+'</tr>';
-    });
-    w.innerHTML='<div class="mp-tablescroll"><table class="mp-table"><thead><tr>'+th+'</tr></thead><tbody>'+rows+'</tbody></table></div>'+
-      '<div class="mp-addrow"><button onclick="addMPRows(1)">＋ Add row</button><button onclick="addMPRows(5)">＋ Add 5 rows</button><button onclick="addMPRows(10)">＋ Add 10 rows</button></div>';
-    var tbl=w.querySelector('.mp-table');
-    tbl.addEventListener('input',function(e){var t=e.target;var f=t.getAttribute&&t.getAttribute('data-f');if(f&&t.type!=='checkbox'&&t.tagName!=='SELECT'&&t.type!=='date'){wmField(t.getAttribute('data-id'),f,t.value,false);}});
-    tbl.addEventListener('change',function(e){var t=e.target;var f=t.getAttribute&&t.getAttribute('data-f');if(!f)return;if(t.type==='checkbox'){wmField(t.getAttribute('data-id'),f,t.checked,true);}else if(t.tagName==='SELECT'||t.type==='date'){wmField(t.getAttribute('data-id'),f,t.value,true);}});
-    tbl.addEventListener('click',function(e){var t=e.target;if(t.getAttribute&&t.getAttribute('data-oc')){wmOutcome(t.getAttribute('data-id'),t.getAttribute('data-oc'));}else if(t.classList&&t.classList.contains('mp-del')){if(confirm('Remove this lead?'))wmRemove(t.getAttribute('data-id'));}});
-  }
+  function addBlankLead(){warmMarket.unshift({id:'wm'+Date.now()+Math.floor(Math.random()*100000),name:'',phone:'',date:ptToday(),outcome:'',done:false});if(code)saveNow();renderWarm();var first=document.querySelector('#wmList .wm-card .wm-name-in');if(first)first.focus();}
   function renderWarm(){
     var n=warmMarket.length;
     var wins=warmMarket.filter(function(c){return c.outcome==='win';}).length;
@@ -841,58 +815,38 @@
     if(el('wmGoalTxt')){el('wmGoalTxt').textContent=n+' / 100';el('wmGoalFill').style.width=Math.min(100,n)+'%';
       el('wmGoalNote').textContent = (n>=100)?('🏆 100+ built — '+n+' in your book. Next stop: 300!') : (n>=1)?((100-n)+' to go — add everyone you know.') : 'Add everyone you know — aim for 100+ names.';}
     if(el('wmEmpty'))el('wmEmpty').style.display=n?'none':'block';
-    if(wmViewMode==='table'){ if(el('wmList'))el('wmList').style.display='none'; if(el('wmTableWrap'))el('wmTableWrap').style.display='block'; if(el('wmEmpty'))el('wmEmpty').style.display='none'; renderTable(); return; }
-    if(el('wmTableWrap'))el('wmTableWrap').style.display='none';
-    var L=el('wmList');if(!L)return;L.style.display='block';L.innerHTML='';
+    var L=el('wmList');if(!L)return;L.innerHTML='';
+    if(el('wmAddRow'))el('wmAddRow').style.display=n?'flex':'none';
     warmMarket.forEach(function(c){
-      var meta=[];
-      if(c.phone)meta.push('<a href="tel:'+escH(c.phone)+'">'+escH(c.phone)+'</a>');
-      if(c.email)meta.push('<a href="mailto:'+escH(c.email)+'">'+escH(c.email)+'</a>');
-      if(c.howKnow)meta.push(escH(c.howKnow));
-      var chips=[];
-      if(c.age)chips.push('🎂 '+escH(c.age));
-      if(c.married)chips.push('💍 Married');
-      if(c.children)chips.push('👶 Kids');
-      if(c.timeZone)chips.push('🕐 '+escH(c.timeZone));
-      if(c.apptDate)chips.push('📅 '+escH(c.apptDate));
-      if(c.directTo)chips.push('➡️ '+escH(c.directTo));
       var oc=c.outcome||'';
       var d=document.createElement('div');d.className='wm-card'+(c.done?' done':'')+(oc?(' oc-'+oc):'');
-      d.innerHTML='<div class="wm-top">'+
+      d.innerHTML='<div class="wm-head">'+
         '<input type="checkbox" class="wm-chk" '+(c.done?'checked':'')+' title="Mark followed up">'+
-        '<div class="wm-main"><div class="wm-name">'+escH(c.name||'(no name)')+'</div>'+
-          '<div class="wm-meta">'+(meta.join(' · ')||'tap Details to add info')+'</div>'+
-          (chips.length?'<div class="wm-chips">'+chips.map(function(x){return '<span class="wm-chip">'+x+'</span>';}).join('')+'</div>':'')+
-        '</div>'+
+        '<input class="wm-name-in" data-f="name" type="text" value="'+escH(c.name||'')+'" placeholder="Full name" autocomplete="off">'+
         '<div class="wm-outcome"><button class="wl wl-w'+(oc==='win'?' on':'')+'" title="Won the business">✓ Win</button><button class="wl wl-l'+(oc==='lose'?' on':'')+'" title="Lost the business">✕ Lose</button></div>'+
-        '<button class="wm-exp" title="Edit details">Details ▾</button>'+
         '<button class="wm-del" title="Remove">🗑</button>'+
         '</div>'+
-        '<div class="wm-detail" style="display:none">'+
-          '<div class="wm-grid">'+
-            wmFld('Name','name',c.name,'text')+
-            wmFld('Phone','phone',c.phone,'tel')+
-            wmFld('Email','email',c.email,'email')+
-            wmFld('How you know them','howKnow',c.howKnow,'text')+
-            wmFld('Age','age',c.age,'text')+
-            wmTz(c.timeZone)+
-            wmFld('Appt date','apptDate',c.apptDate,'date')+
-            wmFld('Direct to','directTo',c.directTo,'text')+
-            wmFld('3 character traits','traits',c.traits,'text')+
-          '</div>'+
-          '<div class="wm-toggles">'+
-            '<label class="wm-tg"><input type="checkbox" data-f="married" '+(c.married?'checked':'')+'> Married</label>'+
-            '<label class="wm-tg"><input type="checkbox" data-f="children" '+(c.children?'checked':'')+'> Children</label>'+
-          '</div>'+
-          '<textarea class="wm-notes" data-f="notes" rows="2" placeholder="Notes — what was discussed, next steps, objections…">'+escH(c.notes||'')+'</textarea>'+
-        '</div>';
+        '<div class="wm-grid">'+
+          wmFld('Phone','phone',c.phone,'tel')+
+          wmFld('Email','email',c.email,'email')+
+          wmFld('How you know them','howKnow',c.howKnow,'text')+
+          wmFld('Age','age',c.age,'text')+
+          wmTz(c.timeZone)+
+          wmFld('Appt date','apptDate',c.apptDate,'date')+
+          wmFld('Direct to','directTo',c.directTo,'text')+
+          wmFld('Agent ID','agentId',c.agentId,'text')+
+          wmFld('3 character traits','traits',c.traits,'text')+
+        '</div>'+
+        '<div class="wm-toggles">'+
+          '<label class="wm-tg"><input type="checkbox" data-f="married" '+(c.married?'checked':'')+'> Married</label>'+
+          '<label class="wm-tg"><input type="checkbox" data-f="children" '+(c.children?'checked':'')+'> Children</label>'+
+        '</div>'+
+        '<textarea class="wm-notes" data-f="notes" rows="2" placeholder="Notes — what was discussed, next steps, objections…">'+escH(c.notes||'')+'</textarea>';
       d.querySelector('.wm-chk').addEventListener('change',function(){wmToggle(c.id);});
       d.querySelector('.wl-w').addEventListener('click',function(){wmOutcome(c.id,'win');});
       d.querySelector('.wl-l').addEventListener('click',function(){wmOutcome(c.id,'lose');});
-      d.querySelector('.wm-del').addEventListener('click',function(){wmRemove(c.id);});
-      var detail=d.querySelector('.wm-detail');
-      d.querySelector('.wm-exp').addEventListener('click',function(){var open=detail.style.display!=='none';detail.style.display=open?'none':'block';this.textContent=open?'Details ▾':'Details ▲';});
-      Array.prototype.forEach.call(d.querySelectorAll('.wm-detail [data-f]'),function(inp){
+      d.querySelector('.wm-del').addEventListener('click',function(){if(confirm('Remove this lead?'))wmRemove(c.id);});
+      Array.prototype.forEach.call(d.querySelectorAll('[data-f]'),function(inp){
         var f=inp.getAttribute('data-f');
         if(inp.type==='checkbox'){inp.addEventListener('change',function(){wmField(c.id,f,inp.checked,true);});}
         else if(inp.tagName==='SELECT'||inp.type==='date'){inp.addEventListener('change',function(){wmField(c.id,f,inp.value,true);});}
