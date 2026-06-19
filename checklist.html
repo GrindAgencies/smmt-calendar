@@ -224,6 +224,20 @@
   .wm-score .wl-win{color:#3ec98a;}
   .wm-score .wl-lose{color:var(--red);}
   @media(max-width:560px){.wm-card .wm-top{flex-wrap:wrap;}.wm-card .wm-outcome{order:3;}.wm-card .wm-date{order:2;}}
+  .wm-card .wm-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px;}
+  .wm-card .wm-chip{font-size:10.5px;font-weight:700;color:var(--muted);background:rgba(212,175,55,.07);border:1px solid var(--line);border-radius:999px;padding:2px 8px;}
+  .wm-card .wm-exp{cursor:pointer;flex:0 0 auto;font-size:11px;font-weight:800;color:var(--gold);background:#141005;border:1px solid var(--gold-deep);border-radius:999px;padding:6px 10px;white-space:nowrap;}
+  .wm-card .wm-exp:hover{background:#1d1607;}
+  .wm-detail{border-top:1px dashed var(--line);margin-top:4px;padding-top:10px;}
+  .wm-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 10px;}
+  @media(max-width:560px){.wm-grid{grid-template-columns:1fr;}}
+  .wm-fld{display:flex;flex-direction:column;gap:3px;}
+  .wm-fld span{font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--gold);}
+  .wm-fld input,.wm-fld select{padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:#0c0b05;color:#f4efe2;font-size:13px;outline:none;font-family:inherit;}
+  .wm-fld input:focus,.wm-fld select:focus{border-color:var(--gold);box-shadow:0 0 0 2px rgba(212,175,55,.14);}
+  .wm-toggles{display:flex;gap:16px;margin:9px 0 4px;}
+  .wm-tg{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:700;color:#f4efe2;cursor:pointer;}
+  .wm-tg input{width:18px;height:18px;accent-color:var(--gold);cursor:pointer;}
   .wm-empty{text-align:center;color:var(--muted);font-style:italic;padding:24px 10px;font-size:13px;}
 
   .res{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
@@ -301,7 +315,7 @@
 
   <div class="viewtog">
     <button id="vTracker" class="on" onclick="setView('tracker')">📋 90-Day Tracker</button>
-    <button id="vWarm" onclick="setView('warm')">🔥 Warm Market <span class="vcount" id="vWarmCount">0</span></button>
+    <button id="vWarm" onclick="setView('warm')">📋 Marketing Plan <span class="vcount" id="vWarmCount">0</span></button>
   </div>
 
   <div id="trackerView">
@@ -539,7 +553,7 @@
       <div class="item"><input type="checkbox" class="dchk" id="dnHuddle"><label for="dnHuddle"><b>Attend the 8 AM Morning Huddle</b> <span class="meta">8:00 AM PST · <a href="https://us02web.zoom.us/j/9646509994?pwd=a2s1OXhzeTB3N3BBOWRkUmw1VHE2Zz09" target="_blank" rel="noopener">Join Zoom →</a> · <a href="https://grindagencies.github.io/smmt-calendar/ics/huddle.ics" target="_blank" rel="noopener">Add to Calendar →</a></span></label></div>
       <div class="item"><input type="checkbox" class="dchk" id="dnTalk"><label for="dnTalk">Talk to people every single day — momentum comes from conversations</label></div>
       <div class="wm-log">
-        <div class="wm-log-h">📇 Log who you talked to <span class="meta" style="color:var(--muted);font-weight:700;">→ saved to your Warm Market tab as a follow-up</span></div>
+        <div class="wm-log-h">📇 Log who you talked to <span class="meta" style="color:var(--muted);font-weight:700;">→ saved to your Marketing Plan as a fresh lead</span></div>
         <div class="wm-rows" id="wmRows"></div>
         <div class="wm-actions">
           <button type="button" class="wm-add" onclick="addWmRow()">＋ Add another person</button>
@@ -587,21 +601,21 @@
 
   <div id="warmView" style="display:none;">
     <div class="sec" style="margin-top:0;">
-      <div class="sec-head"><h3>🔥 Warm Market — Your People</h3><span class="days lock"><span id="wmTotal">0</span> leads</span></div>
+      <div class="sec-head"><h3>📋 Business Marketing Plan</h3><span class="days lock"><span id="wmTotal">0</span> leads</span></div>
       <div class="sec-body">
-        <div class="marker">Every person you talk to lives here as a follow-up reminder. Add notes, and mark <b>Win</b> when you earn the business or <b>Lose</b> when you don't — your close rate is tracked for you and your leaders.</div>
+        <div class="marker">Your personal book of business. Add everyone you know, fill in their details, and tap <b>Details</b> to complete each profile. Leadership pulls these as <b>fresh leads</b> to call and book appointments. Mark <b>Win</b> when you earn the business or <b>Lose</b> when you don't.</div>
         <div class="wm-score" id="wmScore">No outcomes logged yet</div>
         <div class="wm-log" style="margin:8px 0 14px;">
-          <div class="wm-log-h">➕ Add a contact</div>
+          <div class="wm-log-h">➕ Add to your Marketing Plan</div>
           <div class="wm-rows" id="wmRows2"></div>
           <div class="wm-actions">
             <button type="button" class="wm-add" onclick="addWmRow2()">＋ Add another person</button>
-            <button type="button" class="wm-save" onclick="logContacts2()">Save to Warm Market →</button>
+            <button type="button" class="wm-save" onclick="logContacts2()">Save to Marketing Plan →</button>
           </div>
           <div class="wm-note" id="wmLogNote2"></div>
         </div>
         <div id="wmList"></div>
-        <div class="wm-empty" id="wmEmpty">No leads yet. Log the people you talk to from the Tracker tab's Daily Non-Negotiables — they'll show up here.</div>
+        <div class="wm-empty" id="wmEmpty">No leads yet. Add people above, or log them from the Daily Non-Negotiables — they'll show up here.</div>
       </div>
     </div>
   </div>
@@ -745,8 +759,10 @@
   function wmToggle(id){for(var i=0;i<warmMarket.length;i++){if(warmMarket[i].id===id){warmMarket[i].done=!warmMarket[i].done;break;}}renderWarm();saveNow();}
   function wmRemove(id){warmMarket=warmMarket.filter(function(x){return x.id!==id;});renderWarm();saveNow();}
   function wmOutcome(id,outcome){for(var i=0;i<warmMarket.length;i++){if(warmMarket[i].id===id){warmMarket[i].outcome=(warmMarket[i].outcome===outcome)?'':outcome;break;}}renderWarm();saveNow();}
-  var wmNoteTimer=null;
-  function wmNote(id,val){for(var i=0;i<warmMarket.length;i++){if(warmMarket[i].id===id){warmMarket[i].notes=val;break;}}setStat('Saving…',false);clearTimeout(wmNoteTimer);wmNoteTimer=setTimeout(function(){if(code)saveNow();},700);}
+  var wmFieldTimer=null;
+  function wmField(id,field,val,immediate){for(var i=0;i<warmMarket.length;i++){if(warmMarket[i].id===id){warmMarket[i][field]=val;break;}}if(immediate){if(code)saveNow();}else{setStat('Saving…',false);clearTimeout(wmFieldTimer);wmFieldTimer=setTimeout(function(){if(code)saveNow();},700);}}
+  function wmFld(label,f,val,type){return '<label class="wm-fld"><span>'+label+'</span><input data-f="'+f+'" type="'+(type||'text')+'" value="'+escH(val||'')+'" placeholder="'+escH(label)+'" autocomplete="off"></label>';}
+  function wmTz(val){var z=['','PST','MST','CST','EST','HST','AKST'];var o='';z.forEach(function(t){o+='<option value="'+t+'"'+(t===(val||'')?' selected':'')+'>'+(t||'— time zone —')+'</option>';});return '<label class="wm-fld"><span>Time zone</span><select data-f="timeZone">'+o+'</select></label>';}
   function renderWarm(){
     var n=warmMarket.length;
     var wins=warmMarket.filter(function(c){return c.outcome==='win';}).length;
@@ -761,21 +777,56 @@
       var meta=[];
       if(c.phone)meta.push('<a href="tel:'+escH(c.phone)+'">'+escH(c.phone)+'</a>');
       if(c.email)meta.push('<a href="mailto:'+escH(c.email)+'">'+escH(c.email)+'</a>');
+      if(c.howKnow)meta.push(escH(c.howKnow));
+      var chips=[];
+      if(c.age)chips.push('🎂 '+escH(c.age));
+      if(c.married)chips.push('💍 Married');
+      if(c.children)chips.push('👶 Kids');
+      if(c.timeZone)chips.push('🕐 '+escH(c.timeZone));
+      if(c.apptDate)chips.push('📅 '+escH(c.apptDate));
+      if(c.directTo)chips.push('➡️ '+escH(c.directTo));
       var oc=c.outcome||'';
       var d=document.createElement('div');d.className='wm-card'+(c.done?' done':'')+(oc?(' oc-'+oc):'');
       d.innerHTML='<div class="wm-top">'+
         '<input type="checkbox" class="wm-chk" '+(c.done?'checked':'')+' title="Mark followed up">'+
-        '<div class="wm-main"><div class="wm-name">'+escH(c.name||'(no name)')+'</div><div class="wm-meta">'+(meta.join(' · ')||'no contact info')+'</div></div>'+
+        '<div class="wm-main"><div class="wm-name">'+escH(c.name||'(no name)')+'</div>'+
+          '<div class="wm-meta">'+(meta.join(' · ')||'tap Details to add info')+'</div>'+
+          (chips.length?'<div class="wm-chips">'+chips.map(function(x){return '<span class="wm-chip">'+x+'</span>';}).join('')+'</div>':'')+
+        '</div>'+
         '<div class="wm-outcome"><button class="wl wl-w'+(oc==='win'?' on':'')+'" title="Won the business">✓ Win</button><button class="wl wl-l'+(oc==='lose'?' on':'')+'" title="Lost the business">✕ Lose</button></div>'+
-        '<div class="wm-date">'+escH(c.date||'')+'</div>'+
+        '<button class="wm-exp" title="Edit details">Details ▾</button>'+
         '<button class="wm-del" title="Remove">🗑</button>'+
         '</div>'+
-        '<textarea class="wm-notes" rows="2" placeholder="Notes — what was discussed, next steps, objections…">'+escH(c.notes||'')+'</textarea>';
+        '<div class="wm-detail" style="display:none">'+
+          '<div class="wm-grid">'+
+            wmFld('Name','name',c.name,'text')+
+            wmFld('Phone','phone',c.phone,'tel')+
+            wmFld('Email','email',c.email,'email')+
+            wmFld('How you know them','howKnow',c.howKnow,'text')+
+            wmFld('Age','age',c.age,'text')+
+            wmTz(c.timeZone)+
+            wmFld('Appt date','apptDate',c.apptDate,'date')+
+            wmFld('Direct to','directTo',c.directTo,'text')+
+            wmFld('3 character traits','traits',c.traits,'text')+
+          '</div>'+
+          '<div class="wm-toggles">'+
+            '<label class="wm-tg"><input type="checkbox" data-f="married" '+(c.married?'checked':'')+'> Married</label>'+
+            '<label class="wm-tg"><input type="checkbox" data-f="children" '+(c.children?'checked':'')+'> Children</label>'+
+          '</div>'+
+          '<textarea class="wm-notes" data-f="notes" rows="2" placeholder="Notes — what was discussed, next steps, objections…">'+escH(c.notes||'')+'</textarea>'+
+        '</div>';
       d.querySelector('.wm-chk').addEventListener('change',function(){wmToggle(c.id);});
       d.querySelector('.wl-w').addEventListener('click',function(){wmOutcome(c.id,'win');});
       d.querySelector('.wl-l').addEventListener('click',function(){wmOutcome(c.id,'lose');});
       d.querySelector('.wm-del').addEventListener('click',function(){wmRemove(c.id);});
-      d.querySelector('.wm-notes').addEventListener('input',function(){wmNote(c.id,this.value);});
+      var detail=d.querySelector('.wm-detail');
+      d.querySelector('.wm-exp').addEventListener('click',function(){var open=detail.style.display!=='none';detail.style.display=open?'none':'block';this.textContent=open?'Details ▾':'Details ▲';});
+      Array.prototype.forEach.call(d.querySelectorAll('.wm-detail [data-f]'),function(inp){
+        var f=inp.getAttribute('data-f');
+        if(inp.type==='checkbox'){inp.addEventListener('change',function(){wmField(c.id,f,inp.checked,true);});}
+        else if(inp.tagName==='SELECT'){inp.addEventListener('change',function(){wmField(c.id,f,inp.value,true);});}
+        else{inp.addEventListener('input',function(){wmField(c.id,f,inp.value,false);});}
+      });
       L.appendChild(d);
     });
   }
