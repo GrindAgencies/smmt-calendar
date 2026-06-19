@@ -658,6 +658,10 @@
         .pz-tag{background:#f1f5f9;border-radius:8px;padding:3px 9px;font-size:12px;font-weight:700;color:#475569;}
         .pz-claim{margin:11px 0 0;width:100%;padding:11px;border:0;border-radius:11px;background:var(--green,#16a34a);color:#fff;font-weight:800;font-size:14.5px;cursor:pointer;}
         .pz-claim:disabled{opacity:.6;cursor:default;}
+        .pz-tag.release{background:#fff7ed;color:#9a3412;border:1px solid #fdba74;}
+        .wm-card.pooled{border:2px solid #f59e0b !important;box-shadow:0 0 0 3px rgba(245,158,11,.18);}
+        .wm-pooled-flag{margin:2px 0 10px;background:#fff7ed;border:1px solid #fdba74;color:#9a3412;border-radius:9px;padding:8px 11px;font-size:12.5px;font-weight:700;line-height:1.45;}
+        .wm-pooled-flag b{color:#7c2d12;}
         </style>
         <div class="mp-tabs">
           <button id="mpTabMine" class="mp-tab on" onclick="mpTab('mine')">📒 My Marketing Plan</button>
@@ -855,13 +859,14 @@
     if(el('wmAddRow'))el('wmAddRow').style.display=n?'flex':'none';
     warmMarket.forEach(function(c){
       var oc=c.outcome||'';
-      var d=document.createElement('div');d.className='wm-card'+(c.contacted?' contacted':'')+(oc?(' oc-'+oc):'');
+      var d=document.createElement('div');d.className='wm-card'+(c.contacted?' contacted':'')+(oc?(' oc-'+oc):'')+(c.pooled?' pooled':'');
       d.innerHTML='<div class="wm-head">'+
         '<button class="wm-contacted'+(c.contacted?' on':'')+'" title="Mark contacted / not contacted">'+(c.contacted?'✓ Contacted':'☎ Reach out')+'</button>'+
         '<input class="wm-name-in" data-f="name" type="text" value="'+escH(c.name||'')+'" placeholder="Full name" autocomplete="off">'+
         '<div class="wm-outcome"><button class="wl wl-w'+(oc==='win'?' on':'')+'" title="Won the business">✓ Win</button><button class="wl wl-l'+(oc==='lose'?' on':'')+'" title="Lost the business">✕ Lose</button></div>'+
         '<button class="wm-del" title="Remove">🗑</button>'+
         '</div>'+
+        (c.pooled?'<div class="wm-pooled-flag">⏰ Uncalled 21+ days — now shared in the Phone Zone pool for any agent to claim. Mark <b>Contacted</b> to pull it back and keep it yours.</div>':'')+
         '<div class="wm-grid">'+
           wmFld('☎ Phone','phone',c.phone,'tel')+
           wmFld('🤝 Connection — how you know them','howKnow',c.howKnow,'text')+
@@ -928,14 +933,15 @@
       if(c.timeZone)meta.push('🕑 '+escH(c.timeZone));
       if(c.age)meta.push('🎂 '+escH(c.age));
       if(c.apptDate)meta.push('📅 '+escH(c.apptDate));
-      var tags=[];
-      if(c.married)tags.push('Married');
-      if(c.children)tags.push('Children');
-      if(c.contacted)tags.push('Previously contacted');
+      var tagHtml='';
+      if(c.autoReleased)tagHtml+='<span class="pz-tag release">⏰ '+(c.originAgentName?('From '+escH(c.originAgentName)+' — '):'')+'uncalled 21+ days</span>';
+      if(c.married)tagHtml+='<span class="pz-tag">Married</span>';
+      if(c.children)tagHtml+='<span class="pz-tag">Children</span>';
+      if(c.contacted)tagHtml+='<span class="pz-tag">Previously contacted</span>';
       d.innerHTML='<div class="pz-top"><span class="pz-name">'+(escH(c.name)||'(no name)')+'</span>'+(c.phone?'<a class="pz-phone" href="tel:'+escH(c.phone)+'">☎ '+escH(c.phone)+'</a>':'')+'</div>'+
         (meta.length?'<div class="pz-meta">'+meta.join(' &nbsp;·&nbsp; ')+'</div>':'')+
         (c.notes?'<div class="pz-meta">📝 '+escH(c.notes)+'</div>':'')+
-        (tags.length?'<div class="pz-tags">'+tags.map(function(t){return '<span class="pz-tag">'+t+'</span>';}).join('')+'</div>':'')+
+        (tagHtml?'<div class="pz-tags">'+tagHtml+'</div>':'')+
         '<button type="button" class="pz-claim">✅ Assign to me &amp; add to my Marketing Plan</button>';
       d.querySelector('.pz-claim').addEventListener('click',function(){claimLead(c.id,d.querySelector('.pz-claim'));});
       L.appendChild(d);
