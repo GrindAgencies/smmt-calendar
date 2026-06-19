@@ -70,6 +70,8 @@
   .ocb.win{color:#06150e;background:var(--green);}
   .ocb.lose{color:#fff;background:var(--red);}
   .ocb.fresh{color:var(--green);background:rgba(62,143,106,.16);border:1px solid var(--green);}
+  .ocb.done{color:#06150e;background:var(--green);}
+  .ocb.todo{color:var(--gold-bright);background:rgba(212,175,55,.12);border:1px solid var(--gold-deep);}
   .notes{color:var(--ink);font-size:12.5px;max-width:240px;}
   .appt{font-weight:800;color:var(--gold-bright);white-space:nowrap;}
   .tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 7px;border-radius:6px;margin:1px 2px 1px 0;background:rgba(212,175,55,.08);color:var(--muted);border:1px solid var(--line);}
@@ -119,8 +121,9 @@
         <label class="fl">Status
           <select id="statusFilter" onchange="draw()">
             <option value="">All</option>
-            <option value="fresh">Fresh (uncalled)</option>
-            <option value="appt">Appt set</option>
+            <option value="fresh">☎ Not contacted</option>
+            <option value="contacted">✓ Contacted</option>
+            <option value="appt">📅 Appt set</option>
             <option value="win">Won</option>
             <option value="lose">Lost</option>
           </select>
@@ -141,6 +144,7 @@
         <thead><tr>
           <th onclick="sortBy('name')">Lead</th>
           <th onclick="sortBy('phone')">Phone</th>
+          <th onclick="sortBy('contacted')">Contacted</th>
           <th onclick="sortBy('how_know')">How You Know</th>
           <th>Profile</th>
           <th onclick="sortBy('direct_to')">Direct To</th>
@@ -188,7 +192,7 @@
   function signout(){try{sessionStorage.removeItem('tsfg_admin');}catch(e){}token=null;el('board').style.display='none';el('gate').style.display='block';el('pass').value="";el('err').textContent="";}
 
   function timeAgo(iso){ if(!iso)return"—"; var d=new Date(iso); if(isNaN(d))return esc(iso); var s=(Date.now()-d.getTime())/86400000; if(s<1)return"today"; if(s<2)return"1d ago"; return Math.floor(s)+"d ago"; }
-  function isFresh(l){ return !l.outcome; }
+  function isFresh(l){ return !l.contacted && !l.outcome; }
 
   function render(list){
     leads=(list||[]).filter(function(l){return l.agent_status!=='quit';});
@@ -226,7 +230,8 @@
     var rows=leads.filter(function(l){
       if(ef && l.emd!==ef)return false;
       if(af && (l.agent_name+' ('+l.agent_code+')')!==af)return false;
-      if(sf==='fresh' && !isFresh(l))return false;
+      if(sf==='fresh' && l.contacted)return false;
+      if(sf==='contacted' && !l.contacted)return false;
       if(sf==='appt' && !l.appt_date)return false;
       if(sf==='win' && l.outcome!=='win')return false;
       if(sf==='lose' && l.outcome!=='lose')return false;
@@ -238,7 +243,7 @@
     el('empty').style.display=rows.length?'none':'block';
     rows.forEach(function(l){
       var tr=document.createElement('tr');
-      if(isFresh(l))tr.className='fresh-row';
+      if(!l.contacted && l.outcome!=='win' && l.outcome!=='lose')tr.className='fresh-row';
       var prof=[];
       if(l.age)prof.push(esc(l.age)+'y');
       if(l.married)prof.push('💍');
@@ -246,8 +251,10 @@
       if(l.time_zone)prof.push(esc(l.time_zone));
       var ocb = l.outcome==='win' ? '<span class="ocb win">WON</span>' : l.outcome==='lose' ? '<span class="ocb lose">LOST</span>' : '<span class="ocb fresh">FRESH</span>';
       var phone = l.phone ? '<span class="ph"><a href="tel:'+esc(l.phone)+'">'+esc(l.phone)+'</a></span>' : '<span class="ago">—</span>';
+      var cb = l.contacted ? '<span class="ocb done">✓ Yes</span>' : '<span class="ocb todo">☎ No</span>';
       tr.innerHTML='<td class="ld-name">'+esc(l.name||'(no name)')+'</td>'+
         '<td>'+phone+'</td>'+
+        '<td>'+cb+'</td>'+
         '<td>'+(l.how_know?esc(l.how_know):'<span class="ago">—</span>')+'</td>'+
         '<td class="prof">'+(prof.join(' · ')||'<span class="ago">—</span>')+'</td>'+
         '<td>'+(l.direct_to?'<span class="tag">'+esc(l.direct_to)+'</span>':'<span class="ago">—</span>')+'</td>'+
