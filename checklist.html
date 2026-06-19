@@ -641,6 +641,29 @@
     <div class="sec" style="margin-top:0;">
       <div class="sec-head"><h3>📋 Business Marketing Plan</h3><span class="days lock"><span id="wmTotal">0</span> leads</span></div>
       <div class="sec-body">
+        <style>
+        .mp-tabs{display:flex;gap:8px;margin:0 0 14px;}
+        .mp-tab{flex:1;padding:11px 10px;border:2px solid var(--line,#e5e7eb);background:#fff;border-radius:12px;font-weight:800;font-size:14px;color:var(--muted,#667085);cursor:pointer;line-height:1.2;}
+        .mp-tab.on{border-color:var(--accent,#1f6feb);background:var(--accent,#1f6feb);color:#fff;}
+        .mp-tab .vcount{display:inline-block;min-width:20px;padding:1px 6px;margin-left:4px;border-radius:10px;background:rgba(0,0,0,.14);font-size:12px;}
+        .mp-tab.on .vcount{background:rgba(255,255,255,.28);}
+        .pz-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 12px;font-weight:700;color:var(--muted,#556070);}
+        .pz-refresh{border:1px solid var(--line,#e5e7eb);background:#fff;border-radius:9px;padding:7px 12px;font-weight:800;cursor:pointer;color:var(--accent,#1f6feb);}
+        .pz-card{border:1px solid var(--line,#e5e7eb);border-radius:13px;padding:13px 14px;margin:0 0 11px;background:#fff;}
+        .pz-top{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+        .pz-name{font-weight:800;font-size:16px;}
+        .pz-phone{font-weight:800;color:var(--accent,#1f6feb);text-decoration:none;white-space:nowrap;}
+        .pz-meta{margin:7px 0 0;font-size:13.5px;color:var(--muted,#556070);line-height:1.5;}
+        .pz-tags{margin:8px 0 0;display:flex;gap:6px;flex-wrap:wrap;}
+        .pz-tag{background:#f1f5f9;border-radius:8px;padding:3px 9px;font-size:12px;font-weight:700;color:#475569;}
+        .pz-claim{margin:11px 0 0;width:100%;padding:11px;border:0;border-radius:11px;background:var(--green,#16a34a);color:#fff;font-weight:800;font-size:14.5px;cursor:pointer;}
+        .pz-claim:disabled{opacity:.6;cursor:default;}
+        </style>
+        <div class="mp-tabs">
+          <button id="mpTabMine" class="mp-tab on" onclick="mpTab('mine')">📒 My Marketing Plan</button>
+          <button id="mpTabPool" class="mp-tab" onclick="mpTab('pool')">📞 Phone Zone <span class="vcount" id="pzTabCount">0</span></button>
+        </div>
+        <div id="myPlanWrap">
         <div class="marker">Your personal book of business. Add everyone you know, fill in their details, and tap <b>Details</b> to complete each profile. Leadership pulls these as <b>fresh leads</b> to call and book appointments. Mark <b>Win</b> when you earn the business or <b>Lose</b> when you don't.</div>
         <div class="wm-goal">
           <div class="wm-goal-top"><span>🎯 Top 100 Goal — build your book</span><span id="wmGoalTxt">0 / 100</span></div>
@@ -660,6 +683,14 @@
         <div id="wmList"></div>
         <div class="mp-addrow" id="wmAddRow" style="display:none;"><button onclick="addBlankLead()">＋ Add blank lead</button></div>
         <div class="wm-empty" id="wmEmpty">No leads yet. Add people above, or log them from the Daily Non-Negotiables — they'll show up here.</div>
+        </div><!-- /myPlanWrap -->
+        <div id="phoneZone" style="display:none;">
+          <div class="marker">📞 <b>Phone Zone — shared lead pool.</b> These are unassigned leads and funnels open to every agent. Pick one, call them, and if you connect tap <b>Assign to me</b> to move them into your Marketing Plan. Once claimed, the lead leaves the pool so no one double-calls.</div>
+          <div class="pz-bar"><span id="pzCount">Loading…</span><button type="button" class="pz-refresh" onclick="loadPool(true)">↻ Refresh</button></div>
+          <div id="pzList"></div>
+          <div class="wm-empty" id="pzLoading">Loading the shared pool…</div>
+          <div class="wm-empty" id="pzEmpty" style="display:none;">The pool is empty right now — every lead has been claimed. Tap Refresh to check again.</div>
+        </div>
       </div>
     </div>
   </div>
@@ -860,12 +891,86 @@
       L.appendChild(d);
     });
   }
+  /* ---- PHONE ZONE (shared lead pool) ---- */
+  var poolLeads=[], poolLoaded=false, poolLoading=false, mpCurrent='mine';
+  function mpTab(t){
+    mpCurrent=t;var pool=(t==='pool');
+    if(el('myPlanWrap'))el('myPlanWrap').style.display=pool?'none':'block';
+    if(el('phoneZone'))el('phoneZone').style.display=pool?'block':'none';
+    if(el('mpTabMine'))el('mpTabMine').classList.toggle('on',!pool);
+    if(el('mpTabPool'))el('mpTabPool').classList.toggle('on',pool);
+    if(pool&&!poolLoaded)loadPool(false);
+    window.scrollTo(0,0);
+  }
+  function loadPool(force){
+    if(poolLoading)return;poolLoading=true;
+    if(force&&el('pzLoading')){el('pzLoading').textContent='Loading the shared pool…';el('pzLoading').style.display='block';}
+    api({action:'poolleads'}).then(function(r){
+      poolLoading=false;poolLoaded=true;
+      poolLeads=(r&&r.leads)||[];
+      renderPool();
+    }).catch(function(){
+      poolLoading=false;poolLoaded=true;
+      if(el('pzLoading')){el('pzLoading').textContent='Could not load the pool. Tap Refresh to try again.';el('pzLoading').style.display='block';}
+    });
+  }
+  function renderPool(){
+    var n=poolLeads.length;
+    if(el('pzTabCount'))el('pzTabCount').textContent=n;
+    if(el('pzCount'))el('pzCount').textContent=n+' lead'+(n===1?'':'s')+' available in the pool';
+    if(el('pzLoading'))el('pzLoading').style.display='none';
+    if(el('pzEmpty'))el('pzEmpty').style.display=n?'none':'block';
+    var L=el('pzList');if(!L)return;L.innerHTML='';
+    poolLeads.forEach(function(c){
+      var d=document.createElement('div');d.className='pz-card';
+      var meta=[];
+      if(c.howKnow)meta.push('🤝 '+escH(c.howKnow));
+      if(c.timeZone)meta.push('🕑 '+escH(c.timeZone));
+      if(c.age)meta.push('🎂 '+escH(c.age));
+      if(c.apptDate)meta.push('📅 '+escH(c.apptDate));
+      var tags=[];
+      if(c.married)tags.push('Married');
+      if(c.children)tags.push('Children');
+      if(c.contacted)tags.push('Previously contacted');
+      d.innerHTML='<div class="pz-top"><span class="pz-name">'+(escH(c.name)||'(no name)')+'</span>'+(c.phone?'<a class="pz-phone" href="tel:'+escH(c.phone)+'">☎ '+escH(c.phone)+'</a>':'')+'</div>'+
+        (meta.length?'<div class="pz-meta">'+meta.join(' &nbsp;·&nbsp; ')+'</div>':'')+
+        (c.notes?'<div class="pz-meta">📝 '+escH(c.notes)+'</div>':'')+
+        (tags.length?'<div class="pz-tags">'+tags.map(function(t){return '<span class="pz-tag">'+t+'</span>';}).join('')+'</div>':'')+
+        '<button type="button" class="pz-claim">✅ Assign to me &amp; add to my Marketing Plan</button>';
+      d.querySelector('.pz-claim').addEventListener('click',function(){claimLead(c.id,d.querySelector('.pz-claim'));});
+      L.appendChild(d);
+    });
+  }
+  function claimLead(id,btn){
+    if(!code){alert('Please sign in first.');return;}
+    if(!confirm('Assign this lead to your Marketing Plan?\n\nUse this once you have called and connected with them. It will move into your plan and leave the shared pool so no other agent calls them.'))return;
+    if(btn){btn.disabled=true;btn.textContent='Assigning…';}
+    api({action:'claimlead',code:code,leadId:id}).then(function(r){
+      if(r&&r.ok&&r.lead){
+        poolLeads=poolLeads.filter(function(x){return x.id!==id;});
+        warmMarket.unshift(r.lead);
+        renderPool();renderWarm();
+        setStat('Lead assigned to you ✓',true);
+      }else if(r&&r.taken){
+        poolLeads=poolLeads.filter(function(x){return x.id!==id;});
+        renderPool();
+        alert('That lead was just claimed by another agent, so it has been removed from the pool.');
+      }else{
+        if(btn){btn.disabled=false;btn.innerHTML='✅ Assign to me &amp; add to my Marketing Plan';}
+        alert((r&&r.error)||'Could not assign that lead. Please try again.');
+      }
+    }).catch(function(){
+      if(btn){btn.disabled=false;btn.innerHTML='✅ Assign to me &amp; add to my Marketing Plan';}
+      alert('Network error — please try again.');
+    });
+  }
   function setView(v){
     var warm=(v==='warm');
     el('trackerView').style.display=warm?'none':'block';
     el('warmView').style.display=warm?'block':'none';
     el('vTracker').classList.toggle('on',!warm);
     el('vWarm').classList.toggle('on',warm);
+    if(warm&&!poolLoaded&&!poolLoading)loadPool(false);
     window.scrollTo(0,0);
   }
   // seed one blank row in each add-form
