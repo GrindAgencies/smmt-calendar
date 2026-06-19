@@ -824,8 +824,8 @@
       Array.prototype.forEach.call(d.querySelectorAll('.wm-detail [data-f]'),function(inp){
         var f=inp.getAttribute('data-f');
         if(inp.type==='checkbox'){inp.addEventListener('change',function(){wmField(c.id,f,inp.checked,true);});}
-        else if(inp.tagName==='SELECT'){inp.addEventListener('change',function(){wmField(c.id,f,inp.value,true);});}
-        else{inp.addEventListener('input',function(){wmField(c.id,f,inp.value,false);});}
+        else if(inp.tagName==='SELECT'||inp.type==='date'){inp.addEventListener('change',function(){wmField(c.id,f,inp.value,true);});}
+        else{inp.addEventListener('input',function(){wmField(c.id,f,inp.value,false);});inp.addEventListener('change',function(){wmField(c.id,f,inp.value,true);});}
       });
       L.appendChild(d);
     });
