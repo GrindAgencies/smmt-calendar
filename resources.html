@@ -66,7 +66,7 @@
 </div>
 
 <script>
-  var DOC_URL = "https://docs.google.com/document/d/12m8aa_Qt4dPxY5yeGvZMBZaPryooJIJkmYmojR86x9o/edit?usp=sharing";
+  var DOC_URL = "https://docs.google.com/document/d/1ZI-AH5JPNGiShsA0JhIWa8-4-qhP6JhRLdm1SEB8hCY/edit?usp=sharing";
   document.getElementById('docBtn').href = DOC_URL;
 
   var CARRIERS = [
@@ -85,21 +85,27 @@
        {n:"Brendan Quinn", role:"", phones:["(806) 345-2675"], email:""},
        {n:"Nick Lines", role:"", phones:[], email:"Nicholas.lines@corebridgefinancial.com"},
        {n:"Andrew Franklin / Terike Novak", role:"", phones:["(713) 831-2049","(940) 453-2310"], email:"terike.novak@corebridgefinancial.com"},
-       {n:"Thomas Carley", role:"", phones:[], email:"Thomas.Carley@corebridgefinancial.com"}
+       {n:"Thomas Carley", role:"", phones:[], email:"Thomas.Carley@corebridgefinancial.com"},
+       {n:"Trey", role:"RVP", phones:["(818) 854-1545"], email:""}
      ],
      emails:[["New Business","NewBusiness@corebridgefinancial.com"],["Agent Solutions","AgentSolutions@corebridgefinancial.com"],["Producer Care","sharedservicesproducercare@corebridgefinancial.com"],["Contracting Research","contracting.research@corebridgefinancial.com"],["Annuity Service","annuityservice@corebridgefinancial.com"],["WinFlex support","support.winflex@ebix.com"]],
      phones:["(385) 215-2740","(800) 340-2765","(800) 358-5753","(866) 722-2434","(877) 330-1193","(888) 280-1243","(888) 438-6933"],
      portal:"https://www.corebridgefinancial.com"},
 
     {name:"Symetra", prod:"IUL · Term · Fixed & Index Annuities",
-     reps:[], emails:[], phones:[],
-     note:"No POC on file yet — add the Symetra wholesaler / IMO rep when available.",
-     portal:"https://www.symetra.com"},
+     reps:[
+       {n:"Nate Kohl", role:"Top rep", phones:["(801) 946-6953"], email:""},
+       {n:"Vincent Sanchez", role:"RVP · Top rep", phones:["(941) 787-4365"], email:"vincent.sanchez@symetra.com"}
+     ],
+     emails:[["Life & Retirement Sales Desk","invest@symetra.com"]],
+     phones:["Life Sales Desk (877) 737-3611","Retirement / Annuity (800) 706-0700","Agency Services opt4 (800) 210-1106","Contracts & Licensing opt1 (800) 210-1106","Commissions opt2 (800) 210-1106"],
+     portal:"https://financialprofessionals.symetra.com"},
 
     {name:"F&G", prod:"IUL · Fixed & Index Annuities · (Fidelity & Guaranty)",
      reps:[
        {n:"Ron Barrett", role:"SVP & Chief Distribution Officer", phones:[], email:"ron.barrett@fglife.com"},
-       {n:"Jeff Richardson", role:"", phones:["(515) 633-7273"], email:"Jeff.Richardson@fglife.com"}
+       {n:"Jeff Richardson", role:"", phones:["(515) 633-7273"], email:"Jeff.Richardson@fglife.com"},
+       {n:"Chris Reavis", role:"", phones:["(336) 264-6496"], email:""}
      ],
      emails:[["Life Case Management","LifeCaseMgmt@fglife.com"],["Case Manager","casemanager@fglife.com"],["Contracting Support","Contracting.Support@fglife.com"],["Delivery requirements","deliveryrequirements@fglife.com"]],
      phones:["(800) 445-6758","(888) 513-8797"],
@@ -115,10 +121,11 @@
      portal:"https://www.allianzlife.com"},
 
     {name:"Ethos", prod:"Simplified-issue Term & Whole Life · instant decision",
-     reps:[],
+     reps:[
+       {n:"JJ", role:"Agent contact", phones:["(415) 237-2271"], email:""}
+     ],
      emails:[["Agents desk","agents@getethos.com"],["Agent Ops","agentops@getethos.com"],["Enterprise agent setup","enterprise-agent-setup@getethos.com"]],
-     phones:["(877) 913-8467","(415) 237-2271","(415) 639-3968","(415) 915-0665","(650) 382-8161"],
-     note:"No named rep on file yet — add your Ethos agent-ops contact.",
+     phones:["(877) 913-8467","(415) 639-3968","(415) 915-0665","(650) 382-8161"],
      portal:"https://www.ethoslife.com"},
 
     {name:"Ameritas", prod:"IUL · Term · Whole Life",
@@ -136,8 +143,9 @@
        {n:"David Johnson", role:"", phones:["(952) 814-4600"], email:"djohnson@foresters.com"},
        {n:"Luke Keller", role:"", phones:["(952) 214-8677"], email:"lkeller@foresters.com"}
      ],
-     emails:[], phones:[],
-     portal:"https://www.foresters.com"},
+     emails:[["Contracting & Producer Services","agencyadmin@foresters.com"]],
+     phones:["Producer / Contracting opt4 (866) 466-7166"],
+     portal:"https://ezbiz.foresters.com"},
 
     {name:"Mutual of Omaha", prod:"IUL · Term · Whole Life · Final Expense",
      reps:[
@@ -147,22 +155,14 @@
      emails:[], phones:["(800) 867-6873","(800) 775-6000","(800) 775-7896","(800) 228-9999"],
      portal:"https://www.mutualofomaha.com"},
 
-    {name:"American Equity", prod:"Fixed Index Annuities",
+    {name:"American Equity", prod:"Fixed Index Annuities · (American National merged into American Equity)",
      reps:[
-       {n:"Armando Matias", role:"", phones:["(515) 375-2193"], email:"armando.matias@american-equity.com"}
+       {n:"Armando Matias", role:"", phones:["(515) 375-2193"], email:"armando.matias@american-equity.com"},
+       {n:"Kyle Richman", role:"ext. 3544", phones:["(888) 221-1234"], email:""}
      ],
      emails:[["Agency","agencyemail@american-equity.com"],["New Business","new_business@american-equity.com"],["Sales","Sales@american-equity.com"],["Commissions","Commissions@american-equity.com"],["Service","service@american-equity.com"]],
      phones:["(414) 221-0002","(888) 221-1234"],
-     portal:"https://www.american-equity.com"},
-
-    {name:"American National (ANICO)", prod:"IUL · Term · Whole Life · Annuities",
-     reps:[
-       {n:"Amy Shaub", role:"", phones:["(281) 910-5493"], email:""},
-       {n:"Jeff Moore", role:"", phones:[], email:"jeff.moore@americannational.com"}
-     ],
-     emails:[["LAD Field Support","LADFieldSupport@AmericanNational.com"],["License & Contracts","licensecontracts@americannational.com"],["Gemini team","geminiteam@americannational.com"],["Customer Service Center","customerservicecenter@americannational.com"]],
-     phones:["(888) 501-4043","(888) 801-8845"],
-     portal:"https://www.americannational.com"}
+     portal:"https://www.american-equity.com"}
   ];
 
   function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
