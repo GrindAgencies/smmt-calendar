@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Company Resources — Carrier Rolodex · The Standard Financial Group</title>
+<style>
+  :root{--bg:#0a0a0a;--panel:#120f07;--panel2:#161208;--gold:#d4af37;--gold-bright:#f7d873;--gold-deep:#9a7d28;--line:#2a2410;--text:#f5f3ec;--muted:#b8b09a;--muted2:#8a8474;--green:#16a34a;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:radial-gradient(1200px 600px at 50% -10%,#1a1607,#0a0a0a 60%);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.5;}
+  .wrap{max-width:1080px;margin:0 auto;padding:18px 16px 60px;}
+  .topnav{display:flex;gap:10px;margin:0 0 16px;flex-wrap:wrap;}
+  .topnav a{flex:1;min-width:150px;text-align:center;padding:13px 12px;border-radius:14px;text-decoration:none;font-weight:800;letter-spacing:.02em;border:1px solid var(--line);color:var(--gold);background:var(--panel);}
+  .topnav a.on{color:#0a0a0a;background:linear-gradient(90deg,var(--gold-bright),var(--gold));border-color:var(--gold);}
+  .head{text-align:center;margin:8px 0 6px;}
+  .brand{letter-spacing:.34em;font-size:12px;color:var(--gold);font-weight:800;text-transform:uppercase;}
+  h1{margin:6px 0 4px;font-size:30px;letter-spacing:.01em;}
+  .sub{color:var(--muted);font-size:14.5px;margin:0 0 16px;}
+  .docbtn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:15px;border-radius:14px;text-decoration:none;font-weight:900;font-size:16px;color:#0a0a0a;background:linear-gradient(90deg,var(--gold-bright),var(--gold));border:1px solid var(--gold);box-shadow:0 6px 24px rgba(212,175,55,.18);}
+  .docbtn small{display:block;font-weight:700;font-size:11.5px;opacity:.8;}
+  .docnote{font-size:12px;color:var(--muted);text-align:center;margin:8px 0 18px;}
+  .search{width:100%;padding:13px 15px;border-radius:12px;border:1px solid var(--line);background:#0e0c06;color:var(--text);font-size:15px;margin:0 0 18px;}
+  .search::placeholder{color:#7a7464;}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:14px;}
+  .card{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:16px;padding:16px 16px 14px;}
+  .card h2{margin:0;font-size:19px;color:var(--gold-bright);display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .prod{font-size:12px;color:var(--muted);margin:3px 0 12px;font-weight:600;}
+  .lbl{font-size:10.5px;letter-spacing:.10em;text-transform:uppercase;color:var(--gold-deep);font-weight:800;margin:12px 0 6px;}
+  .rep{padding:9px 11px;border:1px solid var(--line);border-radius:11px;margin:0 0 7px;background:#0e0c06;}
+  .rep .nm{font-weight:800;font-size:14.5px;}
+  .rep .role{font-size:11.5px;color:var(--muted);font-weight:700;}
+  .rep .ct{margin-top:4px;display:flex;flex-wrap:wrap;gap:6px;}
+  a.chip{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:700;text-decoration:none;padding:5px 9px;border-radius:8px;border:1px solid var(--line);background:#15110a;color:var(--gold-bright);white-space:nowrap;}
+  a.chip.mail{color:#9ec5ff;}
+  a.chip:hover{filter:brightness(1.12);}
+  .lines{display:flex;flex-wrap:wrap;gap:6px;}
+  .empty{font-size:12.5px;color:var(--muted);font-style:italic;padding:6px 0;}
+  .portal{display:inline-block;margin-top:11px;font-size:12.5px;font-weight:800;color:var(--gold);text-decoration:none;border-bottom:1px solid var(--gold-deep);}
+  .foot{text-align:center;color:var(--muted);font-size:12px;margin-top:26px;}
+  .count{text-align:center;color:var(--muted);font-size:12.5px;margin:0 0 12px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topnav">
+    <a href="https://grindagencies.github.io/smmt-calendar/index.html">🗓️ Training Calendar</a>
+    <a href="https://grindagencies.github.io/smmt-calendar/checklist.html">📋 90-Day Tracker</a>
+    <a class="on" href="https://grindagencies.github.io/smmt-calendar/resources.html">📇 Resources</a>
+  </div>
+
+  <div class="head">
+    <div class="brand">The Standard Financial Group</div>
+    <h1>📇 Company Resources</h1>
+    <div class="sub">Your carrier &amp; partner rolodex — named reps, service desks, contracting &amp; new-business lines. Tap any number to call or any address to email.</div>
+  </div>
+
+  <a class="docbtn" id="docBtn" href="#" target="_blank" rel="noopener">📄 Open the full Company Resources Google Doc
+    <small>Everything in one place — bookmark it</small></a>
+  <div class="docnote">Stuck or need a carrier that isn't listed? The Google Doc is the master directory and overflow space.</div>
+
+  <input class="search" id="q" type="search" placeholder="🔎 Search carrier, rep, phone, or email…" autocomplete="off">
+  <div class="count" id="count"></div>
+  <div class="grid" id="grid"></div>
+
+  <div class="foot">Built from Christopher's rep list + Follow Up Boss carrier records. Add personal-cell numbers as they're confirmed. · Build Momentum. Create Results. Lead From the Front.</div>
+</div>
+
+<script>
+  var DOC_URL = "https://docs.google.com/document/d/12m8aa_Qt4dPxY5yeGvZMBZaPryooJIJkmYmojR86x9o/edit?usp=sharing";
+  document.getElementById('docBtn').href = DOC_URL;
+
+  var CARRIERS = [
+    {name:"North American", prod:"IUL · Fixed & Index Annuities · (Sammons / serviced via SFG–GFI)",
+     reps:[
+       {n:"Michael Dick", role:"", phones:["(605) 601-7122"], email:"mdick@sfgmembers.com"},
+       {n:"Jonah Hardenbrook", role:"", phones:["(760) 908-9436"], email:"jhardenbrook@sfgmembers.com"},
+       {n:"Brandon Deragisch", role:"Cell / Direct", phones:["(605) 601-3415","(605) 373-2372"], email:"bderagisch@sfgmembers.com"}
+     ],
+     emails:[["GFI Life desk","GFILife@sfgmembers.com"],["Fixed new business","fixednewbusiness@sfgmembers.com"],["NA Contracting","NAContracting@sfgmembers.com"],["Life correspondence","lifecorrespondence@sfgmembers.com"],["Policy change","pchange@sfgmembers.com"]],
+     phones:["(507) 227-7540","(800) 800-3656","(800) 923-3223","(833) 460-3185","(877) 872-0757","Annuity NB (515) 205-1902"],
+     portal:"https://www.northamericancompany.com"},
+
+    {name:"Corebridge Financial", prod:"IUL · Term · Fixed & Index Annuities · (formerly AIG)",
+     reps:[
+       {n:"Brendan Quinn", role:"", phones:["(806) 345-2675"], email:""},
+       {n:"Nick Lines", role:"", phones:[], email:"Nicholas.lines@corebridgefinancial.com"},
+       {n:"Andrew Franklin / Terike Novak", role:"", phones:["(713) 831-2049","(940) 453-2310"], email:"terike.novak@corebridgefinancial.com"},
+       {n:"Thomas Carley", role:"", phones:[], email:"Thomas.Carley@corebridgefinancial.com"}
+     ],
+     emails:[["New Business","NewBusiness@corebridgefinancial.com"],["Agent Solutions","AgentSolutions@corebridgefinancial.com"],["Producer Care","sharedservicesproducercare@corebridgefinancial.com"],["Contracting Research","contracting.research@corebridgefinancial.com"],["Annuity Service","annuityservice@corebridgefinancial.com"],["WinFlex support","support.winflex@ebix.com"]],
+     phones:["(385) 215-2740","(800) 340-2765","(800) 358-5753","(866) 722-2434","(877) 330-1193","(888) 280-1243","(888) 438-6933"],
+     portal:"https://www.corebridgefinancial.com"},
+
+    {name:"Symetra", prod:"IUL · Term · Fixed & Index Annuities",
+     reps:[], emails:[], phones:[],
+     note:"No POC on file yet — add the Symetra wholesaler / IMO rep when available.",
+     portal:"https://www.symetra.com"},
+
+    {name:"F&G", prod:"IUL · Fixed & Index Annuities · (Fidelity & Guaranty)",
+     reps:[
+       {n:"Ron Barrett", role:"SVP & Chief Distribution Officer", phones:[], email:"ron.barrett@fglife.com"},
+       {n:"Jeff Richardson", role:"", phones:["(515) 633-7273"], email:"Jeff.Richardson@fglife.com"}
+     ],
+     emails:[["Life Case Management","LifeCaseMgmt@fglife.com"],["Case Manager","casemanager@fglife.com"],["Contracting Support","Contracting.Support@fglife.com"],["Delivery requirements","deliveryrequirements@fglife.com"]],
+     phones:["(800) 445-6758","(888) 513-8797"],
+     portal:"https://www.fglife.com"},
+
+    {name:"Allianz Life", prod:"IUL · Fixed Index Annuities · FIA",
+     reps:[
+       {n:"Earl Brinkley", role:"ext. 46031", phones:["(763) 582-6031"], email:"earl.brinkley@allianzlife.com"},
+       {n:"Jeannie Olson", role:"", phones:[], email:"Jeannie.olson@allianzlife.com"}
+     ],
+     emails:[["Producer Services","ProducerServices@send.allianzlife.com"],["Life Insurance desk","LifeInsurance@send.allianzlife.com"],["Fixed Annuity desk","FixedAnnuity@send.allianzlife.com"]],
+     phones:["(800) 950-7372","(800) 950-1962","(800) 950-3347"],
+     portal:"https://www.allianzlife.com"},
+
+    {name:"Ethos", prod:"Simplified-issue Term & Whole Life · instant decision",
+     reps:[],
+     emails:[["Agents desk","agents@getethos.com"],["Agent Ops","agentops@getethos.com"],["Enterprise agent setup","enterprise-agent-setup@getethos.com"]],
+     phones:["(877) 913-8467","(415) 237-2271","(415) 639-3968","(415) 915-0665","(650) 382-8161"],
+     note:"No named rep on file yet — add your Ethos agent-ops contact.",
+     portal:"https://www.ethoslife.com"},
+
+    {name:"Ameritas", prod:"IUL · Term · Whole Life",
+     reps:[
+       {n:"Flor Andrade", role:"", phones:[], email:"flor.andrade@ameritas.com"},
+       {n:"Matthew Ashworth", role:"", phones:[], email:"matthew.ashworth@ameritas.com"}
+     ],
+     emails:[["Sales Connect","salesconnect@ameritas.com"],["Sales Request","sales.request@ameritas.com"],["Core Contracting","corecontracting@ameritas.com"],["New Business Support","nb_support@ameritas.com"],["Client Services","clientservices@ameritas.com"]],
+     phones:["(800) 745-1112","(800) 319-6903","(800) 555-7746"],
+     portal:"https://www.ameritas.com"},
+
+    {name:"Foresters Financial", prod:"Term · Whole Life · Final Expense · membership benefits",
+     reps:[
+       {n:"Tony Morrison", role:"", phones:["(863) 202-5914"], email:"tomorrison@foresters.com"},
+       {n:"David Johnson", role:"", phones:["(952) 814-4600"], email:"djohnson@foresters.com"},
+       {n:"Luke Keller", role:"", phones:["(952) 214-8677"], email:"lkeller@foresters.com"}
+     ],
+     emails:[], phones:[],
+     portal:"https://www.foresters.com"},
+
+    {name:"Mutual of Omaha", prod:"IUL · Term · Whole Life · Final Expense",
+     reps:[
+       {n:"Nate Nelson", role:"", phones:[], email:"nate.nelson@mutualofomaha.com"},
+       {n:"Jessica Mills", role:"", phones:[], email:"Jessica.mills@mutualofomaha.com"}
+     ],
+     emails:[], phones:["(800) 867-6873","(800) 775-6000","(800) 775-7896","(800) 228-9999"],
+     portal:"https://www.mutualofomaha.com"},
+
+    {name:"American Equity", prod:"Fixed Index Annuities",
+     reps:[
+       {n:"Armando Matias", role:"", phones:["(515) 375-2193"], email:"armando.matias@american-equity.com"}
+     ],
+     emails:[["Agency","agencyemail@american-equity.com"],["New Business","new_business@american-equity.com"],["Sales","Sales@american-equity.com"],["Commissions","Commissions@american-equity.com"],["Service","service@american-equity.com"]],
+     phones:["(414) 221-0002","(888) 221-1234"],
+     portal:"https://www.american-equity.com"},
+
+    {name:"American National (ANICO)", prod:"IUL · Term · Whole Life · Annuities",
+     reps:[
+       {n:"Amy Shaub", role:"", phones:["(281) 910-5493"], email:""},
+       {n:"Jeff Moore", role:"", phones:[], email:"jeff.moore@americannational.com"}
+     ],
+     emails:[["LAD Field Support","LADFieldSupport@AmericanNational.com"],["License & Contracts","licensecontracts@americannational.com"],["Gemini team","geminiteam@americannational.com"],["Customer Service Center","customerservicecenter@americannational.com"]],
+     phones:["(888) 501-4043","(888) 801-8845"],
+     portal:"https://www.americannational.com"}
+  ];
+
+  function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function telHref(p){var d=(p||'').replace(/[^\d]/g,'');if(d.length===10)d='1'+d;return 'tel:+'+d;}
+  function phoneChip(p){ if(/[a-zA-Z]/.test(p)){ // label like "Annuity NB (515)..."
+      var m=p.match(/(\(?\d[\d\s().-]{6,}\d)/); var num=m?m[0]:p; var lbl=p.replace(num,'').trim();
+      return '<a class="chip" href="'+telHref(num)+'">☎ '+esc(num)+(lbl?(' <span style="opacity:.7">'+esc(lbl)+'</span>'):'')+'</a>';
+    }
+    return '<a class="chip" href="'+telHref(p)+'">☎ '+esc(p)+'</a>'; }
+  function mailChip(addr,label){return '<a class="chip mail" href="mailto:'+esc(addr)+'" title="'+esc(addr)+'">✉ '+esc(label||addr)+'</a>';}
+
+  function render(list){
+    var g=document.getElementById('grid'); g.innerHTML='';
+    document.getElementById('count').textContent=list.length+' of '+CARRIERS.length+' carriers';
+    list.forEach(function(c){
+      var h='<div class="card"><h2>'+esc(c.name)+'</h2><div class="prod">'+esc(c.prod||'')+'</div>';
+      if(c.reps&&c.reps.length){
+        h+='<div class="lbl">★ Named reps</div>';
+        c.reps.forEach(function(r){
+          h+='<div class="rep"><div class="nm">'+esc(r.n)+(r.role?(' <span class="role">· '+esc(r.role)+'</span>'):'')+'</div><div class="ct">';
+          (r.phones||[]).forEach(function(p){h+=phoneChip(p);});
+          if(r.email)h+=mailChip(r.email,r.email);
+          h+='</div></div>';
+        });
+      }
+      if(c.emails&&c.emails.length){
+        h+='<div class="lbl">Service desks</div><div class="lines">';
+        c.emails.forEach(function(e){h+=mailChip(e[1],e[0]);});
+        h+='</div>';
+      }
+      if(c.phones&&c.phones.length){
+        h+='<div class="lbl">Service lines</div><div class="lines">';
+        c.phones.forEach(function(p){h+=phoneChip(p);});
+        h+='</div>';
+      }
+      if(c.note){h+='<div class="empty">⚠ '+esc(c.note)+'</div>';}
+      if(c.portal)h+='<a class="portal" href="'+esc(c.portal)+'" target="_blank" rel="noopener">🌐 Carrier portal →</a>';
+      h+='</div>';
+      g.insertAdjacentHTML('beforeend',h);
+    });
+  }
+  function blob(c){var s=[c.name,c.prod,c.note||''];(c.reps||[]).forEach(function(r){s.push(r.n,r.role,r.email);(r.phones||[]).forEach(function(p){s.push(p);});});(c.emails||[]).forEach(function(e){s.push(e[0],e[1]);});(c.phones||[]).forEach(function(p){s.push(p);});return s.join(' ').toLowerCase();}
+  var q=document.getElementById('q');
+  q.addEventListener('input',function(){var t=q.value.trim().toLowerCase();if(!t){render(CARRIERS);return;}var d=t.replace(/[^\da-z@. ]/g,'');render(CARRIERS.filter(function(c){return blob(c).indexOf(t)>=0||blob(c).replace(/[^\da-z@. ]/g,'').indexOf(d)>=0;}));});
+  render(CARRIERS);
+</script>
+</body>
+</html>
