@@ -35,7 +35,9 @@
   a.chip:hover{filter:brightness(1.12);}
   .lines{display:flex;flex-wrap:wrap;gap:6px;}
   .empty{font-size:12.5px;color:var(--muted);font-style:italic;padding:6px 0;}
-  .portal{display:inline-block;margin-top:11px;font-size:12.5px;font-weight:800;color:var(--gold);text-decoration:none;border-bottom:1px solid var(--gold-deep);}
+  .dash{display:block;margin-top:13px;padding:11px 12px;border-radius:11px;background:linear-gradient(90deg,var(--gold-bright),var(--gold));color:#0a0a0a;font-weight:900;font-size:13.5px;text-decoration:none;text-align:center;box-shadow:0 3px 14px rgba(212,175,55,.16);}
+  .dash:hover{filter:brightness(1.08);}
+  .portal{display:inline-block;margin-top:9px;font-size:12px;font-weight:700;color:var(--muted);text-decoration:none;border-bottom:1px solid var(--line);}
   .foot{text-align:center;color:var(--muted);font-size:12px;margin-top:26px;}
   .count{text-align:center;color:var(--muted);font-size:12.5px;margin:0 0 12px;}
 </style>
@@ -70,6 +72,12 @@
   document.getElementById('docBtn').href = DOC_URL;
 
   var CARRIERS = [
+    {name:"Quility — Back Office (HQ)", prod:"Agency back-office hub (Symmetry / SFG) · HQ = everything · OPT = the lead platform · carrier e-App tools live inside HQ",
+     reps:[],
+     emails:[["Support","help@quility.com"]],
+     phones:[],
+     portal:"https://quility.com/hq/"},
+
     {name:"North American", prod:"IUL · Fixed & Index Annuities · (Sammons / serviced via SFG–GFI)",
      reps:[
        {n:"Michael Dick", role:"", phones:["(605) 601-7122"], email:"mdick@sfgmembers.com"},
@@ -165,6 +173,19 @@
      portal:"https://www.american-equity.com"}
   ];
 
+  var DASH = {
+    "Quility — Back Office (HQ)":"https://hq.quility.com/",
+    "North American":"https://my.northamericancompany.com/",
+    "Corebridge Financial":"https://connext.corebridgefinancial.com/",
+    "Symetra":"https://financialprofessionals.symetra.com/",
+    "F&G":"https://saleslink.fglife.com/",
+    "Allianz Life":"https://www.allianzlife.com/Login",
+    "Ethos":"https://agents.ethoslife.com/dashboard",
+    "Ameritas":"https://workbench.ameritas.com/login",
+    "Foresters Financial":"https://ezbiz.foresters.com/",
+    "Mutual of Omaha":"https://producer.mutualofomaha.com/",
+    "American Equity":"https://myportal.american-equity.com/"
+  };
   function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
   function telHref(p){var d=(p||'').replace(/[^\d]/g,'');if(d.length===10)d='1'+d;return 'tel:+'+d;}
   function phoneChip(p){ if(/[a-zA-Z]/.test(p)){ // label like "Annuity NB (515)..."
@@ -199,7 +220,9 @@
         h+='</div>';
       }
       if(c.note){h+='<div class="empty">⚠ '+esc(c.note)+'</div>';}
-      if(c.portal)h+='<a class="portal" href="'+esc(c.portal)+'" target="_blank" rel="noopener">🌐 Carrier portal →</a>';
+      var dash=DASH[c.name];
+      if(dash)h+='<a class="dash" href="'+esc(dash)+'" target="_blank" rel="noopener">🔐 Open '+esc(c.name)+' dashboard →</a>';
+      if(c.portal)h+='<a class="portal" href="'+esc(c.portal)+'" target="_blank" rel="noopener">🌐 Public site →</a>';
       h+='</div>';
       g.insertAdjacentHTML('beforeend',h);
     });
