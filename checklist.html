@@ -676,6 +676,33 @@
           <div class="wm-goal-note" id="wmGoalNote">Add everyone you know — aim for 100+ names.</div>
         </div>
         <div class="wm-score" id="wmScore">No outcomes logged yet</div>
+        <style>
+          .mp-import{border:1px solid var(--gold-deep);background:linear-gradient(160deg,#1a1408,#0c0a05);border-radius:14px;padding:14px;margin:8px 0 14px;}
+          .mp-import-h{font-weight:900;font-size:14.5px;color:var(--gold-bright);}
+          .mp-import-sub{font-size:12.5px;color:var(--muted);margin:4px 0 11px;line-height:1.45;}
+          .mp-import-actions{display:flex;gap:8px;flex-wrap:wrap;}
+          .mp-imp-btn{flex:1;min-width:150px;padding:12px;border-radius:11px;border:0;font-weight:800;font-size:13.5px;cursor:pointer;background:linear-gradient(90deg,var(--gold-bright),var(--gold));color:#0a0a0a;}
+          .mp-imp-btn.alt{background:#15110a;color:var(--gold);border:1px solid var(--gold-deep);}
+          #impPasteBox{width:100%;border-radius:10px;border:1px solid var(--line);background:#0c0b05;color:#fff6da;padding:10px;font-size:13px;margin-bottom:8px;font-family:inherit;}
+          .mp-import-note{font-size:12.5px;font-weight:800;margin-top:9px;min-height:14px;}
+          .mp-import-help{font-size:11px;color:var(--muted);margin-top:9px;line-height:1.45;}
+          .mp-import-help b{color:var(--gold);}
+        </style>
+        <div class="mp-import">
+          <div class="mp-import-h">📥 Mass import — roster, leads list, or iPhone contacts</div>
+          <div class="mp-import-sub">Upload a <b>.csv</b> (roster / leads export from Excel or Google Sheets) or a <b>.vcf</b> (iPhone / Mac Contacts export). Names, phones &amp; emails are mapped automatically, duplicates are skipped, and everyone drops straight into your plan.</div>
+          <div class="mp-import-actions">
+            <button type="button" class="mp-imp-btn" onclick="el('impFile').click()">⬆ Choose file (.csv / .vcf)</button>
+            <button type="button" class="mp-imp-btn alt" onclick="toggleImpPaste()">📋 Paste a list instead</button>
+          </div>
+          <input type="file" id="impFile" accept=".csv,.vcf,.vcard,.txt,text/csv,text/vcard,text/plain" style="display:none" onchange="handleImportFile(this)">
+          <div id="impPasteWrap" style="display:none;margin-top:11px;">
+            <textarea id="impPasteBox" rows="5" placeholder="Paste rows here — e.g.&#10;Name, Phone, Email&#10;Jane Smith, 555-123-4567, jane@email.com&#10;Mike Jones, 555-987-6543"></textarea>
+            <button type="button" class="mp-imp-btn" onclick="importPaste()">Add pasted contacts →</button>
+          </div>
+          <div class="mp-import-note" id="impNote"></div>
+          <div class="mp-import-help">📱 <b>iPhone:</b> Contacts → tap a contact or a group → <b>Share Contact</b> → save the <b>.vcf</b>, then upload it here. &nbsp;💻 <b>Mac Contacts:</b> select all → File → Export → <b>Export vCard</b>. &nbsp;📊 <b>Spreadsheet:</b> File → Download/Save As <b>.csv</b>.</div>
+        </div>
         <div class="wm-log" style="margin:8px 0 14px;">
           <div class="wm-log-h">➕ Add to your Marketing Plan</div>
           <div class="wm-rows" id="wmRows2"></div>
@@ -845,6 +872,96 @@
   function wmFld(label,f,val,type){return '<label class="wm-fld"><span>'+label+'</span><input data-f="'+f+'" type="'+(type||'text')+'" value="'+escH(val||'')+'" placeholder="'+escH(label)+'" autocomplete="off"></label>';}
   function wmTz(val){var z=['','PST','MST','CST','EST','HST','AKST'];var o='';z.forEach(function(t){o+='<option value="'+t+'"'+(t===(val||'')?' selected':'')+'>'+(t||'— time zone —')+'</option>';});return '<label class="wm-fld"><span>Time zone</span><select data-f="timeZone">'+o+'</select></label>';}
   function addBlankLead(){warmMarket.unshift({id:'wm'+Date.now()+Math.floor(Math.random()*100000),name:'',phone:'',date:ptToday(),outcome:'',done:false});if(code)saveNow();renderWarm();var first=document.querySelector('#wmList .wm-card .wm-name-in');if(first)first.focus();}
+  /* ---- MASS IMPORT (CSV roster / leads list / iPhone vCard) ---- */
+  function impDigits(s){return (s||'').replace(/\D/g,'');}
+  function setImpNote(msg,err){var n=el('impNote');if(!n)return;n.textContent=msg;n.style.color=err?'var(--red)':'var(--green)';}
+  function toggleImpPaste(){var w=el('impPasteWrap');if(w)w.style.display=(w.style.display==='none'||!w.style.display)?'block':'none';}
+  function handleImportFile(inp){
+    var f=inp.files&&inp.files[0];if(!f){return;}
+    var r=new FileReader();
+    r.onload=function(){
+      try{var txt=String(r.result||'');var leads=/BEGIN:VCARD/i.test(txt)?parseVCard(txt):parseDelimited(txt);addImported(leads,f.name);}
+      catch(e){setImpNote('Sorry — could not read that file. Use a .csv or .vcf export.',true);}
+      inp.value='';
+    };
+    r.onerror=function(){setImpNote('Could not open that file.',true);inp.value='';};
+    r.readAsText(f);
+  }
+  function importPaste(){
+    var t=(el('impPasteBox')&&el('impPasteBox').value)||'';
+    if(!t.trim()){setImpNote('Paste some rows first.',true);return;}
+    var leads=/BEGIN:VCARD/i.test(t)?parseVCard(t):parseDelimited(t);
+    addImported(leads,'pasted list');
+  }
+  function parseVCard(txt){
+    var out=[];txt.split(/END:VCARD/i).forEach(function(c){
+      if(!/BEGIN:VCARD/i.test(c))return;
+      var lines=c.replace(/\r/g,'').replace(/\n[ \t]/g,'').split('\n');
+      var name='',phones=[],email='';
+      lines.forEach(function(ln){
+        var u=ln.toUpperCase();
+        if(u.indexOf('FN')===0&&!name){name=ln.substring(ln.indexOf(':')+1).trim();}
+        else if(u.indexOf('N:')===0||u.indexOf('N;')===0){if(!name){var v=ln.substring(ln.indexOf(':')+1).split(';');name=(((v[1]||'')+' '+(v[0]||'')).trim());}}
+        else if(u.indexOf('TEL')===0){var p=ln.substring(ln.indexOf(':')+1).trim();if(p)phones.push(p);}
+        else if(u.indexOf('EMAIL')===0){if(!email)email=ln.substring(ln.indexOf(':')+1).trim();}
+      });
+      if(name||phones.length||email)out.push({name:name,phone:phones[0]||'',email:email});
+    });
+    return out;
+  }
+  function splitCells(l,delim){
+    var out=[],cur='',q=false;
+    for(var i=0;i<l.length;i++){var ch=l[i];
+      if(ch==='"'){if(q&&l[i+1]==='"'){cur+='"';i++;}else q=!q;}
+      else if(ch===delim&&!q){out.push(cur);cur='';}
+      else cur+=ch;
+    }
+    out.push(cur);return out.map(function(s){return s.trim();});
+  }
+  function parseDelimited(txt){
+    var lines=txt.replace(/\r/g,'').split('\n').filter(function(l){return l.trim()!=='';});
+    if(!lines.length)return [];
+    var delim=(lines[0].split('\t').length>lines[0].split(',').length)?'\t':',';
+    var header=splitCells(lines[0],delim).map(function(h){return h.toLowerCase();});
+    var looksHeader=header.some(function(h){return /name|phone|mobile|cell|email|number|first|last/.test(h);});
+    function find(keys){for(var i=0;i<header.length;i++){for(var k=0;k<keys.length;k++){if(header[i].indexOf(keys[k])>=0)return i;}}return -1;}
+    var out=[];
+    if(looksHeader){
+      var iName=find(['full name','display name','name','contact']),iFirst=find(['first']),iLast=find(['last']),
+          iPhone=find(['mobile','cell','phone','number','tel']),iEmail=find(['email','e-mail']),iNote=find(['note','company','source','how','tag']);
+      for(var r=1;r<lines.length;r++){
+        var c=splitCells(lines[r],delim);if(!c.length)continue;
+        var nm=(iName>=0?c[iName]:'')||(((iFirst>=0?c[iFirst]:'')+' '+(iLast>=0?c[iLast]:'')).trim());
+        var ph=iPhone>=0?(c[iPhone]||''):'',em=iEmail>=0?(c[iEmail]||''):'',no=iNote>=0?(c[iNote]||''):'';
+        if(nm||ph||em)out.push({name:nm,phone:ph,email:em,notes:no});
+      }
+    }else{
+      lines.forEach(function(l){
+        var c=splitCells(l,delim),nm='',ph='',em='';
+        c.forEach(function(v){if(/@/.test(v)){em=em||v;}else if(impDigits(v).length>=7){ph=ph||v;}else if(v&&!nm){nm=v;}});
+        if(nm||ph||em)out.push({name:nm,phone:ph,email:em});
+      });
+    }
+    return out;
+  }
+  function addImported(leads,srcName){
+    if(!leads||!leads.length){setImpNote('No contacts found in '+(srcName||'that file')+'. Check it has names/phones/emails.',true);return;}
+    var seen={};warmMarket.forEach(function(x){seen[((x.name||'').trim().toLowerCase()+'|'+impDigits(x.phone))]=1;});
+    var added=0,i=0;
+    leads.forEach(function(l){
+      var nm=(l.name||'').trim(),ph=(l.phone||'').trim();
+      if(!nm&&!ph)return;
+      var key=nm.toLowerCase()+'|'+impDigits(ph);
+      if(seen[key])return;seen[key]=1;
+      warmMarket.unshift({id:'wm'+Date.now()+Math.floor(Math.random()*1e6)+(i++),name:nm,phone:ph,email:(l.email||'').trim(),howKnow:(l.notes||'').trim(),notes:'',contacted:false,outcome:'',date:ptToday(),done:false});
+      added++;
+    });
+    if(added){renderWarm();if(code)saveNow();}
+    var skipped=leads.length-added;
+    setImpNote('✓ Imported '+added+' contact'+(added===1?'':'s')+' into your Marketing Plan'+(skipped>0?(' · skipped '+skipped+' duplicate/blank'):'')+'.',false);
+    if(el('impPasteWrap'))el('impPasteWrap').style.display='none';
+    if(el('impPasteBox'))el('impPasteBox').value='';
+  }
   function renderWarm(){
     var n=warmMarket.length;
     var wins=warmMarket.filter(function(c){return c.outcome==='win';}).length;
