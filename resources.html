@@ -18,7 +18,14 @@
   .sub{color:var(--muted);font-size:14.5px;margin:0 0 16px;}
   .docbtn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:15px;border-radius:14px;text-decoration:none;font-weight:900;font-size:16px;color:#0a0a0a;background:linear-gradient(90deg,var(--gold-bright),var(--gold));border:1px solid var(--gold);box-shadow:0 6px 24px rgba(212,175,55,.18);}
   .docbtn small{display:block;font-weight:700;font-size:11.5px;opacity:.8;}
-  .docnote{font-size:12px;color:var(--muted);text-align:center;margin:8px 0 18px;}
+  .docnote{font-size:12px;color:var(--muted);text-align:center;margin:8px 0 16px;}
+  .ressec{margin:0 0 18px;}
+  .ressec-h{font-size:13px;font-weight:900;letter-spacing:.02em;color:var(--gold-bright);margin:0 0 10px;text-align:center;}
+  .reslist{display:grid;grid-template-columns:repeat(auto-fill,minmax(248px,1fr));gap:10px;}
+  .rescard{display:block;border:1px solid var(--line);border-radius:12px;padding:12px 13px;background:linear-gradient(180deg,var(--panel2),var(--panel));text-decoration:none;transition:border-color .15s;}
+  .rescard:hover{border-color:var(--gold-deep);}
+  .rescard-t{font-weight:800;font-size:14px;color:var(--gold-bright);}
+  .rescard-d{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.4;}
   .search{width:100%;padding:13px 15px;border-radius:12px;border:1px solid var(--line);background:#0e0c06;color:var(--text);font-size:15px;margin:0 0 18px;}
   .search::placeholder{color:#7a7464;}
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:14px;}
@@ -56,9 +63,14 @@
     <div class="sub">Your carrier &amp; partner rolodex — named reps, service desks, contracting &amp; new-business lines. Tap any number to call or any address to email.</div>
   </div>
 
-  <a class="docbtn" id="docBtn" href="#" target="_blank" rel="noopener">📄 Open the full Company Resources Google Doc
-    <small>Everything in one place — bookmark it</small></a>
-  <div class="docnote">Stuck or need a carrier that isn't listed? The Google Doc is the master directory and overflow space.</div>
+  <a class="docbtn" id="docBtn" href="#" target="_blank" rel="noopener">📂 Open the full Company Resource Drive
+    <small>Stuck? Everything lives here — scripts, training, decks &amp; product how-tos</small></a>
+  <div class="docnote">The same GRIND Agencies Google Drive powers every link on this page — bookmark it.</div>
+
+  <div class="ressec">
+    <div class="ressec-h">📚 Start here — must-have resources to win in this business</div>
+    <div class="reslist" id="resList"></div>
+  </div>
 
   <input class="search" id="q" type="search" placeholder="🔎 Search carrier, rep, phone, or email…" autocomplete="off">
   <div class="count" id="count"></div>
@@ -68,8 +80,22 @@
 </div>
 
 <script>
-  var DOC_URL = "https://docs.google.com/document/d/1ZI-AH5JPNGiShsA0JhIWa8-4-qhP6JhRLdm1SEB8hCY/edit?usp=sharing";
-  document.getElementById('docBtn').href = DOC_URL;
+  var DRIVE_URL = "https://drive.google.com/drive/folders/1O82d4KtDXxcwg59Zf1A0-sX1ukK6xKwg";
+  document.getElementById('docBtn').href = DRIVE_URL;
+  var RESOURCES = [
+    {t:"📜 Complete Recruiting Script Library", d:"EHTOR · Reference · PBP · Volume scripts — the words that work", u:"https://drive.google.com/file/d/1tj5fZZiXPuRW2bxjjMErcTZL-rYaE1vf/view"},
+    {t:"🎤 GRIND Field Training Slides", d:"The client presentation deck you run on every appointment", u:"https://drive.google.com/file/d/1DU3Z2JTJtcMzD8RIyqNs2knJrC9lTfl-/view"},
+    {t:"🔥 The BLDRs System — Day 1", d:"Our core new-agent training pipeline (Days 1–4)", u:"https://docs.google.com/presentation/d/1hkxpX7fKXttOrRB-M-QW7kzw7YF12bpRIcfnVc2BmrI/edit"},
+    {t:"🚀 New Agent Onboarding — First 90 Days", d:"The roadmap for your first 90 days in the business", u:"https://drive.google.com/file/d/1YfHcoItIpl9j29E-fN7mmSCPbEpGgxFX/view"},
+    {t:"📞 Running a Warm Market System", d:"How to work your list & book appointments (video)", u:"https://drive.google.com/file/d/1QYjMB7j4ySiveuopt9inneak0q9K4yZP/view"},
+    {t:"💼 How to Run a PFR", d:"Personal Financial Review — the appointment framework (video)", u:"https://drive.google.com/file/d/1bWmBP6PGX34Xex39layUkwr9R2XcpO46/view"},
+    {t:"📊 F&G + North American Illustrations", d:"Build carrier illustrations step-by-step (video)", u:"https://drive.google.com/file/d/1RpU0S65JMIh9EklO12_S7I5vHFkATjJ1/view"},
+    {t:"🤝 GRIND Hiring Interview", d:"Run the recruiting interview to build your team", u:"https://drive.google.com/file/d/1NJ5rofsf-IrPAn0VQ2-QzCrWBFjyZZgL/view"},
+    {t:"📇 Carrier Rolodex (Google Doc)", d:"The full carrier contact directory in one doc", u:"https://docs.google.com/document/d/1ZI-AH5JPNGiShsA0JhIWa8-4-qhP6JhRLdm1SEB8hCY/edit"}
+  ];
+  (function(){var L=document.getElementById('resList');if(!L)return;RESOURCES.forEach(function(r){
+    var a=document.createElement('a');a.className='rescard';a.href=r.u;a.target='_blank';a.rel='noopener';
+    a.innerHTML='<div class="rescard-t">'+r.t+'</div><div class="rescard-d">'+r.d+'</div>';L.appendChild(a);});})();
 
   var CARRIERS = [
     {name:"Quility — Back Office (HQ)", prod:"Agency back-office hub (Symmetry / SFG) · HQ = everything · OPT = the lead platform · carrier e-App tools live inside HQ",
