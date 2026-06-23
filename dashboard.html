@@ -41,6 +41,28 @@
   .stat{border:1px solid var(--line);border-radius:14px;padding:16px;background:rgba(212,175,55,.05);text-align:center;}
   .stat .n{font-size:26px;font-weight:900;color:var(--gold-bright);}
   .stat .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:2px;}
+  .engage{margin:0 0 18px;border:1px solid var(--gold-deep);border-radius:16px;padding:16px;background:linear-gradient(160deg,#15110a,#0b0a05);}
+  .engage-h{font-weight:900;font-size:15px;color:var(--gold-bright);margin:0 0 12px;}
+  .engage-sub{font-weight:700;font-size:11.5px;color:var(--muted);}
+  .ebuckets{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:0 0 14px;}
+  .ebk{border:1px solid var(--line);border-radius:12px;padding:12px;text-align:center;background:#0e0c05;}
+  .ebk-n{font-size:24px;font-weight:900;}
+  .ebk-l{font-size:11px;color:var(--muted);margin-top:2px;font-weight:700;}
+  .ebk.g .ebk-n{color:#3ec98a;}.ebk.y .ebk-n{color:#f7d873;}.ebk.o .ebk-n{color:#e08c3a;}.ebk.r .ebk-n{color:#e0533d;}
+  .ehighlights{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 14px;}
+  .ehl{border:1px solid var(--line);border-radius:12px;padding:11px 12px;background:#0e0c05;}
+  .ehl-h{font-size:12px;font-weight:800;color:var(--gold);margin-bottom:7px;}
+  .echip{display:inline-block;font-size:12px;font-weight:700;color:#fff6da;background:#171206;border:1px solid var(--gold-deep);border-radius:999px;padding:5px 10px;margin:0 6px 6px 0;}
+  .echip b{color:var(--gold-bright);}
+  .emuted{color:var(--muted);font-size:12px;font-style:italic;}
+  .elist{display:flex;flex-direction:column;gap:7px;}
+  .erow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;border:1px solid var(--line);border-left:4px solid;border-radius:10px;padding:9px 12px;background:#0c0b05;}
+  .edot{width:9px;height:9px;border-radius:50%;flex:none;}
+  .ename{font-weight:800;color:#fff6da;min-width:170px;}
+  .ecode{font-weight:800;color:var(--gold);font-size:11.5px;letter-spacing:.04em;margin-left:7px;}
+  .epill{font-size:11px;font-weight:800;border:1px solid;border-radius:999px;padding:3px 9px;}
+  .emini{font-size:12px;color:var(--muted);font-weight:700;}
+  @media(max-width:640px){.ebuckets{grid-template-columns:repeat(2,1fr);}.ehighlights{grid-template-columns:1fr;}.ename{min-width:120px;}}
   .toolbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;}
   .toolbar .t{font-weight:900;text-transform:uppercase;letter-spacing:.08em;color:var(--gold);font-size:13px;}
   .toolbar button{font-size:12px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--gold);background:#171206;border:1px solid var(--gold-deep);border-radius:999px;padding:8px 14px;cursor:pointer;}
@@ -127,6 +149,14 @@
       <div class="stat"><div class="n" id="sClose">—</div><div class="l">Team Close Rate</div></div>
       <div class="stat"><div class="n" id="sQuit">0</div><div class="l">Quit (inactive)</div></div>
     </div>
+
+    <div id="engage" class="engage">
+      <div class="engage-h">📊 Engagement &amp; Accountability <span class="engage-sub">— color-coded by 90-Day Tracker activity. Sorted most-stale first.</span></div>
+      <div class="ebuckets" id="ebuckets"></div>
+      <div class="ehighlights" id="ehighlights"></div>
+      <div class="elist" id="elist"></div>
+    </div>
+
     <div class="toolbar">
       <div class="t">Agent Progress</div>
       <div class="tools-r">
@@ -209,7 +239,7 @@
     return Math.floor(s/86400)+"d ago";
   }
   function render(agents){
-    data=(agents||[]).map(function(a){return {name:(a.first_name+' '+a.last_name),code:a.code,status:a.status||'active',emd:a.emd||'',md:a.md||'',pathway:a.pathway||'',pct:a.pct||0,done:a.done_count||0,total:a.total||35,ftDone:a.ft_done||0,ftPace:a.ft_pace_per_wk||0,biz:a.biz_submitted||0,wins:a.wm_wins||0,losses:a.wm_losses||0,closeRate:(a.wm_close_rate==null?-1:a.wm_close_rate),streak:a.live_streak||0,best:a.best_streak||0,lastDaily:a.last_daily||'',updated:a.updated_at};});
+    data=(agents||[]).map(function(a){return {name:(a.first_name+' '+a.last_name),code:a.code,status:a.status||'active',emd:a.emd||'',md:a.md||'',pathway:a.pathway||'',pct:a.pct||0,done:a.done_count||0,total:a.total||35,ftDone:a.ft_done||0,ftPace:a.ft_pace_per_wk||0,biz:a.biz_submitted||0,wins:a.wm_wins||0,losses:a.wm_losses||0,closeRate:(a.wm_close_rate==null?-1:a.wm_close_rate),streak:a.live_streak||0,best:a.best_streak||0,lastDaily:a.last_daily||'',leads:a.warm_leads||0,added7:a.mp_added_7||0,added14:a.mp_added_14||0,added30:a.mp_added_30||0,reached:a.mp_contacted||0,daysInactive:(a.days_inactive==null?null:a.days_inactive),mpStatus:a.progress_status||'red',updated:a.updated_at};});
     // stats over ACTIVE only
     var act=data.filter(function(a){return a.status!=='quit';});
     el('sAgents').textContent=act.length;
@@ -225,6 +255,31 @@
     buildEmdFilter();
     buildMdFilter();
     draw();
+    renderEngage();
+  }
+  function statusMeta(s){return ({green:{c:'#3ec98a',t:'On track'},yellow:{c:'#f7d873',t:'Slowing'},orange:{c:'#e08c3a',t:'Stalling'},red:{c:'#e0533d',t:'Stalled'}})[s]||{c:'#e0533d',t:'Stalled'};}
+  function renderEngage(){
+    var act=data.filter(function(a){return a.status!=='quit'&&a.code!=='POOL';});
+    var b={green:0,yellow:0,orange:0,red:0};act.forEach(function(a){b[a.mpStatus]=(b[a.mpStatus]||0)+1;});
+    if(el('ebuckets'))el('ebuckets').innerHTML=
+      '<div class="ebk g"><div class="ebk-n">'+b.green+'</div><div class="ebk-l">🟢 On track ≤7d</div></div>'+
+      '<div class="ebk y"><div class="ebk-n">'+b.yellow+'</div><div class="ebk-l">🟡 Slowing 8–14d</div></div>'+
+      '<div class="ebk o"><div class="ebk-n">'+b.orange+'</div><div class="ebk-l">🟠 Stalling 15–30d</div></div>'+
+      '<div class="ebk r"><div class="ebk-n">'+b.red+'</div><div class="ebk-l">🔴 Stalled 30d+</div></div>';
+    var adders=act.slice().filter(function(a){return a.added7>0;}).sort(function(a,b){return b.added7-a.added7;}).slice(0,3);
+    var conn=act.slice().filter(function(a){return a.reached>0;}).sort(function(a,b){return b.reached-a.reached;}).slice(0,3);
+    function chips(arr,key,suf){return arr.length?arr.map(function(a){return '<span class="echip">'+esc(a.name)+' <b>'+a[key]+suf+'</b></span>';}).join(''):'<span class="emuted">— none yet —</span>';}
+    if(el('ehighlights'))el('ehighlights').innerHTML=
+      '<div class="ehl"><div class="ehl-h">🔥 Adding in a big way (last 7 days)</div><div class="ehl-b">'+chips(adders,'added7',' new')+'</div></div>'+
+      '<div class="ehl"><div class="ehl-h">📞 Biggest connectors (reached out)</div><div class="ehl-b">'+chips(conn,'reached','')+'</div></div>';
+    var list=act.slice().sort(function(a,b){var x=(a.daysInactive==null?9999:a.daysInactive),y=(b.daysInactive==null?9999:b.daysInactive);return y-x;});
+    if(el('elist'))el('elist').innerHTML=list.map(function(a){var m=statusMeta(a.mpStatus);var di=(a.daysInactive==null?'never':a.daysInactive+'d');
+      return '<div class="erow" style="border-left-color:'+m.c+'"><span class="edot" style="background:'+m.c+'"></span>'+
+        '<span class="ename">'+esc(a.name)+'<span class="ecode">'+esc(a.code)+'</span></span>'+
+        '<span class="epill" style="color:'+m.c+';border-color:'+m.c+'">'+m.t+' · '+di+'</span>'+
+        '<span class="emini">📋 '+a.pct+'%</span><span class="emini">📇 '+a.leads+' leads</span>'+
+        '<span class="emini">＋'+a.added7+' /7d</span><span class="emini">📞 '+a.reached+' out</span></div>';
+    }).join('')||'<div class="emuted">No active agents.</div>';
   }
   function buildEmdFilter(){
     var sel=el('emdFilter');if(!sel)return;
