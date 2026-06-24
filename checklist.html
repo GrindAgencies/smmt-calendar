@@ -677,6 +677,29 @@
         </div>
         <div class="wm-score" id="wmScore">No outcomes logged yet</div>
         <style>
+          .act-card{border:1px solid var(--gold-deep);background:linear-gradient(160deg,#1a1408,#0c0a05);border-radius:14px;padding:14px;margin:8px 0 14px;}
+          .act-h{font-weight:900;font-size:14.5px;color:var(--gold-bright);}
+          .act-sub{display:block;font-size:12px;color:var(--muted);font-weight:600;margin:4px 0 11px;line-height:1.4;}
+          .act-row{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;}
+          .act-f{flex:1;min-width:84px;display:flex;flex-direction:column;font-size:11.5px;font-weight:800;color:var(--gold);gap:5px;}
+          .act-f input{width:100%;border-radius:10px;border:1px solid var(--line);background:#0c0b05;color:#fff6da;padding:11px 10px;font-size:16px;font-weight:800;text-align:center;outline:none;}
+          .act-f input:focus{border-color:var(--gold);}
+          .act-log{flex:1;min-width:110px;padding:12px;border-radius:11px;border:0;font-weight:900;font-size:14px;cursor:pointer;background:linear-gradient(90deg,var(--gold-bright),var(--gold));color:#0a0a0a;}
+          .act-note{font-size:12.5px;font-weight:700;color:var(--ink);margin-top:10px;min-height:14px;}
+          .act-note b{color:var(--gold-bright);}
+        </style>
+        <div class="act-card">
+          <div class="act-h">📊 Today's Activity</div>
+          <span class="act-sub">Log your effort each day — this is what leadership sees as "connecting in a big way." Keeping your streak and activity up keeps you green on the ops board.</span>
+          <div class="act-row">
+            <label class="act-f">☎ Dials<input type="number" min="0" inputmode="numeric" id="actDials" placeholder="0"></label>
+            <label class="act-f">💬 Conversations<input type="number" min="0" inputmode="numeric" id="actConvos" placeholder="0"></label>
+            <label class="act-f">📅 Appts set<input type="number" min="0" inputmode="numeric" id="actAppts" placeholder="0"></label>
+            <button type="button" class="act-log" onclick="logActivity()">Log today</button>
+          </div>
+          <div class="act-note" id="actNote">Last 7 days: <b>0</b> dials · <b>0</b> conversations · <b>0</b> appts set</div>
+        </div>
+        <style>
           .mp-import{border:1px solid var(--gold-deep);background:linear-gradient(160deg,#1a1408,#0c0a05);border-radius:14px;padding:14px;margin:8px 0 14px;}
           .mp-import-h{font-weight:900;font-size:14.5px;color:var(--gold-bright);}
           .mp-import-sub{font-size:12.5px;color:var(--muted);margin:4px 0 11px;line-height:1.45;}
@@ -748,7 +771,11 @@
   var carlifes=Array.prototype.slice.call(document.querySelectorAll('.car-life'));
   var carannu=Array.prototype.slice.call(document.querySelectorAll('.car-annuity'));
   var carinputs=carlifes.concat(carannu);
-  var code=null, saveTimer=null, currentPath=null, ftLog={}, warmMarket=[], emd="", md="", wmViewMode="cards";
+  var code=null, saveTimer=null, currentPath=null, ftLog={}, warmMarket=[], activityLog=[], emd="", md="", wmViewMode="cards";
+  function actDaysAgo(ymd,today){try{var a=new Date(ymd+'T00:00:00Z').getTime(),b=new Date(today+'T00:00:00Z').getTime();return Math.round((b-a)/86400000);}catch(e){return 0;}}
+  function actToday(){var t=ptToday();for(var i=0;i<activityLog.length;i++){if(activityLog[i]&&activityLog[i].date===t)return activityLog[i];}return null;}
+  function renderActivity(){var t=actToday();if(el('actDials'))el('actDials').value=t&&t.dials?t.dials:'';if(el('actConvos'))el('actConvos').value=t&&t.convos?t.convos:'';if(el('actAppts'))el('actAppts').value=t&&t.appts?t.appts:'';var d7=0,c7=0,a7=0,today=ptToday();activityLog.forEach(function(ev){if(!ev||!ev.date)return;var da=actDaysAgo(ev.date,today);if(da>=0&&da<=6){d7+=(+ev.dials||0);c7+=(+ev.convos||0);a7+=(+ev.appts||0);}});if(el('actNote'))el('actNote').innerHTML='Last 7 days: <b>'+d7+'</b> dials · <b>'+c7+'</b> conversations · <b>'+a7+'</b> appts set';}
+  function logActivity(){var t=ptToday();var d=Math.max(0,parseInt((el('actDials')||{}).value,10)||0),c=Math.max(0,parseInt((el('actConvos')||{}).value,10)||0),a=Math.max(0,parseInt((el('actAppts')||{}).value,10)||0);var found=null;for(var i=0;i<activityLog.length;i++){if(activityLog[i]&&activityLog[i].date===t){found=activityLog[i];break;}}if(found){found.dials=d;found.convos=c;found.appts=a;}else{activityLog.unshift({date:t,dials:d,convos:c,appts:a});}if(activityLog.length>120)activityLog=activityLog.slice(0,120);renderActivity();if(code)saveNow();setStat('Activity logged ✓',true);}
   var UPLINE={'Elijah Cox':['Christopher Lorenz','Edgar Zavala'],'Yonatan Kenzo':[],'Seale Mosle':[],'Jianfeng Zhao':[]};
 
   function el(id){return document.getElementById(id);}
@@ -813,7 +840,7 @@
     clearTimeout(saveTimer);
     saveTimer=setTimeout(function(){
       var vis=boxes.filter(function(b){return b.offsetParent!==null;}).length;
-      api({action:'save',code:code,progress:progressMap(),total:vis,pathway:currentPath,emd:emd,md:md,ft_log:ftLog,carrier_codes:carriersPayload(),warm_market:warmMarket}).then(function(res){
+      api({action:'save',code:code,progress:progressMap(),total:vis,pathway:currentPath,emd:emd,md:md,ft_log:ftLog,carrier_codes:carriersPayload(),warm_market:warmMarket,activity_log:activityLog}).then(function(res){
         setStat(res&&res.ok?'Saved ✓':'Saved on this device',res&&res.ok);
       }).catch(function(){setStat('Saved on this device (offline)',false);});
     },600);
@@ -830,7 +857,7 @@
 
   /* ---- WARM MARKET ---- */
   function escH(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
-  function saveNow(){if(!code)return;var vis=boxes.filter(function(b){return b.offsetParent!==null;}).length;setStat('Saving…',false);api({action:'save',code:code,progress:progressMap(),total:vis,pathway:currentPath,emd:emd,md:md,ft_log:ftLog,carrier_codes:carriersPayload(),warm_market:warmMarket}).then(function(r){setStat(r&&r.ok?'Saved ✓':'Saved on this device',r&&r.ok);}).catch(function(){setStat('Saved on this device (offline)',false);});}
+  function saveNow(){if(!code)return;var vis=boxes.filter(function(b){return b.offsetParent!==null;}).length;setStat('Saving…',false);api({action:'save',code:code,progress:progressMap(),total:vis,pathway:currentPath,emd:emd,md:md,ft_log:ftLog,carrier_codes:carriersPayload(),warm_market:warmMarket,activity_log:activityLog}).then(function(r){setStat(r&&r.ok?'Saved ✓':'Saved on this device',r&&r.ok);}).catch(function(){setStat('Saved on this device (offline)',false);});}
   function populateMd(selected){
     var sel=el('mdSel');if(!sel)return;
     if(!emd){sel.innerHTML='<option value="">— Select your Executive Broker first —</option>';sel.disabled=true;return;}
@@ -866,7 +893,7 @@
   function wmToggle(id){for(var i=0;i<warmMarket.length;i++){if(warmMarket[i].id===id){warmMarket[i].done=!warmMarket[i].done;break;}}renderWarm();saveNow();}
   function wmRemove(id){warmMarket=warmMarket.filter(function(x){return x.id!==id;});renderWarm();saveNow();}
   function wmOutcome(id,outcome){for(var i=0;i<warmMarket.length;i++){if(warmMarket[i].id===id){warmMarket[i].outcome=(warmMarket[i].outcome===outcome)?'':outcome;break;}}renderWarm();saveNow();}
-  function wmContacted(id){for(var i=0;i<warmMarket.length;i++){if(warmMarket[i].id===id){warmMarket[i].contacted=!warmMarket[i].contacted;break;}}renderWarm();saveNow();}
+  function wmContacted(id){for(var i=0;i<warmMarket.length;i++){if(warmMarket[i].id===id){warmMarket[i].contacted=!warmMarket[i].contacted;if(warmMarket[i].contacted)warmMarket[i].contactedDate=ptToday();break;}}renderWarm();saveNow();}
   var wmFieldTimer=null;
   function wmField(id,field,val,immediate){for(var i=0;i<warmMarket.length;i++){if(warmMarket[i].id===id){warmMarket[i][field]=val;break;}}if(immediate){if(code)saveNow();}else{setStat('Saving…',false);clearTimeout(wmFieldTimer);wmFieldTimer=setTimeout(function(){if(code)saveNow();},700);}}
   function wmFld(label,f,val,type){return '<label class="wm-fld"><span>'+label+'</span><input data-f="'+f+'" type="'+(type||'text')+'" value="'+escH(val||'')+'" placeholder="'+escH(label)+'" autocomplete="off"></label>';}
@@ -1156,7 +1183,7 @@
       ftLog=res.agent.ft_log||{};
       applyProgress(res.agent.progress);
       applyCarriers(res.agent.carrier_codes); bizCount();
-      warmMarket=res.agent.warm_market||[]; renderWarm(); restoreUpline(res.agent.emd,res.agent.md);
+      warmMarket=res.agent.warm_market||[]; activityLog=res.agent.activity_log||[]; renderWarm(); renderActivity(); restoreUpline(res.agent.emd,res.agent.md);
       showApp(res.agent.first_name+' '+res.agent.last_name);
       restorePath(res.agent.pathway);
       update(); loadDaily(res.agent);
@@ -1164,7 +1191,7 @@
       btn.disabled=false;btn.textContent="Start My Tracker →";
     }).catch(function(){el('gMsg').textContent="Network issue — please try again.";btn.disabled=false;btn.textContent="Start My Tracker →";});
   }
-  function signOut(){try{localStorage.removeItem('tsfg_code');}catch(e){}code=null;currentPath=null;ftLog={};warmMarket=[];emd="";md="";restoreUpline("","");applyProgress({});applyCarriers({});bizCount();renderWarm();setView('tracker');dboxes.forEach(function(b){b.checked=false;});showGate();el('gFirst').value="";el('gLast').value="";el('gCode').value="";el('gMsg').textContent="";}
+  function signOut(){try{localStorage.removeItem('tsfg_code');}catch(e){}code=null;currentPath=null;ftLog={};warmMarket=[];activityLog=[];emd="";md="";restoreUpline("","");applyProgress({});applyCarriers({});bizCount();renderWarm();renderActivity();setView('tracker');dboxes.forEach(function(b){b.checked=false;});showGate();el('gFirst').value="";el('gLast').value="";el('gCode').value="";el('gMsg').textContent="";}
 
   function boot(){
     try{code=localStorage.getItem('tsfg_code');}catch(e){code=null;}
@@ -1174,7 +1201,7 @@
         ftLog=res.agent.ft_log||{};
         applyProgress(res.agent.progress);
         applyCarriers(res.agent.carrier_codes); bizCount();
-        warmMarket=res.agent.warm_market||[]; renderWarm(); restoreUpline(res.agent.emd,res.agent.md);
+        warmMarket=res.agent.warm_market||[]; activityLog=res.agent.activity_log||[]; renderWarm(); renderActivity(); restoreUpline(res.agent.emd,res.agent.md);
         showApp(res.agent.first_name+' '+res.agent.last_name);
         restorePath(res.agent.pathway);
         update(); loadDaily(res.agent);
