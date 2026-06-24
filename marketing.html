@@ -79,6 +79,15 @@
   .callbtn.off{color:var(--gold-bright);background:rgba(212,175,55,.12);border:1px solid var(--gold-deep);}
   .callbtn:hover{filter:brightness(1.12);box-shadow:0 2px 8px rgba(0,0,0,.3);}
   .callbtn:disabled{opacity:.5;cursor:default;}
+  .statussel{font-family:inherit;cursor:pointer;font-size:11px;font-weight:900;letter-spacing:.02em;border-radius:999px;padding:5px 9px;outline:none;border:1px solid var(--gold-deep);background:#0c0b05;color:#fff6da;}
+  .statussel:hover{filter:brightness(1.1);}
+  .statussel:focus{box-shadow:0 0 0 2px rgba(212,175,55,.25);}
+  .statussel.s-fresh{color:var(--green);border-color:var(--green);}
+  .statussel.s-nurture{color:#bcdcff;border-color:var(--blue);}
+  .statussel.s-won{color:#06150e;background:var(--green);border-color:var(--green);}
+  .statussel.s-lost{color:#fff;background:var(--red);border-color:var(--red);}
+  .statussel:disabled{opacity:.5;cursor:default;}
+  .statussel option{background:#0c0b05;color:#fff6da;}
   .notes{color:var(--ink);font-size:12.5px;max-width:240px;}
   .appt{font-weight:800;color:var(--gold-bright);white-space:nowrap;}
   .tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 7px;border-radius:6px;margin:1px 2px 1px 0;background:rgba(212,175,55,.08);color:var(--muted);border:1px solid var(--line);}
@@ -268,7 +277,13 @@
       if(l.married)prof.push('💍');
       if(l.children)prof.push('👶');
       if(l.time_zone)prof.push(esc(l.time_zone));
-      var ocb = l.outcome==='win' ? '<span class="ocb win">WON</span>' : l.outcome==='lose' ? '<span class="ocb lose">LOST</span>' : l.contacted ? '<span class="ocb working">WORKING</span>' : '<span class="ocb fresh">FRESH</span>';
+      var lstat = l.outcome==='win'?'won':l.outcome==='lose'?'lost':l.contacted?'nurture':'fresh';
+      var ocb = '<select class="statussel s-'+lstat+'" title="Click to change lead status" onchange="setLeadStatus(\''+esc(l.agent_code)+'\',\''+esc(l.id)+'\',this)">'+
+        '<option value="fresh"'+(lstat==='fresh'?' selected':'')+'>🟢 Fresh</option>'+
+        '<option value="nurture"'+(lstat==='nurture'?' selected':'')+'>🔵 Nurture</option>'+
+        '<option value="won"'+(lstat==='won'?' selected':'')+'>🏆 Won</option>'+
+        '<option value="lost"'+(lstat==='lost'?' selected':'')+'>✖ Lost</option>'+
+        '</select>';
       var phone = l.phone ? '<span class="ph"><a href="tel:'+esc(l.phone)+'">'+esc(l.phone)+'</a></span>' : '<span class="ago">—</span>';
       var cb = '<button class="callbtn '+(l.contacted?'on':'off')+'" title="Click to toggle called status" onclick="toggleCalled(\''+esc(l.agent_code)+'\',\''+esc(l.id)+'\',this)">'+(l.contacted?'✓ Called':'☎ Not yet')+'</button>';
       tr.innerHTML='<td class="ld-name">'+esc(l.name||'(no name)')+'</td>'+
@@ -287,6 +302,17 @@
     });
   }
   function sortBy(k){ if(sortKey===k)sortDir=-sortDir; else {sortKey=k;sortDir=1;} draw(); }
+  function setLeadStatus(code,id,sel){
+    if(!token)return;
+    var val=sel.value; sel.disabled=true;
+    fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'setleadstatus',token:token,code:code,leadId:id,status:val})})
+      .then(function(r){return r.json();}).then(function(res){
+        if(res&&res.ok){
+          for(var i=0;i<leads.length;i++){ if(leads[i].id===id&&leads[i].agent_code===code){ leads[i].outcome=res.outcome; leads[i].contacted=res.contacted; break; } }
+          render(leads);
+        } else { sel.disabled=false; alert('Could not update: '+((res&&res.error)||'error')); render(leads); }
+      }).catch(function(){ sel.disabled=false; alert('Network error — try again.'); render(leads); });
+  }
   function toggleCalled(code,id,btn){
     if(!token)return;
     var want=btn.classList.contains('off');
