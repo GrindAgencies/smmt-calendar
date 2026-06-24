@@ -74,6 +74,11 @@
   .ocb.done{color:#06150e;background:var(--green);}
   .ocb.todo{color:var(--gold-bright);background:rgba(212,175,55,.12);border:1px solid var(--gold-deep);}
   .ocb.working{color:#bcdcff;background:rgba(59,110,165,.18);border:1px solid var(--blue);}
+  .callbtn{font-family:inherit;cursor:pointer;display:inline-block;font-size:10.5px;font-weight:900;letter-spacing:.04em;padding:4px 10px;border-radius:999px;white-space:nowrap;transition:.12s;}
+  .callbtn.on{color:#06150e;background:var(--green);border:1px solid var(--green);}
+  .callbtn.off{color:var(--gold-bright);background:rgba(212,175,55,.12);border:1px solid var(--gold-deep);}
+  .callbtn:hover{filter:brightness(1.12);box-shadow:0 2px 8px rgba(0,0,0,.3);}
+  .callbtn:disabled{opacity:.5;cursor:default;}
   .notes{color:var(--ink);font-size:12.5px;max-width:240px;}
   .appt{font-weight:800;color:var(--gold-bright);white-space:nowrap;}
   .tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 7px;border-radius:6px;margin:1px 2px 1px 0;background:rgba(212,175,55,.08);color:var(--muted);border:1px solid var(--line);}
@@ -152,6 +157,7 @@
           <th onclick="sortBy('direct_to')">Direct To</th>
           <th onclick="sortBy('appt_date')">Appt</th>
           <th onclick="sortBy('outcome')">Status</th>
+          <th onclick="sortBy('broker')">Broker ▾</th>
           <th onclick="sortBy('agent_name')">Agent (Owner)</th>
           <th>Notes</th>
           <th onclick="sortBy('date')">Added</th>
@@ -173,7 +179,7 @@
 
 <script>
   var API="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/tracker-api";
-  var token=null, leads=[], sortKey='date', sortDir=-1;
+  var token=null, leads=[], sortKey='broker', sortDir=1;
   function el(id){return document.getElementById(id);}
   function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
 
@@ -240,7 +246,18 @@
       if(q){ var hay=(l.name+' '+l.phone+' '+l.email+' '+l.agent_name+' '+l.agent_code+' '+l.how_know+' '+l.notes+' '+l.direct_to+' '+l.traits).toLowerCase(); if(hay.indexOf(q)===-1)return false; }
       return true;
     });
-    rows.sort(function(a,b){ var x=a[sortKey]||'',y=b[sortKey]||''; if(sortKey==='date'){x=a.date||'';y=b.date||'';} return sortDir*String(x).localeCompare(String(y)); });
+    rows.sort(function(a,b){
+      if(sortKey==='broker'){
+        var ae=(a.emd||'~~~').toLowerCase(), be=(b.emd||'~~~').toLowerCase();
+        if(ae!==be)return sortDir*ae.localeCompare(be);
+        var am=(a.md||'~~~').toLowerCase(), bm=(b.md||'~~~').toLowerCase();
+        if(am!==bm)return sortDir*am.localeCompare(bm);
+        var an=(a.agent_name||'').toLowerCase(), bn=(b.agent_name||'').toLowerCase();
+        if(an!==bn)return sortDir*an.localeCompare(bn);
+        return sortDir*String(a.name||'').localeCompare(String(b.name||''));
+      }
+      var x=a[sortKey]||'',y=b[sortKey]||''; if(sortKey==='date'){x=a.date||'';y=b.date||'';} return sortDir*String(x).localeCompare(String(y));
+    });
     var tb=el('rows'); tb.innerHTML="";
     el('empty').style.display=rows.length?'none':'block';
     rows.forEach(function(l){
@@ -253,7 +270,7 @@
       if(l.time_zone)prof.push(esc(l.time_zone));
       var ocb = l.outcome==='win' ? '<span class="ocb win">WON</span>' : l.outcome==='lose' ? '<span class="ocb lose">LOST</span>' : l.contacted ? '<span class="ocb working">WORKING</span>' : '<span class="ocb fresh">FRESH</span>';
       var phone = l.phone ? '<span class="ph"><a href="tel:'+esc(l.phone)+'">'+esc(l.phone)+'</a></span>' : '<span class="ago">—</span>';
-      var cb = l.contacted ? '<span class="ocb done">✓ Yes</span>' : '<span class="ocb todo">☎ No</span>';
+      var cb = '<button class="callbtn '+(l.contacted?'on':'off')+'" title="Click to toggle called status" onclick="toggleCalled(\''+esc(l.agent_code)+'\',\''+esc(l.id)+'\',this)">'+(l.contacted?'✓ Called':'☎ Not yet')+'</button>';
       tr.innerHTML='<td class="ld-name">'+esc(l.name||'(no name)')+'</td>'+
         '<td>'+phone+'</td>'+
         '<td>'+cb+'</td>'+
@@ -262,13 +279,26 @@
         '<td>'+(l.direct_to?'<span class="tag">'+esc(l.direct_to)+'</span>':'<span class="ago">—</span>')+'</td>'+
         '<td>'+(l.appt_date?'<span class="appt">📅 '+esc(l.appt_date)+'</span>':'<span class="ago">—</span>')+'</td>'+
         '<td>'+ocb+'</td>'+
-        '<td class="owner">'+esc(l.agent_name)+' <span class="oc">'+esc(l.agent_code)+'</span>'+(l.agent_status==='quit'?' <span class="qtag">POOL</span>':'')+(l.emd?'<span class="em">'+esc(l.emd)+(l.md?(' › '+esc(l.md)):'')+'</span>':'')+'</td>'+
+        '<td class="brk">'+(l.emd?('<b>'+esc(l.emd)+'</b>'+(l.md?'<span class="em"> › '+esc(l.md)+'</span>':'')):'<span class="ago">— Unassigned —</span>')+'</td>'+
+        '<td class="owner">'+esc(l.agent_name)+' <span class="oc">'+esc(l.agent_code)+'</span>'+(l.agent_status==='quit'?' <span class="qtag">POOL</span>':'')+'</td>'+
         '<td class="notes">'+(l.notes?esc(l.notes):'<span class="ago">—</span>')+'</td>'+
         '<td class="ago">'+timeAgo(l.date)+'</td>';
       tb.appendChild(tr);
     });
   }
   function sortBy(k){ if(sortKey===k)sortDir=-sortDir; else {sortKey=k;sortDir=1;} draw(); }
+  function toggleCalled(code,id,btn){
+    if(!token)return;
+    var want=btn.classList.contains('off');
+    btn.disabled=true; btn.textContent='…';
+    fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'setcontacted',token:token,code:code,leadId:id,contacted:want})})
+      .then(function(r){return r.json();}).then(function(res){
+        if(res&&res.ok){
+          for(var i=0;i<leads.length;i++){ if(leads[i].id===id&&leads[i].agent_code===code){ leads[i].contacted=res.contacted; break; } }
+          render(leads);
+        } else { btn.disabled=false; alert('Could not update: '+((res&&res.error)||'error')); draw(); }
+      }).catch(function(){ btn.disabled=false; alert('Network error — try again.'); draw(); });
+  }
   function setFormula(){ el('formula').textContent='=IMPORTDATA("'+API+'?action=marketing&format=csv&token='+token+'")'; }
   function copyFormula(){ navigator.clipboard.writeText(el('formula').textContent).then(function(){var b=event.target;b.textContent="Copied ✓";setTimeout(function(){b.textContent="Copy formula";},1500);}); }
   function downloadCsv(){ if(!token)return; window.open(API+'?action=marketing&format=csv&token='+encodeURIComponent(token),'_blank'); }
