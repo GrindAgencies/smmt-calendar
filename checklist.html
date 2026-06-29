@@ -661,6 +661,11 @@
         .pz-claim:disabled{opacity:.6;cursor:default;}
         .pz-tag.release{background:#fff7ed;color:#9a3412;border:1px solid #fdba74;}
         .wm-card.pooled{border:2px solid #f59e0b !important;box-shadow:0 0 0 3px rgba(245,158,11,.18);}
+        .wm-lock{flex:none;border:1px solid var(--gold-deep);background:#15110a;color:var(--gold);border-radius:9px;padding:7px 9px;font-size:14px;cursor:pointer;line-height:1;}
+        .wm-lock:hover{border-color:var(--gold);}
+        .wm-lock.on{background:rgba(212,175,55,.16);border-color:var(--gold);}
+        .wm-card.locked{border:2px solid var(--gold,#d4af37) !important;box-shadow:0 0 0 3px rgba(212,175,55,.14);}
+        .wm-locked-flag{margin:2px 0 10px;background:rgba(212,175,55,.10);border:1px solid var(--gold-deep);color:#fff6da;border-radius:9px;padding:8px 11px;font-size:12.5px;font-weight:700;line-height:1.45;}
         .wm-pooled-flag{margin:2px 0 10px;background:#fff7ed;border:1px solid #fdba74;color:#9a3412;border-radius:9px;padding:8px 11px;font-size:12.5px;font-weight:700;line-height:1.45;}
         .wm-pooled-flag b{color:#7c2d12;}
         </style>
@@ -894,6 +899,7 @@
   function wmRemove(id){warmMarket=warmMarket.filter(function(x){return x.id!==id;});renderWarm();saveNow();}
   function wmOutcome(id,outcome){for(var i=0;i<warmMarket.length;i++){if(warmMarket[i].id===id){warmMarket[i].outcome=(warmMarket[i].outcome===outcome)?'':outcome;break;}}renderWarm();saveNow();}
   function wmContacted(id){for(var i=0;i<warmMarket.length;i++){if(warmMarket[i].id===id){warmMarket[i].contacted=!warmMarket[i].contacted;if(warmMarket[i].contacted)warmMarket[i].contactedDate=ptToday();break;}}renderWarm();saveNow();}
+  function wmLock(id){for(var i=0;i<warmMarket.length;i++){if(warmMarket[i].id===id){warmMarket[i].locked=!warmMarket[i].locked;if(warmMarket[i].locked&&warmMarket[i].pooled){warmMarket[i].pooled=false;delete warmMarket[i].pooledDate;}break;}}renderWarm();saveNow();}
   var wmFieldTimer=null;
   function wmField(id,field,val,immediate){for(var i=0;i<warmMarket.length;i++){if(warmMarket[i].id===id){warmMarket[i][field]=val;break;}}if(immediate){if(code)saveNow();}else{setStat('Saving…',false);clearTimeout(wmFieldTimer);wmFieldTimer=setTimeout(function(){if(code)saveNow();},700);}}
   function wmFld(label,f,val,type){return '<label class="wm-fld"><span>'+label+'</span><input data-f="'+f+'" type="'+(type||'text')+'" value="'+escH(val||'')+'" placeholder="'+escH(label)+'" autocomplete="off"></label>';}
@@ -1004,14 +1010,16 @@
     if(el('wmAddRow'))el('wmAddRow').style.display=n?'flex':'none';
     warmMarket.forEach(function(c){
       var oc=c.outcome||'';
-      var d=document.createElement('div');d.className='wm-card'+(c.contacted?' contacted':'')+(oc?(' oc-'+oc):'')+(c.pooled?' pooled':'');
+      var d=document.createElement('div');d.className='wm-card'+(c.contacted?' contacted':'')+(oc?(' oc-'+oc):'')+((c.pooled&&!c.locked)?' pooled':'')+(c.locked?' locked':'');
       d.innerHTML='<div class="wm-head">'+
         '<button class="wm-contacted'+(c.contacted?' on':'')+'" title="Mark contacted / not contacted">'+(c.contacted?'✓ Contacted':'☎ Reach out')+'</button>'+
         '<input class="wm-name-in" data-f="name" type="text" value="'+escH(c.name||'')+'" placeholder="Full name" autocomplete="off">'+
         '<div class="wm-outcome"><button class="wl wl-w'+(oc==='win'?' on':'')+'" title="Won the business">✓ Win</button><button class="wl wl-l'+(oc==='lose'?' on':'')+'" title="Lost the business">✕ Lose</button></div>'+
+        '<button class="wm-lock'+(c.locked?' on':'')+'" title="'+(c.locked?'Locked — protected from the 21-day shared pool. Click to unlock.':'Lock — keep this lead off the 21-day shared pool')+'">'+(c.locked?'🔒':'🔓')+'</button>'+
         '<button class="wm-del" title="Remove">🗑</button>'+
         '</div>'+
-        (c.pooled?'<div class="wm-pooled-flag">⏰ Uncalled 21+ days — now shared in the Phone Zone pool for any agent to claim. Mark <b>Contacted</b> to pull it back and keep it yours.</div>':'')+
+        ((c.pooled&&!c.locked)?'<div class="wm-pooled-flag">⏰ Uncalled 21+ days — now shared in the Phone Zone pool for any agent to claim. Mark <b>Contacted</b> to pull it back and keep it yours.</div>':'')+
+        (c.locked?'<div class="wm-locked-flag">🔒 Locked — protected from the 21-day shared pool. This lead stays yours no matter what. Click the lock again to release it.</div>':'')+
         '<div class="wm-grid">'+
           wmFld('☎ Phone','phone',c.phone,'tel')+
           wmFld('🤝 Connection — how you know them','howKnow',c.howKnow,'text')+
@@ -1031,6 +1039,7 @@
       d.querySelector('.wm-contacted').addEventListener('click',function(){wmContacted(c.id);});
       d.querySelector('.wl-w').addEventListener('click',function(){wmOutcome(c.id,'win');});
       d.querySelector('.wl-l').addEventListener('click',function(){wmOutcome(c.id,'lose');});
+      d.querySelector('.wm-lock').addEventListener('click',function(){wmLock(c.id);});
       d.querySelector('.wm-del').addEventListener('click',function(){if(confirm('Remove this lead?'))wmRemove(c.id);});
       Array.prototype.forEach.call(d.querySelectorAll('[data-f]'),function(inp){
         var f=inp.getAttribute('data-f');
