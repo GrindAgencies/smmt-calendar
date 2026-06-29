@@ -286,7 +286,7 @@
         '</select>';
       var phone = l.phone ? '<span class="ph"><a href="tel:'+esc(l.phone)+'">'+esc(l.phone)+'</a></span>' : '<span class="ago">—</span>';
       var cb = '<button class="callbtn '+(l.contacted?'on':'off')+'" title="Click to toggle called status" onclick="toggleCalled(\''+esc(l.agent_code)+'\',\''+esc(l.id)+'\',this)">'+(l.contacted?'✓ Called':'☎ Not yet')+'</button>';
-      tr.innerHTML='<td class="ld-name">'+esc(l.name||'(no name)')+'</td>'+
+      tr.innerHTML='<td class="ld-name">'+(l.locked?'<span title="Locked by agent — protected from the 21-day pool">🔒 </span>':'')+esc(l.name||'(no name)')+'</td>'+
         '<td>'+phone+'</td>'+
         '<td>'+cb+'</td>'+
         '<td>'+(l.how_know?esc(l.how_know):'<span class="ago">—</span>')+'</td>'+
