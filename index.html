@@ -292,7 +292,7 @@
       var movers=(d.builders||[]).slice(0,3).map(function(x){return x.name+' ('+x.value+')';}).join(' · ')||'—';
       var ft=(d.trainings||[]).slice(0,3).map(function(x){return x.name+' ('+x.value+')';}).join(' · ')||'—';
       var row=document.getElementById('gaPulseRow'); if(!row)return;
-      row.innerHTML=chip('active agents',d.active,'g')+chip('on track ≤7d',b.green||0,'g')+chip('slowing 8–14d',b.yellow||0,'y')+chip('stalling 15–30d',b.orange||0,'o')+chip('stalled 30d+',b.red||0,'r')+'<span class="ga-sep"></span>'+'<span class="ga-mv">🔥 Top builders: '+movers+'</span>'+'<span class="ga-mv">🎓 Most field trainings: '+ft+'</span>';
+      row.innerHTML=chip('active agents',d.active,'g')+chip('on track ≤7d',b.green||0,'g')+chip('slowing 8–14d',b.yellow||0,'y')+chip('stalling 15–30d',b.orange||0,'o')+chip('stalled 30d+',b.red||0,'r')+'<span class="ga-sep"></span>'+'<span class="ga-mv" title="Most contacts added to a 90-day tracker in the last 7 days">🔥 Most leads added (7d): '+movers+'</span>'+'<span class="ga-mv" title="Total field trainings logged since joining (all-time)">🎓 Field trainings (total): '+ft+'</span>';
       var dt=document.getElementById('gaPulseDate'); if(dt&&d.today)dt.textContent='· '+d.today;
     }).catch(function(){});
   })();</script>
@@ -317,6 +317,22 @@
   </div>
 
   <div class="section-title"><span>⭐ Weekly Success Schedule</span></div>
+  <style>
+    .aud{display:inline-block;font-size:9.5px;font-weight:900;letter-spacing:.04em;text-transform:uppercase;padding:2px 7px;border-radius:999px;margin-left:7px;vertical-align:middle;border:1px solid;white-space:nowrap;}
+    .aud-all{color:#2c6b4d;background:#e7f6ec;border-color:#8fd3ab;}
+    .aud-new{color:#1e4b86;background:#e7f0fb;border-color:#9cc1ee;}
+    .aud-cft{color:#8a5a12;background:#fbf0d8;border-color:#e2c98c;}
+    .aud-lic{color:#6b2fb3;background:#f0e9fb;border-color:#c4a9ec;}
+    .aud-legend{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:-2px 16px 14px;}
+    .aud-leg-l{font-size:12px;font-weight:800;color:#9c7515;text-transform:uppercase;letter-spacing:.04em;}
+  </style>
+  <div class="aud-legend">
+    <span class="aud-leg-l">Who's it for?</span>
+    <span class="aud aud-all">All Agents</span>
+    <span class="aud aud-new">New Agents</span>
+    <span class="aud aud-cft">CFTs &amp; Above</span>
+    <span class="aud aud-lic">Licensed Only</span>
+  </div>
   <div class="success-grid">
     <div class="daily-card">
       <h3 contenteditable="false">📣 Daily Morning Huddle</h3>
@@ -568,10 +584,15 @@
         .cftedit-grid td.nm{text-align:left;color:#241f17;font-weight:700;white-space:nowrap;}
         .cftedit-grid input{width:17px;height:17px;cursor:pointer;accent-color:#3ec98a;}
         .cftsave{font:inherit;cursor:pointer;font-size:12px;font-weight:900;color:#0a0a0a;background:linear-gradient(90deg,var(--gold-bright),var(--gold));border:none;border-radius:999px;padding:9px 16px;margin-top:8px;}
+        .cftneed{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:2px 0 11px;}
+        .cftneed-l{font-size:11.5px;font-weight:900;color:var(--gold);text-transform:uppercase;letter-spacing:.05em;margin-right:2px;}
+        .cftneed button{font:inherit;cursor:pointer;font-size:12px;font-weight:800;color:#1c1206;background:linear-gradient(180deg,#edc657,#cda22f);border:1px solid #b6901f;border-radius:999px;padding:6px 11px;}
+        .cftneed button:hover{filter:brightness(1.05);}
       </style>
       <div class="cftcal" id="cftcal">
         <div class="cftcal-h">🗓️ Book a trainer — CFT &amp; MD availability</div>
         <div class="cftcal-sub">Tap a day to see every open time — MDs and CFTs — each with a one-tap Book button. No calendar hunting.</div>
+        <div class="cftneed" id="cftNeed"><span class="cftneed-l">I need a…</span><button onclick="cftNeed('MD',false)">🎤 Client presentation</button><button onclick="cftNeed('MD',false)">🤝 Recruiting interview</button><button onclick="cftNeed('CFT',false)">🏋️ Field training</button><button onclick="cftNeed('all',true)">★ Spanish-speaking</button><button onclick="cftNeed('all',false)">↺ Show all</button></div>
         <div class="cftcal-top"><div class="cftcal-days" id="cftDays"></div><div class="cftfilters"><button class="cftrole on" data-r="all" onclick="cftRole('all')">All</button><button class="cftrole" data-r="MD" onclick="cftRole('MD')">MDs</button><button class="cftrole" data-r="CFT" onclick="cftRole('CFT')">CFTs</button><button class="cftsp" id="cftSp" onclick="cftSpanish()">&#9733; Spanish</button></div></div>
         <div id="cftBody"><span class="cftcal-hint">Loading availability&hellip;</span></div>
         <div class="cftcal-foot"><span id="cftUpdated" class="cftcal-hint"></span><button class="cftedit-btn" id="cftEditBtn" onclick="cftEdit()">&#9999;&#65039; Update availability (leadership)</button></div>
@@ -598,6 +619,7 @@
         window.cftDay=function(dy){curDay=dy;renderDays();renderBody();};
         window.cftSpanish=function(){sp=!sp;el('cftSp').classList.toggle('on',sp);renderDays();renderBody();};
         window.cftRole=function(r){roleFilter=r;Array.prototype.forEach.call(document.querySelectorAll('.cftrole'),function(b){b.classList.toggle('on',b.getAttribute('data-r')===r);});renderDays();renderBody();};
+        window.cftNeed=function(r,spanish){roleFilter=r;Array.prototype.forEach.call(document.querySelectorAll('.cftrole'),function(b){b.classList.toggle('on',b.getAttribute('data-r')===r);});sp=!!spanish;var spb=el('cftSp');if(spb)spb.classList.toggle('on',sp);renderDays();renderBody();var c=el('cftcal');if(c)c.scrollIntoView({behavior:'smooth',block:'start'});};
         window.cftEdit=function(){
           if(!editMode){var p=prompt('Leadership passcode to edit CFT availability:');if(!p)return;editTok=p;editMode=true;el('cftEditBtn').textContent='✕ Cancel edit';renderEditor();}
           else{editMode=false;editTok='';el('cftEditBtn').textContent='✏️ Update availability (leadership)';renderBody();}
@@ -717,6 +739,31 @@
     var t=e.target; var a=t&&t.closest?t.closest('a[href*="calendly.com"]'):null;
     if(a && window.Calendly){ e.preventDefault(); window.Calendly.initPopupWidget({url:a.getAttribute('href')}); }
   },true);
+</script>
+<script>
+/* Audience auto-tagging: badge each session by who it's for. Non-destructive (badges are siblings, not inside editable text). */
+(function(){
+  function tier(t){
+    t=(t||'').toLowerCase();
+    if(t.indexOf('orientation')>=0||t.indexOf('new agent')>=0) return ['New Agents','aud-new'];
+    if(t.indexOf('cft')>=0||t.indexOf('field training')>=0||t.indexOf('bldrs')>=0||t.indexOf('builder')>=0) return ['CFTs & Above','aud-cft'];
+    if(t.indexOf('licensed')>=0||t.indexOf('licensing')>=0) return ['Licensed Only','aud-lic'];
+    if(t.indexOf('huddle')>=0||t.indexOf('momentum')>=0||t.indexOf('phone zone')>=0||t.indexOf('armed forces')>=0||t.indexOf('training')>=0||t.indexOf('call')>=0) return ['All Agents','aud-all'];
+    return null;
+  }
+  function badge(el){
+    if(!el) return;
+    if(el.nextElementSibling && el.nextElementSibling.classList && el.nextElementSibling.classList.contains('aud')) return;
+    var a=tier(el.textContent); if(!a) return;
+    var s=document.createElement('span'); s.className='aud '+a[1]; s.textContent=a[0];
+    el.parentNode.insertBefore(s, el.nextSibling);
+  }
+  function run(){
+    Array.prototype.forEach.call(document.querySelectorAll('.sess .name'), badge);
+    Array.prototype.forEach.call(document.querySelectorAll('.card .top h3, .daily-card h3'), badge);
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', run); else run();
+})();
 </script>
 </body>
 </html>
