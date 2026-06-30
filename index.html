@@ -546,13 +546,13 @@
         function el(id){return document.getElementById(id);}
         function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
         function fn(n){return (n||'').split(' ')[0];}
-        function dayCount(dy){var n=0;AV.cfts.forEach(function(c){if(sp&&!c.es)return;if(roleFilter!=="all"&&c.role!==roleFilter)return;n+=(c.slots[dy]||[]).length;});return n;}
+        function dayCount(dy){var n=0;AV.cfts.forEach(function(c){if(c.hidden)return;if(sp&&!c.es)return;if(roleFilter!=="all"&&c.role!==roleFilter)return;n+=(c.slots[dy]||[]).length;});return n;}
         function renderDays(){el('cftDays').innerHTML=AV.days.map(function(dy){var n=dayCount(dy);return '<button class="'+(dy===curDay?'on':'')+'" onclick="cftDay(\''+dy+'\')">'+dy+'<span class="dc">'+n+'</span></button>';}).join('');}
         function renderBody(){
           if(editMode){renderEditor();return;}
           var html='',any=false;
           AV.slots.forEach(function(s){
-            var open=AV.cfts.filter(function(c){return (c.slots[curDay]||[]).indexOf(s)>=0 && (!sp||c.es) && (roleFilter==="all"||c.role===roleFilter);});
+            var open=AV.cfts.filter(function(c){return !c.hidden && (c.slots[curDay]||[]).indexOf(s)>=0 && (!sp||c.es) && (roleFilter==="all"||c.role===roleFilter);});
             if(!open.length)return; any=true;
             html+='<div class="cftrow"><span class="cfttime">'+esc(s)+'</span><div class="cftbtns">'+open.map(function(c){return '<a class="cftbook" href="'+esc(c.calendly)+'" target="_blank" rel="noopener" title="Book with '+esc(c.name)+' ('+esc(c.role||'')+')">'+esc(fn(c.name))+(c.es?' ★':'')+' <span class="cftrt">'+esc(c.role||'')+'</span> 📅</a>';}).join('')+'</div></div>';
           });
