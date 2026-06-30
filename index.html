@@ -198,6 +198,26 @@
 .ga-step{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;color:#fff6da;background:#0c0b05;border:1px solid var(--ga-line);border-radius:10px;padding:8px 11px;}
 .ga-step b{color:var(--ga-gold);font-weight:900;}
 </style>
+<style id="gold-theme">
+  /* Calendar gold theme: gold page, cream cards, black text */
+  body{background:linear-gradient(170deg,#f5cb52 0%,#e7b537 55%,#d8a72c 100%) !important;color:#1c1508 !important;}
+  .legend,.card,.detail-grid>.card,.sheet,.weekend-note,.book-group,.book-card,.nn-card,.nn-item,.ops-card,.cftcal,.cftrow,.sess,table,td,.day-cell,.ga-pulse,.ga-start{
+    background:#fff9ec !important;color:#1c1508 !important;border-color:#c9a636 !important;}
+  th{background:#f1d680 !important;color:#3a2c0a !important;border-color:#c9a636 !important;}
+  td{border-color:#ecd68d !important;}
+  /* darken the cream/white text used by the dark theme */
+  .head h1,.head .sub,.head .wm,.section-title span,.who,.role,.name,.time,.when,.desc,.tag,.meta,.tz,.links,.links div,.nn-foot,.nn-item,.cftcal-h,.cftcal-sub,.cftcal-hint,.cfttime,.ga-pulse-h,.ga-start h4,.ga-start p,.ga-mv,.ago,.muted,.sess,.sess .name,.detail-grid .top h3,h1,h2,h3{
+    color:#1c1508 !important;-webkit-text-fill-color:#1c1508 !important;background:none !important;}
+  .section-title:before,.section-title:after{background:linear-gradient(90deg,transparent,#9a7a22,transparent) !important;}
+  /* buttons & tabs -> dark pills that pop on gold/cream */
+  .book-btn,.ics,.cftbook,.cftsave,.ops-btn,.cftcal-days button,.cftsp,.cftedit-btn{
+    background:#161007 !important;color:#ffd95e !important;border-color:#161007 !important;}
+  .cftcal-days button.on,.cftsp.on{background:#3a2c0a !important;color:#ffe7a3 !important;}
+  .cftcal-days .dc{background:#fff9ec !important;color:#161007 !important;}
+  .ga-start a,.links a,.meta a,.legend a{color:#161007 !important;-webkit-text-fill-color:#161007 !important;text-decoration:underline;font-weight:800;}
+  .es{color:#7a4a00 !important;-webkit-text-fill-color:#7a4a00 !important;}
+  .today-badge{background:#161007 !important;color:#ffd95e !important;}
+</style>
 </head>
 <body>
 <div class="wrap">
