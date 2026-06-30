@@ -480,6 +480,87 @@
     </div>
     <div class="book-group">
       <h3>⚔️ CFTs <span class="line"></span></h3>
+      <style>
+        .cftcal{border:1px solid var(--gold-deep);border-radius:14px;padding:14px;margin:0 0 16px;background:linear-gradient(160deg,#15110a,#0b0a05);}
+        .cftcal-h{font-weight:900;font-size:14px;color:var(--gold-bright);margin-bottom:4px;}
+        .cftcal-sub{font-size:12px;color:var(--muted);margin-bottom:11px;}
+        .cftcal-days{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:11px;}
+        .cftcal-days button{font:inherit;cursor:pointer;font-weight:800;font-size:12.5px;color:var(--gold);background:#171206;border:1px solid var(--gold-deep);border-radius:999px;padding:8px 14px;}
+        .cftcal-days button.on{color:#0a0a0a;background:linear-gradient(90deg,var(--gold-bright),var(--gold));border-color:var(--gold);}
+        .cftcal-slots{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:13px;}
+        .cftcal-slots .slot{font:inherit;cursor:pointer;font-weight:800;font-size:12.5px;color:#fff6da;background:#0c0b05;border:1px solid var(--line);border-radius:10px;padding:7px 11px;display:flex;flex-direction:column;align-items:center;gap:1px;min-width:78px;}
+        .cftcal-slots .slot .c{font-size:10.5px;font-weight:800;color:var(--green);}
+        .cftcal-slots .slot.none{opacity:.4;cursor:default;}
+        .cftcal-slots .slot.none .c{color:var(--muted);}
+        .cftcal-slots .slot.on{border-color:var(--gold);background:rgba(212,175,55,.15);}
+        .cftcal-result{display:flex;flex-direction:column;gap:8px;}
+        .cft-open{display:flex;justify-content:space-between;align-items:center;gap:10px;background:rgba(62,143,106,.08);border:1px solid var(--green);border-radius:11px;padding:10px 13px;}
+        .cft-open .nm{font-weight:800;color:#fff6da;font-size:14px;}
+        .cft-open .es{color:var(--gold-bright);font-size:11px;font-weight:800;}
+        .cft-open a{white-space:nowrap;font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#0a0a0a;background:linear-gradient(90deg,var(--gold-bright),var(--gold));padding:8px 13px;border-radius:999px;text-decoration:none;}
+        .cftcal-hint{color:var(--muted);font-size:12.5px;font-style:italic;}
+        .cftcal-foot{margin-top:13px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;}
+        .cftedit-btn{font:inherit;cursor:pointer;font-size:11px;font-weight:800;color:var(--gold);background:#171206;border:1px solid var(--gold-deep);border-radius:999px;padding:7px 12px;}
+        .cftedit-grid{overflow-x:auto;margin:8px 0 4px;}
+        .cftedit-grid table{min-width:520px;border-collapse:collapse;}
+        .cftedit-grid th,.cftedit-grid td{border:1px solid var(--line);padding:6px 7px;text-align:center;font-size:11px;}
+        .cftedit-grid th{color:var(--gold);font-weight:800;line-height:1.2;}
+        .cftedit-grid td.nm{text-align:left;color:#fff6da;font-weight:700;white-space:nowrap;}
+        .cftedit-grid input{width:17px;height:17px;cursor:pointer;accent-color:#3ec98a;}
+        .cftsave{font:inherit;cursor:pointer;font-size:12px;font-weight:900;color:#0a0a0a;background:linear-gradient(90deg,var(--gold-bright),var(--gold));border:none;border-radius:999px;padding:9px 16px;margin-top:8px;}
+      </style>
+      <div class="cftcal" id="cftcal">
+        <div class="cftcal-h">🗓️ Check CFT availability — pick a day, then a time</div>
+        <div class="cftcal-sub">See exactly who's open before you book — no calendar hunting. Each open CFT links straight to their Calendly.</div>
+        <div class="cftcal-days" id="cftDays"></div>
+        <div class="cftcal-slots" id="cftSlots"><span class="cftcal-hint">Loading availability…</span></div>
+        <div class="cftcal-result" id="cftResult"></div>
+        <div class="cftcal-foot"><span id="cftUpdated" class="cftcal-hint"></span><button class="cftedit-btn" id="cftEditBtn" onclick="cftEdit()">✏️ Update availability (leadership)</button></div>
+      </div>
+      <script>(function(){
+        var API="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/tracker-api";
+        var AV=null,curDay=null,curSlot=null,editMode=false,editTok="";
+        var WD=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+        function el(id){return document.getElementById(id);}
+        function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+        function openCount(dy,slot){var n=0;AV.cfts.forEach(function(c){if((c.slots[dy]||[]).indexOf(slot)>=0)n++;});return n;}
+        function renderDays(){el('cftDays').innerHTML=AV.days.map(function(dy){return '<button class="'+(dy===curDay?'on':'')+'" onclick="cftPickDay(\''+dy+'\')">'+dy+'</button>';}).join('');}
+        function renderSlots(){
+          if(editMode){renderEditor();return;}
+          el('cftSlots').innerHTML=AV.slots.map(function(s){var n=openCount(curDay,s);return '<button class="slot'+(n?'':' none')+(s===curSlot?' on':'')+'" '+(n?('onclick="cftPickSlot(\''+s+'\')"'):'')+'><span>'+s+'</span><span class="c">'+(n?(n+' open'):'—')+'</span></button>';}).join('');
+          if(!curSlot)el('cftResult').innerHTML='<span class="cftcal-hint">Pick a time above to see who\'s open and book.</span>';
+        }
+        window.cftPickDay=function(dy){curDay=dy;curSlot=null;renderDays();renderSlots();};
+        window.cftPickSlot=function(s){curSlot=s;renderSlots();
+          var open=AV.cfts.filter(function(c){return (c.slots[curDay]||[]).indexOf(s)>=0;});
+          if(!open.length){el('cftResult').innerHTML='<span class="cftcal-hint">No CFTs open at '+esc(s)+' on '+esc(curDay)+'. Try another time.</span>';return;}
+          el('cftResult').innerHTML=open.map(function(c){return '<div class="cft-open"><div><span class="nm">'+esc(c.name)+'</span>'+(c.es?' <span class="es">★ Spanish</span>':'')+'</div><a href="'+esc(c.calendly)+'" target="_blank" rel="noopener">📅 Book '+esc(curDay)+' '+esc(s)+'</a></div>';}).join('');
+        };
+        window.cftEdit=function(){
+          if(!editMode){var p=prompt('Leadership passcode to edit CFT availability:');if(!p)return;editTok=p;editMode=true;el('cftEditBtn').textContent='✕ Cancel edit';el('cftResult').innerHTML='';renderEditor();}
+          else{editMode=false;editTok='';el('cftEditBtn').textContent='✏️ Update availability (leadership)';renderSlots();}
+        };
+        function renderEditor(){
+          var head='<tr><th>CFT</th>'+AV.slots.map(function(s){return '<th>'+s.replace(' ','<br>')+'</th>';}).join('')+'</tr>';
+          var rows=AV.cfts.map(function(c,ci){var tds=AV.slots.map(function(s){var on=(c.slots[curDay]||[]).indexOf(s)>=0;return '<td><input type="checkbox" data-ci="'+ci+'" data-slot="'+esc(s)+'" '+(on?'checked':'')+'></td>';}).join('');return '<tr><td class="nm">'+esc(c.name)+(c.es?' ★':'')+'</td>'+tds+'</tr>';}).join('');
+          el('cftSlots').innerHTML='<div class="cftcal-hint">Editing <b style="color:var(--gold-bright)">'+esc(curDay)+'</b> — check the times each CFT is open, then Save.</div><div class="cftedit-grid"><table>'+head+rows+'</table></div><button class="cftsave" onclick="cftSave()">💾 Save '+esc(curDay)+'</button>';
+        }
+        window.cftSave=function(){
+          AV.cfts.forEach(function(c){c.slots[curDay]=[];});
+          Array.prototype.forEach.call(el('cftSlots').querySelectorAll('input[type=checkbox]'),function(cb){if(cb.checked){AV.cfts[+cb.getAttribute('data-ci')].slots[curDay].push(cb.getAttribute('data-slot'));}});
+          AV.updated=new Date().toISOString().slice(0,10);
+          fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'setcftavail',token:editTok,value:AV})}).then(function(r){return r.json();}).then(function(d){
+            if(d&&d.ok){editMode=false;editTok='';el('cftEditBtn').textContent='✏️ Update availability (leadership)';if(el('cftUpdated'))el('cftUpdated').textContent='Updated '+AV.updated;renderDays();renderSlots();alert('Saved '+curDay+' availability ✓');}
+            else{alert('Save failed — wrong passcode?');}
+          }).catch(function(){alert('Network error — try again.');});
+        };
+        fetch(API+"?action=cftavail").then(function(r){return r.json();}).then(function(d){
+          if(!d||!d.ok||!d.value){el('cftSlots').innerHTML='<span class="cftcal-hint">Availability not set yet.</span>';return;}
+          AV=d.value; var t=WD[new Date().getDay()]; curDay=(AV.days.indexOf(t)>=0)?t:AV.days[0];
+          if(el('cftUpdated'))el('cftUpdated').textContent='Updated '+(AV.updated||(d.updated_at||'').slice(0,10));
+          renderDays(); renderSlots();
+        }).catch(function(){el('cftSlots').innerHTML='<span class="cftcal-hint">Could not load availability.</span>';});
+      })();</script>
       <div class="book-grid">
         <div class="book-card"><div><span class="who" contenteditable="false">Cassandra Akenson</span><span class="role" contenteditable="false">CFT</span></div><a class="book-btn" href="https://calendly.com/gficassandra">📅 Book</a></div>
         <div class="book-card"><div><span class="who" contenteditable="false">Nikki Buchholz</span><span class="role" contenteditable="false">CFT</span></div><a class="book-btn" href="https://calendly.com/GFInikki">📅 Book</a></div>
