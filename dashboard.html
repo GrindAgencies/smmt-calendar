@@ -127,14 +127,48 @@
   .empty{text-align:center;color:var(--muted);padding:30px;font-style:italic;}
   .foot{text-align:center;color:var(--muted);font-size:12px;margin-top:24px;}
 </style>
+<style id="ga-shell">
+:root{--ga-gold:#d4af37;--ga-gold-br:#f7d873;--ga-gold-dp:#8a6d1f;--ga-muted:#b6a982;--ga-line:#2a2206;}
+.ga-top{position:sticky;top:0;z-index:60;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;padding:10px 18px;background:linear-gradient(180deg,#141005,#0b0a05);border-bottom:1px solid var(--ga-gold-dp);box-shadow:0 6px 22px rgba(0,0,0,.35);}
+.ga-brand{display:flex;align-items:center;gap:10px;text-decoration:none;font-weight:900;letter-spacing:.05em;font-size:14.5px;color:#fff6da;text-transform:uppercase;white-space:nowrap;}
+.ga-brand img{height:30px;width:auto;border-radius:6px;}
+.ga-brand b{background:linear-gradient(180deg,#fff4cf,var(--ga-gold-br) 50%,var(--ga-gold-dp));-webkit-background-clip:text;background-clip:text;color:transparent;}
+.ga-nav{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+.ga-nav a{display:inline-flex;align-items:center;gap:6px;text-decoration:none;font-weight:800;font-size:12.5px;letter-spacing:.02em;color:var(--ga-gold);background:#171206;border:1px solid var(--ga-gold-dp);border-radius:999px;padding:8px 13px;transition:.15s;white-space:nowrap;}
+.ga-nav a:hover{border-color:var(--ga-gold);color:#fff6da;}
+.ga-nav a.ga-on{color:#0a0a0a;background:linear-gradient(90deg,var(--ga-gold-br),var(--ga-gold));border-color:var(--ga-gold);box-shadow:0 4px 14px rgba(212,175,55,.3);}
+.ga-nav a.ga-lead{color:#bcdcff;border-color:#3b6ea5;background:rgba(59,110,165,.12);}
+.ga-nav a.ga-lead.ga-on{color:#06223f;background:linear-gradient(90deg,#bcdcff,#7fb0e6);border-color:#7fb0e6;box-shadow:0 4px 14px rgba(59,110,165,.3);}
+.ga-pulse{margin:14px 16px 0;border:1px solid var(--ga-gold-dp);border-radius:14px;padding:12px 14px;background:linear-gradient(160deg,#15110a,#0b0a05);}
+.ga-pulse-h{font-weight:900;font-size:13px;color:var(--ga-gold-br);margin-bottom:9px;text-transform:uppercase;letter-spacing:.05em;}
+.ga-pulse-h span{font-weight:700;color:var(--ga-muted);font-size:11px;}
+.ga-pulse-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+.ga-chip{font-size:12px;font-weight:700;color:#fff6da;background:#171206;border:1px solid var(--ga-line);border-radius:999px;padding:5px 10px;}
+.ga-chip b{font-weight:900;}
+.ga-chip.g b{color:#3ec98a;}.ga-chip.y b{color:#f7d873;}.ga-chip.o b{color:#e08c3a;}.ga-chip.r b{color:#e0533d;}
+.ga-sep{flex-basis:100%;height:0;}
+.ga-mv{font-size:12px;font-weight:700;color:#cdbe8e;}
+.ga-muted{color:var(--ga-muted);font-style:italic;font-size:12px;}
+.ga-start{margin:14px 16px 0;border:1px solid var(--ga-gold-dp);border-radius:14px;padding:14px 16px;background:linear-gradient(160deg,#1a1408,#0c0a05);}
+.ga-start h4{margin:0 0 4px;font-size:14.5px;color:var(--ga-gold-br);font-weight:900;}
+.ga-start p{margin:0 0 10px;font-size:12.5px;color:var(--ga-muted);}
+.ga-steps{display:flex;flex-wrap:wrap;gap:8px;}
+.ga-step{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;color:#fff6da;background:#0c0b05;border:1px solid var(--ga-line);border-radius:10px;padding:8px 11px;}
+.ga-step b{color:var(--ga-gold);font-weight:900;}
+</style>
 </head>
 <body>
 <div class="wrap">
-  <div class="switch">
-    <a class="active" href="https://grindagencies.github.io/smmt-calendar/dashboard.html">🔑 Leadership Dashboard</a>
-    <a href="https://grindagencies.github.io/smmt-calendar/marketing.html">📋 Fresh Leads Database</a>
-    <a href="https://grindagencies.github.io/smmt-calendar/checklist.html">✅ Agent Sign-In</a>
-  </div>
+  <header class="ga-top">
+  <a class="ga-brand" href="index.html"><img src="logo.png" alt="GRIND Agencies"><span>GRIND <b>Agencies</b></span></a>
+  <nav class="ga-nav">
+    <a href="index.html" class="">🗓️ Calendar</a>
+    <a href="checklist.html" class="">✅ My Tracker</a>
+    <a href="resources.html" class="">📚 Resources</a>
+    <a href="dashboard.html" class="ga-lead ga-on">🔒 Ops</a>
+    <a href="marketing.html" class="ga-lead">🔒 Leads</a>
+  </nav>
+</header>
   <div class="head">
     <img src="https://grindagencies.github.io/smmt-calendar/logo.png" alt="TSFG">
     <div class="wm">The Standard Financial Group</div>
