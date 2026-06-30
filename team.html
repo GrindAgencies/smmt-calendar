@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My Team — GRIND Agencies</title>
+<link rel="icon" href="logo.png">
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#0a0905;color:#efe7d0;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;}
+.wrap{max-width:1120px;margin:0 auto;padding-bottom:60px;}
+a{color:inherit}
+.head{text-align:center;padding:26px 16px 6px;}
+.head .wm{font-size:11px;letter-spacing:.32em;text-transform:uppercase;color:#b6a982;font-weight:700;}
+.head h1{margin:6px 0 2px;font-size:26px;font-weight:900;letter-spacing:-.01em;background:linear-gradient(180deg,#fff4cf,#f7d873 55%,#cda22f);-webkit-background-clip:text;background-clip:text;color:transparent;}
+.head .sub{font-size:13px;color:#b6a982;}
+.panel{margin:16px;border:1px solid #2a2206;border-radius:16px;background:linear-gradient(160deg,#15110a,#0b0a05);padding:16px 16px 18px;}
+.pick{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:center;}
+.pick label{font-size:13px;font-weight:800;color:#f7d873;text-transform:uppercase;letter-spacing:.05em;}
+select,.btn{font-family:inherit;font-size:14px;}
+select{background:#171206;color:#fff6da;border:1px solid #8a6d1f;border-radius:10px;padding:11px 13px;font-weight:700;min-width:240px;}
+.btn{cursor:pointer;border:0;border-radius:999px;padding:10px 16px;font-weight:800;background:linear-gradient(90deg,#f7d873,#d4af37);color:#0a0a0a;}
+.btn.ghost{background:#171206;color:#f7d873;border:1px solid #8a6d1f;}
+.btn.sm{padding:5px 11px;font-size:12px;}
+.muted{color:#b6a982;}
+.center{text-align:center;}
+.hint{font-size:12px;color:#9c9173;text-align:center;margin-top:8px;}
+
+.sumrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;margin-top:4px;}
+.bchip{font-size:12.5px;font-weight:700;color:#fff6da;background:#171206;border:1px solid #2a2206;border-radius:999px;padding:6px 12px;}
+.bchip b{font-weight:900}
+.bchip.g b{color:#3ec98a}.bchip.y b{color:#f7d873}.bchip.o b{color:#e08c3a}.bchip.r b{color:#e0533d}
+
+.lb{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-top:14px;}
+.lbcard{border:1px solid #2a2206;border-radius:12px;background:#0d0b05;padding:10px 12px;}
+.lbcard h5{margin:0 0 7px;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:#f7d873;font-weight:900;}
+.lbcard .li{display:flex;justify-content:space-between;font-size:12.5px;padding:3px 0;color:#e7ddc2;}
+.lbcard .li b{color:#fff6da}
+.lbcard .empty{font-size:12px;color:#7c7358;font-style:italic;}
+
+.tbl{margin-top:6px;}
+.arow{display:grid;grid-template-columns:14px 1fr auto;gap:11px;align-items:center;border:1px solid #221b06;border-left-width:5px;border-radius:12px;background:#100d06;padding:11px 13px;margin-top:8px;cursor:pointer;transition:.12s;}
+.arow:hover{background:#15110a;border-color:#3a2f0a;}
+.arow.g{border-left-color:#3ec98a}.arow.y{border-left-color:#f7d873}.arow.o{border-left-color:#e08c3a}.arow.r{border-left-color:#e0533d}
+.dot{width:11px;height:11px;border-radius:50%;}
+.dot.g{background:#3ec98a}.dot.y{background:#f7d873}.dot.o{background:#e08c3a}.dot.r{background:#e0533d}
+.aname{font-weight:800;font-size:15px;color:#fff6da;}
+.aname .rel{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;margin-left:8px;padding:2px 7px;border-radius:999px;vertical-align:middle;}
+.rel.direct{background:rgba(62,201,138,.14);color:#7be0b0;border:1px solid #2c6b4d;}
+.rel.org{background:rgba(122,140,160,.14);color:#aebbcb;border:1px solid #3b4a5c;}
+.ameta{font-size:12px;color:#b6a982;margin-top:3px;}
+.ameta span{margin-right:12px;white-space:nowrap;}
+.ameta b{color:#efe7d0}
+.astat{text-align:right;font-size:11.5px;color:#9c9173;font-weight:700;white-space:nowrap;}
+.astat .pc{font-size:19px;font-weight:900;color:#f7d873;display:block;line-height:1;}
+
+.drill{border:1px solid #3a2f0a;border-radius:14px;background:#0c0a05;margin:8px 0 4px;padding:14px;}
+.drill h4{margin:0 0 4px;font-size:15px;color:#f7d873;font-weight:900;}
+.drill .dsub{font-size:12px;color:#b6a982;margin-bottom:12px;}
+.act{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;border:1px solid #221b06;border-radius:10px;padding:10px 12px;background:#100d06;margin-bottom:12px;}
+.act .fld{display:flex;flex-direction:column;gap:3px;}
+.act .fld label{font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:#9c9173;font-weight:800;}
+.act .fld input{width:64px;background:#171206;border:1px solid #4a3c12;border-radius:8px;color:#fff6da;padding:7px;font-size:14px;font-weight:700;text-align:center;}
+.lead{border:1px solid #1f1906;border-radius:11px;background:#100d06;padding:10px 12px;margin-top:8px;}
+.lead .lh{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;}
+.lead .ln{font-weight:800;font-size:14px;color:#fff6da;}
+.lead .lp{font-size:12px;color:#b6a982;margin-top:2px;}
+.lead .lp a{color:#cdbe8e;text-decoration:none;border-bottom:1px dotted #6b5f38;}
+.pills{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px;}
+.pill{cursor:pointer;border:1px solid #3a2f0a;background:#171206;color:#cdbe8e;border-radius:999px;padding:5px 11px;font-size:12px;font-weight:800;transition:.12s;}
+.pill:hover{border-color:#8a6d1f;color:#fff6da;}
+.pill.on.fresh{background:#243a52;border-color:#3b6ea5;color:#cfe6ff;}
+.pill.on.nurture{background:#3a2f0a;border-color:#caa23a;color:#ffe9a8;}
+.pill.on.won{background:#1d3a26;border-color:#2c6b4d;color:#8ee9b6;}
+.pill.on.lost{background:#3a1d18;border-color:#8a3a2a;color:#f3b0a2;}
+.pill.lock{margin-left:auto;}
+.pill.lock.on{background:#2a2206;border-color:#caa23a;color:#ffe06a;}
+.tag{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;padding:2px 7px;border-radius:999px;}
+.tag.pool{background:rgba(224,140,58,.16);color:#ffba73;border:1px solid #7a4d1a;}
+.tag.lk{background:rgba(202,162,58,.16);color:#ffe06a;border:1px solid #7a661a;}
+.empty-leads{font-size:13px;color:#7c7358;font-style:italic;padding:8px 2px;}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#1a1408;border:1px solid #8a6d1f;color:#fff6da;padding:10px 16px;border-radius:10px;font-size:13px;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:.2s;z-index:90;}
+.toast.show{opacity:1;}
+.spin{text-align:center;color:#b6a982;padding:30px;font-style:italic;}
+@media(max-width:560px){.arow{grid-template-columns:12px 1fr;}.astat{grid-column:2;text-align:left;margin-top:4px;}.astat .pc{display:inline;font-size:15px;margin-right:6px;}}
+
+<!-- ga-shell -->
+</style>
+<style id="ga-shell">
+:root{--ga-gold:#d4af37;--ga-gold-br:#f7d873;--ga-gold-dp:#8a6d1f;--ga-muted:#b6a982;--ga-line:#2a2206;}
+.ga-top{position:sticky;top:0;z-index:60;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;padding:10px 18px;background:linear-gradient(180deg,#141005,#0b0a05);border-bottom:1px solid var(--ga-gold-dp);box-shadow:0 6px 22px rgba(0,0,0,.35);}
+.ga-brand{display:flex;align-items:center;gap:10px;text-decoration:none;font-weight:900;letter-spacing:.05em;font-size:14.5px;color:#fff6da;text-transform:uppercase;white-space:nowrap;}
+.ga-brand img{height:30px;width:auto;border-radius:6px;}
+.ga-brand b{background:linear-gradient(180deg,#fff4cf,var(--ga-gold-br) 50%,var(--ga-gold-dp));-webkit-background-clip:text;background-clip:text;color:transparent;}
+.ga-nav{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+.ga-nav a{display:inline-flex;align-items:center;gap:6px;text-decoration:none;font-weight:800;font-size:12.5px;letter-spacing:.02em;color:var(--ga-gold);background:#171206;border:1px solid var(--ga-gold-dp);border-radius:999px;padding:8px 13px;transition:.15s;white-space:nowrap;}
+.ga-nav a:hover{border-color:var(--ga-gold);color:#fff6da;}
+.ga-nav a.ga-on{color:#0a0a0a;background:linear-gradient(90deg,var(--ga-gold-br),var(--ga-gold));border-color:var(--ga-gold);box-shadow:0 4px 14px rgba(212,175,55,.3);}
+.ga-nav a.ga-lead{color:#bcdcff;border-color:#3b6ea5;background:rgba(59,110,165,.12);}
+.ga-nav a.ga-lead.ga-on{color:#06223f;background:linear-gradient(90deg,#bcdcff,#7fb0e6);border-color:#7fb0e6;box-shadow:0 4px 14px rgba(59,110,165,.3);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="ga-top">
+    <a class="ga-brand" href="index.html"><img src="logo.png" alt="GRIND Agencies"><span>GRIND <b>Agencies</b></span></a>
+    <nav class="ga-nav">
+      <a href="index.html">🗓️ Calendar</a>
+      <a href="checklist.html">✅ My Tracker</a>
+      <a href="resources.html">📚 Resources</a>
+      <a href="dashboard.html" class="ga-lead">🔒 Ops</a>
+      <a href="marketing.html" class="ga-lead">🔒 Leads</a>
+      <a href="team.html" class="ga-lead ga-on">👥 My Team</a>
+    </nav>
+  </header>
+
+  <div class="head">
+    <div class="wm">The Standard Financial Group</div>
+    <h1>My Team</h1>
+    <div class="sub">Pick your name to coach your downline — their book of business, outreach, and momentum.</div>
+  </div>
+
+  <div class="panel">
+    <div class="pick">
+      <label for="leaderSel">I am:</label>
+      <select id="leaderSel"><option value="">Loading leaders…</option></select>
+      <button class="btn" id="goBtn" onclick="loadTeam()">View my team →</button>
+    </div>
+    <div class="hint">Senior Brokers see their associate agents; Exec Brokers see their whole branch. No password — keep this link inside the team.</div>
+  </div>
+
+  <div id="teamArea"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = "https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/tracker-api";
+let LEADER = "";
+let TEAM = null;
+let OPEN = null; // open drill-down agent code
+
+const $ = (id)=>document.getElementById(id);
+function toast(m){ const t=$('toast'); t.textContent=m; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),1900); }
+function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+async function api(payload){
+  const r = await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  return r.json();
+}
+
+async function loadLeaders(){
+  try{
+    const r = await fetch(API+"?action=leaders");
+    const d = await r.json();
+    const sel = $('leaderSel');
+    const saved = localStorage.getItem('ga_team_leader')||"";
+    if(!d.leaders || !d.leaders.length){ sel.innerHTML='<option value="">No teams set up yet</option>'; return; }
+    sel.innerHTML = '<option value="">— pick your name —</option>' + d.leaders.map(l=>
+      `<option value="${esc(l.name)}" ${l.name===saved?'selected':''}>${esc(l.name)} — ${esc(l.role)} (${l.team})</option>`).join('');
+    if(saved && d.leaders.some(l=>l.name===saved)){ LEADER=saved; loadTeam(); }
+  }catch(e){ $('leaderSel').innerHTML='<option value="">Could not load</option>'; }
+}
+
+function leadStatus(c){
+  if(c.outcome==='win') return 'won';
+  if(c.outcome==='lose') return 'lost';
+  if(c.contacted) return 'nurture';
+  return 'fresh';
+}
+
+function fmtDaysInactive(n){
+  if(n==null) return 'never active';
+  if(n<=0) return 'active today';
+  if(n===1) return '1 day quiet';
+  return n+' days quiet';
+}
+
+async function loadTeam(){
+  const sel = $('leaderSel');
+  LEADER = sel.value;
+  if(!LEADER){ toast('Pick your name first'); return; }
+  localStorage.setItem('ga_team_leader', LEADER);
+  OPEN = null;
+  $('teamArea').innerHTML = '<div class="spin">Loading your team…</div>';
+  try{
+    const r = await fetch(API+"?action=team&leader="+encodeURIComponent(LEADER));
+    TEAM = await r.json();
+    if(!TEAM.ok){ $('teamArea').innerHTML='<div class="panel center muted">'+esc(TEAM.error||'Could not load team')+'</div>'; return; }
+    render();
+  }catch(e){ $('teamArea').innerHTML='<div class="panel center muted">Network error — try again.</div>'; }
+}
+
+function render(){
+  const t = TEAM;
+  const b = t.buckets||{green:0,yellow:0,orange:0,red:0};
+  const lb = t.leaderboard||{};
+  const order = {green:0,yellow:1,orange:2,red:3};
+  const agents = (t.agents||[]).slice().sort((x,y)=>{
+    const so=(order[y.progress_status]||0)-(order[x.progress_status]||0);
+    if(so!==0) return so;
+    return (y.days_inactive||0)-(x.days_inactive||0);
+  });
+
+  const lbCard = (title, arr, suffix)=>{
+    arr = arr||[];
+    const rows = arr.length ? arr.map(x=>`<div class="li"><span>${esc(x.name||'')}</span><b>${x.value}${suffix||''}</b></div>`).join('')
+      : '<div class="empty">No activity yet</div>';
+    return `<div class="lbcard"><h5>${title}</h5>${rows}</div>`;
+  };
+
+  let html = `
+  <div class="panel">
+    <div class="center" style="margin-bottom:6px;"><span class="muted" style="font-size:12px;">Team of</span> <b style="font-size:15px;color:#fff6da;">${esc(LEADER)}</b> <span class="muted" style="font-size:12px;">· ${t.count} ${t.count===1?'person':'people'}</span></div>
+    <div class="sumrow">
+      <span class="bchip g">On track <b>${b.green}</b></span>
+      <span class="bchip y">Slowing <b>${b.yellow}</b></span>
+      <span class="bchip o">Stalling <b>${b.orange}</b></span>
+      <span class="bchip r">Stalled <b>${b.red}</b></span>
+    </div>
+    <div class="lb">
+      ${lbCard('Most leads added (7d)', lb.adders)}
+      ${lbCard('Reached out (7d)', lb.reached)}
+      ${lbCard('Appts booked (7d)', lb.appts)}
+      ${lbCard('Field trainings (total)', lb.trainings)}
+      ${lbCard('Daily streaks', lb.streaks, 'd')}
+    </div>
+    <div class="hint">Green ≤7 days since last activity · Yellow 8–14 · Orange 15–30 · Red 30+ or never. Click anyone to open their book.</div>
+  </div>
+  <div class="panel tbl">`;
+
+  if(!agents.length){ html += '<div class="center muted">No active people report to you yet.</div>'; }
+
+  for(const a of agents){
+    const s = a.progress_status||'r';
+    const sc = s[0];
+    const nm = ((a.first_name||'')+' '+(a.last_name||'')).trim();
+    const rel = a.relation==='direct' ? '<span class="rel direct">Direct</span>' : '<span class="rel org">Org</span>';
+    html += `
+    <div class="arow ${sc}" onclick="toggleDrill('${a.code}')">
+      <div class="dot ${sc}"></div>
+      <div>
+        <div class="aname">${esc(nm||a.code)} ${rel}</div>
+        <div class="ameta">
+          <span>📞 <b>${a.warm_leads||0}</b> leads</span>
+          <span>✅ <b>${a.mp_contacted||0}</b> reached</span>
+          <span>🎯 <b>${a.act_appts_7||0}</b> appts 7d</span>
+          <span>🏋️ <b>${a.ft_done||0}</b> FTs</span>
+          <span>🕒 ${fmtDaysInactive(a.days_inactive)}</span>
+        </div>
+      </div>
+      <div class="astat"><span class="pc">${a.pct||0}%</span>${esc(a.code)}</div>
+    </div>
+    <div id="drill-${a.code}"></div>`;
+  }
+  html += `</div>`;
+  $('teamArea').innerHTML = html;
+  if(OPEN){ const keep=OPEN; OPEN=null; toggleDrill(keep); }
+}
+
+function agentByCode(code){ return (TEAM.agents||[]).find(a=>a.code===code); }
+
+function toggleDrill(code){
+  const host = $('drill-'+code);
+  if(!host) return;
+  if(OPEN===code){ host.innerHTML=''; OPEN=null; return; }
+  if(OPEN){ const prev=$('drill-'+OPEN); if(prev) prev.innerHTML=''; }
+  OPEN = code;
+  const a = agentByCode(code);
+  if(!a){ return; }
+  const nm = ((a.first_name||'')+' '+(a.last_name||'')).trim();
+  const leads = (a.leads||[]).slice().sort((x,y)=> (y.date||'').localeCompare(x.date||''));
+  let lh = '';
+  if(!leads.length){ lh = '<div class="empty-leads">No leads in their marketing plan yet.</div>'; }
+  for(const c of leads){
+    const st = leadStatus(c);
+    const tags = (c.pooled?'<span class="tag pool">In pool</span> ':'') ;
+    lh += `
+    <div class="lead">
+      <div class="lh">
+        <div>
+          <div class="ln">${esc(c.name||'(no name)')} ${tags}</div>
+          <div class="lp">${c.phone?('<a href="tel:'+esc(c.phone)+'">'+esc(c.phone)+'</a>'):''}${c.howKnow?(' · '+esc(c.howKnow)):''}${c.apptDate?(' · 📅 '+esc(c.apptDate)):''}</div>
+        </div>
+      </div>
+      <div class="pills">
+        ${['fresh','nurture','won','lost'].map(p=>`<span class="pill ${p} ${st===p?'on':''}" onclick="setStatus('${code}','${c.id}','${p}',event)">${p.charAt(0).toUpperCase()+p.slice(1)}</span>`).join('')}
+        <span class="pill lock ${c.locked?'on':''}" onclick="setLock('${code}','${c.id}',${c.locked?true:false},event)">${c.locked?'🔒 Locked':'🔓 Lock'}</span>
+      </div>
+    </div>`;
+  }
+  host.innerHTML = `
+  <div class="drill">
+    <h4>${esc(nm||code)}'s book</h4>
+    <div class="dsub">${esc(a.code)} · ${a.warm_leads||0} leads · ${a.mp_contacted||0} reached · ${a.pct||0}% through onboarding · last active ${fmtDaysInactive(a.days_inactive)}</div>
+    <div class="act">
+      <div class="fld"><label>Dials</label><input id="d-${code}" type="number" min="0" value="0"></div>
+      <div class="fld"><label>Convos</label><input id="c-${code}" type="number" min="0" value="0"></div>
+      <div class="fld"><label>Appts</label><input id="ap-${code}" type="number" min="0" value="0"></div>
+      <button class="btn sm" onclick="logAct('${code}',event)">Log activity for them</button>
+      <span class="muted" style="font-size:11px;">Credits today's effort to their tracker.</span>
+    </div>
+    ${lh}
+  </div>`;
+}
+
+async function setStatus(code, leadId, status, ev){
+  if(ev) ev.stopPropagation();
+  const a = agentByCode(code); if(!a) return;
+  const lead = (a.leads||[]).find(l=>l.id===leadId); if(!lead) return;
+  const prev = {contacted:lead.contacted, outcome:lead.outcome};
+  if(status==='fresh'){ lead.contacted=false; lead.outcome=''; }
+  else if(status==='nurture'){ lead.contacted=true; lead.outcome=''; }
+  else if(status==='won'){ lead.contacted=true; lead.outcome='win'; }
+  else if(status==='lost'){ lead.contacted=true; lead.outcome='lose'; }
+  refreshDrill(code);
+  const d = await api({action:'team_setleadstatus', leader:LEADER, code, leadId, status});
+  if(!d.ok){ lead.contacted=prev.contacted; lead.outcome=prev.outcome; refreshDrill(code); toast(d.error||'Could not update'); }
+  else toast('Marked '+status);
+}
+
+async function setLock(code, leadId, cur, ev){
+  if(ev) ev.stopPropagation();
+  const a = agentByCode(code); if(!a) return;
+  const lead = (a.leads||[]).find(l=>l.id===leadId); if(!lead) return;
+  const want = !cur;
+  lead.locked = want; if(want) lead.pooled=false;
+  refreshDrill(code);
+  const d = await api({action:'team_setlocked', leader:LEADER, code, leadId, locked:want});
+  if(!d.ok){ lead.locked=cur; refreshDrill(code); toast(d.error||'Could not update'); }
+  else toast(want?'Lead locked (protected from pool)':'Lead unlocked');
+}
+
+async function logAct(code, ev){
+  if(ev) ev.stopPropagation();
+  const dials=+($('d-'+code).value||0), convos=+($('c-'+code).value||0), appts=+($('ap-'+code).value||0);
+  if(dials+convos+appts<=0){ toast('Enter at least one number'); return; }
+  const d = await api({action:'team_logactivity', leader:LEADER, code, dials, convos, appts});
+  if(!d.ok){ toast(d.error||'Could not log'); return; }
+  toast('Logged '+dials+' dials · '+convos+' convos · '+appts+' appts');
+  // bump local so it shows immediately, then refresh team for accurate metrics
+  loadTeam();
+}
+
+function refreshDrill(code){
+  const keep = OPEN;
+  if(keep===code){ OPEN=null; toggleDrill(code); }
+}
+
+loadLeaders();
+</script>
+</body>
+</html>
