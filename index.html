@@ -210,9 +210,9 @@
     color:#1c1508 !important;-webkit-text-fill-color:#1c1508 !important;background:none !important;}
   .section-title:before,.section-title:after{background:linear-gradient(90deg,transparent,#9a7a22,transparent) !important;}
   /* buttons & tabs -> dark pills that pop on gold/cream */
-  .book-btn,.ics,.cftbook,.cftsave,.ops-btn,.cftcal-days button,.cftsp,.cftedit-btn{
+  .book-btn,.ics,.cftbook,.cftsave,.ops-btn,.cftcal-days button,.cftsp,.cftrole,.cftedit-btn{
     background:#161007 !important;color:#ffd95e !important;border-color:#161007 !important;}
-  .cftcal-days button.on,.cftsp.on{background:#3a2c0a !important;color:#ffe7a3 !important;}
+  .cftcal-days button.on,.cftsp.on,.cftrole.on{background:#3a2c0a !important;color:#ffe7a3 !important;}
   .cftcal-days .dc{background:#fff9ec !important;color:#161007 !important;}
   .ga-start a,.links a,.meta a,.legend a{color:#161007 !important;-webkit-text-fill-color:#161007 !important;text-decoration:underline;font-weight:800;}
   .es{color:#7a4a00 !important;-webkit-text-fill-color:#7a4a00 !important;}
@@ -495,7 +495,7 @@
       <h3>🎖️ Managing Directors (MD) <span class="line"></span></h3>
       <div class="book-grid">
         <div class="book-card"><div><span class="who" contenteditable="false">Christopher Lorenz</span><span class="role" contenteditable="false">MD</span></div><a class="book-btn" href="https://calendly.com/GrindAgenciesInc">📅 Book</a></div>
-        <div class="book-card"><div><span class="who" contenteditable="false">Edgar Zavala</span><span class="role" contenteditable="false">MD · <span class="es">★ Spanish</span></span></div><a class="book-btn" href="https://calendly.com/zavalaedgar25/1hour?month=2025-10">📅 Book</a></div>
+        <div class="book-card"><div><span class="who" contenteditable="false">Edgar Zavala</span><span class="role" contenteditable="false">MD · <span class="es">★ Spanish</span></span></div><a class="book-btn" href="https://calendly.com/zavalaedgar25">📅 Book</a></div>
       </div>
     </div>
     <div class="book-group">
@@ -512,6 +512,10 @@
         .cftcal-days button.on .dc{background:rgba(0,0,0,.18);color:#06150e;}
         .cftsp{font:inherit;cursor:pointer;font-size:11px;font-weight:800;color:var(--gold);background:#2c2519;border:1px solid var(--gold-deep);border-radius:999px;padding:7px 11px;white-space:nowrap;}
         .cftsp.on{color:#0a0a0a;background:var(--gold-bright);border-color:var(--gold);}
+        .cftfilters{display:flex;gap:6px;flex-wrap:wrap;}
+        .cftrole{font:inherit;cursor:pointer;font-size:11px;font-weight:800;color:var(--gold);background:#171206;border:1px solid var(--gold-deep);border-radius:999px;padding:7px 11px;}
+        .cftrole.on{color:#0a0a0a;background:var(--gold-bright);border-color:var(--gold);}
+        .cftrt{font-size:9px;font-weight:900;letter-spacing:.04em;border:1px solid currentColor;border-radius:5px;padding:0 4px;opacity:.85;}
         .cftrow{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:11px;padding:8px 11px;margin-bottom:7px;background:#201b13;flex-wrap:wrap;}
         .cfttime{font-weight:900;color:var(--gold-bright);font-size:13px;min-width:74px;}
         .cftbtns{display:flex;flex-wrap:wrap;gap:6px;}
@@ -529,33 +533,34 @@
         .cftsave{font:inherit;cursor:pointer;font-size:12px;font-weight:900;color:#0a0a0a;background:linear-gradient(90deg,var(--gold-bright),var(--gold));border:none;border-radius:999px;padding:9px 16px;margin-top:8px;}
       </style>
       <div class="cftcal" id="cftcal">
-        <div class="cftcal-h">🗓️ CFT availability — tap a day, book in one click</div>
-        <div class="cftcal-sub">Every open time for the day, each with a one-tap Book button. No calendar hunting.</div>
-        <div class="cftcal-top"><div class="cftcal-days" id="cftDays"></div><button class="cftsp" id="cftSp" onclick="cftSpanish()">&#9733; Spanish only</button></div>
+        <div class="cftcal-h">🗓️ Book a trainer — CFT &amp; MD availability</div>
+        <div class="cftcal-sub">Tap a day to see every open time — MDs and CFTs — each with a one-tap Book button. No calendar hunting.</div>
+        <div class="cftcal-top"><div class="cftcal-days" id="cftDays"></div><div class="cftfilters"><button class="cftrole on" data-r="all" onclick="cftRole('all')">All</button><button class="cftrole" data-r="MD" onclick="cftRole('MD')">MDs</button><button class="cftrole" data-r="CFT" onclick="cftRole('CFT')">CFTs</button><button class="cftsp" id="cftSp" onclick="cftSpanish()">&#9733; Spanish</button></div></div>
         <div id="cftBody"><span class="cftcal-hint">Loading availability&hellip;</span></div>
         <div class="cftcal-foot"><span id="cftUpdated" class="cftcal-hint"></span><button class="cftedit-btn" id="cftEditBtn" onclick="cftEdit()">&#9999;&#65039; Update availability (leadership)</button></div>
       </div>
       <script>(function(){
         var API="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/tracker-api";
-        var AV=null,curDay=null,sp=false,editMode=false,editTok="";
+        var AV=null,curDay=null,sp=false,roleFilter='all',editMode=false,editTok="";
         var WD=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
         function el(id){return document.getElementById(id);}
         function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
         function fn(n){return (n||'').split(' ')[0];}
-        function dayCount(dy){var n=0;AV.cfts.forEach(function(c){if(sp&&!c.es)return;n+=(c.slots[dy]||[]).length;});return n;}
+        function dayCount(dy){var n=0;AV.cfts.forEach(function(c){if(sp&&!c.es)return;if(roleFilter!=="all"&&c.role!==roleFilter)return;n+=(c.slots[dy]||[]).length;});return n;}
         function renderDays(){el('cftDays').innerHTML=AV.days.map(function(dy){var n=dayCount(dy);return '<button class="'+(dy===curDay?'on':'')+'" onclick="cftDay(\''+dy+'\')">'+dy+'<span class="dc">'+n+'</span></button>';}).join('');}
         function renderBody(){
           if(editMode){renderEditor();return;}
           var html='',any=false;
           AV.slots.forEach(function(s){
-            var open=AV.cfts.filter(function(c){return (c.slots[curDay]||[]).indexOf(s)>=0 && (!sp||c.es);});
+            var open=AV.cfts.filter(function(c){return (c.slots[curDay]||[]).indexOf(s)>=0 && (!sp||c.es) && (roleFilter==="all"||c.role===roleFilter);});
             if(!open.length)return; any=true;
-            html+='<div class="cftrow"><span class="cfttime">'+esc(s)+'</span><div class="cftbtns">'+open.map(function(c){return '<a class="cftbook" href="'+esc(c.calendly)+'" target="_blank" rel="noopener" title="Book with '+esc(c.name)+'">'+esc(fn(c.name))+(c.es?' ★':'')+' 📅</a>';}).join('')+'</div></div>';
+            html+='<div class="cftrow"><span class="cfttime">'+esc(s)+'</span><div class="cftbtns">'+open.map(function(c){return '<a class="cftbook" href="'+esc(c.calendly)+'" target="_blank" rel="noopener" title="Book with '+esc(c.name)+' ('+esc(c.role||'')+')">'+esc(fn(c.name))+(c.es?' ★':'')+' <span class="cftrt">'+esc(c.role||'')+'</span> 📅</a>';}).join('')+'</div></div>';
           });
           el('cftBody').innerHTML=any?html:'<span class="cftcal-hint">No '+(sp?'Spanish ':'')+'openings on '+esc(curDay)+'. Try another day.</span>';
         }
         window.cftDay=function(dy){curDay=dy;renderDays();renderBody();};
         window.cftSpanish=function(){sp=!sp;el('cftSp').classList.toggle('on',sp);renderDays();renderBody();};
+        window.cftRole=function(r){roleFilter=r;Array.prototype.forEach.call(document.querySelectorAll('.cftrole'),function(b){b.classList.toggle('on',b.getAttribute('data-r')===r);});renderDays();renderBody();};
         window.cftEdit=function(){
           if(!editMode){var p=prompt('Leadership passcode to edit CFT availability:');if(!p)return;editTok=p;editMode=true;el('cftEditBtn').textContent='✕ Cancel edit';renderEditor();}
           else{editMode=false;editTok='';el('cftEditBtn').textContent='✏️ Update availability (leadership)';renderBody();}
@@ -584,7 +589,7 @@
         <div class="book-card"><div><span class="who" contenteditable="false">Cassandra Akenson</span><span class="role" contenteditable="false">CFT</span></div><a class="book-btn" href="https://calendly.com/gficassandra">📅 Book</a></div>
         <div class="book-card"><div><span class="who" contenteditable="false">Nikki Buchholz</span><span class="role" contenteditable="false">CFT</span></div><a class="book-btn" href="https://calendly.com/GFInikki">📅 Book</a></div>
         <div class="book-card"><div><span class="who" contenteditable="false">Michael Bachelor</span><span class="role" contenteditable="false">CFT</span></div><a class="book-btn" href="https://calendly.com/GFIBachelor">📅 Book</a></div>
-        <div class="book-card"><div><span class="who" contenteditable="false">Cesar Coss</span><span class="role" contenteditable="false">CFT · <span class="es">★ Spanish</span></span></div><a class="book-btn" href="https://calendly.com/CesarCoss">📅 Book</a></div>
+        <div class="book-card"><div><span class="who" contenteditable="false">Cesar Coss</span><span class="role" contenteditable="false">CFT · <span class="es">★ Spanish</span></span></div><a class="book-btn" href="https://calendly.com/cesarcossgfi">📅 Book</a></div>
         <div class="book-card"><div><span class="who" contenteditable="false">Abagael Coker</span><span class="role" contenteditable="false">CFT</span></div><a class="book-btn" href="https://calendly.com/abagaelcoker">📅 Book</a></div>
       </div>
     </div>
