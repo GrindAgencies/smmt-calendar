@@ -28,7 +28,7 @@ DTSTAMP:20260608T120000Z
 SUMMARY:TSFG CFT Orientation (Morning)
 DTSTART;TZID=America/Los_Angeles:20260609T060000
 DTEND;TZID=America/Los_Angeles:20260609T080000
-RRULE:FREQ=WEEKLY;BYDAY=TU,FR
+RRULE:FREQ=WEEKLY;BYDAY=TU,TH,FR
 LOCATION:https://zoom.us/j/9646509953
 URL:https://zoom.us/j/9646509953
 DESCRIPTION:New agent onboarding\, systems training\, licensing guidance & culture. Host: Christopher Lorenz. Zoom ID 964 650 9953\nhttps://zoom.us/j/9646509953
