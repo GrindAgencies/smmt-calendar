@@ -13,13 +13,13 @@ a{color:inherit}
 .head{text-align:center;padding:26px 16px 4px;}
 .head .wm{font-size:11px;letter-spacing:.34em;text-transform:uppercase;color:#b6a982;font-weight:700;}
 .head h1{margin:6px 0 2px;font-size:27px;font-weight:900;letter-spacing:-.01em;background:linear-gradient(180deg,#fff4cf,#f7d873 55%,#cda22f);-webkit-background-clip:text;background-clip:text;color:transparent;}
-.head .sub{font-size:13px;color:#b6a982;max-width:680px;margin:0 auto;}
+.head .sub{font-size:13px;color:#b6a982;max-width:700px;margin:0 auto;}
 
 .stats{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:16px 16px 4px;}
-.stat{background:linear-gradient(160deg,#15110a,#0c0a05);border:1px solid #2a2206;border-radius:13px;padding:9px 16px;text-align:center;min-width:96px;}
-.stat b{display:block;font-size:20px;font-weight:900;color:#fff6da;line-height:1;}
-.stat span{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:#b6a982;font-weight:700;}
-.stat.senior b{color:#9cc7f5;}.stat.tl b{color:#6fdcb8;}.stat.agent b{color:#e7cf94;}
+.stat{background:linear-gradient(160deg,#15110a,#0c0a05);border:1px solid #2a2206;border-radius:13px;padding:9px 15px;text-align:center;min-width:88px;}
+.stat b{display:block;font-size:19px;font-weight:900;color:#fff6da;line-height:1;}
+.stat span{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#b6a982;font-weight:700;}
+.stat.blu b{color:#9cc7f5;}.stat.grn b{color:#5fdca0;}.stat.yel b{color:#f7d873;}.stat.red b{color:#f0836f;}
 
 .legend{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:center;font-size:12px;color:#b6a982;margin:12px 16px 6px;}
 .legc{display:inline-flex;align-items:center;gap:6px;}
@@ -30,9 +30,10 @@ a{color:inherit}
 .bar button.danger{background:#2a1410;color:#f3b0a2;border:1px solid #8a3a2a;box-shadow:none;}
 .bar button:disabled{opacity:.4;cursor:not-allowed;}
 .count-badge{font-size:12px;color:#b6a982;}
-.editbanner{margin:8px 16px 0;border:1px solid #3b6ea5;border-radius:12px;background:rgba(59,110,165,.12);padding:11px 14px;font-size:12.5px;color:#bcdcff;line-height:1.5;display:none;}
+.editbanner{margin:8px 16px 0;border:1px solid #3b6ea5;border-radius:12px;background:rgba(59,110,165,.12);padding:11px 14px;font-size:12.5px;color:#bcdcff;line-height:1.55;display:none;}
 .editbanner.on{display:block;}
 .editbanner b{color:#e7f0fb;}
+.editbanner kbd{background:#0c1830;border:1px solid #3b6ea5;border-radius:5px;padding:1px 6px;font-family:inherit;font-weight:800;font-size:11px;}
 
 .tree{margin:18px 16px;}
 ul.br{list-style:none;margin:0;padding-left:30px;position:relative;}
@@ -42,32 +43,39 @@ ul.br:not(.root)>li.node::before{content:"";position:absolute;left:-16px;top:26p
 ul.br:not(.root)>li.node::after{content:"";position:absolute;left:-16px;top:-9px;bottom:0;width:2px;background:#3a2f0a;border-radius:2px;}
 ul.br:not(.root)>li.node:last-child::after{height:35px;}
 
-.card{display:inline-flex;align-items:center;gap:11px;border:1px solid #2a2206;border-radius:14px;background:linear-gradient(160deg,#16110a,#0e0b06);padding:9px 14px 9px 10px;box-shadow:0 2px 10px rgba(0,0,0,.28);transition:.14s;position:relative;}
-.card:hover{border-color:#4a3f1c;transform:translateY(-1px);}
-.av{width:38px;height:38px;flex:0 0 38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;color:#0c0a05;letter-spacing:.02em;box-shadow:inset 0 0 0 2px rgba(255,255,255,.12);}
+.card{display:inline-flex;align-items:center;gap:11px;border:1px solid #2a2206;border-left-width:5px;border-radius:14px;background:linear-gradient(160deg,#16110a,#0e0b06);padding:9px 14px 9px 10px;box-shadow:0 2px 10px rgba(0,0,0,.28);transition:border-color .14s, transform .14s;position:relative;touch-action:manipulation;}
+.card:hover{border-color:#4a3f1c;}
+.av{width:38px;height:38px;flex:0 0 38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;color:#0c0a05;letter-spacing:.02em;box-shadow:inset 0 0 0 2px rgba(255,255,255,.14);}
 .card .tog{cursor:pointer;width:19px;height:19px;flex:0 0 19px;border-radius:6px;border:1px solid #6b5f38;background:#1a1408;color:#f7d873;font-weight:900;font-size:12px;line-height:17px;text-align:center;user-select:none;}
 .card .tog.leaf{visibility:hidden;width:6px;flex-basis:6px;}
-.card .grip{display:none;cursor:grab;color:#8a7d4f;font-size:15px;}
+.card .grip{display:none;cursor:grab;color:#8a7d4f;font-size:15px;touch-action:none;padding:0 2px;}
+.card .grip:active{cursor:grabbing;}
 .who{display:flex;flex-direction:column;gap:3px;min-width:0;}
 .who .nm{font-weight:800;font-size:15px;color:#fff6da;white-space:nowrap;line-height:1;}
 .who .meta{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
-.role{font-size:9.5px;font-weight:900;text-transform:uppercase;letter-spacing:.04em;padding:2px 8px;border-radius:999px;}
+.role{font-size:9.5px;font-weight:900;text-transform:uppercase;letter-spacing:.04em;padding:2px 8px;border-radius:999px;background:#1a1408;color:#c9bd97;border:1px solid #3a2f0a;}
 .gfi{font-size:10.5px;color:#8f855f;font-weight:700;font-family:ui-monospace,Menlo,monospace;}
 .er{font-size:10px;font-weight:900;color:#0a0a0a;background:linear-gradient(180deg,#edc657,#cda22f);border-radius:999px;padding:1px 7px;}
 .kids{font-size:10.5px;color:#b6a982;font-weight:700;}
-.rea{display:none;cursor:pointer;font-size:11px;font-weight:800;color:#bcdcff;background:rgba(59,110,165,.16);border:1px solid #3b6ea5;border-radius:999px;padding:3px 10px;margin-left:2px;}
-/* role palettes */
-.card.exec{border-color:#8a6d1f;background:linear-gradient(160deg,#241a08,#100d06);}
-.av.exec{background:linear-gradient(180deg,#ffe08a,#d4af37);} .role.exec{background:linear-gradient(90deg,#f7d873,#d4af37);color:#241400;} .card.exec .nm{font-size:19px;}
-.av.senior{background:linear-gradient(180deg,#bcdcff,#6fa2e0);} .role.senior{background:rgba(127,176,230,.18);color:#bcdcff;border:1px solid #3b6ea5;} .card.senior{border-color:#3b6ea5;}
-.av.tl{background:linear-gradient(180deg,#8fe8cd,#3bbf95);} .role.tl{background:rgba(89,201,165,.16);color:#8fe8cd;border:1px solid #2c8f6f;}
-.av.trainer{background:linear-gradient(180deg,#d6b8f2,#a678d6);} .role.trainer{background:rgba(185,140,224,.16);color:#d6b8f2;border:1px solid #7d55a8;}
-.av.agent{background:linear-gradient(180deg,#d8c99a,#8a7d4f);} .role.agent{background:#1a1408;color:#c9bd97;border:1px solid #3a2f0a;}
+.mv{display:none;align-items:center;gap:3px;margin-left:4px;}
+.mv button{cursor:pointer;width:24px;height:24px;border-radius:7px;border:1px solid #3b6ea5;background:rgba(59,110,165,.14);color:#bcdcff;font-size:12px;font-weight:900;line-height:1;padding:0;display:flex;align-items:center;justify-content:center;}
+.mv button:disabled{opacity:.28;cursor:not-allowed;}
+.mv .rea{width:auto;padding:0 8px;font-size:11px;}
+/* status color classes for avatar + left border */
+.av.c-exec{background:linear-gradient(180deg,#ffe08a,#d4af37);}
+.av.c-senior{background:linear-gradient(180deg,#bcdcff,#6fa2e0);}
+.av.c-green{background:linear-gradient(180deg,#8fe8bf,#34b57d);}
+.av.c-yellow{background:linear-gradient(180deg,#ffe89a,#e6b93a);}
+.av.c-red{background:linear-gradient(180deg,#f4a898,#d6543c);}
+.av.c-none{background:linear-gradient(180deg,#cfc39a,#8a7d4f);}
+.card.c-exec{border-left-color:#e8c14a;} .card.c-senior{border-left-color:#7fb0e6;}
+.card.c-green{border-left-color:#3ec98a;} .card.c-yellow{border-left-color:#f7d873;} .card.c-red{border-left-color:#e0533d;} .card.c-none{border-left-color:#4a3f1c;}
 li.collapsed>ul.br{display:none;}
 body.editing .card .grip{display:inline;}
-body.editing .card .rea{display:inline;}
-.card.dragging{opacity:.45;}
+body.editing .card .mv{display:inline-flex;}
+.card.dragsrc{opacity:.4;}
 .card.drop-hover{outline:2px dashed #7fb0e6;outline-offset:3px;background:#15243a;}
+#dragGhost{position:fixed;z-index:120;pointer-events:none;background:#1a1408;border:1px solid #7fb0e6;color:#fff6da;font-weight:800;font-size:13px;border-radius:10px;padding:7px 12px;box-shadow:0 10px 26px rgba(0,0,0,.55);opacity:.96;display:none;}
 .foot{margin:22px 16px 0;font-size:11.5px;color:#7c7358;text-align:center;}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#1a1408;border:1px solid #8a6d1f;color:#fff6da;padding:10px 16px;border-radius:10px;font-size:13px;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:.2s;z-index:90;}
 .toast.show{opacity:1;}
@@ -105,18 +113,18 @@ body.editing .card .rea{display:inline;}
   <div class="head">
     <div class="wm">The Standard Financial Group</div>
     <h1>Organizational Chart</h1>
-    <div class="sub">The GRIND downline, rooted at Elijah Cox. Click ▸ to open a leg. Turn on Edit to drag someone to a new upline or tap ⇄ to reassign.</div>
+    <div class="sub">Colored by movement. Click ▸ to open a leg. Turn on Edit to build the exact hierarchy — drag, or use the arrows to move anyone up/down and in/out.</div>
   </div>
 
   <div class="stats" id="stats"></div>
 
   <div class="legend">
-    <span class="legc"><span class="dotc" style="background:#f7d873"></span>Executive Broker</span>
     <span class="legc"><span class="dotc" style="background:#7fb0e6"></span>Senior Broker</span>
-    <span class="legc"><span class="dotc" style="background:#59c9a5"></span>Training Leader</span>
-    <span class="legc"><span class="dotc" style="background:#b98ce0"></span>Trainer</span>
-    <span class="legc"><span class="dotc" style="background:#a99a6a"></span>Agent</span>
-    <span class="legc"><span class="er">80</span>= %ER tier</span>
+    <span class="legc"><span class="dotc" style="background:#3ec98a"></span>Active</span>
+    <span class="legc"><span class="dotc" style="background:#f7d873"></span>Slow</span>
+    <span class="legc"><span class="dotc" style="background:#e0533d"></span>Stalled</span>
+    <span class="legc"><span class="dotc" style="background:#e8c14a"></span>Exec</span>
+    <span class="legc"><span class="dotc" style="background:#8a7d4f"></span>No data</span>
   </div>
 
   <div class="bar">
@@ -129,193 +137,224 @@ body.editing .card .rea{display:inline;}
   </div>
 
   <div class="editbanner" id="editBanner">
-    <b>Edit mode on.</b> Drag any card by the ⠿ grip onto a new upline, or tap <b>⇄ Reassign</b> to choose from a list. Moves stage locally until you press <b>Save changes</b>. You can't drop someone onto their own downline.
+    <b>Edit mode on.</b> Build the exact chart three ways: <b>drag</b> the ⠿ grip onto a new upline, or use the arrows — <kbd>▲</kbd><kbd>▼</kbd> reorder a person among their siblings, <kbd>◀</kbd> promotes them up a level, <kbd>▶</kbd> nests them under the person above. Moves stage locally until you press <b>Save changes</b>. You can't move someone under their own downline.
   </div>
 
   <div class="tree" id="tree"><div class="spin">Loading the org…</div></div>
   <div class="foot" id="foot"></div>
 </div>
+<div id="dragGhost"></div>
 <div class="toast" id="toast"></div>
 
 <script>
 const API="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/tracker-api";
 const roleLabel={exec:"Exec Broker",senior:"Senior Broker",tl:"Training Leader",trainer:"Trainer",agent:"Agent"};
-let DATA=null, NODES=[], byId={}, kids={}, ROOT="ELI";
-let editing=false, dirty=false, TOKEN="", dragId=null, orig=null;
+let NODES=[], byId={}, ROOT="ELI", STATUS={};
+let editing=false, dirty=false, TOKEN="", orig=null;
+const openSet=new Set();
 
 const $=(id)=>document.getElementById(id);
 function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),1900);}
 function erNorm(v){ if(!v) return ''; return String(v).toUpperCase().replace('O','0'); }
-function initials(name){ const p=(name||'').trim().split(/\s+/); return ((p[0]||'')[0]||'')+((p[1]||'')[0]||''); }
+function initials(name){ const p=(name||'').trim().split(/\s+/); return (((p[0]||'')[0]||'')+((p[1]||'')[0]||'')).toUpperCase(); }
 
-function reindex(){
-  byId={}; kids={};
-  NODES.forEach(n=>{ byId[n.id]=n; kids[n.id]=[]; });
-  NODES.forEach(n=>{ if(n.parent && kids[n.parent]) kids[n.parent].push(n); });
-  // sort children: leaders (with kids) first, then by role weight, then name
-  const w={exec:0,senior:1,tl:2,trainer:3,agent:4};
-  Object.keys(kids).forEach(k=>kids[k].sort((a,b)=>{
-    const la=(kids[a.id]||[]).length>0?0:1, lb=(kids[b.id]||[]).length>0?0:1;
-    if(la!==lb) return la-lb;
-    if((w[a.role]||9)!==(w[b.role]||9)) return (w[a.role]||9)-(w[b.role]||9);
-    return a.name.localeCompare(b.name);
-  }));
-}
-function countDesc(id){ let c=(kids[id]||[]).length; (kids[id]||[]).forEach(k=>c+=countDesc(k.id)); return c; }
-function isDescendant(ancestorId, maybeId){
-  let stack=[...(kids[ancestorId]||[])];
-  while(stack.length){ const n=stack.pop(); if(n.id===maybeId) return true; stack.push(...(kids[n.id]||[])); }
-  return false;
+function idx(){ byId={}; NODES.forEach(n=>byId[n.id]=n); }
+function childrenSorted(pid){ return NODES.filter(n=>n.parent===pid).sort((a,b)=>((a.ord??0)-(b.ord??0))|| a.name.localeCompare(b.name)); }
+function renumber(pid){ childrenSorted(pid).forEach((n,i)=>n.ord=i); }
+function countDesc(id){ let c=0; childrenSorted(id).forEach(k=>{ c+=1+countDesc(k.id); }); return c; }
+function isDescendant(anc,maybe){ let st=childrenSorted(anc).slice(); while(st.length){ const n=st.pop(); if(n.id===maybe) return true; st.push(...childrenSorted(n.id)); } return false; }
+
+function colorClass(n){
+  if(n.role==='exec') return 'c-exec';
+  if(n.role==='senior') return 'c-senior';
+  const st=STATUS[(n.gfi||'').toUpperCase()];
+  if(!st||!st.s) return 'c-none';
+  if(st.s==='green') return 'c-green';
+  if(st.s==='red') return 'c-red';
+  return 'c-yellow'; // yellow + orange => slow
 }
 
 function renderNode(id, depth){
   const n=byId[id]; if(!n) return '';
-  const ch=kids[id]||[];
+  const ch=childrenSorted(id);
   const has=ch.length>0;
-  const desc=countDesc(id);
+  const open=openSet.has(id);
+  const collapsed=has&&!open;
   const er=erNorm(n.er);
-  const collapsed = depth>=2 && has && !n._open;
-  let c='<div class="card '+n.role+'" data-id="'+esc(n.id)+'" '+(editing?'draggable="true"':'')+'>';
+  const cc=colorClass(n);
+  const sibs=childrenSorted(n.parent);
+  const pos=sibs.findIndex(x=>x.id===id);
+  const canUp=pos>0, canDown=pos>=0&&pos<sibs.length-1;
+  const canPromote = n.parent && n.parent!==ROOT && byId[n.parent] && byId[n.parent].parent;
+  const canDemote = pos>0;
+  let c='<div class="card '+cc+'" data-id="'+esc(n.id)+'">';
   c+='<span class="grip" title="Drag to a new upline">⠿</span>';
   c+='<span class="tog'+(has?'':' leaf')+'">'+(has?(collapsed?'▸':'▾'):'')+'</span>';
-  c+='<span class="av '+n.role+'">'+esc(initials(n.name).toUpperCase())+'</span>';
+  c+='<span class="av '+cc+'">'+esc(initials(n.name))+'</span>';
   c+='<span class="who"><span class="nm">'+esc(n.name)+'</span><span class="meta">';
-  c+='<span class="role '+n.role+'">'+(roleLabel[n.role]||'')+'</span>';
+  c+='<span class="role">'+(roleLabel[n.role]||'')+'</span>';
   if(n.gfi) c+='<span class="gfi">'+esc(n.gfi)+'</span>';
   if(er) c+='<span class="er">'+esc(er)+'</span>';
-  if(has) c+='<span class="kids">'+desc+' downline</span>';
-  if(n.id!==ROOT) c+='<span class="rea" onclick="reassignPrompt(\''+esc(n.id)+'\')">⇄ Reassign</span>';
+  if(has) c+='<span class="kids">'+countDesc(id)+' downline</span>';
   c+='</span></span>';
+  if(n.id!==ROOT){
+    c+='<span class="mv">';
+    c+='<button title="Move up" onclick="mvUp(\''+esc(n.id)+'\')" '+(canUp?'':'disabled')+'>▲</button>';
+    c+='<button title="Move down" onclick="mvDown(\''+esc(n.id)+'\')" '+(canDown?'':'disabled')+'>▼</button>';
+    c+='<button title="Promote up a level" onclick="promote(\''+esc(n.id)+'\')" '+(canPromote?'':'disabled')+'>◀</button>';
+    c+='<button title="Nest under person above" onclick="demote(\''+esc(n.id)+'\')" '+(canDemote?'':'disabled')+'>▶</button>';
+    c+='<button class="rea" title="Reassign to anyone" onclick="reassignPrompt(\''+esc(n.id)+'\')">⇄</button>';
+    c+='</span>';
+  }
   c+='</div>';
-  let sub='';
-  if(has){ sub='<ul class="br">'+ch.map(k=>renderNode(k.id,depth+1)).join('')+'</ul>'; }
+  let sub=''; if(has) sub='<ul class="br">'+ch.map(k=>renderNode(k.id,depth+1)).join('')+'</ul>';
   return '<li class="node'+(collapsed?' collapsed':'')+'" data-id="'+esc(n.id)+'">'+c+sub+'</li>';
 }
 function render(){
-  reindex();
+  idx();
   $('tree').innerHTML='<ul class="br root">'+renderNode(ROOT,0)+'</ul>';
-  const total=NODES.length;
-  const cnt=(r)=>NODES.filter(n=>n.role===r).length;
+  const total=NODES.length, cnt=(r)=>NODES.filter(n=>n.role===r).length;
+  // movement counts among coded, non-senior/exec
+  let g=0,y=0,rd=0;
+  NODES.forEach(n=>{ if(n.role==='exec'||n.role==='senior')return; const st=STATUS[(n.gfi||'').toUpperCase()]; if(!st||!st.s)return; if(st.s==='green')g++; else if(st.s==='red')rd++; else y++; });
   $('stats').innerHTML=
     '<div class="stat"><b>'+total+'</b><span>People</span></div>'+
-    '<div class="stat senior"><b>'+cnt('senior')+'</b><span>Senior Brokers</span></div>'+
-    '<div class="stat tl"><b>'+cnt('tl')+'</b><span>Training Leaders</span></div>'+
-    '<div class="stat"><b>'+cnt('trainer')+'</b><span>Trainers</span></div>'+
-    '<div class="stat agent"><b>'+cnt('agent')+'</b><span>Agents</span></div>';
-  const leaders=NODES.filter(n=>(kids[n.id]||[]).length>0).length;
+    '<div class="stat blu"><b>'+cnt('senior')+'</b><span>Senior Brokers</span></div>'+
+    '<div class="stat grn"><b>'+g+'</b><span>Active</span></div>'+
+    '<div class="stat yel"><b>'+y+'</b><span>Slow</span></div>'+
+    '<div class="stat red"><b>'+rd+'</b><span>Stalled</span></div>';
+  const leaders=NODES.filter(n=>childrenSorted(n.id).length>0).length;
   $('countBadge').textContent=leaders+' with a downline';
   $('saveBtn').disabled=!dirty; $('revertBtn').disabled=!dirty;
 }
 
-function setParent(childId, newParent){
+function mark(){ dirty=true; }
+window.mvUp=function(id){ const n=byId[id]; const s=childrenSorted(n.parent); const i=s.findIndex(x=>x.id===id); if(i<=0)return; const o=s[i-1].ord; s[i-1].ord=n.ord; n.ord=o; renumber(n.parent); mark(); render(); };
+window.mvDown=function(id){ const n=byId[id]; const s=childrenSorted(n.parent); const i=s.findIndex(x=>x.id===id); if(i<0||i>=s.length-1)return; const o=s[i+1].ord; s[i+1].ord=n.ord; n.ord=o; renumber(n.parent); mark(); render(); };
+window.promote=function(id){ const n=byId[id]; const p=byId[n.parent]; if(!p||n.parent===ROOT||!p.parent)return; const gp=p.parent; const oldP=n.parent; n.parent=gp; n.ord=(p.ord??0)+0.5; renumber(gp); renumber(oldP); openSet.add(gp); mark(); render(); toast('Promoted '+n.name); };
+window.demote=function(id){ const n=byId[id]; const s=childrenSorted(n.parent); const i=s.findIndex(x=>x.id===id); if(i<=0){ toast('No one above to nest under'); return; } const prev=s[i-1]; const oldP=n.parent; n.parent=prev.id; n.ord=childrenSorted(prev.id).length; renumber(prev.id); renumber(oldP); openSet.add(prev.id); mark(); render(); toast(n.name+' → under '+prev.name); };
+function reparent(childId,newParent){
   if(childId===newParent) return;
-  const n=byId[childId]; if(!n) return;
+  const n=byId[childId]; if(!n||childId===ROOT) return;
   if(n.parent===newParent){ toast('Already there'); return; }
-  if(childId===ROOT){ toast("Can't move the top"); return; }
   if(isDescendant(childId,newParent)){ toast("Can't move someone under their own downline"); return; }
-  NODES.forEach(x=>{ const li=document.querySelector('li.node[data-id="'+CSS.escape(x.id)+'"]'); if(li) x._open=!li.classList.contains('collapsed'); });
-  byId[newParent]._open=true;
-  n.parent=newParent; dirty=true; render();
-  toast(n.name+' → '+byId[newParent].name);
+  const oldP=n.parent; n.parent=newParent; n.ord=childrenSorted(newParent).length; renumber(newParent); renumber(oldP); openSet.add(newParent); mark(); render(); toast(n.name+' → '+byId[newParent].name);
 }
-
 window.reassignPrompt=function(id){
   const n=byId[id];
   const opts=NODES.filter(x=> x.id!==id && !isDescendant(id,x.id)).sort((a,b)=>a.name.localeCompare(b.name));
   const list=opts.map((x,i)=> (i+1)+'. '+x.name+' ('+(roleLabel[x.role]||'')+')').join('\n');
   const cur=byId[n.parent]?byId[n.parent].name:'(none)';
   const ans=prompt('Move '+n.name+' under which upline?\nCurrently under: '+cur+'\n\n'+list+'\n\nType the number:');
-  if(!ans) return;
-  const i=parseInt(ans,10)-1;
+  if(!ans) return; const i=parseInt(ans,10)-1;
   if(isNaN(i)||i<0||i>=opts.length){ toast('Not a valid choice'); return; }
-  setParent(id, opts[i].id);
+  reparent(id, opts[i].id);
 };
 
 window.toggleEdit=function(){
   if(!editing){
-    const p=prompt('Leadership passcode to edit the hierarchy:');
-    if(!p) return;
+    const p=prompt('Leadership passcode to edit the hierarchy:'); if(!p) return;
     TOKEN=p; editing=true; document.body.classList.add('editing');
-    $('editBtn').textContent='✓ Done editing'; $('editBtn').classList.remove('ghost');
-    $('editBanner').classList.add('on');
-    orig=JSON.stringify(NODES.map(n=>({id:n.id,parent:n.parent})));
+    $('editBtn').textContent='✓ Done editing'; $('editBtn').classList.remove('ghost'); $('editBanner').classList.add('on');
+    orig=JSON.stringify(NODES.map(n=>({id:n.id,parent:n.parent,ord:n.ord})));
     render();
   } else {
     if(dirty && !confirm('You have unsaved moves. Leave edit mode and keep them staged?')) return;
     editing=false; TOKEN=''; document.body.classList.remove('editing');
-    $('editBtn').textContent='✏️ Edit hierarchy'; $('editBtn').classList.add('ghost');
-    $('editBanner').classList.remove('on');
+    $('editBtn').textContent='✏️ Edit hierarchy'; $('editBtn').classList.add('ghost'); $('editBanner').classList.remove('on');
     render();
   }
 };
-
 window.save=async function(){
   if(!dirty) return;
-  const value={updated:new Date().toISOString().slice(0,10), root:ROOT, nodes:NODES.map(n=>({id:n.id,name:n.name,role:n.role,parent:n.parent,gfi:n.gfi||'',er:n.er||''}))};
+  const value={updated:new Date().toISOString().slice(0,10), root:ROOT, nodes:NODES.map(n=>({id:n.id,name:n.name,role:n.role,parent:n.parent,gfi:n.gfi||'',er:n.er||'',ord:n.ord??0}))};
   $('saveBtn').disabled=true; $('saveBtn').textContent='Saving…';
   try{
     const r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'setorg',token:TOKEN,value})});
     const d=await r.json();
-    if(d.ok){ dirty=false; orig=JSON.stringify(NODES.map(n=>({id:n.id,parent:n.parent}))); toast('Hierarchy saved ✓'); }
-    else { toast(d.error==='unauthorized'?'Wrong passcode':'Save failed'); }
+    if(d.ok){ dirty=false; orig=JSON.stringify(NODES.map(n=>({id:n.id,parent:n.parent,ord:n.ord}))); toast('Hierarchy saved ✓'); }
+    else toast(d.error==='unauthorized'?'Wrong passcode':'Save failed');
   }catch(e){ toast('Network error — try again'); }
   $('saveBtn').textContent='💾 Save changes'; $('saveBtn').disabled=!dirty; $('revertBtn').disabled=!dirty;
 };
-
-window.revert=function(){
-  if(!orig) return;
-  const pm={}; JSON.parse(orig).forEach(x=>pm[x.id]=x.parent);
-  NODES.forEach(n=>{ if(pm[n.id]!==undefined) n.parent=pm[n.id]; });
-  dirty=false; render(); toast('Reverted staged moves');
-};
-
+window.revert=function(){ if(!orig)return; const m={}; JSON.parse(orig).forEach(x=>m[x.id]=x); NODES.forEach(n=>{ if(m[n.id]){ n.parent=m[n.id].parent; n.ord=m[n.id].ord; } }); dirty=false; render(); toast('Reverted staged moves'); };
 window.expandAll=function(open){
-  document.querySelectorAll('#tree li.node').forEach(li=>{
-    const has=li.querySelector(':scope > ul.br'); if(!has) return;
-    const tog=li.querySelector(':scope > .card .tog');
-    let depth=0,p=li.parentElement; while(p){ if(p.tagName==='UL') depth++; p=p.parentElement; }
-    if(open || depth<2){ li.classList.remove('collapsed'); if(tog)tog.textContent='▾'; }
-    else { li.classList.add('collapsed'); if(tog)tog.textContent='▸'; }
-  });
+  if(open){ NODES.forEach(n=>{ if(childrenSorted(n.id).length) openSet.add(n.id); }); }
+  else { openSet.clear(); openSet.add(ROOT); childrenSorted(ROOT).forEach(n=>{ if(childrenSorted(n.id).length) openSet.add(n.id); }); }
+  render();
 };
 
+// expand/collapse toggle
 $('tree').addEventListener('click', function(e){
-  if(e.target.closest('.rea')||e.target.closest('.grip')) return;
+  if(e.target.closest('.mv')||e.target.closest('.grip')) return;
   const t=e.target.closest('.tog'); if(!t) return;
-  const li=t.closest('li.node'); if(!li||!li.querySelector(':scope > ul.br')) return;
-  const col=li.classList.toggle('collapsed'); t.textContent=col?'▸':'▾';
-});
-$('tree').addEventListener('dragstart', function(e){
-  const card=e.target.closest('.card'); if(!card||!editing) return;
-  dragId=card.getAttribute('data-id'); card.classList.add('dragging'); e.dataTransfer.effectAllowed='move';
-});
-$('tree').addEventListener('dragend', function(e){
-  const card=e.target.closest('.card'); if(card) card.classList.remove('dragging');
-  document.querySelectorAll('.drop-hover').forEach(x=>x.classList.remove('drop-hover')); dragId=null;
-});
-$('tree').addEventListener('dragover', function(e){
-  if(!editing||!dragId) return;
-  const card=e.target.closest('.card'); if(!card) return;
-  const tid=card.getAttribute('data-id');
-  if(tid===dragId||isDescendant(dragId,tid)) return;
-  e.preventDefault();
-  document.querySelectorAll('.drop-hover').forEach(x=>x.classList.remove('drop-hover')); card.classList.add('drop-hover');
-});
-$('tree').addEventListener('drop', function(e){
-  if(!editing||!dragId) return;
-  const card=e.target.closest('.card'); if(!card) return;
-  e.preventDefault(); setParent(dragId, card.getAttribute('data-id')); dragId=null;
+  const li=t.closest('li.node'); if(!li) return; const id=li.getAttribute('data-id');
+  if(childrenSorted(id).length===0) return;
+  if(openSet.has(id)) openSet.delete(id); else openSet.add(id);
+  render();
 });
 
+// ---- smooth pointer drag ----
+let drag=null;
+$('tree').addEventListener('pointerdown', function(e){
+  if(!editing) return;
+  const grip=e.target.closest('.grip'); if(!grip) return;
+  const card=grip.closest('.card'); if(!card) return;
+  e.preventDefault();
+  drag={id:card.getAttribute('data-id'), card, moved:false, target:null};
+  card.classList.add('dragsrc');
+  const g=$('dragGhost'); g.textContent=byId[drag.id].name; g.style.display='block'; positionGhost(e);
+  window.addEventListener('pointermove', onMove);
+  window.addEventListener('pointerup', onUp, {once:true});
+});
+function positionGhost(e){ const g=$('dragGhost'); g.style.left=(e.clientX+14)+'px'; g.style.top=(e.clientY+10)+'px'; }
+function onMove(e){
+  if(!drag) return; drag.moved=true; positionGhost(e);
+  const el=document.elementFromPoint(e.clientX,e.clientY);
+  const card=el?el.closest('.card'):null;
+  document.querySelectorAll('.drop-hover').forEach(x=>x.classList.remove('drop-hover'));
+  drag.target=null;
+  if(card){ const tid=card.getAttribute('data-id'); if(tid!==drag.id && !isDescendant(drag.id,tid)){ card.classList.add('drop-hover'); drag.target=tid; } }
+}
+function onUp(e){
+  window.removeEventListener('pointermove', onMove);
+  const g=$('dragGhost'); g.style.display='none';
+  if(drag){ drag.card.classList.remove('dragsrc'); if(drag.target) reparent(drag.id, drag.target); }
+  document.querySelectorAll('.drop-hover').forEach(x=>x.classList.remove('drop-hover'));
+  drag=null;
+}
+
+async function loadStatus(){
+  const leaders=['Elijah Cox','Christopher Lorenz','Edgar Zavala'];
+  const map={};
+  await Promise.all(leaders.map(async L=>{
+    try{ const r=await fetch(API+'?action=team&leader='+encodeURIComponent(L)); const d=await r.json();
+      if(d&&d.ok&&Array.isArray(d.agents)) d.agents.forEach(a=>{ if(a.code) map[String(a.code).toUpperCase()]={s:a.progress_status,d:a.days_inactive,pct:a.pct}; });
+    }catch(e){}
+  }));
+  return map;
+}
 async function load(){
   try{
-    const r=await fetch(API+'?action=orgtree');
-    const d=await r.json();
-    if(!d.ok||!d.value||!Array.isArray(d.value.nodes)){ $('tree').innerHTML='<div class="spin">Org not set up yet.</div>'; return; }
-    DATA=d.value; NODES=d.value.nodes.map(n=>({...n})); ROOT=d.value.root||'ELI';
+    const [orgR, statusMap]=await Promise.all([ fetch(API+'?action=orgtree').then(r=>r.json()), loadStatus() ]);
+    STATUS=statusMap||{};
+    if(!orgR.ok||!orgR.value||!Array.isArray(orgR.value.nodes)){ $('tree').innerHTML='<div class="spin">Org not set up yet.</div>'; return; }
+    NODES=orgR.value.nodes.map(n=>({...n})); ROOT=orgR.value.root||'ELI';
+    // seed ord if missing anywhere
+    const missing=NODES.some(n=>n.ord===undefined||n.ord===null);
+    idx();
+    if(missing){
+      const w={exec:0,senior:1,tl:2,trainer:3,agent:4};
+      const parents=[...new Set(NODES.map(n=>n.parent))];
+      parents.forEach(pid=>{ NODES.filter(n=>n.parent===pid).sort((a,b)=>{
+        const la=NODES.some(x=>x.parent===a.id)?0:1, lb=NODES.some(x=>x.parent===b.id)?0:1;
+        if(la!==lb)return la-lb; if((w[a.role]||9)!==(w[b.role]||9))return (w[a.role]||9)-(w[b.role]||9); return a.name.localeCompare(b.name);
+      }).forEach((n,i)=>n.ord=i); });
+    }
+    openSet.clear(); openSet.add(ROOT); childrenSorted(ROOT).forEach(n=>{ if(childrenSorted(n.id).length) openSet.add(n.id); });
     render();
-    $('foot').textContent='Source: GRIND Agent Tracker · last saved '+(d.value.updated||(d.updated_at||'').slice(0,10));
+    $('foot').textContent='Colored by activity · Source: GRIND Agent Tracker · last saved '+(orgR.value.updated||(orgR.updated_at||'').slice(0,10));
   }catch(e){ $('tree').innerHTML='<div class="spin">Could not load the org.</div>'; }
 }
 load();
