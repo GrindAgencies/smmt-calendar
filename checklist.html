@@ -412,6 +412,32 @@
     <div class="savestat" id="saveStat">Your progress saves to your GFI code automatically.</div>
   </div>
 
+  <style>
+    .promo-card{border:1px solid #2a2206;border-radius:16px;background:linear-gradient(160deg,#15110a,#0b0a05);padding:14px 16px;margin:0 0 16px;}
+    .promo-h{font-weight:900;font-size:15px;color:#f7d873;display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:2px;}
+    .promo-rank{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.04em;padding:3px 10px;border-radius:999px;background:#1a1408;color:#c9bd97;border:1px solid #3a2f0a;}
+    .promo-rank.sa{background:rgba(89,201,165,.16);color:#8fe8cd;border-color:#2c8f6f;}
+    .promo-rank.md{background:linear-gradient(90deg,#f7d873,#d4af37);color:#241400;border:none;}
+    .ptier{border:1px solid #221b06;border-radius:12px;background:#100d06;padding:11px 12px;margin-top:10px;}
+    .ptier.locked{opacity:.6;}
+    .ptier.done{border-color:#2c8f6f;}
+    .pt-h{font-weight:800;font-size:13.5px;color:#fff6da;}
+    .pt-chk{font-size:11px;color:#8fe8cd;font-weight:800;margin-left:6px;}
+    .pt-sub{font-size:11.5px;color:#b6a982;margin:2px 0 8px;}
+    .pmet{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px;}
+    .pmet .pl{font-size:12.5px;color:#efe7d0;font-weight:700;}
+    .pmet .pl em{color:#8f855f;font-style:normal;font-size:10.5px;}
+    .pctl{display:flex;align-items:center;gap:7px;}
+    .pctl button{cursor:pointer;width:26px;height:26px;border-radius:8px;border:1px solid #6b5f38;background:#1a1408;color:#f7d873;font-weight:900;font-size:15px;line-height:1;}
+    .pctl b{min-width:22px;text-align:center;font-size:15px;color:#fff6da;font-weight:900;}
+    .pctl .pg{font-size:11.5px;color:#b6a982;}
+    .pctl input{width:96px;background:#171206;border:1px solid #4a3c12;border-radius:8px;color:#fff6da;padding:6px 8px;font-size:14px;font-weight:700;text-align:right;}
+    .pbar{height:7px;border-radius:999px;background:#241d0b;overflow:hidden;margin-top:6px;}
+    .pbar span{display:block;height:100%;background:linear-gradient(90deg,#7ee0b0,#34b57d);}
+    .promo-btn{cursor:pointer;width:100%;margin-top:11px;border:none;border-radius:999px;padding:10px;font-weight:900;font-size:13px;color:#241400;background:linear-gradient(90deg,#f7d873,#d4af37);}
+  </style>
+  <div class="promo-card" id="promoCard"></div>
+
   <!-- PROMISE -->
   <div class="promise">
     <h2>🎯 The Promise — By Day 90 You Will Be</h2>
@@ -812,7 +838,36 @@
   var carlifes=Array.prototype.slice.call(document.querySelectorAll('.car-life'));
   var carannu=Array.prototype.slice.call(document.querySelectorAll('.car-annuity'));
   var carinputs=carlifes.concat(carannu);
-  var code=null, saveTimer=null, currentPath=null, ftLog={}, warmMarket=[], activityLog=[], emd="", md="", wmViewMode="cards";
+  var code=null, saveTimer=null, currentPath=null, ftLog={}, warmMarket=[], activityLog=[], promoData={}, emd="", md="", wmViewMode="cards";
+  function promoFam30(){var t=ptToday(),n=0;(warmMarket||[]).forEach(function(c){if(c&&c.outcome==='win'){var d=c.contactedDate||c.date;if(d){var g=actDaysAgo(d,t);if(g>=0&&g<=30)n++;}}});return n;}
+  function pbar(v,goal){var p=Math.max(0,Math.min(100,Math.round((v/goal)*100)));return '<div class="pbar"><span style="width:'+p+'%"></span></div>';}
+  function setPromo(k,v){promoData[k]=v;renderPromo();saveNow();}
+  function promoBump(k,delta,min){var v=(+promoData[k]||0)+delta;if(v<min)v=min;setPromo(k,v);}
+  function promoSetPoints(){var e2=el('mdPoints');if(!e2)return;setPromo('points',parseInt((e2.value||'0').replace(/[^0-9]/g,''),10)||0);}
+  function promote(rank){promoData.rank=rank;renderPromo();saveNow();try{celebrate&&celebrate();}catch(e){}}
+  function renderPromo(){
+    var host=el('promoCard'); if(!host)return;
+    if(!code){host.innerHTML='';return;}
+    var rank=promoData.rank||'associate';
+    var bp=+promoData.bp||0, points=+promoData.points||0, sa=+promoData.sa||0, fam=promoFam30();
+    var isSA=(rank==='senior_associate'||rank==='marketing_director'), isMD=(rank==='marketing_director');
+    var saMet=(bp>=3&&fam>=3), mdMet=(points>=45000&&sa>=4);
+    var rankLabel=isMD?'Marketing Director':(isSA?'Senior Associate':'Associate');
+    var h='<div class="promo-h">🏆 Promotion Progress <span class="promo-rank '+(isMD?'md':(isSA?'sa':''))+'">'+rankLabel+'</span></div>';
+    h+='<div class="ptier'+(isSA?' done':'')+'"><div class="pt-h">1 · Senior Associate'+(isSA?'<span class="pt-chk">✓ Achieved</span>':'')+'</div><div class="pt-sub">3 Business Partners + 3 Families Helped (rolling 30 days)</div>';
+    h+='<div class="pmet"><span class="pl">Business Partners</span><div class="pctl"><button onclick="promoBump(\'bp\',-1,0)">–</button><b>'+bp+'</b><span class="pg">/3</span><button onclick="promoBump(\'bp\',1,0)">+</button></div></div>'+pbar(Math.min(bp,3),3);
+    h+='<div class="pmet"><span class="pl">Families Helped <em>(auto · won leads)</em></span><div class="pctl"><b>'+fam+'</b><span class="pg">/3</span></div></div>'+pbar(Math.min(fam,3),3);
+    if(!isSA&&saMet){h+='<button class="promo-btn" onclick="promote(\'senior_associate\')">🎉 Promote to Senior Associate — unlock Marketing Director</button>';}
+    h+='</div>';
+    h+='<div class="ptier'+(isSA?'':' locked')+(isMD?' done':'')+'"><div class="pt-h">2 · Marketing Director '+(isSA?'':'🔒')+(isMD?'<span class="pt-chk">✓ Achieved</span>':'')+'</div><div class="pt-sub">'+(isSA?'45,000 paid points + 4 Senior Associates promoted':'Reach Senior Associate to unlock this tier')+'</div>';
+    if(isSA){
+      h+='<div class="pmet"><span class="pl">Paid Points</span><div class="pctl"><input id="mdPoints" type="text" inputmode="numeric" value="'+points.toLocaleString()+'" onchange="promoSetPoints()"><span class="pg">/45,000</span></div></div>'+pbar(Math.min(points,45000),45000);
+      h+='<div class="pmet"><span class="pl">Senior Associates Promoted</span><div class="pctl"><button onclick="promoBump(\'sa\',-1,0)">–</button><b>'+sa+'</b><span class="pg">/4</span><button onclick="promoBump(\'sa\',1,0)">+</button></div></div>'+pbar(Math.min(sa,4),4);
+      if(!isMD&&mdMet){h+='<button class="promo-btn" onclick="promote(\'marketing_director\')">🎉 Promote to Marketing Director</button>';}
+    }
+    h+='</div>';
+    host.innerHTML=h;
+  }
   function actDaysAgo(ymd,today){try{var a=new Date(ymd+'T00:00:00Z').getTime(),b=new Date(today+'T00:00:00Z').getTime();return Math.round((b-a)/86400000);}catch(e){return 0;}}
   function actToday(){var t=ptToday();for(var i=0;i<activityLog.length;i++){if(activityLog[i]&&activityLog[i].date===t)return activityLog[i];}return null;}
   function renderActivity(){var t=actToday();if(el('actDials'))el('actDials').value=t&&t.dials?t.dials:'';if(el('actConvos'))el('actConvos').value=t&&t.convos?t.convos:'';if(el('actAppts'))el('actAppts').value=t&&t.appts?t.appts:'';var d7=0,c7=0,a7=0,today=ptToday();activityLog.forEach(function(ev){if(!ev||!ev.date)return;var da=actDaysAgo(ev.date,today);if(da>=0&&da<=6){d7+=(+ev.dials||0);c7+=(+ev.convos||0);a7+=(+ev.appts||0);}});if(el('actNote'))el('actNote').innerHTML='Last 7 days: <b>'+d7+'</b> dials · <b>'+c7+'</b> conversations · <b>'+a7+'</b> appts set';}
@@ -881,7 +936,7 @@
     clearTimeout(saveTimer);
     saveTimer=setTimeout(function(){
       var vis=boxes.filter(function(b){return b.offsetParent!==null;}).length;
-      api({action:'save',code:code,progress:progressMap(),total:vis,pathway:currentPath,emd:emd,md:md,ft_log:ftLog,carrier_codes:carriersPayload(),warm_market:warmMarket,activity_log:activityLog}).then(function(res){
+      api({action:'save',code:code,progress:progressMap(),total:vis,pathway:currentPath,emd:emd,md:md,ft_log:ftLog,carrier_codes:carriersPayload(),warm_market:warmMarket,activity_log:activityLog,promo:promoData}).then(function(res){
         setStat(res&&res.ok?'Saved ✓':'Saved on this device',res&&res.ok);
       }).catch(function(){setStat('Saved on this device (offline)',false);});
     },600);
@@ -898,7 +953,7 @@
 
   /* ---- WARM MARKET ---- */
   function escH(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
-  function saveNow(){if(!code)return;var vis=boxes.filter(function(b){return b.offsetParent!==null;}).length;setStat('Saving…',false);api({action:'save',code:code,progress:progressMap(),total:vis,pathway:currentPath,emd:emd,md:md,ft_log:ftLog,carrier_codes:carriersPayload(),warm_market:warmMarket,activity_log:activityLog}).then(function(r){setStat(r&&r.ok?'Saved ✓':'Saved on this device',r&&r.ok);}).catch(function(){setStat('Saved on this device (offline)',false);});}
+  function saveNow(){if(!code)return;var vis=boxes.filter(function(b){return b.offsetParent!==null;}).length;setStat('Saving…',false);api({action:'save',code:code,progress:progressMap(),total:vis,pathway:currentPath,emd:emd,md:md,ft_log:ftLog,carrier_codes:carriersPayload(),warm_market:warmMarket,activity_log:activityLog,promo:promoData}).then(function(r){setStat(r&&r.ok?'Saved ✓':'Saved on this device',r&&r.ok);}).catch(function(){setStat('Saved on this device (offline)',false);});}
   function populateMd(selected){
     var sel=el('mdSel');if(!sel)return;
     if(!emd){sel.innerHTML='<option value="">— Select your Executive Broker first —</option>';sel.disabled=true;return;}
@@ -1246,7 +1301,7 @@
         ftLog=res.agent.ft_log||{};
         applyProgress(res.agent.progress);
         applyCarriers(res.agent.carrier_codes); bizCount();
-        warmMarket=res.agent.warm_market||[]; activityLog=res.agent.activity_log||[]; renderWarm(); renderActivity(); restoreUpline(res.agent.emd,res.agent.md);
+        warmMarket=res.agent.warm_market||[]; activityLog=res.agent.activity_log||[]; promoData=res.agent.promo||{}; renderWarm(); renderActivity(); renderPromo(); restoreUpline(res.agent.emd,res.agent.md);
         showApp(res.agent.first_name+' '+res.agent.last_name);
         restorePath(res.agent.pathway);
         update(); loadDaily(res.agent);
