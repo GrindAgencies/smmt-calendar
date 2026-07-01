@@ -7,66 +7,71 @@
 <link rel="icon" href="logo.png">
 <style>
 *{box-sizing:border-box}
-body{margin:0;background:#0a0905;color:#efe7d0;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;}
-.wrap{max-width:1180px;margin:0 auto;padding-bottom:80px;}
+body{margin:0;background:radial-gradient(1200px 600px at 50% -10%,#171207 0%,#0a0905 60%);color:#efe7d0;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;}
+.wrap{max-width:1200px;margin:0 auto;padding-bottom:90px;}
 a{color:inherit}
-.head{text-align:center;padding:24px 16px 4px;}
-.head .wm{font-size:11px;letter-spacing:.32em;text-transform:uppercase;color:#b6a982;font-weight:700;}
-.head h1{margin:6px 0 2px;font-size:26px;font-weight:900;background:linear-gradient(180deg,#fff4cf,#f7d873 55%,#cda22f);-webkit-background-clip:text;background-clip:text;color:transparent;}
-.head .sub{font-size:13px;color:#b6a982;max-width:660px;margin:0 auto;}
-.legend{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:center;font-size:12px;color:#b6a982;margin:12px 16px 6px;}
+.head{text-align:center;padding:26px 16px 4px;}
+.head .wm{font-size:11px;letter-spacing:.34em;text-transform:uppercase;color:#b6a982;font-weight:700;}
+.head h1{margin:6px 0 2px;font-size:27px;font-weight:900;letter-spacing:-.01em;background:linear-gradient(180deg,#fff4cf,#f7d873 55%,#cda22f);-webkit-background-clip:text;background-clip:text;color:transparent;}
+.head .sub{font-size:13px;color:#b6a982;max-width:680px;margin:0 auto;}
+
+.stats{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:16px 16px 4px;}
+.stat{background:linear-gradient(160deg,#15110a,#0c0a05);border:1px solid #2a2206;border-radius:13px;padding:9px 16px;text-align:center;min-width:96px;}
+.stat b{display:block;font-size:20px;font-weight:900;color:#fff6da;line-height:1;}
+.stat span{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:#b6a982;font-weight:700;}
+.stat.senior b{color:#9cc7f5;}.stat.tl b{color:#6fdcb8;}.stat.agent b{color:#e7cf94;}
+
+.legend{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:center;font-size:12px;color:#b6a982;margin:12px 16px 6px;}
 .legc{display:inline-flex;align-items:center;gap:6px;}
-.sw{width:12px;height:12px;border-radius:4px;display:inline-block;}
-.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;margin:10px 16px;}
-.bar button{font:inherit;cursor:pointer;font-size:12.5px;font-weight:800;color:#1c1206;background:linear-gradient(180deg,#edc657,#cda22f);border:1px solid #b6901f;border-radius:999px;padding:8px 14px;}
-.bar button.ghost{background:#171206;color:#f7d873;border:1px solid #8a6d1f;}
-.bar button.danger{background:#2a1410;color:#f3b0a2;border:1px solid #8a3a2a;}
-.bar button:disabled{opacity:.45;cursor:not-allowed;}
+.dotc{width:11px;height:11px;border-radius:50%;display:inline-block;}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;margin:12px 16px;}
+.bar button{font:inherit;cursor:pointer;font-size:12.5px;font-weight:800;color:#1c1206;background:linear-gradient(180deg,#edc657,#cda22f);border:1px solid #b6901f;border-radius:999px;padding:8px 14px;box-shadow:0 2px 6px rgba(120,90,10,.25);}
+.bar button.ghost{background:#171206;color:#f7d873;border:1px solid #8a6d1f;box-shadow:none;}
+.bar button.danger{background:#2a1410;color:#f3b0a2;border:1px solid #8a3a2a;box-shadow:none;}
+.bar button:disabled{opacity:.4;cursor:not-allowed;}
 .count-badge{font-size:12px;color:#b6a982;}
-.note{margin:6px 16px 0;border:1px solid #4a3c12;border-radius:12px;background:#140f06;padding:12px 14px;font-size:12.5px;color:#d7c99f;line-height:1.5;}
-.note b{color:#f7d873;}
-.editbanner{margin:10px 16px 0;border:1px solid #3b6ea5;border-radius:12px;background:rgba(59,110,165,.12);padding:11px 14px;font-size:12.5px;color:#bcdcff;line-height:1.5;display:none;}
+.editbanner{margin:8px 16px 0;border:1px solid #3b6ea5;border-radius:12px;background:rgba(59,110,165,.12);padding:11px 14px;font-size:12.5px;color:#bcdcff;line-height:1.5;display:none;}
 .editbanner.on{display:block;}
 .editbanner b{color:#e7f0fb;}
 
-.tree{margin:16px;}
-ul.br{list-style:none;margin:0;padding-left:26px;position:relative;}
+.tree{margin:18px 16px;}
+ul.br{list-style:none;margin:0;padding-left:30px;position:relative;}
 ul.br.root{padding-left:0;}
-li.node{position:relative;margin:7px 0;}
-ul.br:not(.root)>li.node::before{content:"";position:absolute;left:-14px;top:20px;width:14px;height:1px;background:#3a2f0a;}
-ul.br:not(.root)>li.node::after{content:"";position:absolute;left:-14px;top:-7px;bottom:0;width:1px;background:#3a2f0a;}
-ul.br:not(.root)>li.node:last-child::after{height:27px;}
+li.node{position:relative;margin:9px 0;}
+ul.br:not(.root)>li.node::before{content:"";position:absolute;left:-16px;top:26px;width:16px;height:2px;background:linear-gradient(90deg,#463913,#6b5a24);border-radius:2px;}
+ul.br:not(.root)>li.node::after{content:"";position:absolute;left:-16px;top:-9px;bottom:0;width:2px;background:#3a2f0a;border-radius:2px;}
+ul.br:not(.root)>li.node:last-child::after{height:35px;}
 
-.card{display:inline-flex;align-items:center;gap:9px;border:1px solid #2a2206;border-left-width:4px;border-radius:11px;background:#100d06;padding:8px 12px;}
-.card .tog{cursor:pointer;width:18px;height:18px;flex:0 0 18px;border-radius:5px;border:1px solid #6b5f38;background:#1a1408;color:#f7d873;font-weight:900;font-size:12px;line-height:16px;text-align:center;user-select:none;}
-.card .tog.leaf{visibility:hidden;}
-.card .grip{display:none;cursor:grab;color:#8a7d4f;font-size:14px;padding:0 2px;}
-.card .nm{font-weight:800;font-size:14.5px;color:#fff6da;white-space:nowrap;}
-.card .role{font-size:9.5px;font-weight:900;text-transform:uppercase;letter-spacing:.04em;padding:2px 7px;border-radius:999px;}
-.card .gfi{font-size:11px;color:#8f855f;font-weight:700;font-family:ui-monospace,Menlo,monospace;}
-.card .er{font-size:10px;font-weight:900;color:#0a0a0a;background:linear-gradient(180deg,#edc657,#cda22f);border-radius:999px;padding:2px 8px;}
-.card .kids{font-size:11px;color:#b6a982;font-weight:700;}
-.card .rea{display:none;cursor:pointer;font-size:11px;font-weight:800;color:#bcdcff;background:rgba(59,110,165,.14);border:1px solid #3b6ea5;border-radius:999px;padding:3px 9px;}
-.card.exec{border-left-color:#f7d873;background:linear-gradient(160deg,#221a08,#100d06);}
-.card.exec .nm{font-size:17px;}
-.card.senior{border-left-color:#7fb0e6;}
-.card.broker{border-left-color:#b89a55;}
-.card.agent{border-left-color:#4a3f1c;}
-.role.exec{background:linear-gradient(90deg,#f7d873,#d4af37);color:#241400;}
-.role.senior{background:rgba(127,176,230,.16);color:#bcdcff;border:1px solid #3b6ea5;}
-.role.broker{background:rgba(184,154,85,.16);color:#e7cf94;border:1px solid #7a661a;}
-.role.agent{background:#1a1408;color:#b6a982;border:1px solid #3a2f0a;}
+.card{display:inline-flex;align-items:center;gap:11px;border:1px solid #2a2206;border-radius:14px;background:linear-gradient(160deg,#16110a,#0e0b06);padding:9px 14px 9px 10px;box-shadow:0 2px 10px rgba(0,0,0,.28);transition:.14s;position:relative;}
+.card:hover{border-color:#4a3f1c;transform:translateY(-1px);}
+.av{width:38px;height:38px;flex:0 0 38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;color:#0c0a05;letter-spacing:.02em;box-shadow:inset 0 0 0 2px rgba(255,255,255,.12);}
+.card .tog{cursor:pointer;width:19px;height:19px;flex:0 0 19px;border-radius:6px;border:1px solid #6b5f38;background:#1a1408;color:#f7d873;font-weight:900;font-size:12px;line-height:17px;text-align:center;user-select:none;}
+.card .tog.leaf{visibility:hidden;width:6px;flex-basis:6px;}
+.card .grip{display:none;cursor:grab;color:#8a7d4f;font-size:15px;}
+.who{display:flex;flex-direction:column;gap:3px;min-width:0;}
+.who .nm{font-weight:800;font-size:15px;color:#fff6da;white-space:nowrap;line-height:1;}
+.who .meta{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+.role{font-size:9.5px;font-weight:900;text-transform:uppercase;letter-spacing:.04em;padding:2px 8px;border-radius:999px;}
+.gfi{font-size:10.5px;color:#8f855f;font-weight:700;font-family:ui-monospace,Menlo,monospace;}
+.er{font-size:10px;font-weight:900;color:#0a0a0a;background:linear-gradient(180deg,#edc657,#cda22f);border-radius:999px;padding:1px 7px;}
+.kids{font-size:10.5px;color:#b6a982;font-weight:700;}
+.rea{display:none;cursor:pointer;font-size:11px;font-weight:800;color:#bcdcff;background:rgba(59,110,165,.16);border:1px solid #3b6ea5;border-radius:999px;padding:3px 10px;margin-left:2px;}
+/* role palettes */
+.card.exec{border-color:#8a6d1f;background:linear-gradient(160deg,#241a08,#100d06);}
+.av.exec{background:linear-gradient(180deg,#ffe08a,#d4af37);} .role.exec{background:linear-gradient(90deg,#f7d873,#d4af37);color:#241400;} .card.exec .nm{font-size:19px;}
+.av.senior{background:linear-gradient(180deg,#bcdcff,#6fa2e0);} .role.senior{background:rgba(127,176,230,.18);color:#bcdcff;border:1px solid #3b6ea5;} .card.senior{border-color:#3b6ea5;}
+.av.tl{background:linear-gradient(180deg,#8fe8cd,#3bbf95);} .role.tl{background:rgba(89,201,165,.16);color:#8fe8cd;border:1px solid #2c8f6f;}
+.av.trainer{background:linear-gradient(180deg,#d6b8f2,#a678d6);} .role.trainer{background:rgba(185,140,224,.16);color:#d6b8f2;border:1px solid #7d55a8;}
+.av.agent{background:linear-gradient(180deg,#d8c99a,#8a7d4f);} .role.agent{background:#1a1408;color:#c9bd97;border:1px solid #3a2f0a;}
 li.collapsed>ul.br{display:none;}
-/* edit mode */
 body.editing .card .grip{display:inline;}
 body.editing .card .rea{display:inline;}
-body.editing .card{cursor:default;}
-.card.dragging{opacity:.5;}
-.card.drop-hover{outline:2px dashed #7fb0e6;outline-offset:2px;background:#15243a;}
+.card.dragging{opacity:.45;}
+.card.drop-hover{outline:2px dashed #7fb0e6;outline-offset:3px;background:#15243a;}
 .foot{margin:22px 16px 0;font-size:11.5px;color:#7c7358;text-align:center;}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#1a1408;border:1px solid #8a6d1f;color:#fff6da;padding:10px 16px;border-radius:10px;font-size:13px;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:.2s;z-index:90;}
 .toast.show{opacity:1;}
-.spin{text-align:center;color:#b6a982;padding:36px;font-style:italic;}
+.spin{text-align:center;color:#b6a982;padding:40px;font-style:italic;}
 </style>
 <style id="ga-shell">
 :root{--ga-gold:#d4af37;--ga-gold-br:#f7d873;--ga-gold-dp:#8a6d1f;--ga-muted:#b6a982;--ga-line:#2a2206;}
@@ -100,15 +105,18 @@ body.editing .card{cursor:default;}
   <div class="head">
     <div class="wm">The Standard Financial Group</div>
     <h1>Organizational Chart</h1>
-    <div class="sub">The GRIND downline, rooted at Elijah Cox. Click ▸ to expand a leg. Turn on Edit to drag people to a new upline or tap ⇄ to reassign.</div>
+    <div class="sub">The GRIND downline, rooted at Elijah Cox. Click ▸ to open a leg. Turn on Edit to drag someone to a new upline or tap ⇄ to reassign.</div>
   </div>
 
+  <div class="stats" id="stats"></div>
+
   <div class="legend">
-    <span class="legc"><span class="sw" style="background:#f7d873"></span>Executive Broker</span>
-    <span class="legc"><span class="sw" style="background:#7fb0e6"></span>Senior Broker</span>
-    <span class="legc"><span class="sw" style="background:#b89a55"></span>Broker / Leg lead</span>
-    <span class="legc"><span class="sw" style="background:#4a3f1c"></span>Agent</span>
-    <span class="legc"><span class="er">80</span> = %ER tier</span>
+    <span class="legc"><span class="dotc" style="background:#f7d873"></span>Executive Broker</span>
+    <span class="legc"><span class="dotc" style="background:#7fb0e6"></span>Senior Broker</span>
+    <span class="legc"><span class="dotc" style="background:#59c9a5"></span>Training Leader</span>
+    <span class="legc"><span class="dotc" style="background:#b98ce0"></span>Trainer</span>
+    <span class="legc"><span class="dotc" style="background:#a99a6a"></span>Agent</span>
+    <span class="legc"><span class="er">80</span>= %ER tier</span>
   </div>
 
   <div class="bar">
@@ -121,11 +129,7 @@ body.editing .card{cursor:default;}
   </div>
 
   <div class="editbanner" id="editBanner">
-    <b>Edit mode on.</b> Drag any card by the ⠿ grip onto a new upline, or tap <b>⇄ Reassign</b> to pick from a list. Moves are local until you hit <b>Save changes</b>. You can't drop someone onto their own downline.
-  </div>
-
-  <div class="note" id="noteBox">
-    <b>Christopher Lorenz</b> and <b>Edgar Zavala</b> are your Senior Brokers under Eli. Per the GRIND tracker, <b>David Adams</b> and <b>Todd Doyle</b> currently report straight to Eli. Use Edit mode to move anyone as the team grows.
+    <b>Edit mode on.</b> Drag any card by the ⠿ grip onto a new upline, or tap <b>⇄ Reassign</b> to choose from a list. Moves stage locally until you press <b>Save changes</b>. You can't drop someone onto their own downline.
   </div>
 
   <div class="tree" id="tree"><div class="spin">Loading the org…</div></div>
@@ -135,7 +139,7 @@ body.editing .card{cursor:default;}
 
 <script>
 const API="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/tracker-api";
-const roleLabel={exec:"Exec Broker",senior:"Senior Broker",broker:"Broker",agent:"Agent"};
+const roleLabel={exec:"Exec Broker",senior:"Senior Broker",tl:"Training Leader",trainer:"Trainer",agent:"Agent"};
 let DATA=null, NODES=[], byId={}, kids={}, ROOT="ELI";
 let editing=false, dirty=false, TOKEN="", dragId=null, orig=null;
 
@@ -143,15 +147,23 @@ const $=(id)=>document.getElementById(id);
 function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),1900);}
 function erNorm(v){ if(!v) return ''; return String(v).toUpperCase().replace('O','0'); }
+function initials(name){ const p=(name||'').trim().split(/\s+/); return ((p[0]||'')[0]||'')+((p[1]||'')[0]||''); }
 
 function reindex(){
   byId={}; kids={};
   NODES.forEach(n=>{ byId[n.id]=n; kids[n.id]=[]; });
   NODES.forEach(n=>{ if(n.parent && kids[n.parent]) kids[n.parent].push(n); });
+  // sort children: leaders (with kids) first, then by role weight, then name
+  const w={exec:0,senior:1,tl:2,trainer:3,agent:4};
+  Object.keys(kids).forEach(k=>kids[k].sort((a,b)=>{
+    const la=(kids[a.id]||[]).length>0?0:1, lb=(kids[b.id]||[]).length>0?0:1;
+    if(la!==lb) return la-lb;
+    if((w[a.role]||9)!==(w[b.role]||9)) return (w[a.role]||9)-(w[b.role]||9);
+    return a.name.localeCompare(b.name);
+  }));
 }
 function countDesc(id){ let c=(kids[id]||[]).length; (kids[id]||[]).forEach(k=>c+=countDesc(k.id)); return c; }
 function isDescendant(ancestorId, maybeId){
-  // true if maybeId is in the subtree of ancestorId
   let stack=[...(kids[ancestorId]||[])];
   while(stack.length){ const n=stack.pop(); if(n.id===maybeId) return true; stack.push(...(kids[n.id]||[])); }
   return false;
@@ -167,12 +179,14 @@ function renderNode(id, depth){
   let c='<div class="card '+n.role+'" data-id="'+esc(n.id)+'" '+(editing?'draggable="true"':'')+'>';
   c+='<span class="grip" title="Drag to a new upline">⠿</span>';
   c+='<span class="tog'+(has?'':' leaf')+'">'+(has?(collapsed?'▸':'▾'):'')+'</span>';
-  c+='<span class="nm">'+esc(n.name)+'</span>';
+  c+='<span class="av '+n.role+'">'+esc(initials(n.name).toUpperCase())+'</span>';
+  c+='<span class="who"><span class="nm">'+esc(n.name)+'</span><span class="meta">';
   c+='<span class="role '+n.role+'">'+(roleLabel[n.role]||'')+'</span>';
   if(n.gfi) c+='<span class="gfi">'+esc(n.gfi)+'</span>';
   if(er) c+='<span class="er">'+esc(er)+'</span>';
   if(has) c+='<span class="kids">'+desc+' downline</span>';
   if(n.id!==ROOT) c+='<span class="rea" onclick="reassignPrompt(\''+esc(n.id)+'\')">⇄ Reassign</span>';
+  c+='</span></span>';
   c+='</div>';
   let sub='';
   if(has){ sub='<ul class="br">'+ch.map(k=>renderNode(k.id,depth+1)).join('')+'</ul>'; }
@@ -181,8 +195,16 @@ function renderNode(id, depth){
 function render(){
   reindex();
   $('tree').innerHTML='<ul class="br root">'+renderNode(ROOT,0)+'</ul>';
-  const total=NODES.length, leaders=NODES.filter(n=>(kids[n.id]||[]).length>0).length;
-  $('countBadge').textContent=total+' people · '+leaders+' with a downline';
+  const total=NODES.length;
+  const cnt=(r)=>NODES.filter(n=>n.role===r).length;
+  $('stats').innerHTML=
+    '<div class="stat"><b>'+total+'</b><span>People</span></div>'+
+    '<div class="stat senior"><b>'+cnt('senior')+'</b><span>Senior Brokers</span></div>'+
+    '<div class="stat tl"><b>'+cnt('tl')+'</b><span>Training Leaders</span></div>'+
+    '<div class="stat"><b>'+cnt('trainer')+'</b><span>Trainers</span></div>'+
+    '<div class="stat agent"><b>'+cnt('agent')+'</b><span>Agents</span></div>';
+  const leaders=NODES.filter(n=>(kids[n.id]||[]).length>0).length;
+  $('countBadge').textContent=leaders+' with a downline';
   $('saveBtn').disabled=!dirty; $('revertBtn').disabled=!dirty;
 }
 
@@ -192,8 +214,7 @@ function setParent(childId, newParent){
   if(n.parent===newParent){ toast('Already there'); return; }
   if(childId===ROOT){ toast("Can't move the top"); return; }
   if(isDescendant(childId,newParent)){ toast("Can't move someone under their own downline"); return; }
-  // preserve open state across re-render
-  NODES.forEach(x=>{ const li=document.querySelector('li.node[data-id="'+CSS.escape(x.id)+'"]'); if(li) x._open = !li.classList.contains('collapsed'); });
+  NODES.forEach(x=>{ const li=document.querySelector('li.node[data-id="'+CSS.escape(x.id)+'"]'); if(li) x._open=!li.classList.contains('collapsed'); });
   byId[newParent]._open=true;
   n.parent=newParent; dirty=true; render();
   toast(n.name+' → '+byId[newParent].name);
@@ -244,8 +265,7 @@ window.save=async function(){
 
 window.revert=function(){
   if(!orig) return;
-  const map=JSON.parse(orig);
-  const pm={}; map.forEach(x=>pm[x.id]=x.parent);
+  const pm={}; JSON.parse(orig).forEach(x=>pm[x.id]=x.parent);
   NODES.forEach(n=>{ if(pm[n.id]!==undefined) n.parent=pm[n.id]; });
   dirty=false; render(); toast('Reverted staged moves');
 };
@@ -260,21 +280,19 @@ window.expandAll=function(open){
   });
 };
 
-// toggle expand/collapse + drag/drop delegation
 $('tree').addEventListener('click', function(e){
+  if(e.target.closest('.rea')||e.target.closest('.grip')) return;
   const t=e.target.closest('.tog'); if(!t) return;
   const li=t.closest('li.node'); if(!li||!li.querySelector(':scope > ul.br')) return;
   const col=li.classList.toggle('collapsed'); t.textContent=col?'▸':'▾';
 });
 $('tree').addEventListener('dragstart', function(e){
   const card=e.target.closest('.card'); if(!card||!editing) return;
-  dragId=card.getAttribute('data-id'); card.classList.add('dragging');
-  e.dataTransfer.effectAllowed='move';
+  dragId=card.getAttribute('data-id'); card.classList.add('dragging'); e.dataTransfer.effectAllowed='move';
 });
 $('tree').addEventListener('dragend', function(e){
   const card=e.target.closest('.card'); if(card) card.classList.remove('dragging');
-  document.querySelectorAll('.drop-hover').forEach(x=>x.classList.remove('drop-hover'));
-  dragId=null;
+  document.querySelectorAll('.drop-hover').forEach(x=>x.classList.remove('drop-hover')); dragId=null;
 });
 $('tree').addEventListener('dragover', function(e){
   if(!editing||!dragId) return;
@@ -282,16 +300,12 @@ $('tree').addEventListener('dragover', function(e){
   const tid=card.getAttribute('data-id');
   if(tid===dragId||isDescendant(dragId,tid)) return;
   e.preventDefault();
-  document.querySelectorAll('.drop-hover').forEach(x=>x.classList.remove('drop-hover'));
-  card.classList.add('drop-hover');
+  document.querySelectorAll('.drop-hover').forEach(x=>x.classList.remove('drop-hover')); card.classList.add('drop-hover');
 });
 $('tree').addEventListener('drop', function(e){
   if(!editing||!dragId) return;
   const card=e.target.closest('.card'); if(!card) return;
-  e.preventDefault();
-  const tid=card.getAttribute('data-id');
-  setParent(dragId, tid);
-  dragId=null;
+  e.preventDefault(); setParent(dragId, card.getAttribute('data-id')); dragId=null;
 });
 
 async function load(){
