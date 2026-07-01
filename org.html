@@ -85,6 +85,8 @@ body.editing .card:active{cursor:grabbing;}
 /* status colors */
 .av.c-exec{background:linear-gradient(180deg,#ffe08a,#d4af37);} .card.c-exec{border-top-color:#e8c14a;}
 .av.c-senior{background:linear-gradient(180deg,#bcdcff,#6fa2e0);} .card.c-senior{border-top-color:#7fb0e6;}
+.av.c-cft{background:linear-gradient(180deg,#f0d08a,#c99433);} .card.c-cft{border-top-color:#d9a83a;}
+.role.c-cft{background:linear-gradient(90deg,#ffe3a0,#e0b84a);color:#3a2a12;border:1px solid #b6901f;}
 .av.c-green{background:linear-gradient(180deg,#8fe8bf,#34b57d);} .card.c-green{border-top-color:#3ec98a;}
 .av.c-yellow{background:linear-gradient(180deg,#ffe89a,#e6b93a);} .card.c-yellow{border-top-color:#f7d873;}
 .av.c-red{background:linear-gradient(180deg,#f4a898,#d6543c);} .card.c-red{border-top-color:#e0533d;}
@@ -136,12 +138,13 @@ body.editing .card:active{cursor:grabbing;}
 
   <div class="stats" id="stats"></div>
   <div class="legend">
-    <span class="legc"><span class="dotc" style="background:#7fb0e6"></span>Senior Broker</span>
+    <span class="legc"><span class="dotc" style="background:#e8c14a"></span>Executive MD</span>
+    <span class="legc"><span class="dotc" style="background:#7fb0e6"></span>Marketing Director</span>
+    <span class="legc"><span class="dotc" style="background:#d9a83a"></span>🏵️ Certified Field Trainer</span>
     <span class="legc"><span class="dotc" style="background:#3ec98a"></span>Active</span>
     <span class="legc"><span class="dotc" style="background:#f7d873"></span>Slow</span>
     <span class="legc"><span class="dotc" style="background:#e0533d"></span>Stalled</span>
-    <span class="legc"><span class="dotc" style="background:#e8c14a"></span>Exec</span>
-    <span class="legc"><span class="dotc" style="background:#8a7d4f"></span>No data yet</span>
+    <span class="legc"><span class="dotc" style="background:#8a7d4f"></span>No data</span>
   </div>
   <div class="bar">
     <button onclick="expandAll(true)">⤢ Expand all</button>
@@ -170,7 +173,7 @@ body.editing .card:active{cursor:grabbing;}
 
 <script>
 const API="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/tracker-api";
-const roleLabel={exec:"Exec Broker",senior:"Senior Broker",tl:"Training Leader",trainer:"Trainer",agent:"Agent"};
+const roleLabel={exec:"Executive Marketing Director",senior:"Marketing Director",cft:"Certified Field Trainer",tl:"Senior Associate",trainer:"Certified Field Trainer",agent:"Associate"};
 let NODES=[], byId={}, ROOT="ELI", STATUS={}, LEADS={};
 let editing=false, dirty=false, EDITOR="", orig=null;
 const openSet=new Set();
@@ -186,6 +189,7 @@ function isDescendant(anc,maybe){ let st=childrenSorted(anc).slice(); while(st.l
 function colorClass(n){
   if(n.role==='exec') return 'c-exec';
   if(n.role==='senior') return 'c-senior';
+  if(n.role==='cft'||n.role==='trainer') return 'c-cft';
   const st=STATUS[(n.gfi||'').toUpperCase()];
   if(!st||!st.s) return 'c-none';
   if(st.s==='green') return 'c-green';
@@ -200,7 +204,7 @@ function renderNode(id){
   c+='<div class="av '+cc+'">'+esc(initials(n.name))+'</div>';
   c+='<div class="nm" onclick="openLeads(event,\''+esc(n.id)+'\')" title="Open '+esc(n.name)+'&#39;s marketing plan">'+esc(n.name)+'</div>';
   c+='<div class="cmeta">';
-  if(n.role==='exec'||n.role==='senior') c+='<span class="role '+cc+'">'+roleLabel[n.role]+'</span>';
+  if(n.role==='exec'||n.role==='senior'||n.role==='cft'||n.role==='trainer'){var em=(n.role==='cft'||n.role==='trainer')?'🏵️ ':'';c+='<span class="role '+cc+'">'+em+roleLabel[n.role]+'</span>';}
   if(n.gfi) c+='<span class="gfi">'+esc(n.gfi)+'</span>';
   c+='</div>';
   if(n.id!==ROOT) c+='<span class="rea" title="Reassign" onclick="reassignPrompt(event,\''+esc(n.id)+'\')">⇄</span>';
@@ -218,7 +222,8 @@ function render(){
   NODES.forEach(n=>{ if(n.role==='exec'||n.role==='senior')return; const st=STATUS[(n.gfi||'').toUpperCase()]; if(!st||!st.s)return; if(st.s==='green')g++; else if(st.s==='red')rd++; else y++; });
   $('stats').innerHTML=
     '<div class="stat"><b>'+total+'</b><span>People</span></div>'+
-    '<div class="stat blu"><b>'+cnt('senior')+'</b><span>Senior Brokers</span></div>'+
+    '<div class="stat blu"><b>'+cnt('senior')+'</b><span>Marketing Directors</span></div>'+
+    '<div class="stat"><b>'+cnt('cft')+'</b><span>Field Trainers</span></div>'+
     '<div class="stat grn"><b>'+g+'</b><span>Active</span></div>'+
     '<div class="stat yel"><b>'+y+'</b><span>Slow</span></div>'+
     '<div class="stat red"><b>'+rd+'</b><span>Stalled</span></div>';
@@ -283,14 +288,14 @@ window.deleteNode=function(ev,id){
 window.toggleEdit=function(){
   if(!editing){
     const seniors=NODES.filter(n=>n.role==='senior').map(n=>n.name);
-    if(!seniors.length){ alert('No Senior Brokers are set up in the chart yet.'); return; }
+    if(!seniors.length){ alert('No Marketing Directors are set up in the chart yet.'); return; }
     const list=seniors.map((s,i)=>(i+1)+'. '+s).join('\n');
-    const p=prompt('Editing the org chart is for Senior Brokers only.\nType your name (or the number next to it):\n\n'+list);
+    const p=prompt('Editing the org chart is for Marketing Directors only.\nType your name (or the number next to it):\n\n'+list);
     if(!p) return;
     let name=''; const num=parseInt(p,10);
     if(!isNaN(num)&&num>=1&&num<=seniors.length) name=seniors[num-1];
     else { const m=seniors.find(s=>s.toLowerCase()===p.trim().toLowerCase()); name=m||''; }
-    if(!name){ alert("Senior Brokers only — that's not a Senior Broker name."); return; }
+    if(!name){ alert("Marketing Directors only — that's not a Marketing Director name."); return; }
     EDITOR=name; editing=true; document.body.classList.add('editing');
     $('editBtn').textContent='✓ Done ('+name.split(' ')[0]+')'; $('editBtn').classList.remove('ghost'); $('editBanner').classList.add('on');
     orig=JSON.stringify(NODES);
@@ -308,7 +313,7 @@ window.save=async function(){
     const r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'setorg',by:EDITOR,value})});
     const d=await r.json();
     if(d.ok){ dirty=false; orig=JSON.stringify(NODES); toast('Hierarchy saved ✓'); }
-    else toast(d.error==='unauthorized'?'Senior Brokers only':'Save failed');
+    else toast(d.error==='unauthorized'?'Marketing Directors only':'Save failed');
   }catch(e){ toast('Network error — try again'); }
   $('saveBtn').textContent='💾 Save changes'; $('saveBtn').disabled=!dirty; $('revertBtn').disabled=!dirty;
 };
