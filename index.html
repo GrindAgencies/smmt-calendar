@@ -587,13 +587,18 @@
         .cftsave{font:inherit;cursor:pointer;font-size:12px;font-weight:900;color:#0a0a0a;background:linear-gradient(90deg,var(--gold-bright),var(--gold));border:none;border-radius:999px;padding:9px 16px;margin-top:8px;}
         .cftneed{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:2px 0 11px;}
         .cftneed-l{font-size:11.5px;font-weight:900;color:var(--gold);text-transform:uppercase;letter-spacing:.05em;margin-right:2px;}
-        .cftneed button{font:inherit;cursor:pointer;font-size:12px;font-weight:800;color:#1c1206;background:linear-gradient(180deg,#edc657,#cda22f);border:1px solid #b6901f;border-radius:999px;padding:6px 11px;}
-        .cftneed button:hover{filter:brightness(1.05);}
+        .cftneed button{font:inherit;cursor:pointer;font-size:12px;font-weight:800;border-radius:999px;padding:6px 12px;border:1px solid;transition:.12s;}
+        .cftneed button:hover{filter:brightness(1.04);transform:translateY(-1px);}
+        .cftneed .b-ft{color:#155e42;background:#e6f7ee;border-color:#8fd3ab;}
+        .cftneed .b-hire{color:#1e4b86;background:#e9f1fc;border-color:#9cc1ee;}
+        .cftneed .b-mil{color:#5a4634;background:#efe7dc;border-color:#cbb69d;}
+        .cftneed .b-es{color:#6b2fb3;background:#f2ebfb;border-color:#c4a9ec;}
+        .cftneed .b-all{color:#6f6553;background:#f1ede3;border-color:#ddd3bf;}
       </style>
       <div class="cftcal" id="cftcal">
         <div class="cftcal-h">🗓️ Book a trainer — CFT &amp; MD availability</div>
         <div class="cftcal-sub">Tap a day to see every open time — MDs and CFTs — each with a one-tap Book button. No calendar hunting.</div>
-        <div class="cftneed" id="cftNeed"><span class="cftneed-l">I need a…</span><button onclick="cftNeed('MD',false)">🎤 Client presentation</button><button onclick="cftNeed('MD',false)">🤝 Recruiting interview</button><button onclick="cftNeed('CFT',false)">🏋️ Field training</button><button onclick="cftNeed('all',true)">★ Spanish-speaking</button><button onclick="cftNeed('all',false)">↺ Show all</button></div>
+        <div class="cftneed" id="cftNeed"><span class="cftneed-l">I need a…</span><button class="b-ft" onclick="cftNeed('CFT',false)">🏋️ Field Training</button><button class="b-hire" onclick="cftNeed('MD',false)">🤝 Hiring Interview</button><button class="b-mil" onclick="cftNeed('MD',false)">🎖️ Military Consultation</button><button class="b-es" onclick="cftNeed('all',true)">🗣️ Spanish Speaking Call</button><button class="b-all" onclick="cftNeed('all',false)">↺ All</button></div>
         <div class="cftcal-top"><div class="cftcal-days" id="cftDays"></div><div class="cftfilters"><button class="cftrole on" data-r="all" onclick="cftRole('all')">All</button><button class="cftrole" data-r="MD" onclick="cftRole('MD')">MDs</button><button class="cftrole" data-r="CFT" onclick="cftRole('CFT')">CFTs</button><button class="cftsp" id="cftSp" onclick="cftSpanish()">&#9733; Spanish</button></div></div>
         <div id="cftBody"><span class="cftcal-hint">Loading availability&hellip;</span></div>
         <div class="cftcal-foot"><span id="cftUpdated" class="cftcal-hint"></span><button class="cftedit-btn" id="cftEditBtn" onclick="cftEdit()">&#9999;&#65039; Update availability (leadership)</button></div>
