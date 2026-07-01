@@ -8,38 +8,45 @@
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#0a0905;color:#efe7d0;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;}
-.wrap{max-width:1180px;margin:0 auto;padding-bottom:70px;}
+.wrap{max-width:1180px;margin:0 auto;padding-bottom:80px;}
 a{color:inherit}
 .head{text-align:center;padding:24px 16px 4px;}
 .head .wm{font-size:11px;letter-spacing:.32em;text-transform:uppercase;color:#b6a982;font-weight:700;}
 .head h1{margin:6px 0 2px;font-size:26px;font-weight:900;background:linear-gradient(180deg,#fff4cf,#f7d873 55%,#cda22f);-webkit-background-clip:text;background-clip:text;color:transparent;}
-.head .sub{font-size:13px;color:#b6a982;max-width:640px;margin:0 auto;}
-.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;margin:14px 16px;}
-.legend{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:center;font-size:12px;color:#b6a982;margin:0 16px 6px;}
+.head .sub{font-size:13px;color:#b6a982;max-width:660px;margin:0 auto;}
+.legend{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:center;font-size:12px;color:#b6a982;margin:12px 16px 6px;}
 .legc{display:inline-flex;align-items:center;gap:6px;}
 .sw{width:12px;height:12px;border-radius:4px;display:inline-block;}
-.controls button{font:inherit;cursor:pointer;font-size:12px;font-weight:800;color:#1c1206;background:linear-gradient(180deg,#edc657,#cda22f);border:1px solid #b6901f;border-radius:999px;padding:7px 13px;}
-.controls button.ghost{background:#171206;color:#f7d873;border:1px solid #8a6d1f;}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;margin:10px 16px;}
+.bar button{font:inherit;cursor:pointer;font-size:12.5px;font-weight:800;color:#1c1206;background:linear-gradient(180deg,#edc657,#cda22f);border:1px solid #b6901f;border-radius:999px;padding:8px 14px;}
+.bar button.ghost{background:#171206;color:#f7d873;border:1px solid #8a6d1f;}
+.bar button.danger{background:#2a1410;color:#f3b0a2;border:1px solid #8a3a2a;}
+.bar button:disabled{opacity:.45;cursor:not-allowed;}
+.count-badge{font-size:12px;color:#b6a982;}
 .note{margin:6px 16px 0;border:1px solid #4a3c12;border-radius:12px;background:#140f06;padding:12px 14px;font-size:12.5px;color:#d7c99f;line-height:1.5;}
 .note b{color:#f7d873;}
+.editbanner{margin:10px 16px 0;border:1px solid #3b6ea5;border-radius:12px;background:rgba(59,110,165,.12);padding:11px 14px;font-size:12.5px;color:#bcdcff;line-height:1.5;display:none;}
+.editbanner.on{display:block;}
+.editbanner b{color:#e7f0fb;}
 
 .tree{margin:16px;}
 ul.br{list-style:none;margin:0;padding-left:26px;position:relative;}
 ul.br.root{padding-left:0;}
 li.node{position:relative;margin:7px 0;}
-/* connector lines */
 ul.br:not(.root)>li.node::before{content:"";position:absolute;left:-14px;top:20px;width:14px;height:1px;background:#3a2f0a;}
 ul.br:not(.root)>li.node::after{content:"";position:absolute;left:-14px;top:-7px;bottom:0;width:1px;background:#3a2f0a;}
 ul.br:not(.root)>li.node:last-child::after{height:27px;}
 
-.card{display:inline-flex;align-items:center;gap:10px;border:1px solid #2a2206;border-left-width:4px;border-radius:11px;background:#100d06;padding:8px 12px;min-width:0;}
+.card{display:inline-flex;align-items:center;gap:9px;border:1px solid #2a2206;border-left-width:4px;border-radius:11px;background:#100d06;padding:8px 12px;}
 .card .tog{cursor:pointer;width:18px;height:18px;flex:0 0 18px;border-radius:5px;border:1px solid #6b5f38;background:#1a1408;color:#f7d873;font-weight:900;font-size:12px;line-height:16px;text-align:center;user-select:none;}
 .card .tog.leaf{visibility:hidden;}
+.card .grip{display:none;cursor:grab;color:#8a7d4f;font-size:14px;padding:0 2px;}
 .card .nm{font-weight:800;font-size:14.5px;color:#fff6da;white-space:nowrap;}
 .card .role{font-size:9.5px;font-weight:900;text-transform:uppercase;letter-spacing:.04em;padding:2px 7px;border-radius:999px;}
 .card .gfi{font-size:11px;color:#8f855f;font-weight:700;font-family:ui-monospace,Menlo,monospace;}
 .card .er{font-size:10px;font-weight:900;color:#0a0a0a;background:linear-gradient(180deg,#edc657,#cda22f);border-radius:999px;padding:2px 8px;}
 .card .kids{font-size:11px;color:#b6a982;font-weight:700;}
+.card .rea{display:none;cursor:pointer;font-size:11px;font-weight:800;color:#bcdcff;background:rgba(59,110,165,.14);border:1px solid #3b6ea5;border-radius:999px;padding:3px 9px;}
 .card.exec{border-left-color:#f7d873;background:linear-gradient(160deg,#221a08,#100d06);}
 .card.exec .nm{font-size:17px;}
 .card.senior{border-left-color:#7fb0e6;}
@@ -49,12 +56,17 @@ ul.br:not(.root)>li.node:last-child::after{height:27px;}
 .role.senior{background:rgba(127,176,230,.16);color:#bcdcff;border:1px solid #3b6ea5;}
 .role.broker{background:rgba(184,154,85,.16);color:#e7cf94;border:1px solid #7a661a;}
 .role.agent{background:#1a1408;color:#b6a982;border:1px solid #3a2f0a;}
-.card .pend{font-size:10.5px;font-style:italic;color:#e08c3a;}
 li.collapsed>ul.br{display:none;}
-.count-badge{font-size:11px;color:#b6a982;}
+/* edit mode */
+body.editing .card .grip{display:inline;}
+body.editing .card .rea{display:inline;}
+body.editing .card{cursor:default;}
+.card.dragging{opacity:.5;}
+.card.drop-hover{outline:2px dashed #7fb0e6;outline-offset:2px;background:#15243a;}
 .foot{margin:22px 16px 0;font-size:11.5px;color:#7c7358;text-align:center;}
-
-<!-- shell placeholder -->
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#1a1408;border:1px solid #8a6d1f;color:#fff6da;padding:10px 16px;border-radius:10px;font-size:13px;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:.2s;z-index:90;}
+.toast.show{opacity:1;}
+.spin{text-align:center;color:#b6a982;padding:36px;font-style:italic;}
 </style>
 <style id="ga-shell">
 :root{--ga-gold:#d4af37;--ga-gold-br:#f7d873;--ga-gold-dp:#8a6d1f;--ga-muted:#b6a982;--ga-line:#2a2206;}
@@ -88,7 +100,7 @@ li.collapsed>ul.br{display:none;}
   <div class="head">
     <div class="wm">The Standard Financial Group</div>
     <h1>Organizational Chart</h1>
-    <div class="sub">The GRIND downline, rooted at Elijah Cox — pulled from the GRIND Agent Tracker's UPLINE column. Click ▸ to expand or collapse any leg.</div>
+    <div class="sub">The GRIND downline, rooted at Elijah Cox. Click ▸ to expand a leg. Turn on Edit to drag people to a new upline or tap ⇄ to reassign.</div>
   </div>
 
   <div class="legend">
@@ -96,148 +108,203 @@ li.collapsed>ul.br{display:none;}
     <span class="legc"><span class="sw" style="background:#7fb0e6"></span>Senior Broker</span>
     <span class="legc"><span class="sw" style="background:#b89a55"></span>Broker / Leg lead</span>
     <span class="legc"><span class="sw" style="background:#4a3f1c"></span>Agent</span>
-    <span class="legc"><span class="er">80</span> = %ER contract tier</span>
+    <span class="legc"><span class="er">80</span> = %ER tier</span>
   </div>
-  <div class="bar controls">
+
+  <div class="bar">
     <button onclick="expandAll(true)">⤢ Expand all</button>
     <button class="ghost" onclick="expandAll(false)">⤡ Collapse to legs</button>
+    <button id="editBtn" class="ghost" onclick="toggleEdit()">✏️ Edit hierarchy</button>
+    <button id="saveBtn" onclick="save()" disabled>💾 Save changes</button>
+    <button id="revertBtn" class="danger" onclick="revert()" disabled>↺ Revert</button>
     <span class="count-badge" id="countBadge"></span>
   </div>
 
-  <div class="note">
-    <b>Reading the chart:</b> This mirrors the GRIND tracker as of today. <b>Christopher Lorenz</b> and <b>Edgar Zavala</b> are your Senior Brokers under Eli. Edgar has no directs in the tracker yet — tell me who rolls under him and I'll place them. Per the tracker, <b>David Adams</b> and <b>Todd Doyle</b> currently report straight to Eli as their own legs; say the word if either should sit under you instead.
+  <div class="editbanner" id="editBanner">
+    <b>Edit mode on.</b> Drag any card by the ⠿ grip onto a new upline, or tap <b>⇄ Reassign</b> to pick from a list. Moves are local until you hit <b>Save changes</b>. You can't drop someone onto their own downline.
   </div>
 
-  <div class="tree" id="tree"></div>
+  <div class="note" id="noteBox">
+    <b>Christopher Lorenz</b> and <b>Edgar Zavala</b> are your Senior Brokers under Eli. Per the GRIND tracker, <b>David Adams</b> and <b>Todd Doyle</b> currently report straight to Eli. Use Edit mode to move anyone as the team grows.
+  </div>
 
+  <div class="tree" id="tree"><div class="spin">Loading the org…</div></div>
   <div class="foot" id="foot"></div>
 </div>
+<div class="toast" id="toast"></div>
 
 <script>
-// Hierarchy parsed from the GRIND Agent Tracker (UPLINE column). role: exec|senior|broker|agent. er = %ER contract tier.
-const ORG = {
-  name:"Elijah Cox", role:"exec", er:"", gfi:"", note:"Executive Broker — top of the GRIND leg",
-  children:[
-    { name:"Christopher Lorenz", role:"senior", gfi:"C1991", er:"",
-      children:[
-        { name:"Cassandra Akenson", role:"broker", gfi:"E3850", er:"20", children:[
-          {name:"Josh Lara", role:"agent", gfi:"E8145", er:"80"},
-          {name:"Kristen Aunat", role:"agent", gfi:"F3756", er:"0"}
-        ]},
-        { name:"Devin Lorenz", role:"broker", gfi:"C4704", er:"20", children:[
-          {name:"Adam Rock", role:"agent", gfi:"E1569", er:"80"},
-          {name:"Blake Williamson", role:"agent", gfi:"D9111", er:"0"}
-        ]},
-        { name:"Michael Bachelor", role:"broker", gfi:"E9306", er:"20", children:[
-          {name:"Pamela Stafford", role:"broker", gfi:"F6655", er:"20", children:[
-            {name:"Trashawn Dozier", role:"agent", gfi:"F8841", er:"0"}
-          ]},
-          {name:"Austin Miller", role:"agent", gfi:"F6581", er:"0"}
-        ]},
-        { name:"Nikki Buchholz", role:"broker", gfi:"F3362", er:"20", children:[
-          {name:"Kayleen Rex", role:"agent", gfi:"", er:"20"}
-        ]},
-        { name:"Hunter Laggan", role:"broker", gfi:"F3665", er:"20", children:[
-          {name:"Sabrina Hamilton", role:"agent", gfi:"", er:"0"}
-        ]},
-        { name:"Landon Loving", role:"broker", gfi:"E5750", er:"1", children:[
-          {name:"Aiden Harrison", role:"agent", gfi:"F5714", er:"80"}
-        ]},
-        {name:"Allison Marie Pilkington", role:"agent", gfi:"F7113", er:"0"},
-        {name:"Bao (Jason) Le", role:"agent", gfi:"F8835", er:"0"},
-        {name:"Dane Peterson", role:"agent", gfi:"F5844", er:"80"},
-        {name:"Taylor Nethercutt", role:"agent", gfi:"C8388", er:"0"},
-        {name:"William Doyle", role:"agent", gfi:"E5412", er:"1"},
-        {name:"Eli Roleson", role:"agent", gfi:"D6415", er:"0"},
-        {name:"Jacob Chase", role:"agent", gfi:"C8861", er:"0"},
-        {name:"Jerrick Harris", role:"agent", gfi:"E7994", er:"0"},
-        {name:"John Tully", role:"agent", gfi:"C4188", er:"80"},
-        {name:"Kylie Sneed", role:"agent", gfi:"E7368", er:"80"},
-        {name:"Stephan Tarakji", role:"agent", gfi:"E3737", er:"0"},
-        {name:"Tiffany Clark", role:"agent", gfi:"D5493", er:"80"}
-      ]
-    },
-    { name:"Edgar Zavala", role:"senior", gfi:"A1553", er:"", pend:"Directs to be assigned", children:[] },
-    { name:"David Adams", role:"broker", gfi:"E4322", er:"20", children:[
-      {name:"Eli Moreno", role:"agent", gfi:"", er:"20"},
-      {name:"Jameson Gordon", role:"agent", gfi:"F2335", er:"20"},
-      {name:"Jon Paul Virella", role:"agent", gfi:"F6990", er:"20"},
-      {name:"Roxanne Adams", role:"agent", gfi:"F6954", er:"0"}
-    ]},
-    { name:"Todd Doyle", role:"broker", gfi:"", er:"", children:[
-      {name:"Ben Hilger", role:"agent", gfi:"F7151", er:"80"},
-      {name:"Danny Katoa", role:"agent", gfi:"F7203", er:"80"},
-      {name:"Felecia Mayo", role:"agent", gfi:"F8950", er:"0"},
-      {name:"Greg Martin", role:"agent", gfi:"F0319", er:"20"},
-      {name:"Ligia Borlean", role:"agent", gfi:"", er:"1"},
-      {name:"Stan Orlowski", role:"agent", gfi:"F1133", er:"0"}
-    ]},
-    { name:"Gia Borlean", role:"broker", gfi:"", er:"", children:[
-      {name:"Benjamin Mois", role:"agent", gfi:"", er:"80"}
-    ]},
-    { name:"Unassigned — needs an upline", role:"broker", gfi:"", er:"", children:[
-      {name:"Alexander Naquin", role:"agent", gfi:"F9658", er:"0"}
-    ]}
-  ]
+const API="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/tracker-api";
+const roleLabel={exec:"Exec Broker",senior:"Senior Broker",broker:"Broker",agent:"Agent"};
+let DATA=null, NODES=[], byId={}, kids={}, ROOT="ELI";
+let editing=false, dirty=false, TOKEN="", dragId=null, orig=null;
+
+const $=(id)=>document.getElementById(id);
+function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),1900);}
+function erNorm(v){ if(!v) return ''; return String(v).toUpperCase().replace('O','0'); }
+
+function reindex(){
+  byId={}; kids={};
+  NODES.forEach(n=>{ byId[n.id]=n; kids[n.id]=[]; });
+  NODES.forEach(n=>{ if(n.parent && kids[n.parent]) kids[n.parent].push(n); });
+}
+function countDesc(id){ let c=(kids[id]||[]).length; (kids[id]||[]).forEach(k=>c+=countDesc(k.id)); return c; }
+function isDescendant(ancestorId, maybeId){
+  // true if maybeId is in the subtree of ancestorId
+  let stack=[...(kids[ancestorId]||[])];
+  while(stack.length){ const n=stack.pop(); if(n.id===maybeId) return true; stack.push(...(kids[n.id]||[])); }
+  return false;
+}
+
+function renderNode(id, depth){
+  const n=byId[id]; if(!n) return '';
+  const ch=kids[id]||[];
+  const has=ch.length>0;
+  const desc=countDesc(id);
+  const er=erNorm(n.er);
+  const collapsed = depth>=2 && has && !n._open;
+  let c='<div class="card '+n.role+'" data-id="'+esc(n.id)+'" '+(editing?'draggable="true"':'')+'>';
+  c+='<span class="grip" title="Drag to a new upline">⠿</span>';
+  c+='<span class="tog'+(has?'':' leaf')+'">'+(has?(collapsed?'▸':'▾'):'')+'</span>';
+  c+='<span class="nm">'+esc(n.name)+'</span>';
+  c+='<span class="role '+n.role+'">'+(roleLabel[n.role]||'')+'</span>';
+  if(n.gfi) c+='<span class="gfi">'+esc(n.gfi)+'</span>';
+  if(er) c+='<span class="er">'+esc(er)+'</span>';
+  if(has) c+='<span class="kids">'+desc+' downline</span>';
+  if(n.id!==ROOT) c+='<span class="rea" onclick="reassignPrompt(\''+esc(n.id)+'\')">⇄ Reassign</span>';
+  c+='</div>';
+  let sub='';
+  if(has){ sub='<ul class="br">'+ch.map(k=>renderNode(k.id,depth+1)).join('')+'</ul>'; }
+  return '<li class="node'+(collapsed?' collapsed':'')+'" data-id="'+esc(n.id)+'">'+c+sub+'</li>';
+}
+function render(){
+  reindex();
+  $('tree').innerHTML='<ul class="br root">'+renderNode(ROOT,0)+'</ul>';
+  const total=NODES.length, leaders=NODES.filter(n=>(kids[n.id]||[]).length>0).length;
+  $('countBadge').textContent=total+' people · '+leaders+' with a downline';
+  $('saveBtn').disabled=!dirty; $('revertBtn').disabled=!dirty;
+}
+
+function setParent(childId, newParent){
+  if(childId===newParent) return;
+  const n=byId[childId]; if(!n) return;
+  if(n.parent===newParent){ toast('Already there'); return; }
+  if(childId===ROOT){ toast("Can't move the top"); return; }
+  if(isDescendant(childId,newParent)){ toast("Can't move someone under their own downline"); return; }
+  // preserve open state across re-render
+  NODES.forEach(x=>{ const li=document.querySelector('li.node[data-id="'+CSS.escape(x.id)+'"]'); if(li) x._open = !li.classList.contains('collapsed'); });
+  byId[newParent]._open=true;
+  n.parent=newParent; dirty=true; render();
+  toast(n.name+' → '+byId[newParent].name);
+}
+
+window.reassignPrompt=function(id){
+  const n=byId[id];
+  const opts=NODES.filter(x=> x.id!==id && !isDescendant(id,x.id)).sort((a,b)=>a.name.localeCompare(b.name));
+  const list=opts.map((x,i)=> (i+1)+'. '+x.name+' ('+(roleLabel[x.role]||'')+')').join('\n');
+  const cur=byId[n.parent]?byId[n.parent].name:'(none)';
+  const ans=prompt('Move '+n.name+' under which upline?\nCurrently under: '+cur+'\n\n'+list+'\n\nType the number:');
+  if(!ans) return;
+  const i=parseInt(ans,10)-1;
+  if(isNaN(i)||i<0||i>=opts.length){ toast('Not a valid choice'); return; }
+  setParent(id, opts[i].id);
 };
 
-const roleLabel={exec:"Exec Broker",senior:"Senior Broker",broker:"Broker",agent:"Agent"};
-function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
-function erNorm(v){ if(!v) return ''; v=String(v).toUpperCase().replace('O','0'); return v; }
-let total=0, leaders=0;
-
-function countDesc(n){ let c=(n.children||[]).length; (n.children||[]).forEach(k=>c+=countDesc(k)); return c; }
-
-function renderNode(n, depth){
-  total++;
-  const kids=n.children||[];
-  const hasKids=kids.length>0;
-  if(hasKids) leaders++;
-  const desc=countDesc(n);
-  const er=erNorm(n.er);
-  const collapsedDefault = depth>=2 && hasKids; // collapse deep legs by default
-  let inner = '';
-  inner += '<div class="card '+n.role+'">';
-  inner += '<span class="tog'+(hasKids?'':' leaf')+'">'+(hasKids?(collapsedDefault?'▸':'▾'):'')+'</span>';
-  inner += '<span class="nm">'+esc(n.name)+'</span>';
-  inner += '<span class="role '+n.role+'">'+roleLabel[n.role]+'</span>';
-  if(n.gfi) inner += '<span class="gfi">'+esc(n.gfi)+'</span>';
-  if(er) inner += '<span class="er">'+esc(er)+'</span>';
-  if(hasKids) inner += '<span class="kids">'+desc+' downline</span>';
-  if(n.pend) inner += '<span class="pend">'+esc(n.pend)+'</span>';
-  inner += '</div>';
-  let childHtml='';
-  if(hasKids){
-    childHtml = '<ul class="br">'+kids.map(k=>renderNode(k,depth+1)).join('')+'</ul>';
+window.toggleEdit=function(){
+  if(!editing){
+    const p=prompt('Leadership passcode to edit the hierarchy:');
+    if(!p) return;
+    TOKEN=p; editing=true; document.body.classList.add('editing');
+    $('editBtn').textContent='✓ Done editing'; $('editBtn').classList.remove('ghost');
+    $('editBanner').classList.add('on');
+    orig=JSON.stringify(NODES.map(n=>({id:n.id,parent:n.parent})));
+    render();
+  } else {
+    if(dirty && !confirm('You have unsaved moves. Leave edit mode and keep them staged?')) return;
+    editing=false; TOKEN=''; document.body.classList.remove('editing');
+    $('editBtn').textContent='✏️ Edit hierarchy'; $('editBtn').classList.add('ghost');
+    $('editBanner').classList.remove('on');
+    render();
   }
-  return '<li class="node'+(collapsedDefault?' collapsed':'')+'">'+inner+childHtml+'</li>';
-}
+};
 
-document.getElementById('tree').innerHTML='<ul class="br root">'+renderNode(ORG,0)+'</ul>';
-document.getElementById('countBadge').textContent = total+' people · '+leaders+' with a downline';
-document.getElementById('foot').textContent = 'Source: GRIND Agent Tracker (UPLINE column), reflected '+new Date().toISOString().slice(0,10)+'. Active & part-time agents shown.';
+window.save=async function(){
+  if(!dirty) return;
+  const value={updated:new Date().toISOString().slice(0,10), root:ROOT, nodes:NODES.map(n=>({id:n.id,name:n.name,role:n.role,parent:n.parent,gfi:n.gfi||'',er:n.er||''}))};
+  $('saveBtn').disabled=true; $('saveBtn').textContent='Saving…';
+  try{
+    const r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'setorg',token:TOKEN,value})});
+    const d=await r.json();
+    if(d.ok){ dirty=false; orig=JSON.stringify(NODES.map(n=>({id:n.id,parent:n.parent}))); toast('Hierarchy saved ✓'); }
+    else { toast(d.error==='unauthorized'?'Wrong passcode':'Save failed'); }
+  }catch(e){ toast('Network error — try again'); }
+  $('saveBtn').textContent='💾 Save changes'; $('saveBtn').disabled=!dirty; $('revertBtn').disabled=!dirty;
+};
 
-// toggle handlers
-document.getElementById('tree').addEventListener('click', function(e){
-  const t=e.target.closest('.tog'); if(!t) return;
-  const li=t.closest('li.node'); if(!li || !li.querySelector('ul.br')) return;
-  const collapsed=li.classList.toggle('collapsed');
-  t.textContent = collapsed ? '▸' : '▾';
-});
-function expandAll(open){
+window.revert=function(){
+  if(!orig) return;
+  const map=JSON.parse(orig);
+  const pm={}; map.forEach(x=>pm[x.id]=x.parent);
+  NODES.forEach(n=>{ if(pm[n.id]!==undefined) n.parent=pm[n.id]; });
+  dirty=false; render(); toast('Reverted staged moves');
+};
+
+window.expandAll=function(open){
   document.querySelectorAll('#tree li.node').forEach(li=>{
-    if(!li.querySelector(':scope > ul.br')) return;
+    const has=li.querySelector(':scope > ul.br'); if(!has) return;
     const tog=li.querySelector(':scope > .card .tog');
-    if(open){ li.classList.remove('collapsed'); if(tog)tog.textContent='▾'; }
-    else {
-      // collapse everything except the top two levels (Eli + senior legs)
-      const depth = getDepth(li);
-      if(depth>=2){ li.classList.add('collapsed'); if(tog)tog.textContent='▸'; }
-      else { li.classList.remove('collapsed'); if(tog)tog.textContent='▾'; }
-    }
+    let depth=0,p=li.parentElement; while(p){ if(p.tagName==='UL') depth++; p=p.parentElement; }
+    if(open || depth<2){ li.classList.remove('collapsed'); if(tog)tog.textContent='▾'; }
+    else { li.classList.add('collapsed'); if(tog)tog.textContent='▸'; }
   });
+};
+
+// toggle expand/collapse + drag/drop delegation
+$('tree').addEventListener('click', function(e){
+  const t=e.target.closest('.tog'); if(!t) return;
+  const li=t.closest('li.node'); if(!li||!li.querySelector(':scope > ul.br')) return;
+  const col=li.classList.toggle('collapsed'); t.textContent=col?'▸':'▾';
+});
+$('tree').addEventListener('dragstart', function(e){
+  const card=e.target.closest('.card'); if(!card||!editing) return;
+  dragId=card.getAttribute('data-id'); card.classList.add('dragging');
+  e.dataTransfer.effectAllowed='move';
+});
+$('tree').addEventListener('dragend', function(e){
+  const card=e.target.closest('.card'); if(card) card.classList.remove('dragging');
+  document.querySelectorAll('.drop-hover').forEach(x=>x.classList.remove('drop-hover'));
+  dragId=null;
+});
+$('tree').addEventListener('dragover', function(e){
+  if(!editing||!dragId) return;
+  const card=e.target.closest('.card'); if(!card) return;
+  const tid=card.getAttribute('data-id');
+  if(tid===dragId||isDescendant(dragId,tid)) return;
+  e.preventDefault();
+  document.querySelectorAll('.drop-hover').forEach(x=>x.classList.remove('drop-hover'));
+  card.classList.add('drop-hover');
+});
+$('tree').addEventListener('drop', function(e){
+  if(!editing||!dragId) return;
+  const card=e.target.closest('.card'); if(!card) return;
+  e.preventDefault();
+  const tid=card.getAttribute('data-id');
+  setParent(dragId, tid);
+  dragId=null;
+});
+
+async function load(){
+  try{
+    const r=await fetch(API+'?action=orgtree');
+    const d=await r.json();
+    if(!d.ok||!d.value||!Array.isArray(d.value.nodes)){ $('tree').innerHTML='<div class="spin">Org not set up yet.</div>'; return; }
+    DATA=d.value; NODES=d.value.nodes.map(n=>({...n})); ROOT=d.value.root||'ELI';
+    render();
+    $('foot').textContent='Source: GRIND Agent Tracker · last saved '+(d.value.updated||(d.updated_at||'').slice(0,10));
+  }catch(e){ $('tree').innerHTML='<div class="spin">Could not load the org.</div>'; }
 }
-function getDepth(li){ let d=0,p=li.parentElement; while(p){ if(p.tagName==='UL') d++; p=p.parentElement; } return d; }
+load();
 </script>
 </body>
 </html>
