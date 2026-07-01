@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Org Chart — GRIND Agencies</title>
+<link rel="icon" href="logo.png">
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#0a0905;color:#efe7d0;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;}
+.wrap{max-width:1180px;margin:0 auto;padding-bottom:70px;}
+a{color:inherit}
+.head{text-align:center;padding:24px 16px 4px;}
+.head .wm{font-size:11px;letter-spacing:.32em;text-transform:uppercase;color:#b6a982;font-weight:700;}
+.head h1{margin:6px 0 2px;font-size:26px;font-weight:900;background:linear-gradient(180deg,#fff4cf,#f7d873 55%,#cda22f);-webkit-background-clip:text;background-clip:text;color:transparent;}
+.head .sub{font-size:13px;color:#b6a982;max-width:640px;margin:0 auto;}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;margin:14px 16px;}
+.legend{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:center;font-size:12px;color:#b6a982;margin:0 16px 6px;}
+.legc{display:inline-flex;align-items:center;gap:6px;}
+.sw{width:12px;height:12px;border-radius:4px;display:inline-block;}
+.controls button{font:inherit;cursor:pointer;font-size:12px;font-weight:800;color:#1c1206;background:linear-gradient(180deg,#edc657,#cda22f);border:1px solid #b6901f;border-radius:999px;padding:7px 13px;}
+.controls button.ghost{background:#171206;color:#f7d873;border:1px solid #8a6d1f;}
+.note{margin:6px 16px 0;border:1px solid #4a3c12;border-radius:12px;background:#140f06;padding:12px 14px;font-size:12.5px;color:#d7c99f;line-height:1.5;}
+.note b{color:#f7d873;}
+
+.tree{margin:16px;}
+ul.br{list-style:none;margin:0;padding-left:26px;position:relative;}
+ul.br.root{padding-left:0;}
+li.node{position:relative;margin:7px 0;}
+/* connector lines */
+ul.br:not(.root)>li.node::before{content:"";position:absolute;left:-14px;top:20px;width:14px;height:1px;background:#3a2f0a;}
+ul.br:not(.root)>li.node::after{content:"";position:absolute;left:-14px;top:-7px;bottom:0;width:1px;background:#3a2f0a;}
+ul.br:not(.root)>li.node:last-child::after{height:27px;}
+
+.card{display:inline-flex;align-items:center;gap:10px;border:1px solid #2a2206;border-left-width:4px;border-radius:11px;background:#100d06;padding:8px 12px;min-width:0;}
+.card .tog{cursor:pointer;width:18px;height:18px;flex:0 0 18px;border-radius:5px;border:1px solid #6b5f38;background:#1a1408;color:#f7d873;font-weight:900;font-size:12px;line-height:16px;text-align:center;user-select:none;}
+.card .tog.leaf{visibility:hidden;}
+.card .nm{font-weight:800;font-size:14.5px;color:#fff6da;white-space:nowrap;}
+.card .role{font-size:9.5px;font-weight:900;text-transform:uppercase;letter-spacing:.04em;padding:2px 7px;border-radius:999px;}
+.card .gfi{font-size:11px;color:#8f855f;font-weight:700;font-family:ui-monospace,Menlo,monospace;}
+.card .er{font-size:10px;font-weight:900;color:#0a0a0a;background:linear-gradient(180deg,#edc657,#cda22f);border-radius:999px;padding:2px 8px;}
+.card .kids{font-size:11px;color:#b6a982;font-weight:700;}
+.card.exec{border-left-color:#f7d873;background:linear-gradient(160deg,#221a08,#100d06);}
+.card.exec .nm{font-size:17px;}
+.card.senior{border-left-color:#7fb0e6;}
+.card.broker{border-left-color:#b89a55;}
+.card.agent{border-left-color:#4a3f1c;}
+.role.exec{background:linear-gradient(90deg,#f7d873,#d4af37);color:#241400;}
+.role.senior{background:rgba(127,176,230,.16);color:#bcdcff;border:1px solid #3b6ea5;}
+.role.broker{background:rgba(184,154,85,.16);color:#e7cf94;border:1px solid #7a661a;}
+.role.agent{background:#1a1408;color:#b6a982;border:1px solid #3a2f0a;}
+.card .pend{font-size:10.5px;font-style:italic;color:#e08c3a;}
+li.collapsed>ul.br{display:none;}
+.count-badge{font-size:11px;color:#b6a982;}
+.foot{margin:22px 16px 0;font-size:11.5px;color:#7c7358;text-align:center;}
+
+<!-- shell placeholder -->
+</style>
+<style id="ga-shell">
+:root{--ga-gold:#d4af37;--ga-gold-br:#f7d873;--ga-gold-dp:#8a6d1f;--ga-muted:#b6a982;--ga-line:#2a2206;}
+.ga-top{position:sticky;top:0;z-index:60;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;padding:10px 18px;background:linear-gradient(180deg,#141005,#0b0a05);border-bottom:1px solid var(--ga-gold-dp);box-shadow:0 6px 22px rgba(0,0,0,.35);}
+.ga-brand{display:flex;align-items:center;gap:10px;text-decoration:none;font-weight:900;letter-spacing:.05em;font-size:14.5px;color:#fff6da;text-transform:uppercase;white-space:nowrap;}
+.ga-brand img{height:30px;width:auto;border-radius:6px;}
+.ga-brand b{background:linear-gradient(180deg,#fff4cf,var(--ga-gold-br) 50%,var(--ga-gold-dp));-webkit-background-clip:text;background-clip:text;color:transparent;}
+.ga-nav{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+.ga-nav a{display:inline-flex;align-items:center;gap:6px;text-decoration:none;font-weight:800;font-size:12.5px;letter-spacing:.02em;color:var(--ga-gold);background:#171206;border:1px solid var(--ga-gold-dp);border-radius:999px;padding:8px 13px;transition:.15s;white-space:nowrap;}
+.ga-nav a:hover{border-color:var(--ga-gold);color:#fff6da;}
+.ga-nav a.ga-on{color:#0a0a0a;background:linear-gradient(90deg,var(--ga-gold-br),var(--ga-gold));border-color:var(--ga-gold);box-shadow:0 4px 14px rgba(212,175,55,.3);}
+.ga-nav a.ga-lead{color:#bcdcff;border-color:#3b6ea5;background:rgba(59,110,165,.12);}
+.ga-nav a.ga-lead.ga-on{color:#06223f;background:linear-gradient(90deg,#bcdcff,#7fb0e6);border-color:#7fb0e6;box-shadow:0 4px 14px rgba(59,110,165,.3);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="ga-top">
+    <a class="ga-brand" href="index.html"><img src="logo.png" alt="GRIND Agencies"><span>GRIND <b>Agencies</b></span></a>
+    <nav class="ga-nav">
+      <a href="index.html">🗓️ Calendar</a>
+      <a href="checklist.html">✅ My Tracker</a>
+      <a href="resources.html">📚 Resources</a>
+      <a href="dashboard.html" class="ga-lead">🔒 Ops</a>
+      <a href="marketing.html" class="ga-lead">🔒 Leads</a>
+      <a href="team.html" class="ga-lead">👥 My Team</a>
+      <a href="org.html" class="ga-lead ga-on">🌳 Org Chart</a>
+    </nav>
+  </header>
+
+  <div class="head">
+    <div class="wm">The Standard Financial Group</div>
+    <h1>Organizational Chart</h1>
+    <div class="sub">The GRIND downline, rooted at Elijah Cox — pulled from the GRIND Agent Tracker's UPLINE column. Click ▸ to expand or collapse any leg.</div>
+  </div>
+
+  <div class="legend">
+    <span class="legc"><span class="sw" style="background:#f7d873"></span>Executive Broker</span>
+    <span class="legc"><span class="sw" style="background:#7fb0e6"></span>Senior Broker</span>
+    <span class="legc"><span class="sw" style="background:#b89a55"></span>Broker / Leg lead</span>
+    <span class="legc"><span class="sw" style="background:#4a3f1c"></span>Agent</span>
+    <span class="legc"><span class="er">80</span> = %ER contract tier</span>
+  </div>
+  <div class="bar controls">
+    <button onclick="expandAll(true)">⤢ Expand all</button>
+    <button class="ghost" onclick="expandAll(false)">⤡ Collapse to legs</button>
+    <span class="count-badge" id="countBadge"></span>
+  </div>
+
+  <div class="note">
+    <b>Reading the chart:</b> This mirrors the GRIND tracker as of today. <b>Christopher Lorenz</b> and <b>Edgar Zavala</b> are your Senior Brokers under Eli. Edgar has no directs in the tracker yet — tell me who rolls under him and I'll place them. Per the tracker, <b>David Adams</b> and <b>Todd Doyle</b> currently report straight to Eli as their own legs; say the word if either should sit under you instead.
+  </div>
+
+  <div class="tree" id="tree"></div>
+
+  <div class="foot" id="foot"></div>
+</div>
+
+<script>
+// Hierarchy parsed from the GRIND Agent Tracker (UPLINE column). role: exec|senior|broker|agent. er = %ER contract tier.
+const ORG = {
+  name:"Elijah Cox", role:"exec", er:"", gfi:"", note:"Executive Broker — top of the GRIND leg",
+  children:[
+    { name:"Christopher Lorenz", role:"senior", gfi:"C1991", er:"",
+      children:[
+        { name:"Cassandra Akenson", role:"broker", gfi:"E3850", er:"20", children:[
+          {name:"Josh Lara", role:"agent", gfi:"E8145", er:"80"},
+          {name:"Kristen Aunat", role:"agent", gfi:"F3756", er:"0"}
+        ]},
+        { name:"Devin Lorenz", role:"broker", gfi:"C4704", er:"20", children:[
+          {name:"Adam Rock", role:"agent", gfi:"E1569", er:"80"},
+          {name:"Blake Williamson", role:"agent", gfi:"D9111", er:"0"}
+        ]},
+        { name:"Michael Bachelor", role:"broker", gfi:"E9306", er:"20", children:[
+          {name:"Pamela Stafford", role:"broker", gfi:"F6655", er:"20", children:[
+            {name:"Trashawn Dozier", role:"agent", gfi:"F8841", er:"0"}
+          ]},
+          {name:"Austin Miller", role:"agent", gfi:"F6581", er:"0"}
+        ]},
+        { name:"Nikki Buchholz", role:"broker", gfi:"F3362", er:"20", children:[
+          {name:"Kayleen Rex", role:"agent", gfi:"", er:"20"}
+        ]},
+        { name:"Hunter Laggan", role:"broker", gfi:"F3665", er:"20", children:[
+          {name:"Sabrina Hamilton", role:"agent", gfi:"", er:"0"}
+        ]},
+        { name:"Landon Loving", role:"broker", gfi:"E5750", er:"1", children:[
+          {name:"Aiden Harrison", role:"agent", gfi:"F5714", er:"80"}
+        ]},
+        {name:"Allison Marie Pilkington", role:"agent", gfi:"F7113", er:"0"},
+        {name:"Bao (Jason) Le", role:"agent", gfi:"F8835", er:"0"},
+        {name:"Dane Peterson", role:"agent", gfi:"F5844", er:"80"},
+        {name:"Taylor Nethercutt", role:"agent", gfi:"C8388", er:"0"},
+        {name:"William Doyle", role:"agent", gfi:"E5412", er:"1"},
+        {name:"Eli Roleson", role:"agent", gfi:"D6415", er:"0"},
+        {name:"Jacob Chase", role:"agent", gfi:"C8861", er:"0"},
+        {name:"Jerrick Harris", role:"agent", gfi:"E7994", er:"0"},
+        {name:"John Tully", role:"agent", gfi:"C4188", er:"80"},
+        {name:"Kylie Sneed", role:"agent", gfi:"E7368", er:"80"},
+        {name:"Stephan Tarakji", role:"agent", gfi:"E3737", er:"0"},
+        {name:"Tiffany Clark", role:"agent", gfi:"D5493", er:"80"}
+      ]
+    },
+    { name:"Edgar Zavala", role:"senior", gfi:"A1553", er:"", pend:"Directs to be assigned", children:[] },
+    { name:"David Adams", role:"broker", gfi:"E4322", er:"20", children:[
+      {name:"Eli Moreno", role:"agent", gfi:"", er:"20"},
+      {name:"Jameson Gordon", role:"agent", gfi:"F2335", er:"20"},
+      {name:"Jon Paul Virella", role:"agent", gfi:"F6990", er:"20"},
+      {name:"Roxanne Adams", role:"agent", gfi:"F6954", er:"0"}
+    ]},
+    { name:"Todd Doyle", role:"broker", gfi:"", er:"", children:[
+      {name:"Ben Hilger", role:"agent", gfi:"F7151", er:"80"},
+      {name:"Danny Katoa", role:"agent", gfi:"F7203", er:"80"},
+      {name:"Felecia Mayo", role:"agent", gfi:"F8950", er:"0"},
+      {name:"Greg Martin", role:"agent", gfi:"F0319", er:"20"},
+      {name:"Ligia Borlean", role:"agent", gfi:"", er:"1"},
+      {name:"Stan Orlowski", role:"agent", gfi:"F1133", er:"0"}
+    ]},
+    { name:"Gia Borlean", role:"broker", gfi:"", er:"", children:[
+      {name:"Benjamin Mois", role:"agent", gfi:"", er:"80"}
+    ]},
+    { name:"Unassigned — needs an upline", role:"broker", gfi:"", er:"", children:[
+      {name:"Alexander Naquin", role:"agent", gfi:"F9658", er:"0"}
+    ]}
+  ]
+};
+
+const roleLabel={exec:"Exec Broker",senior:"Senior Broker",broker:"Broker",agent:"Agent"};
+function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function erNorm(v){ if(!v) return ''; v=String(v).toUpperCase().replace('O','0'); return v; }
+let total=0, leaders=0;
+
+function countDesc(n){ let c=(n.children||[]).length; (n.children||[]).forEach(k=>c+=countDesc(k)); return c; }
+
+function renderNode(n, depth){
+  total++;
+  const kids=n.children||[];
+  const hasKids=kids.length>0;
+  if(hasKids) leaders++;
+  const desc=countDesc(n);
+  const er=erNorm(n.er);
+  const collapsedDefault = depth>=2 && hasKids; // collapse deep legs by default
+  let inner = '';
+  inner += '<div class="card '+n.role+'">';
+  inner += '<span class="tog'+(hasKids?'':' leaf')+'">'+(hasKids?(collapsedDefault?'▸':'▾'):'')+'</span>';
+  inner += '<span class="nm">'+esc(n.name)+'</span>';
+  inner += '<span class="role '+n.role+'">'+roleLabel[n.role]+'</span>';
+  if(n.gfi) inner += '<span class="gfi">'+esc(n.gfi)+'</span>';
+  if(er) inner += '<span class="er">'+esc(er)+'</span>';
+  if(hasKids) inner += '<span class="kids">'+desc+' downline</span>';
+  if(n.pend) inner += '<span class="pend">'+esc(n.pend)+'</span>';
+  inner += '</div>';
+  let childHtml='';
+  if(hasKids){
+    childHtml = '<ul class="br">'+kids.map(k=>renderNode(k,depth+1)).join('')+'</ul>';
+  }
+  return '<li class="node'+(collapsedDefault?' collapsed':'')+'">'+inner+childHtml+'</li>';
+}
+
+document.getElementById('tree').innerHTML='<ul class="br root">'+renderNode(ORG,0)+'</ul>';
+document.getElementById('countBadge').textContent = total+' people · '+leaders+' with a downline';
+document.getElementById('foot').textContent = 'Source: GRIND Agent Tracker (UPLINE column), reflected '+new Date().toISOString().slice(0,10)+'. Active & part-time agents shown.';
+
+// toggle handlers
+document.getElementById('tree').addEventListener('click', function(e){
+  const t=e.target.closest('.tog'); if(!t) return;
+  const li=t.closest('li.node'); if(!li || !li.querySelector('ul.br')) return;
+  const collapsed=li.classList.toggle('collapsed');
+  t.textContent = collapsed ? '▸' : '▾';
+});
+function expandAll(open){
+  document.querySelectorAll('#tree li.node').forEach(li=>{
+    if(!li.querySelector(':scope > ul.br')) return;
+    const tog=li.querySelector(':scope > .card .tog');
+    if(open){ li.classList.remove('collapsed'); if(tog)tog.textContent='▾'; }
+    else {
+      // collapse everything except the top two levels (Eli + senior legs)
+      const depth = getDepth(li);
+      if(depth>=2){ li.classList.add('collapsed'); if(tog)tog.textContent='▸'; }
+      else { li.classList.remove('collapsed'); if(tog)tog.textContent='▾'; }
+    }
+  });
+}
+function getDepth(li){ let d=0,p=li.parentElement; while(p){ if(p.tagName==='UL') d++; p=p.parentElement; } return d; }
+</script>
+</body>
+</html>
