@@ -48,7 +48,29 @@ a{color:inherit}
 .card{position:relative;display:flex;flex-direction:column;align-items:center;gap:5px;width:132px;border:1px solid #2a2206;border-top-width:4px;border-radius:14px;background:linear-gradient(170deg,#17120a,#0e0b06);padding:12px 10px 10px;box-shadow:0 3px 12px rgba(0,0,0,.3);transition:border-color .14s,transform .1s;user-select:none;-webkit-user-select:none;}
 .card:hover{border-color:#4a3f1c;}
 .av{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:15px;color:#0c0a05;box-shadow:inset 0 0 0 2px rgba(255,255,255,.15);}
-.nm{font-weight:800;font-size:13px;color:#fff6da;line-height:1.15;text-align:center;}
+.nm{font-weight:800;font-size:13px;color:#fff6da;line-height:1.15;text-align:center;cursor:pointer;}
+.nm:hover{text-decoration:underline;text-decoration-color:#7fb0e6;text-underline-offset:2px;}
+.loverlay{position:fixed;inset:0;z-index:130;background:rgba(6,5,2,.72);display:none;align-items:flex-start;justify-content:center;padding:40px 14px;overflow:auto;}
+.loverlay.on{display:flex;}
+.lmodal{width:100%;max-width:520px;background:linear-gradient(170deg,#17120a,#0e0b06);border:1px solid #4a3d16;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.6);overflow:hidden;}
+.lmhead{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 16px;border-bottom:1px solid #2a2206;background:linear-gradient(180deg,#221a08,#140f06);}
+.lmhead h3{margin:0;font-size:16px;color:#fff6da;font-weight:900;}
+.lmhead .sub{font-size:11.5px;color:#b6a982;margin-top:2px;}
+.lmx{cursor:pointer;width:30px;height:30px;border-radius:50%;border:1px solid #6b5f38;background:#1a1408;color:#f7d873;font-size:15px;font-weight:900;display:flex;align-items:center;justify-content:center;flex:0 0 30px;}
+.lmbody{max-height:64vh;overflow:auto;padding:10px 14px 4px;}
+.lead{border:1px solid #1f1906;border-radius:11px;background:#100d06;padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+.lead .ln{font-weight:800;font-size:14px;color:#fff6da;}
+.lead .lmeta{font-size:11.5px;color:#b6a982;margin-top:2px;}
+.lead a.call{text-decoration:none;font-size:13px;font-weight:800;color:#06150e;background:linear-gradient(90deg,#7ee0b0,#34b57d);border-radius:999px;padding:7px 13px;white-space:nowrap;}
+.lstat{font-size:9.5px;font-weight:900;text-transform:uppercase;letter-spacing:.03em;padding:2px 7px;border-radius:999px;}
+.lstat.fresh{background:#243a52;color:#cfe6ff;border:1px solid #3b6ea5;}
+.lstat.nurture{background:#3a2f0a;color:#ffe9a8;border:1px solid #caa23a;}
+.lstat.won{background:#1d3a26;color:#8ee9b6;border:1px solid #2c6b4d;}
+.lstat.lost{background:#3a1d18;color:#f3b0a2;border:1px solid #8a3a2a;}
+.lmempty{color:#9c9173;font-style:italic;font-size:13px;padding:14px 4px;text-align:center;}
+.lmfoot{padding:10px 14px 14px;border-top:1px solid #2a2206;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;}
+.lmfoot a{text-decoration:none;font-size:12.5px;font-weight:800;color:#0a0a0a;background:linear-gradient(180deg,#edc657,#cda22f);border:1px solid #b6901f;border-radius:999px;padding:8px 13px;}
+.lmfoot .cnt{font-size:12px;color:#b6a982;}
 .cmeta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:center;}
 .role{font-size:8.5px;font-weight:900;text-transform:uppercase;letter-spacing:.04em;padding:2px 7px;border-radius:999px;}
 .gfi{font-size:10px;color:#8f855f;font-weight:700;font-family:ui-monospace,Menlo,monospace;}
@@ -137,12 +159,19 @@ body.editing .card:active{cursor:grabbing;}
   <div class="foot" id="foot"></div>
 </div>
 <div id="dragGhost"></div>
+<div class="loverlay" id="leadsOverlay" onclick="if(event.target===this)closeLeads()">
+  <div class="lmodal">
+    <div class="lmhead"><div><h3 id="lmName">Marketing Plan</h3><div class="sub" id="lmSub"></div></div><span class="lmx" onclick="closeLeads()">✕</span></div>
+    <div class="lmbody" id="lmBody"></div>
+    <div class="lmfoot"><span class="cnt" id="lmCnt"></span><a id="lmFull" href="marketing.html" target="_blank" rel="noopener">Open full Leads page →</a></div>
+  </div>
+</div>
 <div class="toast" id="toast"></div>
 
 <script>
 const API="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/tracker-api";
 const roleLabel={exec:"Exec Broker",senior:"Senior Broker",tl:"Training Leader",trainer:"Trainer",agent:"Agent"};
-let NODES=[], byId={}, ROOT="ELI", STATUS={};
+let NODES=[], byId={}, ROOT="ELI", STATUS={}, LEADS={};
 let editing=false, dirty=false, EDITOR="", orig=null;
 const openSet=new Set();
 const $=(id)=>document.getElementById(id);
@@ -169,7 +198,7 @@ function renderNode(id){
   const cc=colorClass(n);
   let c='<div class="card '+cc+'" data-id="'+esc(n.id)+'">';
   c+='<div class="av '+cc+'">'+esc(initials(n.name))+'</div>';
-  c+='<div class="nm">'+esc(n.name)+'</div>';
+  c+='<div class="nm" onclick="openLeads(event,\''+esc(n.id)+'\')" title="Open '+esc(n.name)+'&#39;s marketing plan">'+esc(n.name)+'</div>';
   c+='<div class="cmeta">';
   if(n.role==='exec'||n.role==='senior') c+='<span class="role '+cc+'">'+roleLabel[n.role]+'</span>';
   if(n.gfi) c+='<span class="gfi">'+esc(n.gfi)+'</span>';
@@ -203,6 +232,34 @@ function reparent(childId,newParent){
   if(isDescendant(childId,newParent)){ toast("Can't move someone under their own downline"); return; }
   const oldP=n.parent; n.parent=newParent; n.ord=childrenSorted(newParent).length; renumber(newParent); renumber(oldP); openSet.add(newParent); dirty=true; render(); toast(n.name+' → '+byId[newParent].name);
 }
+function leadStatus(c){ if(c.outcome==='win')return'won'; if(c.outcome==='lose')return'lost'; if(c.contacted)return'nurture'; return'fresh'; }
+window.openLeads=function(ev,id){
+  if(ev){ ev.stopPropagation(); }
+  if(editing) return; // in edit mode the card is for dragging
+  const n=byId[id]; if(!n) return;
+  const code=(n.gfi||'').toUpperCase();
+  const leads=(code&&LEADS[code])?LEADS[code].slice():[];
+  document.getElementById('lmName').textContent=n.name+"'s Marketing Plan";
+  document.getElementById('lmSub').textContent=(code?code+' · ':'')+(leads.length?(leads.length+' lead'+(leads.length===1?'':'s')+' · tap a number to call'):'');
+  const full=document.getElementById('lmFull'); full.href='marketing.html'+(code?('?agent='+encodeURIComponent(code)):'');
+  document.getElementById('lmCnt').textContent = leads.length?(leads.filter(l=>l.contacted).length+' reached · '+leads.filter(l=>!l.contacted).length+' to call'):'';
+  const body=document.getElementById('lmBody');
+  if(!leads.length){
+    body.innerHTML='<div class="lmempty">'+ (code?'No leads in their marketing plan yet.':'Not a registered agent yet — no marketing plan to show.') +'</div>';
+  } else {
+    leads.sort((a,b)=> (a.contacted?1:0)-(b.contacted?1:0) || (b.date||'').localeCompare(a.date||''));
+    body.innerHTML=leads.map(c=>{
+      const st=leadStatus(c);
+      const ph=(c.phone||'').toString();
+      const call=ph?('<a class="call" href="tel:'+esc(ph.replace(/[^0-9+]/g,''))+'">📞 '+esc(ph)+'</a>'):'<span style="font-size:11px;color:#7c7358">no phone</span>';
+      const meta=[c.howKnow,c.apptDate?('📅 '+c.apptDate):''].filter(Boolean).join(' · ');
+      return '<div class="lead"><div><div class="ln">'+esc(c.name||'(no name)')+' <span class="lstat '+st+'">'+st+'</span></div>'+(meta?'<div class="lmeta">'+esc(meta)+'</div>':'')+'</div>'+call+'</div>';
+    }).join('');
+  }
+  document.getElementById('leadsOverlay').classList.add('on');
+};
+window.closeLeads=function(){ document.getElementById('leadsOverlay').classList.remove('on'); };
+document.addEventListener('keydown',function(e){ if(e.key==='Escape') closeLeads(); });
 window.reassignPrompt=function(ev,id){
   if(ev){ev.stopPropagation();ev.preventDefault();}
   const n=byId[id];
@@ -307,7 +364,7 @@ async function loadStatus(){
   const leaders=['Elijah Cox','Christopher Lorenz','Edgar Zavala']; const map={};
   await Promise.all(leaders.map(async L=>{
     try{ const r=await fetch(API+'?action=team&leader='+encodeURIComponent(L)); const d=await r.json();
-      if(d&&d.ok&&Array.isArray(d.agents)) d.agents.forEach(a=>{ if(a.code) map[String(a.code).toUpperCase()]={s:a.progress_status,d:a.days_inactive}; });
+      if(d&&d.ok&&Array.isArray(d.agents)) d.agents.forEach(a=>{ if(a.code){ const k=String(a.code).toUpperCase(); map[k]={s:a.progress_status,d:a.days_inactive}; LEADS[k]=Array.isArray(a.leads)?a.leads:[]; } });
     }catch(e){}
   }));
   return map;
