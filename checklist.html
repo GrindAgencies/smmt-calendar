@@ -158,6 +158,16 @@
   @media(max-width:600px){.car-name{flex:1 1 100%;}.car-life,.car-annuity{flex:1 1 46%;width:auto;}}
 
   /* DAILY */
+  @keyframes dailyFlash{0%,100%{box-shadow:0 0 20px 2px rgba(247,216,115,.30);border-color:#f7d873;}50%{box-shadow:0 0 40px 9px rgba(247,216,115,.70);border-color:#ffe89a;}}
+  @keyframes headPulse{0%,100%{opacity:1;}50%{opacity:.5;}}
+  .daily-top{margin-top:0!important;margin-bottom:20px;border-width:2px;animation:dailyFlash 1.2s ease-in-out infinite;}
+  .daily-top .sec-head h3{font-size:18px;font-weight:900;letter-spacing:.03em;text-transform:uppercase;background:linear-gradient(90deg,#f7d873,#fff3c4,#f7d873);-webkit-background-clip:text;background-clip:text;color:transparent;animation:headPulse 1.2s ease-in-out infinite;}
+  .daily-top .sec-head .days.lock{background:#3a2a05;color:#ffe89a;}
+  .dn-banner{font-size:12.5px;font-weight:800;color:#ffe89a;padding:9px 18px 0;}
+  .daily-top.complete{animation:none;border-color:#34b57d;box-shadow:0 0 22px 2px rgba(52,181,125,.40);}
+  .daily-top.complete .sec-head h3{animation:none;background:linear-gradient(90deg,#7ee0b0,#eafff5,#7ee0b0);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .daily-top.complete .dn-banner{color:#8fe8cd;}
+  @media (prefers-reduced-motion:reduce){.daily-top,.daily-top .sec-head h3{animation:none;}}
   .daily{margin-top:26px;border:1px solid var(--gold);border-radius:16px;overflow:hidden;background:linear-gradient(160deg,#1c1608,#0b0a05);}
   .daily .sec-head{background:linear-gradient(90deg,#241a08,#100c05);}
   .streakbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 18px;border-bottom:1px solid var(--line);}
@@ -403,6 +413,34 @@
     <div class="quote">"Welcome aboard. This is the path. Run it the way it's written and you'll be promoted. Skip steps and you'll stall." — <b>Chris Lorenz</b></div>
   </div>
 
+  <!-- DAILY NON-NEGOTIABLES -->
+  <div class="daily daily-top" id="dailyBox">
+    <div class="sec-head"><h3>⚡ Daily Non-Negotiables ⚡</h3><span class="days lock">Resets daily</span></div>
+    <div class="dn-banner" id="dnBanner">🔴 Start here — knock these out before anything else today.</div>
+    <div class="streakbar">
+      <div class="s">🔥 Current streak: <b id="streakNum">0</b> days &nbsp;·&nbsp; Best: <b id="bestNum" style="font-size:14px;color:var(--gold);">0</b></div>
+      <div class="milestones">Milestones: 7 · 14 · 30 · 60 · 90 · 180 days</div>
+    </div>
+    <div class="dailystat" id="dailyStat">Check off all 6 each day to keep your streak alive.</div>
+    <div class="sec-body">
+      <div class="item"><input type="checkbox" class="dchk" id="dnHuddle"><label for="dnHuddle"><b>Attend the 8 AM Morning Huddle</b> <span class="meta">8:00 AM PST · <a href="https://us02web.zoom.us/j/9646509994?pwd=a2s1OXhzeTB3N3BBOWRkUmw1VHE2Zz09" target="_blank" rel="noopener">Join Zoom →</a> · <a href="https://grindagencies.github.io/smmt-calendar/ics/huddle.ics" target="_blank" rel="noopener">Add to Calendar →</a></span></label></div>
+      <div class="item"><input type="checkbox" class="dchk" id="dnTalk"><label for="dnTalk">Talk to people every single day — momentum comes from conversations</label></div>
+      <div class="wm-log">
+        <div class="wm-log-h">📇 Log who you talked to <span class="meta" style="color:var(--muted);font-weight:700;">→ saved to your Marketing Plan as a fresh lead</span></div>
+        <div class="wm-rows" id="wmRows"></div>
+        <div class="wm-actions">
+          <button type="button" class="wm-add" onclick="addWmRow()">＋ Add another person</button>
+          <button type="button" class="wm-save" onclick="logContacts()">Log to Warm Market →</button>
+        </div>
+        <div class="wm-note" id="wmLogNote"></div>
+      </div>
+      <div class="item"><input type="checkbox" class="dchk" id="dnGroup"><label for="dnGroup">Be in GroupMe daily — read the briefings, respond</label></div>
+      <div class="item"><input type="checkbox" class="dchk" id="dnPFR"><label for="dnPFR">One PFR booked or completed (weekday minimum)</label></div>
+      <div class="item"><input type="checkbox" class="dchk" id="dnTracker"><label for="dnTracker">Update your tracker before end of day</label></div>
+      <div class="item"><input type="checkbox" class="dchk" id="dnTrain"><label for="dnTrain">Plug into live trainings — Mon Team · Wed Day 1 · Thu Day 2 (6 PM PST)</label></div>
+    </div>
+  </div>
+
   <div class="progress-wrap">
     <div class="progress-top">
       <span class="lbl">Your Progress</span>
@@ -646,33 +684,6 @@
         <div class="item"><input type="checkbox" class="chk" id="r100_90"><label for="r100_90">$90,000 cashflow paid out</label></div>
         <div class="item tier"><input type="checkbox" class="chk" id="r100_100"><label for="r100_100">💍 $100,000+ — earn the Ring</label></div>
       </div>
-    </div>
-  </div>
-
-  <!-- DAILY NON-NEGOTIABLES -->
-  <div class="daily">
-    <div class="sec-head"><h3>🔁 Daily Non-Negotiables</h3><span class="days lock">Resets daily</span></div>
-    <div class="streakbar">
-      <div class="s">🔥 Current streak: <b id="streakNum">0</b> days &nbsp;·&nbsp; Best: <b id="bestNum" style="font-size:14px;color:var(--gold);">0</b></div>
-      <div class="milestones">Milestones: 7 · 14 · 30 · 60 · 90 · 180 days</div>
-    </div>
-    <div class="dailystat" id="dailyStat">Check off all 6 each day to keep your streak alive.</div>
-    <div class="sec-body">
-      <div class="item"><input type="checkbox" class="dchk" id="dnHuddle"><label for="dnHuddle"><b>Attend the 8 AM Morning Huddle</b> <span class="meta">8:00 AM PST · <a href="https://us02web.zoom.us/j/9646509994?pwd=a2s1OXhzeTB3N3BBOWRkUmw1VHE2Zz09" target="_blank" rel="noopener">Join Zoom →</a> · <a href="https://grindagencies.github.io/smmt-calendar/ics/huddle.ics" target="_blank" rel="noopener">Add to Calendar →</a></span></label></div>
-      <div class="item"><input type="checkbox" class="dchk" id="dnTalk"><label for="dnTalk">Talk to people every single day — momentum comes from conversations</label></div>
-      <div class="wm-log">
-        <div class="wm-log-h">📇 Log who you talked to <span class="meta" style="color:var(--muted);font-weight:700;">→ saved to your Marketing Plan as a fresh lead</span></div>
-        <div class="wm-rows" id="wmRows"></div>
-        <div class="wm-actions">
-          <button type="button" class="wm-add" onclick="addWmRow()">＋ Add another person</button>
-          <button type="button" class="wm-save" onclick="logContacts()">Log to Warm Market →</button>
-        </div>
-        <div class="wm-note" id="wmLogNote"></div>
-      </div>
-      <div class="item"><input type="checkbox" class="dchk" id="dnGroup"><label for="dnGroup">Be in GroupMe daily — read the briefings, respond</label></div>
-      <div class="item"><input type="checkbox" class="dchk" id="dnPFR"><label for="dnPFR">One PFR booked or completed (weekday minimum)</label></div>
-      <div class="item"><input type="checkbox" class="dchk" id="dnTracker"><label for="dnTracker">Update your tracker before end of day</label></div>
-      <div class="item"><input type="checkbox" class="dchk" id="dnTrain"><label for="dnTrain">Plug into live trainings — Mon Team · Wed Day 1 · Thu Day 2 (6 PM PST)</label></div>
     </div>
   </div>
 
@@ -1250,10 +1261,18 @@
     if(agent){best=agent.best_streak||0; if(agent.last_daily===t||agent.last_daily===addDaysC(t,-1))s=agent.streak||0;}
     el('streakNum').textContent=s; el('bestNum').textContent=Math.max(best,s);
     el('dailyStat').textContent = doneToday ? ('Logged today ✓ — '+s+'-day streak. Come back tomorrow!') : 'Check off all 6 each day to keep your streak alive.';
+    updateDailyGlow();
+  }
+  function updateDailyGlow(){
+    var box=document.getElementById('dailyBox'); if(!box)return;
+    var all=dboxes.length>0 && dboxes.every(function(x){return x.checked;});
+    box.classList.toggle('complete',all);
+    var b=document.getElementById('dnBanner');
+    if(b) b.textContent = all ? '✅ All non-negotiables done for today — outstanding. See you tomorrow.' : '🔴 Start here — knock these out before anything else today.';
   }
   function saveDailyLocal(){var ids={};dboxes.forEach(function(b){if(b.checked)ids[b.id]=1;});try{localStorage.setItem(dailyKey(),JSON.stringify({date:ptToday(),ids:ids}));}catch(e){}}
   dboxes.forEach(function(b){b.addEventListener('change',function(){
-    saveDailyLocal();
+    saveDailyLocal(); updateDailyGlow();
     var allDone=dboxes.every(function(x){return x.checked;});
     if(allDone && code){
       el('dailyStat').textContent='Logging your day…';
