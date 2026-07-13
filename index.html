@@ -719,7 +719,7 @@ function copyLink(url,btn){
     var url=a.getAttribute('href'); if(!url)return;
     var wrap=document.createElement('span'); wrap.className='bk-btns';
     a.parentNode.insertBefore(wrap,a); wrap.appendChild(a);
-    var b=document.createElement('button'); b.type='button'; b.className='share-btn'; b.textContent='\U0001F517 Share'; b.title='Copy '+url;
+    var b=document.createElement('button'); b.type='button'; b.className='share-btn'; b.textContent='Share'; b.title='Copy '+url;
     b.addEventListener('click',function(){copyLink(url,b);});
     wrap.appendChild(b);
   });
