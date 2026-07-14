@@ -65,6 +65,9 @@ a{color:inherit}
 .lstat{font-size:9.5px;font-weight:900;text-transform:uppercase;letter-spacing:.03em;padding:2px 7px;border-radius:999px;}
 .lstat.fresh{background:#243a52;color:#cfe6ff;border:1px solid #3b6ea5;}
 .lstat.nurture{background:#3a2f0a;color:#ffe9a8;border:1px solid #caa23a;}
+.lstat.called{background:#243a52;color:#cfe6ff;border:1px solid #3b6ea5;}
+.lstat.scheduled{background:#3a2f0a;color:#ffe9a8;border:1px solid #caa23a;}
+.lstat.followup{background:#2c1f3a;color:#e6c6ff;border:1px solid #9a6ec9;}
 .lstat.won{background:#1d3a26;color:#8ee9b6;border:1px solid #2c6b4d;}
 .lstat.lost{background:#3a1d18;color:#f3b0a2;border:1px solid #8a3a2a;}
 .lmempty{color:#9c9173;font-style:italic;font-size:13px;padding:14px 4px;text-align:center;}
@@ -237,7 +240,8 @@ function reparent(childId,newParent){
   if(isDescendant(childId,newParent)){ toast("Can't move someone under their own downline"); return; }
   const oldP=n.parent; n.parent=newParent; n.ord=childrenSorted(newParent).length; renumber(newParent); renumber(oldP); openSet.add(newParent); dirty=true; render(); toast(n.name+' → '+byId[newParent].name);
 }
-function leadStatus(c){ if(c.outcome==='win')return'won'; if(c.outcome==='lose')return'lost'; if(c.contacted)return'nurture'; return'fresh'; }
+var SLABEL={fresh:'Fresh',called:'Called',scheduled:'Scheduled',followup:'Follow Up',won:'Won',lost:'Lost'};
+function leadStatus(c){ if(c.status&&SLABEL[c.status])return c.status; if(c.outcome==='win')return'won'; if(c.outcome==='lose')return'lost'; if(c.contacted)return'called'; return'fresh'; }
 window.openLeads=function(ev,id){
   if(ev){ ev.stopPropagation(); }
   if(editing) return; // in edit mode the card is for dragging
