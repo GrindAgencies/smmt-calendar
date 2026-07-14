@@ -84,6 +84,9 @@
   .statussel:focus{box-shadow:0 0 0 2px rgba(212,175,55,.25);}
   .statussel.s-fresh{color:var(--green);border-color:var(--green);}
   .statussel.s-nurture{color:#bcdcff;border-color:var(--blue);}
+  .statussel.s-called{color:#bcdcff;border-color:var(--blue);}
+  .statussel.s-scheduled{color:#ffe0a3;border-color:#caa23a;}
+  .statussel.s-followup{color:#e6c6ff;border-color:#9a6ec9;}
   .statussel.s-won{color:#06150e;background:var(--green);border-color:var(--green);}
   .statussel.s-lost{color:#fff;background:var(--red);border-color:var(--red);}
   .statussel:disabled{opacity:.5;cursor:default;}
@@ -140,8 +143,6 @@
     <a href="resources.html" class="">📚 Resources</a>
     <a href="dashboard.html" class="ga-lead">🔒 Ops</a>
     <a href="marketing.html" class="ga-lead ga-on">🔒 Leads</a>
-    <a href="team.html" class="ga-lead">👥 My Team</a>
-      <a href="org.html" class="ga-lead">🌳 Org Chart</a>
   </nav>
 </header>
   <div class="head">
@@ -313,10 +314,12 @@
       if(l.married)prof.push('💍');
       if(l.children)prof.push('👶');
       if(l.time_zone)prof.push(esc(l.time_zone));
-      var lstat = l.outcome==='win'?'won':l.outcome==='lose'?'lost':l.contacted?'nurture':'fresh';
+      var lstat = (l.status&&['fresh','called','scheduled','followup','won','lost'].indexOf(l.status)>=0)?l.status:(l.outcome==='win'?'won':l.outcome==='lose'?'lost':l.contacted?'called':'fresh');
       var ocb = '<select class="statussel s-'+lstat+'" title="Click to change lead status" onchange="setLeadStatus(\''+esc(l.agent_code)+'\',\''+esc(l.id)+'\',this)">'+
         '<option value="fresh"'+(lstat==='fresh'?' selected':'')+'>🟢 Fresh</option>'+
-        '<option value="nurture"'+(lstat==='nurture'?' selected':'')+'>🔵 Nurture</option>'+
+        '<option value="called"'+(lstat==='called'?' selected':'')+'>📞 Called</option>'+
+        '<option value="scheduled"'+(lstat==='scheduled'?' selected':'')+'>📅 Scheduled</option>'+
+        '<option value="followup"'+(lstat==='followup'?' selected':'')+'>🔁 Future Follow Up</option>'+
         '<option value="won"'+(lstat==='won'?' selected':'')+'>🏆 Won</option>'+
         '<option value="lost"'+(lstat==='lost'?' selected':'')+'>✖ Lost</option>'+
         '</select>';
