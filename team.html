@@ -71,6 +71,9 @@ select{background:#171206;color:#fff6da;border:1px solid #8a6d1f;border-radius:1
 .pill:hover{border-color:#8a6d1f;color:#fff6da;}
 .pill.on.fresh{background:#243a52;border-color:#3b6ea5;color:#cfe6ff;}
 .pill.on.nurture{background:#3a2f0a;border-color:#caa23a;color:#ffe9a8;}
+.pill.on.called{background:#243a52;border-color:#3b6ea5;color:#cfe6ff;}
+.pill.on.scheduled{background:#3a2f0a;border-color:#caa23a;color:#ffe9a8;}
+.pill.on.followup{background:#2c1f3a;border-color:#9a6ec9;color:#e6c6ff;}
 .pill.on.won{background:#1d3a26;border-color:#2c6b4d;color:#8ee9b6;}
 .pill.on.lost{background:#3a1d18;border-color:#8a3a2a;color:#f3b0a2;}
 .pill.lock{margin-left:auto;}
@@ -111,7 +114,6 @@ select{background:#171206;color:#fff6da;border:1px solid #8a6d1f;border-radius:1
       <a href="dashboard.html" class="ga-lead">🔒 Ops</a>
       <a href="marketing.html" class="ga-lead">🔒 Leads</a>
       <a href="team.html" class="ga-lead ga-on">👥 My Team</a>
-      <a href="org.html" class="ga-lead">🌳 Org Chart</a>
     </nav>
   </header>
 
@@ -163,10 +165,13 @@ async function loadLeaders(){
   }catch(e){ $('leaderSel').innerHTML='<option value="">Could not load</option>'; }
 }
 
+var LEAD_STATUSES=['fresh','called','scheduled','followup','won','lost'];
+var LEAD_LABELS={fresh:'Fresh',called:'Called',scheduled:'Scheduled',followup:'Future Follow Up',won:'Won',lost:'Lost'};
 function leadStatus(c){
+  if(c.status && LEAD_STATUSES.indexOf(c.status)>=0) return c.status;
   if(c.outcome==='win') return 'won';
   if(c.outcome==='lose') return 'lost';
-  if(c.contacted) return 'nurture';
+  if(c.contacted) return 'called';
   return 'fresh';
 }
 
@@ -285,7 +290,7 @@ function toggleDrill(code){
         </div>
       </div>
       <div class="pills">
-        ${['fresh','nurture','won','lost'].map(p=>`<span class="pill ${p} ${st===p?'on':''}" onclick="setStatus('${code}','${c.id}','${p}',event)">${p.charAt(0).toUpperCase()+p.slice(1)}</span>`).join('')}
+        ${LEAD_STATUSES.map(p=>`<span class="pill ${p} ${st===p?'on':''}" onclick="setStatus('${code}','${c.id}','${p}',event)">${LEAD_LABELS[p]}</span>`).join('')}
         <span class="pill lock ${c.locked?'on':''}" onclick="setLock('${code}','${c.id}',${c.locked?true:false},event)">${c.locked?'🔒 Locked':'🔓 Lock'}</span>
       </div>
     </div>`;
@@ -309,14 +314,15 @@ async function setStatus(code, leadId, status, ev){
   if(ev) ev.stopPropagation();
   const a = agentByCode(code); if(!a) return;
   const lead = (a.leads||[]).find(l=>l.id===leadId); if(!lead) return;
-  const prev = {contacted:lead.contacted, outcome:lead.outcome};
+  const prev = {contacted:lead.contacted, outcome:lead.outcome, status:lead.status};
+  lead.status = status;
   if(status==='fresh'){ lead.contacted=false; lead.outcome=''; }
-  else if(status==='nurture'){ lead.contacted=true; lead.outcome=''; }
   else if(status==='won'){ lead.contacted=true; lead.outcome='win'; }
   else if(status==='lost'){ lead.contacted=true; lead.outcome='lose'; }
+  else { lead.contacted=true; lead.outcome=''; }
   refreshDrill(code);
   const d = await api({action:'team_setleadstatus', leader:LEADER, code, leadId, status});
-  if(!d.ok){ lead.contacted=prev.contacted; lead.outcome=prev.outcome; refreshDrill(code); toast(d.error||'Could not update'); }
+  if(!d.ok){ lead.contacted=prev.contacted; lead.outcome=prev.outcome; lead.status=prev.status; refreshDrill(code); toast(d.error||'Could not update'); }
   else toast('Marked '+status);
 }
 
