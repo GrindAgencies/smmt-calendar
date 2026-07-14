@@ -219,6 +219,11 @@
   .wm-card .wm-contacted:hover{background:#1d1607;}
   .wm-card .wm-contacted.on{background:#3e8f6a;border-color:#3e8f6a;color:#06150e;}
   .wm-card.contacted{border-left:3px solid #3e8f6a;}
+  .wm-card .wm-status{flex:0 0 auto;cursor:pointer;font-family:inherit;font-size:11.5px;font-weight:800;letter-spacing:.02em;border-radius:999px;padding:8px 10px;border:1px solid var(--gold-deep);background:#141005;color:var(--gold);outline:none;}
+  .wm-card .wm-status option{background:#0c0b05;color:#fff6da;}
+  .wm-card .wm-status.s-won{background:#3e8f6a;border-color:#3e8f6a;color:#06150e;}
+  .wm-card .wm-status.s-lost{background:var(--red);border-color:var(--red);color:#fff;}
+  .wm-card .wm-status.s-called,.wm-card .wm-status.s-scheduled,.wm-card .wm-status.s-followup{background:#1d1607;border-color:#caa23a;color:#ffe9a8;}
   @media(max-width:560px){.wm-card .wm-head{flex-wrap:wrap;}.wm-card .wm-name-in{flex:1 1 100%;order:-1;}}
   .wm-card.done{opacity:.6;}
   .wm-card .wm-chk{appearance:none;-webkit-appearance:none;flex:0 0 auto;width:22px;height:22px;border-radius:6px;border:2px solid var(--gold-deep);background:#0b0a05;cursor:pointer;position:relative;}
@@ -1006,6 +1011,11 @@
   function logContacts2(){logFrom('wmRows2','wmLogNote2');}
   function wmToggle(id){for(var i=0;i<warmMarket.length;i++){if(warmMarket[i].id===id){warmMarket[i].done=!warmMarket[i].done;break;}}renderWarm();saveNow();}
   function wmRemove(id){warmMarket=warmMarket.filter(function(x){return x.id!==id;});renderWarm();saveNow();}
+  var WM_STATUSES=[['fresh','🟢 Fresh'],['called','📞 Called'],['scheduled','📅 Scheduled'],['followup','🔁 Future Follow Up'],['won','🏆 Won'],['lost','✖ Lost']];
+  function statusOf(c){var k=c&&c.status;if(k&&['fresh','called','scheduled','followup','won','lost'].indexOf(k)>=0)return k;if(c){if(c.outcome==='win')return'won';if(c.outcome==='lose')return'lost';if(c.contacted)return'called';}return'fresh';}
+  function wmStatusOptions(cur){return WM_STATUSES.map(function(op){return '<option value="'+op[0]+'"'+(op[0]===cur?' selected':'')+'>'+op[1]+'</option>';}).join('');}
+  function applyStatus(c,st){c.status=st;if(st==='fresh'){c.contacted=false;c.outcome='';}else if(st==='won'){c.contacted=true;c.outcome='win';if(!c.contactedDate)c.contactedDate=ptToday();}else if(st==='lost'){c.contacted=true;c.outcome='lose';if(!c.contactedDate)c.contactedDate=ptToday();}else{c.contacted=true;c.outcome='';if(!c.contactedDate)c.contactedDate=ptToday();}}
+  function wmSetStatus(id,st){for(var i=0;i<warmMarket.length;i++){if(warmMarket[i].id===id){applyStatus(warmMarket[i],st);break;}}renderWarm();saveNow();}
   function wmOutcome(id,outcome){for(var i=0;i<warmMarket.length;i++){if(warmMarket[i].id===id){warmMarket[i].outcome=(warmMarket[i].outcome===outcome)?'':outcome;break;}}renderWarm();saveNow();}
   function wmContacted(id){for(var i=0;i<warmMarket.length;i++){if(warmMarket[i].id===id){warmMarket[i].contacted=!warmMarket[i].contacted;if(warmMarket[i].contacted)warmMarket[i].contactedDate=ptToday();break;}}renderWarm();saveNow();}
   function wmLock(id){for(var i=0;i<warmMarket.length;i++){if(warmMarket[i].id===id){warmMarket[i].locked=!warmMarket[i].locked;if(warmMarket[i].locked&&warmMarket[i].pooled){warmMarket[i].pooled=false;delete warmMarket[i].pooledDate;}break;}}renderWarm();saveNow();}
@@ -1119,15 +1129,15 @@
     if(el('wmAddRow'))el('wmAddRow').style.display=n?'flex':'none';
     warmMarket.forEach(function(c){
       var oc=c.outcome||'';
+      var st=statusOf(c);
       var d=document.createElement('div');d.className='wm-card'+(c.contacted?' contacted':'')+(oc?(' oc-'+oc):'')+((c.pooled&&!c.locked)?' pooled':'')+(c.locked?' locked':'');
       d.innerHTML='<div class="wm-head">'+
-        '<button class="wm-contacted'+(c.contacted?' on':'')+'" title="Mark contacted / not contacted">'+(c.contacted?'✓ Contacted':'☎ Reach out')+'</button>'+
+        '<select class="wm-status s-'+st+'" title="Lead status">'+wmStatusOptions(st)+'</select>'+
         '<input class="wm-name-in" data-f="name" type="text" value="'+escH(c.name||'')+'" placeholder="Full name" autocomplete="off">'+
-        '<div class="wm-outcome"><button class="wl wl-w'+(oc==='win'?' on':'')+'" title="Won the business">✓ Win</button><button class="wl wl-l'+(oc==='lose'?' on':'')+'" title="Lost the business">✕ Lose</button></div>'+
         '<button class="wm-lock'+(c.locked?' on':'')+'" title="'+(c.locked?'Locked — protected from the 21-day shared pool. Click to unlock.':'Lock — keep this lead off the 21-day shared pool')+'">'+(c.locked?'🔒':'🔓')+'</button>'+
         '<button class="wm-del" title="Remove">🗑</button>'+
         '</div>'+
-        ((c.pooled&&!c.locked)?'<div class="wm-pooled-flag">⏰ Uncalled 21+ days — now shared in the Phone Zone pool for any agent to claim. Mark <b>Contacted</b> to pull it back and keep it yours.</div>':'')+
+        ((c.pooled&&!c.locked)?'<div class="wm-pooled-flag">⏰ Uncalled 21+ days — now shared in the Phone Zone pool for any agent to claim. Set a status (Called, Scheduled…) to pull it back and keep it yours.</div>':'')+
         (c.locked?'<div class="wm-locked-flag">🔒 Locked — protected from the 21-day shared pool. This lead stays yours no matter what. Click the lock again to release it.</div>':'')+
         '<div class="wm-grid">'+
           wmFld('☎ Phone','phone',c.phone,'tel')+
@@ -1145,9 +1155,7 @@
           '<label class="wm-tg"><input type="checkbox" data-f="children" '+(c.children?'checked':'')+'> Children</label>'+
         '</div>'+
         '<textarea class="wm-notes" data-f="notes" rows="2" placeholder="Notes — what was discussed, next steps, objections…">'+escH(c.notes||'')+'</textarea>';
-      d.querySelector('.wm-contacted').addEventListener('click',function(){wmContacted(c.id);});
-      d.querySelector('.wl-w').addEventListener('click',function(){wmOutcome(c.id,'win');});
-      d.querySelector('.wl-l').addEventListener('click',function(){wmOutcome(c.id,'lose');});
+      d.querySelector('.wm-status').addEventListener('change',function(){wmSetStatus(c.id,this.value);});
       d.querySelector('.wm-lock').addEventListener('click',function(){wmLock(c.id);});
       d.querySelector('.wm-del').addEventListener('click',function(){if(confirm('Remove this lead?'))wmRemove(c.id);});
       Array.prototype.forEach.call(d.querySelectorAll('[data-f]'),function(inp){
