@@ -20,6 +20,15 @@ html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family
 button,input,select,textarea{font-family:inherit;}
 button{cursor:pointer;}
 .hide{display:none!important;}
+.side{position:fixed;left:0;top:0;height:100vh;width:248px;background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;gap:3px;padding:16px 12px;z-index:50;overflow-y:auto;}
+.side .brand{padding:6px 8px 14px;}
+.side .brand img{width:32px;height:32px;border-radius:9px;}
+.slink{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;color:var(--ink2);font-weight:600;font-size:14px;white-space:nowrap;}
+.slink svg{width:20px;height:20px;flex:0 0 auto;}
+.slink:hover{background:var(--bg);color:var(--ink);}.slink.on{background:var(--accent-soft);color:var(--accent);}
+.sfoot{margin-top:auto;padding-top:10px;border-top:1px solid var(--line);}
+body{padding-left:248px;}
+@media(max-width:860px){body{padding-left:0;}.side{transform:translateX(-100%);}}
 a{color:inherit;text-decoration:none;}
 /* top bar */
 .top{position:sticky;top:0;z-index:40;height:58px;display:flex;align-items:center;gap:14px;padding:0 22px;background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid var(--line);}
@@ -185,10 +194,7 @@ input[type=range]{width:100%;accent-color:var(--accent);height:6px;}
 <body>
 
 <!-- TOP BAR -->
-<header class="top" id="topbar">
-  <a class="brand" href="index.html"><img src="logo.png" onerror="this.style.display='none'"><span>The <b>Standard</b></span></a>
-  <a class="tlink" href="newbusiness.html"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg> New Business</a>
-</header>
+<aside class="side" id="side"></aside>
 
 <!-- GALLERY -->
 <div class="wrap" id="gallery">
@@ -235,13 +241,29 @@ function avColor(s){var h=0;s=s||'';for(var i=0;i<s.length;i++)h=s.charCodeAt(i)
 /* theme follow */
 try{var th=localStorage.getItem('gfi_theme');if(th==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}
 
+var NAVI=[['home','Home','index.html','M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z'],
+['hub','Team Hub','teamhub.html','M21 15a2 2 0 0 1-2 2H8l-4 4V5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z'],
+['calendar','Team Calendar','calendar.html','M3 4.5h18v16H3zM3 9h18M8 3v3M16 3v3'],
+['dollar','New Business','newbusiness.html','M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6'],
+['pfr','PFR Builder','pfr.html','M8 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-2M9 12h6M9 16h6M9 8h6'],
+['check','My Tracker','checklist.html','M20 6 9 17l-5-5'],
+['users','Leads','marketing.html','M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z'],
+['team','My Team','team.html','M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z'],
+['tree','Org Chart','org.html','M9 3h6v5H9zM3 16h6v5H3zM15 16h6v5h-6zM12 8v4M6 16v-2h12v2'],
+['book','Resources','resources.html','M4 5a2 2 0 0 1 2-2h13v18H6a2 2 0 0 1-2-2zM9 3v18'],
+['chart','Ops Dashboard','dashboard.html','M3 3v18h18M7 13v4M12 8v9M17 11v6']];
+function buildSide(){var h='<a class="brand" href="index.html"><img src="logo.png" onerror="this.style.display=\'none\'"><span>The <b>Standard</b></span></a>';
+ NAVI.forEach(function(n){var on=n[2]==='pfr.html'?' on':'';h+='<a class="slink'+on+'" href="'+n[2]+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="'+n[3]+'"/></svg><span>'+n[1]+'</span></a>';});
+ h+='<div class="sfoot"><a class="slink" href="#" onclick="signOut();return false;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg><span>Sign out</span></a></div>';
+ var el=document.getElementById('side');if(el)el.innerHTML=h;}
+function signOut(){try{localStorage.removeItem('tsfg_code');localStorage.removeItem('tsfg_name');}catch(e){}location.href='index.html';}
 /* ===== auth ===== */
 (function(){
   try{CODE=localStorage.getItem('tsfg_code');NAME=localStorage.getItem('tsfg_name')||'';}catch(e){}
   if(!CODE){location.href='index.html';return;}
   CODE=CODE.toUpperCase();
   try{OPS=(localStorage.getItem('tsfg_ops')==='1');}catch(e){}
-  loadPFRs();
+  buildSide();loadPFRs();
 })();
 
 /* ===== gallery ===== */
@@ -324,8 +346,8 @@ function openPFR(id,toReport){togglePop&&document.querySelectorAll('.pop').forEa
     if(toReport){showSummary();}else{STEP=0;openFlow();}
   });
 }
-function openFlow(){$('gallery').classList.add('hide');$('summary').classList.add('hide');$('flow').classList.remove('hide');$('topbar').classList.add('hide');renderStep();}
-function exitFlow(){saveNow(true);$('flow').classList.add('hide');$('topbar').classList.remove('hide');$('gallery').classList.remove('hide');}
+function openFlow(){$('gallery').classList.add('hide');$('summary').classList.add('hide');$('flow').classList.remove('hide');renderStep();}
+function exitFlow(){saveNow(true);$('flow').classList.add('hide');$('gallery').classList.remove('hide');}
 function prevStep(){if(STEP>0){STEP--;renderStep();}}
 function nextStep(){
   if(STEP>=STEPS.length-1){finishFlow();return;}
@@ -347,6 +369,7 @@ var d=function(){return CUR.data;};
 function scheduleSave(){clearTimeout(saveTimer);saveTimer=setTimeout(function(){saveNow();},900);}
 function saveNow(silent){
   if(!CUR)return;var dd=CUR.data;var c=calc(dd);
+  if(!CUR.id&&!(dd.client.name||'').trim())return;
   var p={action:'pfr_save',id:CUR.id,code:CODE,agent_name:NAME,client_name:dd.client.name,client_phone:dd.client.phone,client_email:dd.client.email,data:dd,insurable_need:Math.round(c.insurable),status:CUR.status};
   if(OPS)p.token='2026';
   $('saveLbl')&&($('saveLbl').textContent='Saving…');
@@ -511,7 +534,7 @@ RENDER.advisor=function(){var opts=['Yes, I’d like to learn more.','I have a f
 /* ===== finish ===== */
 function finishFlow(){CUR.status='complete';saveNow();showSummary();}
 function showSummary(){
-  $('flow').classList.add('hide');$('gallery').classList.add('hide');$('topbar').classList.remove('hide');
+  $('flow').classList.add('hide');$('gallery').classList.add('hide');
   var s=$('summary');s.classList.remove('hide');
   var dd=CUR.data,c=calc(dd);
   var conf=FACES[dd.confidence-1]||['',''];
