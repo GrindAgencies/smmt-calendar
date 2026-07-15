@@ -3,226 +3,174 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Company Resources — Carrier Rolodex · The Standard Financial Group</title>
-<style>
-  :root{--bg:#f6f2ea;--panel:#ffffff;--panel2:#faf7ef;--gold:#9c7515;--gold-bright:#c79a2e;--gold-deep:#b89a55;--line:#e7e0d2;--text:#221d15;--muted:#6f6553;--muted2:#8a8474;--green:#1f9c66;}
-  *{box-sizing:border-box;}
-  body{margin:0;background:radial-gradient(1100px 560px at 50% -8%,#fffdf8,#f7f3ec 55%,#f6f2ea 100%);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.5;}
-  .wrap{max-width:1080px;margin:0 auto;padding:18px 16px 60px;}
-  .topnav{display:flex;gap:10px;margin:0 0 16px;flex-wrap:wrap;}
-  .topnav a{flex:1;min-width:150px;text-align:center;padding:13px 12px;border-radius:14px;text-decoration:none;font-weight:800;letter-spacing:.02em;border:1px solid var(--line);color:var(--gold);background:var(--panel);}
-  .topnav a.on{color:#0a0a0a;background:linear-gradient(90deg,var(--gold-bright),var(--gold));border-color:var(--gold);}
-  .head{text-align:center;margin:8px 0 6px;}
-  .brand{letter-spacing:.34em;font-size:12px;color:var(--gold);font-weight:800;text-transform:uppercase;}
-  h1{margin:6px 0 4px;font-size:30px;letter-spacing:.01em;}
-  .sub{color:var(--muted);font-size:14.5px;margin:0 0 16px;}
-  .docbtn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:15px;border-radius:14px;text-decoration:none;font-weight:900;font-size:16px;color:#0a0a0a;background:linear-gradient(90deg,var(--gold-bright),var(--gold));border:1px solid var(--gold);box-shadow:0 6px 24px rgba(212,175,55,.18);}
-  .docbtn small{display:block;font-weight:700;font-size:11.5px;opacity:.8;}
-  .docnote{font-size:12px;color:var(--muted);text-align:center;margin:8px 0 16px;}
-  .ressec{margin:0 0 18px;}
-  .ressec-h{font-size:13px;font-weight:900;letter-spacing:.02em;color:var(--gold-bright);margin:0 0 10px;text-align:center;}
-  .reslist{display:grid;grid-template-columns:repeat(auto-fill,minmax(248px,1fr));gap:10px;}
-  .rescard{display:block;border:1px solid var(--line);border-radius:12px;padding:12px 13px;background:linear-gradient(180deg,var(--panel2),var(--panel));text-decoration:none;transition:border-color .15s;}
-  .rescard:hover{border-color:var(--gold-deep);}
-  .rescard-t{font-weight:800;font-size:14px;color:var(--gold-bright);}
-  .rescard-d{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.4;}
-  .search{width:100%;padding:14px 16px;border-radius:12px;border:2px solid var(--gold);background:#fffdf6;color:var(--text);font-size:16px;font-weight:600;margin:0 0 16px;position:sticky;top:58px;z-index:25;box-shadow:0 6px 18px rgba(120,90,10,.14);}
-  .searchlbl{font-size:12px;font-weight:800;color:#9c7515;text-transform:uppercase;letter-spacing:.05em;margin:18px 0 7px;}
-  /* topic library */
-  .topics{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:6px 0 22px;}
-  .topic{border:1px solid var(--line);border-radius:14px;background:var(--panel);overflow:hidden;}
-  .topic-h{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;text-align:left;cursor:pointer;border:0;background:transparent;font:inherit;padding:14px 15px;color:var(--text);font-weight:800;font-size:15px;}
-  .topic-h .cnt{font-size:11px;font-weight:800;color:#9c7515;background:#faf2dc;border:1px solid #e7d49a;border-radius:999px;padding:2px 9px;}
-  .topic-h .car{color:#b89a55;transition:.2s;font-size:13px;}
-  .topic.open .topic-h .car{transform:rotate(90deg);}
-  .topic-body{display:none;padding:0 12px 12px;}
-  .topic.open .topic-body{display:block;}
-  .titem{display:flex;align-items:flex-start;gap:10px;text-decoration:none;color:var(--text);border:1px solid var(--line);border-radius:11px;padding:10px 12px;margin-top:8px;background:#faf7ef;}
-  a.titem:hover{border-color:var(--gold);background:#fff;}
-  .titem .ico{font-size:17px;line-height:1.3;}
-  .titem .tt{font-weight:800;font-size:13.5px;}
-  .titem .td{font-size:12px;color:#6f6553;margin-top:1px;}
-  .titem .kind{font-size:9.5px;font-weight:900;text-transform:uppercase;letter-spacing:.04em;padding:2px 7px;border-radius:999px;margin-left:auto;white-space:nowrap;align-self:center;}
-  .kind.vid{color:#8a5a12;background:#fbf0d8;border:1px solid #e2c98c;}
-  .kind.doc{color:#1e4b86;background:#e7f0fb;border:1px solid #9cc1ee;}
-  .kind.book{color:#2c6b4d;background:#e7f6ec;border:1px solid #8fd3ab;}
-  .search::placeholder{color:#7a7464;}
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:14px;}
-  .card{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:16px;padding:16px 16px 14px;}
-  .card h2{margin:0;font-size:19px;color:var(--gold-bright);display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
-  .prod{font-size:12px;color:var(--muted);margin:3px 0 12px;font-weight:600;}
-  .lbl{font-size:10.5px;letter-spacing:.10em;text-transform:uppercase;color:var(--gold-deep);font-weight:800;margin:12px 0 6px;}
-  .rep{padding:9px 11px;border:1px solid var(--line);border-radius:11px;margin:0 0 7px;background:#faf7ef;}
-  .rep .nm{font-weight:800;font-size:14.5px;}
-  .rep .role{font-size:11.5px;color:var(--muted);font-weight:700;}
-  .rep .ct{margin-top:4px;display:flex;flex-wrap:wrap;gap:6px;}
-  a.chip{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:700;text-decoration:none;padding:5px 9px;border-radius:8px;border:1px solid var(--line);background:#f3ecdb;color:var(--gold-bright);white-space:nowrap;}
-  a.chip.mail{color:#9ec5ff;}
-  a.chip:hover{filter:brightness(1.12);}
-  .lines{display:flex;flex-wrap:wrap;gap:6px;}
-  .empty{font-size:12.5px;color:var(--muted);font-style:italic;padding:6px 0;}
-  .dash{display:block;margin-top:13px;padding:11px 12px;border-radius:11px;background:linear-gradient(90deg,var(--gold-bright),var(--gold));color:#0a0a0a;font-weight:900;font-size:13.5px;text-decoration:none;text-align:center;box-shadow:0 3px 14px rgba(212,175,55,.16);}
-  .dash:hover{filter:brightness(1.08);}
-  .portal{display:inline-block;margin-top:9px;font-size:12px;font-weight:700;color:var(--muted);text-decoration:none;border-bottom:1px solid var(--line);}
-  .foot{text-align:center;color:var(--muted);font-size:12px;margin-top:26px;}
-  .count{text-align:center;color:var(--muted);font-size:12.5px;margin:0 0 12px;}
-</style>
-<style id="ga-shell">
-:root{--ga-gold:#d4af37;--ga-gold-br:#f7d873;--ga-gold-dp:#8a6d1f;--ga-muted:#b6a982;--ga-line:#2a2206;}
-.ga-top{position:sticky;top:0;z-index:60;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;padding:10px 18px;background:linear-gradient(180deg,#141005,#0b0a05);border-bottom:1px solid var(--ga-gold-dp);box-shadow:0 6px 22px rgba(0,0,0,.35);}
-.ga-brand{display:flex;align-items:center;gap:10px;text-decoration:none;font-weight:900;letter-spacing:.05em;font-size:14.5px;color:#fff6da;text-transform:uppercase;white-space:nowrap;}
-.ga-brand img{height:30px;width:auto;border-radius:6px;}
-.ga-brand b{background:linear-gradient(180deg,#fff4cf,var(--ga-gold-br) 50%,var(--ga-gold-dp));-webkit-background-clip:text;background-clip:text;color:transparent;}
-.ga-nav{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
-.ga-nav a{display:inline-flex;align-items:center;gap:6px;text-decoration:none;font-weight:800;font-size:12.5px;letter-spacing:.02em;color:var(--ga-gold);background:#171206;border:1px solid var(--ga-gold-dp);border-radius:999px;padding:8px 13px;transition:.15s;white-space:nowrap;}
-.ga-nav a:hover{border-color:var(--ga-gold);color:#fff6da;}
-.ga-nav a.ga-on{color:#0a0a0a;background:linear-gradient(90deg,var(--ga-gold-br),var(--ga-gold));border-color:var(--ga-gold);box-shadow:0 4px 14px rgba(212,175,55,.3);}
-.ga-nav a.ga-lead{color:#bcdcff;border-color:#3b6ea5;background:rgba(59,110,165,.12);}
-.ga-nav a.ga-lead.ga-on{color:#06223f;background:linear-gradient(90deg,#bcdcff,#7fb0e6);border-color:#7fb0e6;box-shadow:0 4px 14px rgba(59,110,165,.3);}
-.ga-pulse{margin:14px 16px 0;border:1px solid var(--ga-gold-dp);border-radius:14px;padding:12px 14px;background:linear-gradient(160deg,#15110a,#0b0a05);}
-.ga-pulse-h{font-weight:900;font-size:13px;color:var(--ga-gold-br);margin-bottom:9px;text-transform:uppercase;letter-spacing:.05em;}
-.ga-pulse-h span{font-weight:700;color:var(--ga-muted);font-size:11px;}
-.ga-pulse-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
-.ga-chip{font-size:12px;font-weight:700;color:#fff6da;background:#171206;border:1px solid var(--ga-line);border-radius:999px;padding:5px 10px;}
-.ga-chip b{font-weight:900;}
-.ga-chip.g b{color:#3ec98a;}.ga-chip.y b{color:#f7d873;}.ga-chip.o b{color:#e08c3a;}.ga-chip.r b{color:#e0533d;}
-.ga-sep{flex-basis:100%;height:0;}
-.ga-mv{font-size:12px;font-weight:700;color:#cdbe8e;}
-.ga-muted{color:var(--ga-muted);font-style:italic;font-size:12px;}
-.ga-start{margin:14px 16px 0;border:1px solid var(--ga-gold-dp);border-radius:14px;padding:14px 16px;background:linear-gradient(160deg,#1a1408,#0c0a05);}
-.ga-start h4{margin:0 0 4px;font-size:14.5px;color:var(--ga-gold-br);font-weight:900;}
-.ga-start p{margin:0 0 10px;font-size:12.5px;color:var(--ga-muted);}
-.ga-steps{display:flex;flex-wrap:wrap;gap:8px;}
-.ga-step{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;color:#fff6da;background:#0c0b05;border:1px solid var(--ga-line);border-radius:10px;padding:8px 11px;}
-.ga-step b{color:var(--ga-gold);font-weight:900;}
-</style>
+<title>Resources — The Standard Financial Group</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<style id="lightfix">
-  body{font-family:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:#221d15;}
-  h1,.brand,.card h2,.ressec-h{font-family:'Fraunces',Georgia,serif;}
-  h1{color:#1f1b13!important;}
-  .brand{color:#9c7515!important;}
-  .sub,.docnote,.prod,.rescard-d,.rep .role,.foot,.count,.empty{color:#6f6553!important;}
-  .card,.rescard,.rep{box-shadow:0 2px 12px rgba(60,45,10,.05);border-color:#ece4d2!important;}
-  .card h2,.rescard-t,.ressec-h{color:#7c5e12!important;}
-  .lbl{color:#9c7515!important;}
-  .rep .nm{color:#241f17!important;}
-  .rep{background:#faf7ef!important;border-color:#e7e0d2!important;}
-  .search{color:#221d15!important;background:#fffdf6!important;border-color:var(--gold)!important;} .search::placeholder{color:#9a907c!important;}
-  a.chip{background:#f3ecdb!important;color:#7c5e12!important;border-color:#e2cf94!important;}
-  a.chip.mail{color:#1f5fb0!important;}
-  .portal{color:#6f6553!important;border-bottom-color:#e2cf94!important;}
-</style>
-<style id="goldbtn">
-  .docbtn,.dash,a.chip,a.chip.mail,.topnav a{
-    background:linear-gradient(180deg,#edc657,#cda22f)!important;color:#1c1206!important;border:1px solid #b6901f!important;box-shadow:0 1px 3px rgba(120,90,10,.18)!important;-webkit-text-fill-color:#1c1206!important;font-weight:800!important;}
-  a.chip:hover,.docbtn:hover,.dash:hover{filter:brightness(1.05)!important;}
-</style>
-
-
-
-
-
 <style id="tsfg-skin">
-:root, html[data-theme]{
-  --bg:#f5f5f7!important;--panel:#ffffff!important;--panel2:#fbfbfd!important;--panel-2:#fbfbfd!important;
-  --ink:#1d1d1f!important;--text:#1d1d1f!important;--muted:#6e6e73!important;--muted2:#8e8e93!important;
-  --line:#ececf0!important;--line-2:#e3e3e8!important;
-  --gold:#c99a2e!important;--gold-bright:#c99a2e!important;--gold-deep:#e6dcc2!important;--today:#c99a2e!important;
-  --green:#34c759!important;--red:#ff3b30!important;--blue:#5b6cff!important;--silver:#8e8e93!important;
-  --ga-gold:#c99a2e!important;--ga-gold-br:#c99a2e!important;--ga-gold-dp:#e6dcc2!important;--ga-muted:#6e6e73!important;--ga-line:#ececf0!important;
-  --tsfg-accent:#5b6cff;--tsfg-side:248px;
+:root{
+  --bg:#f5f5f7;--panel:#ffffff;--panel2:#fbfbfd;
+  --ink:#1d1d1f;--text:#1d1d1f;--muted:#6e6e73;--muted2:#8e8e93;
+  --line:#ececf0;--line-2:#e3e3e8;
+  --gold:#c99a2e;--green:#34c759;--red:#ff3b30;
+  --accent:#5b6cff;--accent-soft:rgba(91,108,255,.10);
+  --tsfg-side:248px;
 }
-html,body{background:#f5f5f7!important;color:#1d1d1f!important;}
-body{padding-left:var(--tsfg-side)!important;padding-top:60px!important;-webkit-font-smoothing:antialiased;}
-.ga-top{display:none!important;}
+*{box-sizing:border-box;}
+html,body{background:var(--bg);color:var(--ink);}
+body{margin:0;font-family:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;line-height:1.5;
+  padding-left:var(--tsfg-side);padding-top:60px;-webkit-font-smoothing:antialiased;}
+a{color:inherit;}
 /* ---- sidebar ---- */
-.tsfg-side{position:fixed;left:0;top:0;height:100vh;width:var(--tsfg-side);background:#fff;border-right:1px solid #ececf0;
+.tsfg-side{position:fixed;left:0;top:0;height:100vh;width:var(--tsfg-side);background:#fff;border-right:1px solid var(--line);
   display:flex;flex-direction:column;gap:3px;padding:16px 12px;z-index:900;overflow-y:auto;transition:transform .24s cubic-bezier(.2,.8,.2,1);}
 .tsfg-brand{display:flex;align-items:center;gap:11px;padding:6px 8px 14px;color:#1d1d1f;text-decoration:none;}
 .tsfg-brand img{width:34px;height:34px;border-radius:10px;object-fit:cover;box-shadow:0 1px 3px rgba(0,0,0,.08);}
 .tsfg-brand .bn{font-weight:800;font-size:16px;letter-spacing:-.02em;}
-.tsfg-brand .bn b{color:var(--tsfg-accent);}
+.tsfg-brand .bn b{color:var(--accent);}
 .tsfg-side .side-link{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;color:#6e6e73;font-weight:600;font-size:14px;text-decoration:none;transition:.15s;white-space:nowrap;}
 .tsfg-side .side-link svg{width:20px;height:20px;flex:0 0 auto;}
 .tsfg-side .side-link:hover{background:#f5f5f7;color:#1d1d1f;}
-.tsfg-side .side-link.on{background:rgba(91,108,255,.10);color:var(--tsfg-accent);}
-.tsfg-foot{margin-top:auto;padding-top:10px;border-top:1px solid #ececf0;}
+.tsfg-side .side-link.on{background:var(--accent-soft);color:var(--accent);}
+.tsfg-foot{margin-top:auto;padding-top:10px;border-top:1px solid var(--line);}
 /* ---- topbar ---- */
 .tsfg-top{position:fixed;top:0;left:var(--tsfg-side);right:0;height:60px;z-index:850;display:flex;align-items:center;gap:14px;
-  padding:0 22px;background:rgba(245,245,247,.8);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid #ececf0;}
+  padding:0 22px;background:rgba(245,245,247,.8);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid var(--line);}
 .tsfg-title{font-weight:800;font-size:17px;letter-spacing:-.02em;color:#1d1d1f;}
-.tsfg-ic{width:38px;height:38px;border-radius:11px;border:1px solid #e3e3e8;background:#fff;color:#6e6e73;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.tsfg-ic{width:38px;height:38px;border-radius:11px;border:1px solid var(--line-2);background:#fff;color:#6e6e73;display:flex;align-items:center;justify-content:center;cursor:pointer;}
 .tsfg-ic:hover{color:#1d1d1f;}
 .tsfg-ic svg{width:18px;height:18px;}
 .tsfg-scrim{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:880;}
 body.tsfg-drawer .tsfg-scrim{display:block;}
 @media(max-width:860px){
-  body{padding-left:0!important;}
+  body{padding-left:0;}
   .tsfg-side{transform:translateX(-100%);box-shadow:0 20px 60px rgba(0,0,0,.25);}
   body.tsfg-drawer .tsfg-side{transform:none;}
   .tsfg-top{left:0;}
 }
-/* ---- soften common surfaces to the premium look ---- */
-input,textarea,select{border-radius:12px;}
-/* neutralize dark-designed heroes/logos for light bg */
-.hero img,.ga-start img,.res-hero img,[style*="mix-blend-mode:screen"]{mix-blend-mode:normal!important;filter:none!important;}
-.hero,.commit,.stuck,.ga-start{box-shadow:0 2px 6px rgba(0,0,0,.04),0 12px 34px rgba(0,0,0,.06)!important;}
-.hero{background:#fff!important;}
 </style>
-
-
+<style id="res-page">
+  .wrap{max-width:1060px;margin:0 auto;padding:26px 22px 72px;}
+  /* hero */
+  .eyebrow{font-family:'Fraunces',Georgia,serif;letter-spacing:.26em;text-transform:uppercase;font-size:11px;color:var(--gold);font-weight:700;}
+  h1{font-family:'Fraunces',Georgia,serif;font-size:30px;letter-spacing:-.01em;color:var(--ink);margin:6px 0 6px;font-weight:600;}
+  .sub{color:var(--muted);font-size:14.5px;margin:0;max-width:660px;}
+  /* primary drive button */
+  .drive{display:flex;align-items:center;gap:14px;margin:22px 0 4px;padding:16px 18px;border-radius:16px;text-decoration:none;
+    background:linear-gradient(135deg,#6470ff,#5b6cff);color:#fff;box-shadow:0 8px 24px rgba(91,108,255,.24);transition:.15s;}
+  .drive:hover{filter:brightness(1.04);transform:translateY(-1px);}
+  .drive .di{width:40px;height:40px;border-radius:12px;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-size:20px;flex:0 0 auto;}
+  .drive .dt{font-weight:800;font-size:15.5px;}
+  .drive .dd{font-size:12.5px;opacity:.9;font-weight:500;margin-top:1px;}
+  .drive .darr{margin-left:auto;font-size:18px;opacity:.9;}
+  /* section */
+  .sec{margin:34px 0 0;}
+  .sec-h{display:flex;align-items:center;gap:9px;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted2);margin:0 0 14px;}
+  .sec-h .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex:0 0 auto;}
+  /* Start-here cards */
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(258px,1fr));gap:12px;}
+  .rescard{display:block;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:15px 16px;text-decoration:none;
+    box-shadow:0 1px 2px rgba(0,0,0,.03);transition:.15s;}
+  .rescard:hover{border-color:var(--line-2);box-shadow:0 6px 18px rgba(0,0,0,.07);transform:translateY(-2px);}
+  .rescard-t{font-weight:700;font-size:14px;color:var(--ink);letter-spacing:-.01em;}
+  .rescard-d{font-size:12.5px;color:var(--muted);margin-top:4px;line-height:1.45;}
+  /* topic accordions */
+  .topics{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;}
+  .topic{border:1px solid var(--line);border-radius:14px;background:var(--panel);overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.03);}
+  .topic-h{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;text-align:left;cursor:pointer;border:0;background:transparent;font:inherit;padding:15px 16px;color:var(--ink);font-weight:700;font-size:14.5px;letter-spacing:-.01em;}
+  .topic-h .rt{display:flex;gap:9px;align-items:center;}
+  .topic-h .cnt{font-size:11px;font-weight:700;color:var(--accent);background:var(--accent-soft);border-radius:999px;padding:2px 9px;}
+  .topic-h .car{color:var(--muted2);transition:.2s;font-size:12px;}
+  .topic.open .topic-h .car{transform:rotate(90deg);}
+  .topic-body{display:none;padding:0 12px 12px;}
+  .topic.open .topic-body{display:block;}
+  .titem{display:flex;align-items:center;gap:11px;text-decoration:none;color:var(--ink);border:1px solid var(--line);border-radius:11px;padding:10px 12px;margin-top:8px;background:var(--panel2);transition:.15s;}
+  a.titem:hover{border-color:var(--accent);background:#fff;}
+  .titem .ico{font-size:17px;}
+  .titem .tt{font-weight:700;font-size:13.5px;}
+  .titem .td{font-size:12px;color:var(--muted);margin-top:1px;}
+  .titem .kind{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;padding:3px 8px;border-radius:999px;margin-left:auto;white-space:nowrap;}
+  .kind.vid{color:#b26a00;background:#fff4e2;}
+  .kind.doc{color:#2b5fb3;background:#eaf1fc;}
+  .kind.book{color:#1f8a53;background:#e6f6ec;}
+  /* search */
+  .search{width:100%;padding:13px 16px;border-radius:12px;border:1px solid var(--line-2);background:#fff;color:var(--ink);font-size:15px;font-weight:500;font-family:inherit;
+    margin:0 0 12px;position:sticky;top:70px;z-index:25;box-shadow:0 1px 2px rgba(0,0,0,.04);}
+  .search:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
+  .search::placeholder{color:var(--muted2);}
+  .count{color:var(--muted);font-size:12.5px;margin:0 0 14px;}
+  /* carrier cards */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(324px,1fr));gap:14px;}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:17px 17px 15px;box-shadow:0 1px 2px rgba(0,0,0,.03);}
+  .card h2{margin:0;font-size:17px;color:var(--ink);letter-spacing:-.01em;font-weight:700;}
+  .prod{font-size:12px;color:var(--muted);margin:4px 0 12px;font-weight:500;line-height:1.45;}
+  .lbl{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted2);font-weight:800;margin:13px 0 7px;}
+  .rep{padding:9px 11px;border:1px solid var(--line);border-radius:11px;margin:0 0 7px;background:var(--panel2);}
+  .rep .nm{font-weight:700;font-size:14px;color:var(--ink);}
+  .rep .role{font-size:11.5px;color:var(--muted);font-weight:600;}
+  .rep .ct{margin-top:6px;display:flex;flex-wrap:wrap;gap:6px;}
+  a.chip{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:600;text-decoration:none;padding:5px 10px;border-radius:8px;border:1px solid var(--line-2);background:#fff;color:#3d4353;white-space:nowrap;transition:.12s;}
+  a.chip:hover{border-color:var(--accent);color:var(--accent);}
+  a.chip.mail{color:var(--accent);}
+  .lines{display:flex;flex-wrap:wrap;gap:6px;}
+  .empty{font-size:12.5px;color:var(--muted);font-style:italic;padding:6px 0;}
+  .dash{display:block;margin-top:13px;padding:11px 12px;border-radius:11px;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:13px;text-decoration:none;text-align:center;transition:.12s;}
+  .dash:hover{background:var(--accent);color:#fff;}
+  .portal{display:inline-block;margin-top:10px;font-size:12px;font-weight:600;color:var(--muted);text-decoration:none;border-bottom:1px solid var(--line-2);}
+  .portal:hover{color:var(--ink);}
+  .foot{text-align:center;color:var(--muted2);font-size:12px;margin-top:34px;}
+</style>
 </head>
 <body>
-<div class="tsfg-scrim" onclick="tsfgDrawer(false)"></div><aside class="tsfg-side"><a class="tsfg-brand" href="index.html"><img src="logo.png" alt="" onerror="this.style.visibility='hidden'"><span class="bn">The <b>Standard</b></span></a><a class="side-link" href="index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span class="lbl">Home</span></a><a class="side-link" href="teamhub.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H8l-4 4V5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z"/></svg><span class="lbl">Team Hub</span></a><a class="side-link" href="calendar.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9h18M8 3v3M16 3v3"/></svg><span class="lbl">Scheduler</span></a><a class="side-link" href="newbusiness.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg><span class="lbl">New Business</span></a><a class="side-link" href="pfr.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-2M9 12h6M9 16h6M9 8h6"/></svg><span class="lbl">PFR Builder</span></a><a class="side-link" href="checklist.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span class="lbl">My Tracker</span></a><a class="side-link" href="marketing.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg><span class="lbl">Leads</span></a><a class="side-link" href="team.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg><span class="lbl">My Team</span></a><a class="side-link" href="org.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="5" rx="1.5"/><rect x="3" y="16" width="6" height="5" rx="1.5"/><rect x="15" y="16" width="6" height="5" rx="1.5"/><path d="M12 8v4M6 16v-2h12v2"/></svg><span class="lbl">Org Chart</span></a><a class="side-link on" href="resources.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5a2 2 0 0 1 2-2h13v18H6a2 2 0 0 1-2-2z"/><path d="M4 5v14M9 3v18"/></svg><span class="lbl">Resources</span></a><a class="side-link" href="dashboard.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="6" rx="1"/><rect x="12" y="7" width="3" height="10" rx="1"/><rect x="17" y="13" width="3" height="4" rx="1"/></svg><span class="lbl">Ops Dashboard</span></a><div class="tsfg-foot"><a class="side-link" href="#" onclick="tsfgSignOut();return false;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg><span class="lbl">Sign out</span></a></div></aside><header class="tsfg-top"><button class="tsfg-ic" onclick="tsfgToggle()" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button><div class="tsfg-title">Resources</div><div style="flex:1"></div><button class="tsfg-ic" onclick="tsfgTheme()" id="tsfgThemeBtn" aria-label="Theme"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg></button></header>
-
-
-
-
-<header class="ga-top">
-  <a class="ga-brand" href="index.html"><img src="logo.png" alt="GRIND Agencies"><span>GRIND <b>Agencies</b></span></a>
-  <nav class="ga-nav">
-    <a href="index.html" class="">🏠 Home</a>
-    <a href="calendar.html" class="">🗓️ Calendar</a>
-    <a href="checklist.html" class="">✅ My Tracker</a>
-    <a href="resources.html" class="ga-on">📚 Resources</a>
-    <a href="dashboard.html" class="ga-lead">🔒 Ops</a>
-    <a href="marketing.html" class="ga-lead">🔒 Leads</a>
-    <a href="team.html" class="ga-lead">👥 My Team</a>
-  </nav>
+<div class="tsfg-scrim" onclick="tsfgDrawer(false)"></div>
+<aside class="tsfg-side">
+  <a class="tsfg-brand" href="index.html"><img src="logo.png" alt="" onerror="this.style.visibility='hidden'"><span class="bn">The <b>Standard</b></span></a>
+  <a class="side-link" href="index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span class="lbl">Home</span></a>
+  <a class="side-link" href="teamhub.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H8l-4 4V5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z"/></svg><span class="lbl">Team Hub</span></a>
+  <a class="side-link" href="calendar.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9h18M8 3v3M16 3v3"/></svg><span class="lbl">Scheduler</span></a>
+  <a class="side-link" href="newbusiness.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg><span class="lbl">New Business</span></a>
+  <a class="side-link" href="pfr.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-2M9 12h6M9 16h6M9 8h6"/></svg><span class="lbl">PFR Builder</span></a>
+  <a class="side-link" href="checklist.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span class="lbl">My Tracker</span></a>
+  <a class="side-link" href="marketing.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg><span class="lbl">Leads</span></a>
+  <a class="side-link" href="team.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg><span class="lbl">My Team</span></a>
+  <a class="side-link" href="org.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="5" rx="1.5"/><rect x="3" y="16" width="6" height="5" rx="1.5"/><rect x="15" y="16" width="6" height="5" rx="1.5"/><path d="M12 8v4M6 16v-2h12v2"/></svg><span class="lbl">Org Chart</span></a>
+  <a class="side-link on" href="resources.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5a2 2 0 0 1 2-2h13v18H6a2 2 0 0 1-2-2z"/><path d="M4 5v14M9 3v18"/></svg><span class="lbl">Resources</span></a>
+  <a class="side-link" href="dashboard.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="6" rx="1"/><rect x="12" y="7" width="3" height="10" rx="1"/><rect x="17" y="13" width="3" height="4" rx="1"/></svg><span class="lbl">Ops Dashboard</span></a>
+  <div class="tsfg-foot"><a class="side-link" href="#" onclick="tsfgSignOut();return false;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg><span class="lbl">Sign out</span></a></div>
+</aside>
+<header class="tsfg-top">
+  <button class="tsfg-ic" onclick="tsfgToggle()" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+  <div class="tsfg-title">Resources</div>
 </header>
+
 <div class="wrap">
-  <div class="topnav">
-    <a href="https://grindagencies.github.io/smmt-calendar/index.html">🗓️ Training Calendar</a>
-    <a href="https://grindagencies.github.io/smmt-calendar/checklist.html">📋 90-Day Tracker</a>
-    <a class="on" href="https://grindagencies.github.io/smmt-calendar/resources.html">📇 Resources</a>
+  <div class="eyebrow">The Standard Financial Group</div>
+  <h1>Resources</h1>
+  <div class="sub">Everything you need in one place — the training library, must-have guides, and the full carrier rolodex with named reps and service desks.</div>
+
+  <a class="drive" id="docBtn" href="#" target="_blank" rel="noopener">
+    <span class="di">📂</span>
+    <span><span class="dt">Open the full Company Resource Drive</span><span class="dd">Scripts, training, decks &amp; product how-tos — bookmark it</span></span>
+    <span class="darr">→</span>
+  </a>
+
+  <div class="sec">
+    <div class="sec-h"><span class="dot"></span>Start here</div>
+    <div class="cards" id="resList"></div>
   </div>
 
-  <div class="head">
-    <div class="brand">The Standard Financial Group</div>
-    <h1>📇 Company Resources</h1>
-    <div class="sub">Your carrier &amp; partner rolodex — named reps, service desks, contracting &amp; new-business lines. Tap any number to call or any address to email.</div>
+  <div class="sec">
+    <div class="sec-h"><span class="dot"></span>Training library — books &amp; videos by topic</div>
+    <div class="topics" id="topics"></div>
   </div>
 
-  <a class="docbtn" id="docBtn" href="#" target="_blank" rel="noopener">📂 Open the full Company Resource Drive
-    <small>Stuck? Everything lives here — scripts, training, decks &amp; product how-tos</small></a>
-  <div class="docnote">The same GRIND Agencies Google Drive powers every link on this page — bookmark it.</div>
-
-  <div class="ressec">
-    <div class="ressec-h">📚 Start here — must-have resources to win in this business</div>
-    <div class="reslist" id="resList"></div>
+  <div class="sec">
+    <div class="sec-h"><span class="dot"></span>Carrier rolodex</div>
+    <input class="search" id="q" type="search" placeholder="Search carrier, rep, phone, or email…" autocomplete="off">
+    <div class="count" id="count"></div>
+    <div class="grid" id="grid"></div>
   </div>
 
-  <div class="searchlbl">📖 Training Library — books &amp; videos by topic</div>
-  <div class="topics" id="topics"></div>
-
-  <div class="searchlbl">📇 Carrier Rolodex — search reps, phones &amp; service desks</div>
-  <input class="search" id="q" type="search" placeholder="🔎 Search carrier, rep, phone, or email…" autocomplete="off">
-  <div class="count" id="count"></div>
-  <div class="grid" id="grid"></div>
-
-  <div class="foot">Built from Christopher's rep list + Follow Up Boss carrier records. Add personal-cell numbers as they're confirmed. · Build Momentum. Create Results. Lead From the Front.</div>
+  <div class="foot">Built from Christopher's rep list + Follow Up Boss carrier records · Build Momentum. Create Results. Lead From the Front.</div>
 </div>
 
 <script>
@@ -243,8 +191,6 @@ input,textarea,select{border-radius:12px;}
     var a=document.createElement('a');a.className='rescard';a.href=r.u;a.target='_blank';a.rel='noopener';
     a.innerHTML='<div class="rescard-t">'+r.t+'</div><div class="rescard-d">'+r.d+'</div>';L.appendChild(a);});})();
 
-  // Training Library — click a topic to reveal its books & videos.
-  // kind: "vid" (video/deck), "doc" (Google Doc/Drive), "book" (recommended reading). Leadership can add items per topic.
   var TOPICS = [
     {h:"🤝 Recruiting & Team Building", items:[
       {tt:"GRIND Hiring Interview", td:"Run the recruiting interview to build your team", kind:"vid", u:"https://drive.google.com/file/d/1NJ5rofsf-IrPAn0VQ2-QzCrWBFjyZZgL/view"},
@@ -288,7 +234,7 @@ input,textarea,select{border-radius:12px;}
         var inner='<span class="ico">'+(kindIco[it.kind]||'📌')+'</span><span><span class="tt">'+esc2(it.tt)+'</span><span class="td">'+esc2(it.td||'')+'</span></span><span class="kind '+it.kind+'">'+(kindLbl[it.kind]||'')+'</span>';
         return it.u ? '<a class="titem" href="'+esc2(it.u)+'" target="_blank" rel="noopener">'+inner+'</a>' : '<div class="titem">'+inner+'</div>';
       }).join('');
-      return '<div class="topic'+(i===0?' open':'')+'"><button class="topic-h" onclick="this.parentNode.classList.toggle(\'open\')"><span>'+esc2(t.h)+'</span><span style="display:flex;gap:8px;align-items:center"><span class="cnt">'+t.items.length+'</span><span class="car">▶</span></span></button><div class="topic-body">'+items+'</div></div>';
+      return '<div class="topic'+(i===0?' open':'')+'"><button class="topic-h" onclick="this.parentNode.classList.toggle(\'open\')"><span class="rt">'+esc2(t.h)+'</span><span style="display:flex;gap:8px;align-items:center"><span class="cnt">'+t.items.length+'</span><span class="car">▶</span></span></button><div class="topic-body">'+items+'</div></div>';
     }).join('');
   })();
 
@@ -409,9 +355,9 @@ input,textarea,select{border-radius:12px;}
   };
   function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
   function telHref(p){var d=(p||'').replace(/[^\d]/g,'');if(d.length===10)d='1'+d;return 'tel:+'+d;}
-  function phoneChip(p){ if(/[a-zA-Z]/.test(p)){ // label like "Annuity NB (515)..."
+  function phoneChip(p){ if(/[a-zA-Z]/.test(p)){
       var m=p.match(/(\(?\d[\d\s().-]{6,}\d)/); var num=m?m[0]:p; var lbl=p.replace(num,'').trim();
-      return '<a class="chip" href="'+telHref(num)+'">☎ '+esc(num)+(lbl?(' <span style="opacity:.7">'+esc(lbl)+'</span>'):'')+'</a>';
+      return '<a class="chip" href="'+telHref(num)+'">☎ '+esc(num)+(lbl?(' <span style="opacity:.65">'+esc(lbl)+'</span>'):'')+'</a>';
     }
     return '<a class="chip" href="'+telHref(p)+'">☎ '+esc(p)+'</a>'; }
   function mailChip(addr,label){return '<a class="chip mail" href="mailto:'+esc(addr)+'" title="'+esc(addr)+'">✉ '+esc(label||addr)+'</a>';}
@@ -454,24 +400,10 @@ input,textarea,select{border-radius:12px;}
   render(CARRIERS);
 </script>
 
-
-
-
-
-
-
-
-
-
-
-
-
 <script>
 function tsfgToggle(){ if(window.innerWidth<=860){tsfgDrawer(!document.body.classList.contains('tsfg-drawer'));} }
 function tsfgDrawer(on){document.body.classList.toggle('tsfg-drawer',!!on);}
-function tsfgTheme(){var d=document.documentElement.getAttribute('data-theme')==='dark';document.documentElement.setAttribute('data-theme',d?'light':'dark');try{localStorage.setItem('gfi_theme',d?'light':'dark');}catch(e){}}
 function tsfgSignOut(){try{localStorage.removeItem('tsfg_code');localStorage.removeItem('tsfg_name');}catch(e){}location.href='index.html';}
 </script>
-
 </body>
 </html>
