@@ -75,6 +75,7 @@ body.drawer .scrim{display:block;}
 .preshdr{font-weight:800;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink3);padding:4px 6px 7px;}
 .presrow{display:flex;align-items:flex-start;gap:8px;padding:6px;border-radius:8px;}
 .presrow .pdd{width:7px;height:7px;border-radius:50%;background:var(--green);flex:0 0 auto;margin-top:5px;}
+.presrow .pdd.away{background:#e6a700;}
 .presrow .pn{font-weight:700;font-size:12.5px;color:var(--ink);}
 .presrow .pc{font-size:11px;color:var(--ink3);}
 .mlist{flex:1;overflow-y:auto;padding:18px 20px 6px;display:flex;flex-direction:column;gap:2px;}
@@ -243,6 +244,9 @@ function avatarInner(code,name,kind){if(kind==='ai')return BOT.ai;if(kind==='rec
 var TA="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/tracker-api";
 var BASESHOP_LEADER="Elijah Cox";
 var CODE=null,NAME="",CHAN="main",CHANNELS=[],MEMBERS={},ONLINE={},LASTID=0,REPLYTO=null,PENDATTACH=null,RECPICK=null,POLL=null,MENSEL=0,MENITEMS=[];
+var lastActivity=Date.now(),MYSTATUS='active';
+['mousemove','mousedown','keydown','touchstart','scroll','click','focus'].forEach(function(ev){window.addEventListener(ev,function(){lastActivity=Date.now();},{passive:true});});
+function timeAgo(iso){if(!iso)return '';var t=new Date(iso).getTime();if(isNaN(t))return '';var sec=Math.max(0,Math.floor((Date.now()-t)/1000));if(sec<60)return 'just now';var m=Math.floor(sec/60);if(m<60)return m+' min ago';var h=Math.floor(m/60);if(h<24)return h+'h ago';var d=Math.floor(h/24);return d+'d ago';}
 var $=function(i){return document.getElementById(i);};
 function h(b){return fetch(HUB,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();}).catch(function(){return{ok:false};});}
 function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
@@ -306,7 +310,7 @@ function chanMeta(id){
 }
 function openChan(id){CHAN=id;LASTID=0;$('mlist').innerHTML='';renderRooms();renderHead();loadMsgs(true);document.body.classList.remove('rooms-open');if(typeof heartbeat==='function')heartbeat();}
 function chanNameOf(id){if(!id)return '';if(id.indexOf('dm:')===0)return 'a direct message';var c=CHANNELS.filter(function(x){return x.id===id;})[0];if(c){if(c.baseshop){var L={announcements:'Announcements',training:'Training',licensing:'Licensing',cft:'CFT Room',operations:'Operations'}[c.sub]||c.name;return (c.baseshopName?c.baseshopName+' \u00b7 ':'')+L;}return c.name;}return id;}
-function presenceList(){var codes=Object.keys(ONLINE);if(!codes.length)return '<div class="presrow"><span class="pc">No one online right now</span></div>';return codes.sort(function(a,b){return ((ONLINE[a]&&ONLINE[a].name)||'').localeCompare((ONLINE[b]&&ONLINE[b].name)||'');}).map(function(cd){var ob=ONLINE[cd]||{};var ch=ob.channel?chanNameOf(ob.channel):'';return '<div class="presrow"><span class="pdd"></span><div><div class="pn">'+esc(ob.name||cd)+'</div>'+(ch?'<div class="pc">in '+esc(ch)+'</div>':'')+'</div></div>';}).join('');}
+function presenceList(){var codes=Object.keys(ONLINE);if(!codes.length)return '<div class="presrow"><span class="pc">No one online right now</span></div>';return codes.sort(function(a,b){return ((ONLINE[a]&&ONLINE[a].name)||'').localeCompare((ONLINE[b]&&ONLINE[b].name)||'');}).map(function(cd){var ob=ONLINE[cd]||{};var away=ob.status==='away';var ch=ob.channel?chanNameOf(ob.channel):'';var sub=away?'Away from computer':(ch?('in '+ch):'Active now');return '<div class="presrow"><span class="pdd'+(away?' away':'')+'"></span><div><div class="pn">'+esc(ob.name||cd)+(away?' <span style=\"color:#e6a700;font-weight:700\">\u2022 Away</span>':'')+'</div><div class="pc">'+esc(sub)+'</div></div></div>';}).join('');}
 function renderHead(){var m=chanMeta(CHAN);var del=(CHAN.indexOf('c_')===0)?'<button class="tic" title="Delete channel" onclick="deleteChannel()" style="margin-left:10px;flex:0 0 auto">\ud83d\uddd1\ufe0f</button>':'';$('chead').innerHTML='<div class="ci">'+(m.dm?'<div class="dmav" style="width:34px;height:34px">'+m.icon+'</div>':m.icon)+'</div><div><div class="cn">'+esc(m.name)+'</div><div class="cs">'+esc(m.sub)+'</div></div><div class="presence"><span class="pd"></span>'+Object.keys(ONLINE).length+' online<div class="preslist"><div class="preshdr">Online now</div>'+presenceList()+'</div></div>'+del;}
 
 /* messages */
@@ -442,14 +446,15 @@ function openProfile(code){
     var pct=a?Math.min(100,Number(a.pct)||0):0;
     var lic=pct>=100?'Licensed':(pct>=50?'In progress':'Onboarding');
     $('pfBody').innerHTML='<div class="pfhead"><div class="pfav">'+initials(nm)+'</div><div><div class="pfname">'+esc(nm)+'</div><div class="pfsub">GFI '+esc(code)+(a&&a.md?(' · '+esc(a.md)):'')+'</div></div></div>'+
-      '<div class="pfstats"><div class="pfstat"><div class="v">'+wins+'</div><div class="l">Families Helped</div></div><div class="pfstat"><div class="v">'+ft+'</div><div class="l">Field Trainings</div></div><div class="pfstat"><div class="v">'+pct+'%</div><div class="l">Onboarding</div></div><div class="pfstat"><div class="v">'+esc(lic)+'</div><div class="l">Licensing</div></div></div>'+
+      '<div class="pfsub" id="pfStatusLine" style="margin:2px 0 12px 62px;font-weight:600"></div>'+'<div class="pfstats"><div class="pfstat"><div class="v">'+wins+'</div><div class="l">Families Helped</div></div><div class="pfstat"><div class="v">'+ft+'</div><div class="l">Field Trainings</div></div><div class="pfstat"><div class="v">'+pct+'%</div><div class="l">Onboarding</div></div><div class="pfstat"><div class="v">'+esc(lic)+'</div><div class="l">Licensing</div></div></div>'+
       '<div class="mact2" style="margin-top:14px"><button onclick="$(\'pfOv\').classList.remove(\'on\')">Close</button><button class="go" onclick="openChan(dmId(\''+code+'\'));$(\'pfOv\').classList.remove(\'on\')">Message</button></div>';
+  h({action:'hub_profile',code:code}).then(function(pr){var pf=(pr&&pr.profile)||{};var live=ONLINE[code];var st=live?(live.status==='away'?'away':'active'):'offline';var dc=st==='active'?'var(--green)':(st==='away'?'#e6a700':'var(--ink3)');var lb=st==='active'?'Active now':(st==='away'?'Away from computer':(pf.last_seen?('Last online '+timeAgo(pf.last_seen)):'Offline'));var el2=document.getElementById('pfStatusLine');if(el2)el2.innerHTML='<span style=\"display:inline-block;width:8px;height:8px;border-radius:50%;background:'+dc+';margin-right:7px;vertical-align:middle\"></span>'+esc(lb);});
   }).catch(function(){$('pfBody').innerHTML='<div style="padding:20px">Could not load profile.</div>';});
 }
 [ 'recOv','chOv','pfOv'].forEach(function(id){$(id).addEventListener('click',function(e){if(e.target===$(id))$(id).classList.remove('on');});});
 
 /* presence + poll */
-function heartbeat(){h({action:'hub_presence',code:CODE,name:NAME,channel:CHAN}).then(function(r){ONLINE={};((r&&r.online)||[]).forEach(function(o){ONLINE[o.code]={name:o.name,channel:o.channel||''};if(!MEMBERS[o.code])MEMBERS[o.code]=o.name;});renderRooms();renderHead();});}
+function heartbeat(){var st=(Date.now()-lastActivity>600000)?'away':'active';if(st!==MYSTATUS){MYSTATUS=st;toast(st==='away'?'You\u2019re now shown as Away \ud83c\udf19 (away from computer)':'You\u2019re active again \ud83d\udfe2');}h({action:'hub_presence',code:CODE,name:NAME,channel:CHAN,status:st}).then(function(r){ONLINE={};((r&&r.online)||[]).forEach(function(o){ONLINE[o.code]={name:o.name,channel:o.channel||'',status:o.status||'active',last_seen:o.last_seen};if(!MEMBERS[o.code])MEMBERS[o.code]=o.name;});renderRooms();renderHead();});}
 
 /* boot */
 (function(){
