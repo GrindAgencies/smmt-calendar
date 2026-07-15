@@ -153,7 +153,7 @@ tbody tr{cursor:pointer;}tbody tr:hover{background:var(--bg);}
     <div class="tabs" id="tabs"></div>
     <div class="srch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input id="qa" placeholder="Search agents…" oninput="render()"></div>
     <div class="srch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input id="qc" placeholder="Search client by name…" oninput="render()"></div>
-    <select class="viewsel" id="viewsel" onchange="setScope(this.value)"><option value="me">View Personal</option><option value="shop">View Baseshop</option></select>
+    <select class="viewsel" id="viewsel" onchange="setScope(this.value)"><option value="me">View Personal</option><option value="team">View Team</option><option value="shop">View Baseshop</option><option value="hier">View Hierarchy</option></select>
     <button class="opsbtn" id="opsBtn" onclick="toggleOps()">🔒 Ops</button>
     <button class="newbtn" onclick="openNew()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>New Sale</button>
   </div>
@@ -204,6 +204,7 @@ tbody tr{cursor:pointer;}tbody tr:hover{background:var(--bg);}
 <script>
 var NB="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/newbiz-api";
 var BASESHOP_LEADER="Elijah Cox";
+var TA="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/tracker-api";var MYMD="",MYEMD="";
 var CODE=null,NAME="",BIZ="life",SCOPE="me",TAB="active",POLICIES=[],SORT={k:'submitted_date',dir:-1},OPS=false,EDIT=null,STATUS='pending';
 var $=function(i){return document.getElementById(i);};
 function api(b){return fetch(NB,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();}).catch(function(){return{ok:false};});}
@@ -283,7 +284,7 @@ function renderKpis(){
   var sum=function(arr,k){return arr.reduce(function(t,r){return t+(Number(r[k])||0);},0);};
   var openR=rows.filter(function(r){return r.status!=='closed';});
   var byB=function(b){return rows.filter(function(r){return bucket(r.status)===b;});};
-  var cards=[['AP Submitted',moneyK(sum(openR,'annual_premium')),'blue'],['Pending AP',moneyK(sum(byB('pending'),'annual_premium')),''],['Pending Comm.',moneyK(sum(byB('pending'),'expected_commission')),'gold'],['Approved AP',moneyK(sum(byB('approved'),'annual_premium')),'green'],['Issue Paid AP',moneyK(sum(byB('paid'),'annual_premium')),'green'],['Paid Comm.',moneyK(sum(byB('paid'),'expected_commission')),'gold'],['Closed AP',moneyK(sum(byB('closed'),'annual_premium')),'red'],['Total Coverage',moneyK(sum(openR,'coverage')),'blue']];
+  var cards=[['AP Submitted',moneyK(sum(openR,'annual_premium')),'blue'],['Pending Comm.',moneyK(sum(byB('pending'),'expected_commission')),'gold'],['Approved AP',moneyK(sum(byB('approved'),'annual_premium')),'green'],['In Force',moneyK(sum(byB('paid'),'annual_premium')),'green'],['Paid Comm.',moneyK(sum(byB('paid'),'expected_commission')),'gold'],['Closed AP',moneyK(sum(byB('closed'),'annual_premium')),'red'],['Total Coverage',moneyK(sum(openR,'coverage')),'blue']];
   $('kpis').innerHTML=cards.map(function(c){return '<div class="kpi '+c[2]+'"><div class="kl">'+c[0]+'</div><div class="kv">'+c[1]+'</div></div>';}).join('');
   var cnt=function(b){return byB(b).length;};
   var stages=[['submitted','Submitted',openR.length,'M9 3h6v4H9zM7 7h10v13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1z'],['pending','Pending',cnt('pending'),'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 2'],['approved','Approved',cnt('approved'),'M20 6 9 17l-5-5'],['paid','Paid Out',cnt('paid'),'M3 10.5 12 4l9 6.5V20H3zM9 20v-6h6v6'],['closed','Closed',cnt('closed'),'M18 6 6 18M6 6l12 12']];
@@ -323,7 +324,11 @@ function findP(id){return POLICIES.filter(function(p){return p.id===id;})[0];}
 
 function load(){
   var q={action:'newbiz_list',business_type:BIZ};
-  if(OPS&&SCOPE==='all')q.token='2026';else if(SCOPE==='me')q.code=CODE;else{q.leader=BASESHOP_LEADER;}
+  if(OPS&&SCOPE==='all')q.token='2026';
+  else if(SCOPE==='me')q.code=CODE;
+  else if(SCOPE==='team')q.leader=NAME;
+  else if(SCOPE==='hier')q.leader=BASESHOP_LEADER;
+  else q.leader=(MYMD||MYEMD||BASESHOP_LEADER); /* baseshop */
   api(q).then(function(r){POLICIES=(r&&r.policies)||[];render();});
 }
 
@@ -371,6 +376,7 @@ $('ov').addEventListener('click',function(e){if(e.target===$('ov'))closeModal();
   if(!CODE){location.href='index.html';return;}
   try{if(sessionStorage.getItem('nb_ops')==='2026')OPS=true;}catch(e){}
   applyOps();renderStatusGrid();load();
+  fetch(TA,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'load',code:CODE})}).then(function(r){return r.json();}).then(function(d){if(d&&d.ok&&d.agent){MYMD=d.agent.md||'';MYEMD=d.agent.emd||'';}}).catch(function(){});
 })();
 </script>
 </body>
