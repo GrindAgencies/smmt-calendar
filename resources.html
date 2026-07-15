@@ -117,6 +117,14 @@ body.tsfg-drawer .tsfg-scrim{display:block;}
   .dash:hover{background:var(--accent);color:#fff;}
   .portal{display:inline-block;margin-top:10px;font-size:12px;font-weight:600;color:var(--muted);text-decoration:none;border-bottom:1px solid var(--line-2);}
   .portal:hover{color:var(--ink);}
+  /* website button on carrier cards */
+  .siteb{display:block;margin-top:8px;padding:11px 12px;border-radius:11px;background:#fff;border:1px solid var(--line-2);color:var(--ink);font-weight:700;font-size:13px;text-decoration:none;text-align:center;transition:.12s;}
+  .siteb:hover{border-color:var(--accent);color:var(--accent);}
+  /* major block headers */
+  .block{margin-top:42px;}
+  .block-h{display:flex;flex-wrap:wrap;align-items:baseline;gap:12px;padding-bottom:12px;margin-bottom:2px;border-bottom:1px solid var(--line-2);}
+  .block-h b{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:22px;letter-spacing:-.01em;color:var(--ink);}
+  .block-h span{font-size:13px;color:var(--muted);font-weight:500;}
   .foot{text-align:center;color:var(--muted2);font-size:12px;margin-top:34px;}
 </style>
 </head>
@@ -153,21 +161,30 @@ body.tsfg-drawer .tsfg-scrim{display:block;}
     <span class="darr">→</span>
   </a>
 
-  <div class="sec">
-    <div class="sec-h"><span class="dot"></span>Start here</div>
-    <div class="cards" id="resList"></div>
+  <!-- ============ TEAM RESOURCES ============ -->
+  <div class="block">
+    <div class="block-h"><b>👥 Team Resources</b><span>Training, team building &amp; personal development</span></div>
+
+    <div class="sec">
+      <div class="sec-h"><span class="dot"></span>Start here</div>
+      <div class="cards" id="resList"></div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-h"><span class="dot"></span>Team &amp; personal development — books &amp; videos by topic</div>
+      <div class="topics" id="topics"></div>
+    </div>
   </div>
 
-  <div class="sec">
-    <div class="sec-h"><span class="dot"></span>Training library — books &amp; videos by topic</div>
-    <div class="topics" id="topics"></div>
-  </div>
+  <!-- ============ CARRIER RESOURCES ============ -->
+  <div class="block">
+    <div class="block-h"><b>🏛️ Carrier Resources</b><span>Every carrier — named reps, service desks &amp; website links</span></div>
 
-  <div class="sec">
-    <div class="sec-h"><span class="dot"></span>Carrier rolodex</div>
-    <input class="search" id="q" type="search" placeholder="Search carrier, rep, phone, or email…" autocomplete="off">
-    <div class="count" id="count"></div>
-    <div class="grid" id="grid"></div>
+    <div class="sec">
+      <input class="search" id="q" type="search" placeholder="Search carrier, rep, phone, or email…" autocomplete="off">
+      <div class="count" id="count"></div>
+      <div class="grid" id="grid"></div>
+    </div>
   </div>
 
   <div class="foot">Built from Christopher's rep list + Follow Up Boss carrier records · Build Momentum. Create Results. Lead From the Front.</div>
@@ -389,7 +406,7 @@ body.tsfg-drawer .tsfg-scrim{display:block;}
       if(c.note){h+='<div class="empty">⚠ '+esc(c.note)+'</div>';}
       var dash=DASH[c.name];
       if(dash)h+='<a class="dash" href="'+esc(dash)+'" target="_blank" rel="noopener">🔐 Open '+esc(c.name)+' dashboard →</a>';
-      if(c.portal)h+='<a class="portal" href="'+esc(c.portal)+'" target="_blank" rel="noopener">🌐 Public site →</a>';
+      if(c.portal)h+='<a class="siteb" href="'+esc(c.portal)+'" target="_blank" rel="noopener">🌐 Visit '+esc(c.name)+' website →</a>';
       h+='</div>';
       g.insertAdjacentHTML('beforeend',h);
     });
