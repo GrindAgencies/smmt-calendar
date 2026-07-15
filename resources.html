@@ -119,8 +119,59 @@
     background:linear-gradient(180deg,#edc657,#cda22f)!important;color:#1c1206!important;border:1px solid #b6901f!important;box-shadow:0 1px 3px rgba(120,90,10,.18)!important;-webkit-text-fill-color:#1c1206!important;font-weight:800!important;}
   a.chip:hover,.docbtn:hover,.dash:hover{filter:brightness(1.05)!important;}
 </style>
+
+<style id="tsfg-skin">
+:root, html[data-theme]{
+  --bg:#f5f5f7!important;--panel:#ffffff!important;--panel2:#fbfbfd!important;--panel-2:#fbfbfd!important;
+  --ink:#1d1d1f!important;--text:#1d1d1f!important;--muted:#6e6e73!important;--muted2:#8e8e93!important;
+  --line:#ececf0!important;--line-2:#e3e3e8!important;
+  --gold:#c99a2e!important;--gold-bright:#c99a2e!important;--gold-deep:#e6dcc2!important;--today:#c99a2e!important;
+  --green:#34c759!important;--red:#ff3b30!important;--blue:#5b6cff!important;--silver:#8e8e93!important;
+  --ga-gold:#c99a2e!important;--ga-gold-br:#c99a2e!important;--ga-gold-dp:#e6dcc2!important;--ga-muted:#6e6e73!important;--ga-line:#ececf0!important;
+  --tsfg-accent:#5b6cff;--tsfg-side:248px;
+}
+html,body{background:#f5f5f7!important;color:#1d1d1f!important;}
+body{padding-left:var(--tsfg-side)!important;padding-top:60px!important;-webkit-font-smoothing:antialiased;}
+.ga-top{display:none!important;}
+/* ---- sidebar ---- */
+.tsfg-side{position:fixed;left:0;top:0;height:100vh;width:var(--tsfg-side);background:#fff;border-right:1px solid #ececf0;
+  display:flex;flex-direction:column;gap:3px;padding:16px 12px;z-index:900;overflow-y:auto;transition:transform .24s cubic-bezier(.2,.8,.2,1);}
+.tsfg-brand{display:flex;align-items:center;gap:11px;padding:6px 8px 14px;color:#1d1d1f;text-decoration:none;}
+.tsfg-brand img{width:34px;height:34px;border-radius:10px;object-fit:cover;box-shadow:0 1px 3px rgba(0,0,0,.08);}
+.tsfg-brand .bn{font-weight:800;font-size:16px;letter-spacing:-.02em;}
+.tsfg-brand .bn b{color:var(--tsfg-accent);}
+.tsfg-side .side-link{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;color:#6e6e73;font-weight:600;font-size:14px;text-decoration:none;transition:.15s;white-space:nowrap;}
+.tsfg-side .side-link svg{width:20px;height:20px;flex:0 0 auto;}
+.tsfg-side .side-link:hover{background:#f5f5f7;color:#1d1d1f;}
+.tsfg-side .side-link.on{background:rgba(91,108,255,.10);color:var(--tsfg-accent);}
+.tsfg-foot{margin-top:auto;padding-top:10px;border-top:1px solid #ececf0;}
+/* ---- topbar ---- */
+.tsfg-top{position:fixed;top:0;left:var(--tsfg-side);right:0;height:60px;z-index:850;display:flex;align-items:center;gap:14px;
+  padding:0 22px;background:rgba(245,245,247,.8);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid #ececf0;}
+.tsfg-title{font-weight:800;font-size:17px;letter-spacing:-.02em;color:#1d1d1f;}
+.tsfg-ic{width:38px;height:38px;border-radius:11px;border:1px solid #e3e3e8;background:#fff;color:#6e6e73;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.tsfg-ic:hover{color:#1d1d1f;}
+.tsfg-ic svg{width:18px;height:18px;}
+.tsfg-scrim{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:880;}
+body.tsfg-drawer .tsfg-scrim{display:block;}
+@media(max-width:860px){
+  body{padding-left:0!important;}
+  .tsfg-side{transform:translateX(-100%);box-shadow:0 20px 60px rgba(0,0,0,.25);}
+  body.tsfg-drawer .tsfg-side{transform:none;}
+  .tsfg-top{left:0;}
+}
+/* ---- soften common surfaces to the premium look ---- */
+input,textarea,select{border-radius:12px;}
+/* neutralize dark-designed heroes/logos for light bg */
+.hero img,.ga-start img,.res-hero img,[style*="mix-blend-mode:screen"]{mix-blend-mode:normal!important;filter:none!important;}
+.hero,.commit,.stuck,.ga-start{box-shadow:0 2px 6px rgba(0,0,0,.04),0 12px 34px rgba(0,0,0,.06)!important;}
+.hero{background:#fff!important;}
+</style>
+
+
 </head>
 <body>
+<div class="tsfg-scrim" onclick="tsfgDrawer(false)"></div><aside class="tsfg-side"><a class="tsfg-brand" href="index.html"><img src="logo.png" alt="" onerror="this.style.visibility='hidden'"><span class="bn">The <b>Standard</b></span></a><a class="side-link" href="index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span class="lbl">Home</span></a><a class="side-link" href="calendar.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9h18M8 3v3M16 3v3"/></svg><span class="lbl">Calendar</span></a><a class="side-link" href="checklist.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span class="lbl">My Tracker</span></a><a class="side-link" href="marketing.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg><span class="lbl">Leads</span></a><a class="side-link" href="team.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg><span class="lbl">My Team</span></a><a class="side-link" href="org.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="5" rx="1.5"/><rect x="3" y="16" width="6" height="5" rx="1.5"/><rect x="15" y="16" width="6" height="5" rx="1.5"/><path d="M12 8v4M6 16v-2h12v2"/></svg><span class="lbl">Org Chart</span></a><a class="side-link on" href="resources.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5a2 2 0 0 1 2-2h13v18H6a2 2 0 0 1-2-2z"/><path d="M4 5v14M9 3v18"/></svg><span class="lbl">Resources</span></a><a class="side-link" href="dashboard.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="6" rx="1"/><rect x="12" y="7" width="3" height="10" rx="1"/><rect x="17" y="13" width="3" height="4" rx="1"/></svg><span class="lbl">Ops Dashboard</span></a><div class="tsfg-foot"><a class="side-link" href="#" onclick="tsfgSignOut();return false;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg><span class="lbl">Sign out</span></a></div></aside><header class="tsfg-top"><button class="tsfg-ic" onclick="tsfgToggle()" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button><div class="tsfg-title">Resources</div><div style="flex:1"></div><button class="tsfg-ic" onclick="tsfgTheme()" id="tsfgThemeBtn" aria-label="Theme"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg></button></header>
 <header class="ga-top">
   <a class="ga-brand" href="index.html"><img src="logo.png" alt="GRIND Agencies"><span>GRIND <b>Agencies</b></span></a>
   <nav class="ga-nav">
@@ -394,5 +445,13 @@
   q.addEventListener('input',function(){var t=q.value.trim().toLowerCase();if(!t){render(CARRIERS);return;}var d=t.replace(/[^\da-z@. ]/g,'');render(CARRIERS.filter(function(c){return blob(c).indexOf(t)>=0||blob(c).replace(/[^\da-z@. ]/g,'').indexOf(d)>=0;}));});
   render(CARRIERS);
 </script>
+
+<script>
+function tsfgToggle(){ if(window.innerWidth<=860){tsfgDrawer(!document.body.classList.contains('tsfg-drawer'));} }
+function tsfgDrawer(on){document.body.classList.toggle('tsfg-drawer',!!on);}
+function tsfgTheme(){var d=document.documentElement.getAttribute('data-theme')==='dark';document.documentElement.setAttribute('data-theme',d?'light':'dark');try{localStorage.setItem('gfi_theme',d?'light':'dark');}catch(e){}}
+function tsfgSignOut(){try{localStorage.removeItem('tsfg_code');localStorage.removeItem('tsfg_name');}catch(e){}location.href='index.html';}
+</script>
+
 </body>
 </html>
