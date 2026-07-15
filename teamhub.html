@@ -48,6 +48,9 @@ body.drawer .scrim{display:block;}
 .room .ri{width:26px;height:26px;border-radius:8px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:14px;flex:0 0 auto;}
 .room .rn{overflow:hidden;text-overflow:ellipsis;}
 .room .dot{width:8px;height:8px;border-radius:50%;background:var(--green);margin-left:auto;flex:0 0 auto;}
+.dmsel{width:100%;border:1px solid var(--line2);background:var(--panel2);color:var(--ink);border-radius:11px;padding:10px 11px;font-size:13.5px;font-weight:600;font-family:inherit;outline:none;margin:2px 2px 4px;}
+.opsbanner{margin:12px 20px 0;padding:11px 14px;border:1px solid rgba(201,154,46,.35);background:var(--gold-soft);border-radius:12px;font-size:12.5px;color:var(--ink2);font-weight:600;}
+.opsbanner b{color:var(--gold);}
 .dmav{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#8b9bff);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
 /* messages pane */
 .msgpane{display:flex;flex-direction:column;min-width:0;}
@@ -143,6 +146,7 @@ body.drawer .scrim{display:block;}
   <button class="tic" onclick="drawer()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
   <button class="tic" onclick="document.body.classList.toggle('rooms-open')" title="Channels"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg></button>
   <div class="ttl">Team Hub</div><div style="flex:1"></div>
+  <button class="tic" onclick="toggleMod()" id="modBtn" title="Moderator">🔒</button>
   <button class="tic" onclick="toggleTheme()" id="themeBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg></button>
 </header>
 
@@ -196,6 +200,7 @@ body.drawer .scrim{display:block;}
 
 <script>
 var HUB="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/hub-api";
+var ACC={mod:false,role:'agent',licensed:false},MODTOKEN='';
 var TA="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/tracker-api";
 var BASESHOP_LEADER="Elijah Cox";
 var CODE=null,NAME="",CHAN="main",CHANNELS=[],MEMBERS={},ONLINE={},LASTID=0,REPLYTO=null,PENDATTACH=null,RECPICK=null,POLL=null,MENSEL=0,MENITEMS=[];
@@ -226,18 +231,22 @@ function buildSide(){
   s+='<div class="sfoot"><a class="slink" href="#" onclick="signOut();return false;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg><span>Sign out</span></a></div>';
   $('side').innerHTML=s;
 }
+function toggleMod(){if(MODTOKEN){MODTOKEN='';$('modBtn').textContent='🔒';toast('Moderator off');renderMsgs(false);return;}if(ACC.mod){toast('You already moderate as Leadership');return;}var pc=prompt('Operations moderator passcode:');if(!pc)return;if(pc==='2026'){MODTOKEN='2026';$('modBtn').textContent='🛡️';toast('Moderator mode — you can remove any message');renderMsgs(false);}else toast('Incorrect passcode');}
 function signOut(){try{localStorage.removeItem('tsfg_code');localStorage.removeItem('tsfg_name');}catch(e){}location.href='index.html';}
 
 /* rooms */
 function renderRooms(){
   $('chanList').innerHTML=CHANNELS.map(function(c){return '<div class="room'+(CHAN===c.id?' on':'')+'" onclick="openChan(\''+c.id+'\')"><div class="ri">'+(c.icon||'#')+'</div><div class="rn">'+esc(c.name)+'</div></div>';}).join('');
   var mem=Object.keys(MEMBERS).filter(function(cd){return cd!==CODE;}).sort(function(a,b){return (MEMBERS[a]||'').localeCompare(MEMBERS[b]||'');});
-  $('dmList').innerHTML=mem.slice(0,40).map(function(cd){var on=ONLINE[cd]?'<div class="dot"></div>':'';return '<div class="room'+(CHAN===dmId(cd)?' on':'')+'" onclick="openChan(\''+dmId(cd)+'\')"><div class="dmav">'+initials(MEMBERS[cd])+'</div><div class="rn">'+esc(MEMBERS[cd]||cd)+'</div>'+on+'</div>';}).join('')||'<div style="font-size:12px;color:var(--ink3);padding:8px 10px">Your teammates appear here.</div>';
+  var active='';
+  if(CHAN.indexOf('dm:')===0){var oc=CHAN.slice(3).split('|').filter(function(c){return c!==CODE;})[0];active='<div class="room on"><div class="dmav">'+initials(MEMBERS[oc]||oc)+'</div><div class="rn">'+esc(MEMBERS[oc]||oc)+'</div></div>';}
+  $('dmList').innerHTML=active+'<select class="dmsel" onchange="if(this.value){openChan(dmId(this.value));this.value=\'\';}"><option value="">＋ Message a teammate…</option>'+mem.map(function(cd){return '<option value="'+cd+'">'+esc(MEMBERS[cd]||cd)+(ONLINE[cd]?' ●':'')+'</option>';}).join('')+'</select>';
 }
 function dmId(other){return 'dm:'+[CODE,other].sort().join('|');}
 function chanMeta(id){
   if(id.indexOf('dm:')===0){var o=id.slice(3).split('|').filter(function(c){return c!==CODE;})[0]||'';return {icon:initials(MEMBERS[o]||o),name:MEMBERS[o]||o,sub:'Direct message · '+o,dm:true,other:o};}
-  var c=CHANNELS.filter(function(c){return c.id===id;})[0]||{icon:'#',name:id};return {icon:c.icon||'#',name:c.name,sub:'Channel · everyone can see this'};
+  var SUBS={operations:'Direct line to Operations · Anais · 858-433-4429 · impactagency.ops@gmail.com',leadership:'Marketing Directors, EMDs & Operations only',licensing:'Agents completing licensing',licensed:'Licensed agents only',cft:'Certified Field Trainers only',announcements:'Company-wide announcements',main:'Everyone in the company',training:'Live training discussion'};
+  var c=CHANNELS.filter(function(c){return c.id===id;})[0]||{icon:'#',name:id};return {icon:c.icon||'#',name:c.name,sub:SUBS[id]||'Channel'};
 }
 function openChan(id){CHAN=id;LASTID=0;$('mlist').innerHTML='';renderRooms();renderHead();loadMsgs(true);document.body.classList.remove('rooms-open');}
 function renderHead(){var m=chanMeta(CHAN);$('chead').innerHTML='<div class="ci">'+(m.dm?'<div class="dmav" style="width:34px;height:34px">'+m.icon+'</div>':m.icon)+'</div><div><div class="cn">'+esc(m.name)+'</div><div class="cs">'+esc(m.sub)+'</div></div><div class="presence"><span class="pd"></span>'+Object.keys(ONLINE).length+' online</div>';}
@@ -275,9 +284,10 @@ function renderMsgs(scroll){
     }
     var rx='';var rk=m.reactions&&typeof m.reactions==='object'?m.reactions:{};
     var keys=Object.keys(rk);if(keys.length){rx='<div class="rx">'+keys.map(function(e){var mine=rk[e].indexOf(CODE)>=0;return '<button class="rxb'+(mine?' mine':'')+'" onclick="react('+m.id+',\''+e+'\')">'+e+' '+rk[e].length+'</button>';}).join('')+'</div>';}
-    var acts=(m.deleted||m.kind==='ai')?'':'<div class="mact"><button onclick="reactPop(event,'+m.id+')" title="React">😀</button><button onclick="setReply('+m.id+')" title="Reply">↩</button>'+((m.author_code===CODE)?'<button onclick="editMsg('+m.id+')" title="Edit">✏️</button><button onclick="delMsg('+m.id+')" title="Delete">🗑</button>':'')+'</div>';
+    var acts=(m.deleted||m.kind==='ai')?'':'<div class="mact"><button onclick="reactPop(event,'+m.id+')" title="React">😀</button><button onclick="setReply('+m.id+')" title="Reply">↩</button>'+((m.author_code===CODE)?'<button onclick="editMsg('+m.id+')" title="Edit">✏️</button>':'')+((m.author_code===CODE||ACC.mod||MODTOKEN)?'<button onclick="delMsg('+m.id+')" title="Delete">🗑</button>':'')+'</div>';
     return '<div class="msg'+(cont?' cont':'')+(m.kind==='recognition'?' recog':'')+(m.kind==='ai'?' ai':'')+'">'+av+'<div class="mbody">'+head+inner+rx+'</div>'+acts+'</div>';
   }).join('');
+  if(CHAN==='operations'){host.insertAdjacentHTML('afterbegin','<div class="opsbanner">⚙️ <b>Operations line.</b> Messages here go straight to the Operations team (Anais). For licensing: <b>calendly.com/impactagency-ops/licensing</b> · 858-433-4429 · impactagency.ops@gmail.com</div>');}
   if(scroll)host.scrollTop=host.scrollHeight;
   else if(host.scrollHeight-host.scrollTop-host.clientHeight<160)host.scrollTop=host.scrollHeight;
 }
@@ -289,7 +299,7 @@ document.addEventListener('click',function(e){if(!e.target.closest('.emojipop')&
 function setReply(id){REPLYTO=id;var m=findMsg(id);$('replybar').className='replybar on';$('replybar').innerHTML='↩ Replying to <b>'+esc(m.author_name)+'</b> <span style="color:var(--ink3)">'+esc((m.body||'').slice(0,60))+'</span><span class="x" onclick="clearReply()">✕</span>';$('cin').focus();}
 function clearReply(){REPLYTO=null;$('replybar').className='replybar';}
 function editMsg(id){var m=findMsg(id);var v=prompt('Edit message:',m.body);if(v===null)return;h({action:'hub_edit',id:id,code:CODE,body:v}).then(function(r){if(r.ok){m.body=v;m.edited=true;renderMsgs(false);}});}
-function delMsg(id){if(!confirm('Delete this message?'))return;h({action:'hub_delete',id:id,code:CODE}).then(function(r){if(r.ok){var m=findMsg(id);m.deleted=true;renderMsgs(false);}});}
+function delMsg(id){if(!confirm('Delete this message?'))return;var b={action:'hub_delete',id:id,code:CODE,by:CODE};if(MODTOKEN)b.token=MODTOKEN;h(b).then(function(r){if(r.ok){var m=findMsg(id);m.deleted=true;renderMsgs(false);toast('Deleted');}else toast(r.error||'Could not delete');});}
 
 /* composer */
 function autoresize(){var t=$('cin');t.style.height='auto';t.style.height=Math.min(140,t.scrollHeight)+'px';}
@@ -322,7 +332,7 @@ function sendNow(){
   var msg={action:'hub_send',code:CODE,channel:CHAN,author_name:NAME,body:body,reply_to:REPLYTO};
   if(PENDATTACH){msg.attach=PENDATTACH;}
   t.value='';autoresize();clearReply();var att=PENDATTACH;PENDATTACH=null;
-  h(msg).then(function(){loadMsgs(true);
+  h(msg).then(function(rr){if(rr&&rr.ok===false){toast(rr.error||'Message not sent');}loadMsgs(true);
     if(isQ){var q=body.replace(/^@question\b/i,'').trim();h({action:'hub_ask',q:q}).then(function(r){h({action:'hub_send',code:CODE,channel:CHAN,author_name:'Question AI',kind:'ai',body:r.answer,attach:r.source?{source:r.source}:null}).then(function(){loadMsgs(true);});});}
   });
 }
@@ -351,7 +361,7 @@ function sendRecognition(){
 /* channels */
 function openNewChannel(){$('chOv').classList.add('on');}
 function createChannel(){var n=$('chName').value.trim();if(!n){toast('Name it');return;}h({action:'hub_createchannel',name:n,private:$('chPriv').checked,by:NAME}).then(function(r){if(r.ok){$('chOv').classList.remove('on');$('chName').value='';loadChannels();toast('Channel created');}});}
-function loadChannels(){h({action:'hub_channels'}).then(function(r){CHANNELS=(r&&r.channels)||[];renderRooms();});}
+function loadChannels(){h({action:'hub_channels',code:CODE}).then(function(r){CHANNELS=(r&&r.channels)||[];if(r&&r.access){ACC=r.access;}if(CHAN.indexOf('dm:')!==0&&!CHANNELS.some(function(c){return c.id===CHAN;})){CHAN='main';renderHead();loadMsgs(true);}renderRooms();});}
 
 /* search */
 function doSearch(){var q=$('hq').value.trim();if(!q){return;}h({action:'hub_search',q:q}).then(function(r){var arr=(r&&r.messages)||[];if(!arr.length){toast('No matches');return;}MSGS=arr.slice().reverse();$('chead').innerHTML='<div class="ci">🔎</div><div><div class="cn">Search: “'+esc(q)+'”</div><div class="cs">'+arr.length+' results · click a channel to return</div></div>';LASTID=0;renderMsgs(true);});}
@@ -384,6 +394,7 @@ function heartbeat(){h({action:'hub_presence',code:CODE,name:NAME}).then(functio
   try{CODE=localStorage.getItem('tsfg_code');NAME=localStorage.getItem('tsfg_name')||'';}catch(e){}
   if(!CODE){location.href='index.html';return;}
   MEMBERS[CODE]=NAME;
+  h({action:'hub_access',code:CODE}).then(function(r){if(r&&r.access){ACC=r.access;if(ACC.mod)$('modBtn').textContent='🛡️';}});
   loadChannels();renderHead();loadMsgs(true);heartbeat();
   // roster for DMs + mentions
   fetch(TA,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'team',leader:BASESHOP_LEADER})}).then(function(r){return r.json();}).then(function(d){(d&&d.agents||[]).forEach(function(a){var nm=((a.first_name||'')+' '+(a.last_name||'')).trim();if(a.code&&nm)MEMBERS[a.code]=nm;});renderRooms();});
