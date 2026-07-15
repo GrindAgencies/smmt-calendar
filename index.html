@@ -586,9 +586,9 @@ function loadData(){
     ME.premium=sMe.ap_submitted||0; ME.pending=(sMe.counts&&sMe.counts.pending)||0;
     SHOP.premium=sShop.ap_submitted||0; SHOP.pending=(sShop.counts&&sShop.counts.pending)||0;
     ME.fta=ME.ft30||0; SHOP.fta=ags.reduce(function(t,a){return t+(Number(a.ft_30)||0);},0);
-    /* Families Helped = submitted New Business policies this month (agent + baseshop) */
-    ME.families=(sMe.counts&&sMe.counts.total)||0;
-    SHOP.families=(sShop.counts&&sShop.counts.total)||0;
+    /* Families Helped = submitted New Business policies this month, excluding closed/declined (agent + baseshop) */
+    ME.families=(sMe.counts&&sMe.counts.submitted)||0;
+    SHOP.families=(sShop.counts&&sShop.counts.submitted)||0;
     var feed=buildFeed(team);
     renderSnapshot();renderFocus();renderPerf();renderFeed(feed);
   });
