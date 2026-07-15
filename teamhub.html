@@ -48,7 +48,11 @@ body.drawer .scrim{display:block;}
 .room .ri{width:26px;height:26px;border-radius:8px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:14px;flex:0 0 auto;}
 .room .rn{overflow:hidden;text-overflow:ellipsis;}
 .room .dot{width:8px;height:8px;border-radius:50%;background:var(--green);margin-left:auto;flex:0 0 auto;}
-.bshdr{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--gold);padding:12px 10px 4px;}
+.bshdr{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--ink3);padding:12px 10px 4px;}
+.bsgroup{font-weight:800;color:var(--ink);}
+.bsgroup .chev{margin-left:auto;color:var(--ink3);font-size:11px;flex:0 0 auto;}
+.subwrap{margin:1px 0 4px 8px;border-left:2px solid var(--line);padding-left:4px;}
+.subwrap .room{font-weight:600;}
 .dmsel{width:100%;border:1px solid var(--line2);background:var(--panel2);color:var(--ink);border-radius:11px;padding:10px 11px;font-size:13.5px;font-weight:600;font-family:inherit;outline:none;margin:2px 2px 4px;}
 .opsbanner{margin:12px 20px 0;padding:11px 14px;border:1px solid rgba(201,154,46,.35);background:var(--gold-soft);border-radius:12px;font-size:12.5px;color:var(--ink2);font-weight:600;}
 .opsbanner b{color:var(--gold);}
@@ -231,6 +235,8 @@ var NAVI=[['home','Home','index.html','M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-6H
 ['tree','Org Chart','org.html','M9 3h6v5H9zM3 16h6v5H3zM15 16h6v5h-6zM12 8v4M6 16v-2h12v2'],
 ['book','Resources','resources.html','M4 5a2 2 0 0 1 2-2h13v18H6a2 2 0 0 1-2-2zM9 3v18'],
 ['chart','Ops Dashboard','dashboard.html','M3 3v18h18M7 13v4M12 8v9M17 11v6']];
+var EXP={};
+function toggleBs(bs){EXP[bs]=!EXP[bs];renderRooms();}
 function buildSide(){
   var s='<a class="brand" href="index.html"><img src="logo.png" onerror="this.style.visibility=\'hidden\'"><span class="bn">The <b>Standard</b></span></a>';
   NAVI.forEach(function(n){var on=n[2]==='teamhub.html'?' on':'';s+='<a class="slink'+on+'" href="'+n[2]+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="'+n[3]+'"/></svg><span>'+n[1]+'</span></a>';});
@@ -249,8 +255,13 @@ function renderRooms(){
   var hier=CHANNELS.filter(function(c){return !c.baseshop;});
   var groups={},order=[];
   CHANNELS.forEach(function(c){if(c.baseshop){if(!groups[c.baseshop]){groups[c.baseshop]=[];order.push(c.baseshop);}groups[c.baseshop].push(c);}});
-  var chtml=hier.map(chRow).join('');
-  order.forEach(function(bs){var nm=(groups[bs][0].baseshopName)||bs.toUpperCase();chtml+='<div class="bshdr">'+esc(nm)+' baseshop</div>'+groups[bs].map(chRow).join('');});
+  if(!EXP.__init){EXP.__init=true;if(ACC&&ACC.baseshop)EXP[ACC.baseshop]=true;else if(order.length)EXP[order[0]]=true;}
+  var chtml='<div class="bshdr">Company</div>'+hier.map(chRow).join('');
+  chtml+='<div class="bshdr">Baseshops</div>';
+  order.forEach(function(bs){var nm=(groups[bs][0].baseshopName)||bs.toUpperCase();var open=!!EXP[bs];
+    chtml+='<div class="room bsgroup" onclick="toggleBs(\''+bs+'\')"><div class="ri">\ud83c\udfe2</div><div class="rn">'+esc(nm)+'</div><span class="chev">'+(open?'\u25be':'\u25b8')+'</span></div>';
+    if(open)chtml+='<div class="subwrap">'+groups[bs].map(chRow).join('')+'</div>';
+  });
   $('chanList').innerHTML=chtml;
   var mem=Object.keys(MEMBERS).filter(function(cd){return cd!==CODE;}).sort(function(a,b){return (MEMBERS[a]||'').localeCompare(MEMBERS[b]||'');});
   var active='';
