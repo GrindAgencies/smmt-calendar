@@ -137,6 +137,25 @@ input[type=range]{width:100%;accent-color:var(--accent);height:6px;}
 .mrow .inp .c{color:var(--ink3);font-size:13px;}
 .mrow input{border:none;background:none;outline:none;text-align:right;width:110px;font-size:14.5px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;padding:6px 2px;border-bottom:1px solid transparent;}
 .mrow input:focus{border-bottom-color:var(--accent);}
+.mrow .mnum{border:none;background:none;outline:none;text-align:right;width:150px;font-size:15px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums;padding:9px 2px;border-bottom:1px solid transparent;letter-spacing:-.01em;}
+.mrow .mnum:focus{border-bottom-color:var(--accent);}
+.mrow .mnum::placeholder{color:var(--ink3);font-weight:500;}
+.mrow label{flex:1;padding-right:14px;}
+.wform{display:flex;flex-direction:column;gap:16px;max-width:470px;}
+.wfield label{display:block;font-size:12.5px;font-weight:700;color:var(--ink3);margin-bottom:7px;letter-spacing:.01em;}
+.wfield input{width:100%;border:1px solid var(--line2);background:var(--panel);border-radius:13px;padding:15px 16px;font-size:15.5px;color:var(--ink);outline:none;box-shadow:var(--shadow-sm);}
+.wfield input:focus{border-color:var(--accent);}
+.pbstep{display:flex;gap:13px;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--line);}
+.pbstep:last-child{border-bottom:none;}
+.pbstep .n{width:26px;height:26px;border-radius:8px;background:var(--accent-soft);color:var(--accent);font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+.pbstep .t{font-size:14px;line-height:1.5;}
+.pbstep .t b{color:var(--ink);}
+.pbrec{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border:1px solid var(--line2);border-radius:13px;margin-bottom:10px;background:var(--panel2);}
+.pbrec .pri{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--accent);}
+.pbrec .sol{font-weight:700;font-size:14.5px;margin:2px 0 3px;}
+.pbrec .wy{font-size:13px;color:var(--ink2);line-height:1.45;}
+.aibtn{border:1px solid var(--accent);background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:13.5px;padding:11px 16px;border-radius:12px;display:inline-flex;gap:7px;align-items:center;}
+#aiBox{white-space:pre-wrap;font-size:14px;line-height:1.55;color:var(--ink);margin-top:12px;}
 /* stat tiles */
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:6px 0 8px;}
 .stat{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:var(--shadow-sm);}
@@ -214,7 +233,7 @@ input[type=range]{width:100%;accent-color:var(--accent);height:6px;}
     <span class="fsave" id="saveLbl"></span>
     <button class="fx" onclick="exitFlow()"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg> Save &amp; Close</button>
   </div>
-  <div class="fbody"><div class="fstage" id="stage"></div></div>
+  <div class="fbody" id="fbody"><div class="fstage" id="stage"></div></div>
   <div class="fnav">
     <button class="back" id="backBtn" onclick="prevStep()">Back</button>
     <button class="next" id="nextBtn" onclick="nextStep()">Continue</button>
@@ -382,10 +401,9 @@ var RENDER={},AFTER={};
 RENDER.welcome=function(){return '<div class="eyebrow">Personal Financial Review</div>'+
   '<h1 class="qh">Let’s build a picture of your financial future.</h1>'+
   '<p class="qsub">Over the next few minutes we’ll look at where you are today and where you’d like to be. There are no right or wrong answers — just an honest snapshot so we can have a better conversation. Takes about 10–15 minutes.</p>'+
-  '<div class="mgroup"><div class="mrow"><label>Client name</label><div class="inp"><input id="c_name" style="width:200px;text-align:left" placeholder="First &amp; last" value="'+esc(d().client.name)+'" oninput="d().client.name=this.value;scheduleSave()"></div></div>'+
-  '<div class="mrow"><label>Phone</label><div class="inp"><input id="c_phone" style="width:170px;text-align:left" placeholder="(555) 555-5555" value="'+esc(d().client.phone)+'" oninput="d().client.phone=this.value;scheduleSave()"></div></div>'+
-  '<div class="mrow"><label>Email</label><div class="inp"><input id="c_email" style="width:220px;text-align:left" placeholder="name@email.com" value="'+esc(d().client.email)+'" oninput="d().client.email=this.value;scheduleSave()"></div></div></div>';
+  '<div class="wform">'+wfield('Client name','name','First & last','text')+wfield('Phone','phone','(555) 555-5555','tel')+wfield('Email','email','name@email.com','email')+'</div>';
 };
+function wfield(label,key,ph,type){return '<div class="wfield"><label>'+label+'</label><input type="'+type+'" placeholder="'+ph+'" value="'+esc(d().client[key])+'" oninput="d().client[\''+key+'\']=this.value;scheduleSave()"></div>';}
 
 RENDER.vision=function(){return '<div class="eyebrow">Retirement Vision</div>'+
   '<h1 class="qh">When would you like to retire?</h1>'+
@@ -444,7 +462,7 @@ RENDER.confidence=function(){return '<div class="eyebrow">Confidence Assessment<
 function setConf(n){d().confidence=n;scheduleSave();renderStep();}
 
 RENDER.snapshot=function(){
-  function grp(title,key,map){var o=d()[key];var rows='';for(var k in map){rows+='<div class="mrow"><label>'+map[k]+'</label><div class="inp"><span class="c">$</span><input type="number" value="'+(o[k]||0)+'" oninput="d()[\''+key+'\'][\''+k+'\']=+this.value||0;snapTot();scheduleSave()"></div></div>';}
+  function grp(title,key,map){var o=d()[key];var rows='';for(var k in map){var vv=o[k]?('$'+Number(o[k]).toLocaleString('en-US')):'';rows+='<div class="mrow"><label>'+map[k]+'</label><input class="mnum" type="text" inputmode="numeric" placeholder="$0" value="'+vv+'" oninput="moneyIn(this,\''+key+'\',\''+k+'\')"></div>';}
     return '<div class="mgroup"><div class="gh2"><span>'+title+'</span><span class="gt" id="tot_'+key+'">'+money(sum(o))+'</span></div>'+rows+'</div>';}
   return '<div class="eyebrow">Current Financial Snapshot</div>'+
    '<h1 class="qh">Let’s capture where things stand today.</h1>'+
@@ -456,6 +474,7 @@ RENDER.snapshot=function(){
    grp('Debt (balances owed)','debt',{'Student Loan':'Student loans','Auto Loan':'Auto loans',Mortgage:'Mortgage','Personal Loan':'Personal loans','Credit Cards':'Credit cards',Medical:'Medical',HELOC:'HELOC','Payday Loans':'Payday loans','Equity Loans':'Equity loans','Pension Loans':'Pension loans'});
 };
 function snapTot(){['income','expenses','assets','invest','debt'].forEach(function(k){var el=$('tot_'+k);if(el)el.textContent=money(sum(d()[k]));});}
+function moneyIn(el,field,key){var digits=(el.value||'').replace(/[^0-9]/g,'');var n=digits?parseInt(digits,10):0;d()[field][key]=n;el.value=n?('$'+n.toLocaleString('en-US')):'';snapTot();scheduleSave();}
 
 RENDER.cashflow=function(){var c=calc(d());
   var bars='';var maxV=Math.max(c.inc,c.exp,Math.abs(c.netMo),1);
@@ -556,10 +575,10 @@ function showSummary(){
    '<div class="sec"><h2>Priority Ranking</h2>'+dd.priorities.slice(0,6).map(function(p,i){return '<span class="pill"><b>'+(i+1)+'</b> '+esc(p)+'</span>';}).join('')+'</div>'+
    '<div class="sec"><h2>Key Observations &amp; Discussion Topics</h2>'+buildObs(c,dd)+'</div>'+
    (dd.advisor?'<div class="sec"><h2>Next Step</h2><div class="obs neu"><div class="ic">🗨️</div><div class="ot">Client response: <b>'+esc(dd.advisor)+'</b></div></div></div>':'')+
-   '<div class="repbtns"><button onclick="backToGallery()">← Back to Builder</button><button onclick="editCurrent()">Edit</button><button class="prime" onclick="window.print()">↓ Export PDF</button></div>'+
+   buildPlaybook(c,dd)+   '<div class="repbtns"><button onclick="backToGallery()">← Builder</button><button onclick="editCurrent()">Edit</button><button onclick="window.print()">↓ Export PDF</button><button class="prime" onclick="saveComplete()">✓ Save PFR</button></div>'+
    '</div>';
 }
-function kv(l,v){return '<div class="kv"><div class="l">'+l+'</div><div class="v">'+esc(v)+'</div></div>';}
+var PREC={'Protect Family':['Income-replacement coverage (Term or IUL)','covers the {NEED} protection gap so the family keeps their lifestyle no matter what.'],'Retirement':['FIA or IUL for tax-advantaged retirement income','closes the {GAP}/yr gap between today’s path and the {INC}/mo retirement goal.'],'Debt Reduction':['Cash-flow restructure + policy-loan strategy','redirects part of the {SURP}/mo surplus to clear {DEBT} in debt faster.'],'Emergency Savings':['IUL cash value as a liquid safety net','builds accessible reserves without locking the money away.'],'Tax Efficiency':['IUL tax-free distributions / Roth positioning','reduces future tax drag on retirement income.'],'College Funding':['IUL college strategy (flexible vs 529)','funds education with no penalties plus a protection benefit.'],'Legacy Planning':['Permanent death benefit + beneficiary review','passes wealth efficiently to the next generation.'],'Business Planning':['Key-person / buy-sell coverage','protects the business and its partners.'],'Charitable Giving':['Legacy gift via death-benefit earmark','amplifies giving at pennies on the dollar.']};function fill(t,c,dd){return t.replace('{NEED}',money(c.insurable)).replace('{GAP}',money(Math.abs(c.gapYr))).replace('{INC}',money(dd.goal.bestMo)).replace('{SURP}',money(Math.max(0,c.netMo))).replace('{DEBT}',money(c.debt));}function buildPlaybook(c,dd){var top=dd.priorities.slice(0,3);var fn=(dd.client.name||'The client').split(' ')[0];var conf=(FACES[dd.confidence-1]||['','set'])[1].toLowerCase();var recs=top.map(function(pr){var r=PREC[pr]||['Tailored strategy','aligns with what they told you.'];return '<div class="pbrec"><div class="n" style="width:26px;height:26px;border-radius:8px;background:var(--gold-soft);color:var(--gold);font-weight:800;display:flex;align-items:center;justify-content:center;flex:0 0 auto">★</div><div><div class="pri">'+esc(pr)+'</div><div class="sol">'+esc(r[0])+'</div><div class="wy">Why it lands: '+esc(fill(r[1],c,dd))+'</div></div></div>';}).join('');var lead=top[0]||'their goals';var steps=[['1','<b>Reflect what you heard.</b> “'+fn+', you told me <b>'+esc(lead)+'</b> matters most and you’re '+conf+' about the current plan — did I get that right?”'],['2','<b>Connect the gap to the goal.</b> “Your review shows about a <b>'+money(Math.abs(c.gapYr))+'/yr</b> gap and <b>'+money(c.insurable)+'</b> of protection need — that’s the distance between the retirement you described and today’s path.”'],['3','<b>Present the conservative strategy.</b> “There’s a strategy built around <b>'+esc((PREC[lead]||['a tailored solution'])[0])+'</b> designed to close that gap and protect your family — with no market risk to your principal.”'],['4','<b>Assume the next step.</b> '+(dd.advisor&&dd.advisor.indexOf('Yes')===0?'“Let’s get your illustration started — I’ll grab your date of birth and a quick health snapshot so I can show you real numbers.”':'“Let’s put 20 minutes on the calendar to walk through the illustration together — no pressure, just the numbers.”')]];return '<div class="sec"><h2>Advisor Playbook — Recommended Next Steps</h2>'+'<div class="obs neu" style="padding-top:0"><div class="ic">🧭</div><div class="ot"><b>'+esc(fn)+'</b> ranked <b>'+top.map(esc).join(', ')+'</b> highest and is '+conf+'. Lead with <b>'+esc(lead)+'</b>, tie every point back to it, and let the gap do the selling.</div></div>'+'<div style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin:16px 0 10px">Recommended solutions</div>'+recs+'<div style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin:18px 0 8px">Discovery → Close sequence</div>'+steps.map(function(x){return '<div class="pbstep"><div class="n">'+x[0]+'</div><div class="t">'+x[1]+'</div></div>';}).join('')+'<div style="margin-top:16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button class="aibtn" onclick="aiScript()">✨ Generate AI discovery script</button><span style="font-size:11.5px;color:var(--ink3)">Powered by @Question AI</span></div><div id="aiBox"></div>'+'</div>';}function aiScript(){var dd=CUR.data,c=calc(dd);var top=dd.priorities.slice(0,3).join(', ');var q='Give a warm, 4-step discovery-to-close talk track for a life-insurance client named '+(dd.client.name||'the client')+' whose top priorities are '+top+', with about a '+money(Math.abs(c.gapYr))+' per year retirement gap and '+money(c.insurable)+' of protection need. Recommend IUL or FIA where it fits.';var box=document.getElementById('aiBox');box.textContent='Thinking…';fetch('https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/hub-api',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'hub_ask',q:q})}).then(function(r){return r.json();}).then(function(r){box.textContent=(r&&r.answer)||'No response.';}).catch(function(){box.textContent='Could not reach the AI right now — use the playbook above.';});}function saveComplete(){if(!CUR)return;CUR.status='complete';saveNow();toast('PFR saved ✓');setTimeout(backToGallery,700);}function kv(l,v){return '<div class="kv"><div class="l">'+l+'</div><div class="v">'+esc(v)+'</div></div>';}
 function kvc(l,v,good){return '<div class="kv"><div class="l">'+l+'</div><div class="v" style="color:'+(good?'#1a9c52':'var(--red)')+'">'+esc(v)+'</div></div>';}
 function backToGallery(){$('summary').classList.add('hide');$('gallery').classList.remove('hide');loadPFRs();}
 function editCurrent(){STEP=0;openFlow();}
