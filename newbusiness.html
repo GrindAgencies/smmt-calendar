@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>New Business — The Standard</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f5f5f7;--panel:#fff;--panel2:#fbfbfd;--ink:#1d1d1f;--ink2:#6e6e73;--ink3:#8e8e93;
+  --line:#ececf0;--line2:#e3e3e8;--accent:#5b6cff;--accent2:#4f46e5;--accent-soft:rgba(91,108,255,.10);
+  --green:#34c759;--green-soft:rgba(52,199,89,.13);--orange:#ff9f0a;--orange-soft:rgba(255,159,10,.14);
+  --red:#ff3b30;--red-soft:rgba(255,59,48,.12);--blue:#0a84ff;--blue-soft:rgba(10,132,255,.12);--gold:#c99a2e;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.04),0 1px 3px rgba(0,0,0,.03);--shadow:0 2px 6px rgba(0,0,0,.04),0 12px 34px rgba(0,0,0,.06);
+  --shadow-lg:0 20px 50px rgba(0,0,0,.14);--side:248px;--font:'Inter',-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',system-ui,sans-serif;
+}
+[data-theme="dark"]{--bg:#0a0a0c;--panel:#161618;--panel2:#1c1c1f;--ink:#f5f5f7;--ink2:#a1a1a8;--ink3:#77777e;--line:#26262a;--line2:#2e2e33;--accent:#7c8bff;--accent-soft:rgba(124,139,255,.14);}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);-webkit-font-smoothing:antialiased;letter-spacing:-.01em;}
+a{color:inherit;text-decoration:none;}button{font-family:inherit;cursor:pointer;}
+.hide{display:none!important;}
+/* shell */
+.side{position:fixed;left:0;top:0;height:100vh;width:var(--side);background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;gap:3px;padding:16px 12px;z-index:900;overflow-y:auto;transition:transform .24s;}
+.brand{display:flex;align-items:center;gap:11px;padding:6px 8px 14px;}
+.brand img{width:34px;height:34px;border-radius:10px;object-fit:cover;box-shadow:var(--shadow-sm);}
+.brand .bn{font-weight:800;font-size:16px;letter-spacing:-.02em;}.brand .bn b{color:var(--accent);}
+.slink{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;color:var(--ink2);font-weight:600;font-size:14px;transition:.15s;white-space:nowrap;}
+.slink svg{width:20px;height:20px;flex:0 0 auto;}
+.slink:hover{background:var(--bg);color:var(--ink);}.slink.on{background:var(--accent-soft);color:var(--accent);}
+.sfoot{margin-top:auto;padding-top:10px;border-top:1px solid var(--line);}
+.top{position:fixed;top:0;left:var(--side);right:0;height:60px;z-index:850;display:flex;align-items:center;gap:14px;padding:0 22px;background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid var(--line);}
+.tic{width:38px;height:38px;border-radius:11px;border:1px solid var(--line2);background:var(--panel);color:var(--ink2);display:flex;align-items:center;justify-content:center;}
+.tic svg{width:18px;height:18px;}.ttl{font-weight:800;font-size:17px;letter-spacing:-.02em;}
+.scrim{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:880;}
+body.drawer .scrim{display:block;}
+.wrap{padding-left:var(--side);padding-top:60px;}
+.content{max-width:1320px;margin:0 auto;padding:26px 30px;}
+@media(max-width:860px){.wrap{padding-left:0;}.side{transform:translateX(-100%);box-shadow:var(--shadow-lg);}body.drawer .side{transform:none;}.top{left:0;}.content{padding:18px 14px;}}
+/* biz toggle */
+.bizseg{display:flex;gap:10px;margin-bottom:22px;}
+.bizseg button{flex:1;padding:16px;border:1px solid var(--line2);background:var(--panel);border-radius:16px;font-weight:800;font-size:15px;color:var(--ink2);box-shadow:var(--shadow-sm);transition:.15s;}
+.bizseg button.on{background:var(--accent);color:#fff;border-color:var(--accent);box-shadow:0 8px 22px var(--accent-soft);}
+h1.pgh{font-size:26px;font-weight:800;letter-spacing:-.03em;margin:0 0 4px;}
+.pgsub{color:var(--ink2);font-size:14.5px;margin:0 0 18px;max-width:640px;}
+/* kpi strip */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:0;background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow-sm);overflow:hidden;margin-bottom:16px;}
+.kpi{padding:16px 18px;border-right:1px solid var(--line);}
+.kpi:last-child{border-right:none;}
+.kpi .kl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--ink3);}
+.kpi .kv{font-size:21px;font-weight:800;letter-spacing:-.02em;margin-top:4px;font-variant-numeric:tabular-nums;}
+.kpi.blue .kv{color:var(--accent);}.kpi.green .kv{color:#1a9c52;}.kpi.red .kv{color:var(--red);}
+/* pipeline */
+.pipe{display:flex;align-items:stretch;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow-sm);padding:14px 18px;margin-bottom:22px;flex-wrap:wrap;}
+.pstage{display:flex;align-items:center;gap:12px;flex:1;min-width:120px;}
+.pstage .pic{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;background:var(--bg);color:var(--ink2);}
+.pstage .pic svg{width:18px;height:18px;}
+.pstage.s-submitted .pic{background:var(--blue-soft);color:var(--blue);}
+.pstage.s-pending .pic{background:var(--orange-soft);color:var(--orange);}
+.pstage.s-approved .pic{background:var(--green-soft);color:#1a9c52;}
+.pstage.s-paid .pic{background:var(--accent-soft);color:var(--accent);}
+.pstage.s-closed .pic{background:var(--red-soft);color:var(--red);}
+.pstage .pn{font-size:22px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;}
+.pstage .pt{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:var(--ink3);}
+.parrow{align-self:center;color:var(--ink3);}
+/* controls */
+.ctrls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px;}
+.tabs{display:inline-flex;background:var(--panel);border:1px solid var(--line2);border-radius:12px;padding:3px;gap:2px;}
+.tabs button{border:none;background:none;padding:8px 14px;border-radius:9px;font-size:13px;font-weight:700;color:var(--ink2);}
+.tabs button.on{background:var(--accent);color:#fff;}
+.tabs button .c{opacity:.7;font-weight:800;margin-left:5px;}
+.srch{flex:1;min-width:180px;max-width:280px;display:flex;align-items:center;gap:8px;padding:9px 13px;border:1px solid var(--line2);border-radius:12px;background:var(--panel);}
+.srch input{border:none;background:none;outline:none;color:var(--ink);font-size:14px;width:100%;font-family:inherit;}
+.srch svg{width:16px;height:16px;color:var(--ink3);}
+.seg2{display:inline-flex;background:var(--panel);border:1px solid var(--line2);border-radius:11px;padding:3px;gap:2px;}
+.seg2 button{border:none;background:none;padding:7px 13px;border-radius:8px;font-size:13px;font-weight:700;color:var(--ink2);}
+.seg2 button.on{background:var(--ink);color:var(--panel);}
+.newbtn{margin-left:auto;border:none;background:var(--accent);color:#fff;font-weight:700;font-size:14px;padding:11px 18px;border-radius:12px;display:inline-flex;align-items:center;gap:7px;box-shadow:0 6px 16px var(--accent-soft);}
+.newbtn:hover{background:var(--accent2);}
+.newbtn svg{width:17px;height:17px;}
+/* table */
+.tblwrap{background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow-sm);overflow:hidden;}
+table{width:100%;border-collapse:collapse;}
+thead th{text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--ink3);padding:14px 16px;border-bottom:1px solid var(--line);white-space:nowrap;}
+thead th.r,td.r{text-align:right;}
+tbody td{padding:14px 16px;border-bottom:1px solid var(--line);font-size:13.5px;vertical-align:middle;}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr:hover{background:var(--bg);}
+.cli{display:flex;align-items:center;gap:11px;}
+.av{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#8b9bff);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;flex:0 0 auto;}
+.cli .cn{font-weight:700;}.cli .cm{font-size:11.5px;color:var(--ink3);}
+.stpill{border:none;font-size:11.5px;font-weight:800;padding:6px 11px;border-radius:999px;cursor:pointer;white-space:nowrap;}
+.st-submitted{background:var(--blue-soft);color:var(--blue);}
+.st-pending{background:var(--orange-soft);color:#b26a00;}
+.st-approved{background:var(--green-soft);color:#1a9c52;}
+.st-paid{background:var(--accent-soft);color:var(--accent);}
+.st-closed{background:var(--red-soft);color:var(--red);}
+.stage-note{font-size:11px;color:var(--ink3);margin-top:3px;}
+.prem{font-weight:800;font-variant-numeric:tabular-nums;}
+.premc{font-size:11px;color:var(--ink3);}
+.muted{color:var(--ink3);}
+.empty{text-align:center;color:var(--ink3);padding:46px 20px;font-size:14px;}
+.del{color:var(--ink3);border:none;background:none;font-size:15px;padding:4px;}.del:hover{color:var(--red);}
+/* modal */
+.ov{display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.42);backdrop-filter:blur(3px);align-items:center;justify-content:center;padding:20px;}
+.ov.on{display:flex;}
+.modal{width:100%;max-width:560px;max-height:90vh;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow-lg);padding:26px;}
+.modal h3{margin:0 0 3px;font-size:20px;font-weight:800;letter-spacing:-.02em;}
+.modal .msub{color:var(--ink2);font-size:13px;margin:0 0 18px;}
+.frow{display:flex;gap:12px;}.frow>*{flex:1;}
+.fg{margin-bottom:12px;}
+.fg label{display:block;font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--ink3);margin:0 0 6px 2px;}
+.fg input,.fg select{width:100%;padding:11px 13px;border:1px solid var(--line2);border-radius:11px;background:var(--panel2);color:var(--ink);font-size:14.5px;font-family:inherit;outline:none;}
+.fg input:focus,.fg select:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
+.mact{display:flex;gap:10px;margin-top:8px;}
+.mact button{flex:1;padding:13px;border-radius:12px;font-weight:700;font-size:14.5px;border:1px solid var(--line2);background:var(--panel);color:var(--ink);}
+.mact .save{background:var(--accent);color:#fff;border:none;}.mact .save:hover{background:var(--accent2);}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--panel);padding:12px 20px;border-radius:12px;font-weight:600;font-size:14px;box-shadow:var(--shadow-lg);z-index:1100;opacity:0;transition:.2s;pointer-events:none;}
+.toast.on{opacity:1;}
+</style>
+</head>
+<body>
+<div class="scrim" onclick="drawer(false)"></div>
+<aside class="side" id="side"></aside>
+<header class="top">
+  <button class="tic" onclick="drawer()" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+  <div class="ttl">New Business</div><div style="flex:1"></div>
+  <button class="tic" onclick="toggleTheme()" id="themeBtn" aria-label="Theme"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg></button>
+</header>
+
+<div class="wrap"><div class="content">
+  <div class="bizseg"><button id="bLife" class="on" onclick="setBiz('life')">Life Business</button><button id="bAnn" onclick="setBiz('annuity')">Annuity Business</button></div>
+  <h1 class="pgh">New Business</h1>
+  <p class="pgsub">Track every sale from application submission through paid commission — across the entire baseshop.</p>
+
+  <div class="kpis" id="kpis"></div>
+  <div class="pipe" id="pipe"></div>
+
+  <div class="ctrls">
+    <div class="tabs" id="tabs"></div>
+    <div class="srch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input id="q" placeholder="Search client, carrier, agent…" oninput="render()"></div>
+    <div class="seg2"><button id="vMe" class="on" onclick="setScope('me')">Personal</button><button id="vShop" onclick="setScope('shop')">Baseshop</button></div>
+    <button class="newbtn" onclick="openModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>New Sale</button>
+  </div>
+
+  <div class="tblwrap">
+    <table>
+      <thead><tr><th>Client</th><th>Status</th><th>Submitted</th><th>State</th><th>Carrier</th><th>Policy #</th><th>Product</th><th>Split Agent</th><th class="r">Annual Premium</th><th></th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <div class="empty hide" id="empty">No policies yet. Click <b>New Sale</b> to log your first submission.</div>
+  </div>
+</div></div>
+
+<!-- add modal -->
+<div class="ov" id="ov">
+  <div class="modal">
+    <h3>New Sale</h3><p class="msub">Log a new business submission. It rolls into the pipeline and your dashboard instantly.</p>
+    <div class="fg"><label>Client name</label><input id="f_client" placeholder="Full name"></div>
+    <div class="frow"><div class="fg"><label>Business type</label><select id="f_bt"><option value="life">Life</option><option value="annuity">Annuity</option></select></div>
+      <div class="fg"><label>Status</label><select id="f_status"><option value="submitted">Submitted</option><option value="pending">Pending</option><option value="approved">Approved</option><option value="paid">Paid Out</option><option value="closed">Closed</option></select></div></div>
+    <div class="frow"><div class="fg"><label>Carrier</label><input id="f_carrier" placeholder="e.g. American National"></div>
+      <div class="fg"><label>Product</label><input id="f_product" placeholder="e.g. IUL / Term / Annuity"></div></div>
+    <div class="frow"><div class="fg"><label>Policy #</label><input id="f_polnum" placeholder="Optional"></div>
+      <div class="fg"><label>State</label><input id="f_state" maxlength="2" placeholder="CA" style="text-transform:uppercase"></div></div>
+    <div class="frow"><div class="fg"><label>Annual premium ($)</label><input id="f_prem" type="number" inputmode="decimal" placeholder="1800"></div>
+      <div class="fg"><label>Coverage ($)</label><input id="f_cov" type="number" inputmode="decimal" placeholder="250000"></div></div>
+    <div class="frow"><div class="fg"><label>Split agent</label><input id="f_split" placeholder="Optional"></div>
+      <div class="fg"><label>Stage note</label><input id="f_stage" placeholder="e.g. Med Exam Scheduled"></div></div>
+    <div class="fg"><label>Submitted date</label><input id="f_date" type="date"></div>
+    <div class="mact"><button onclick="closeModal()">Cancel</button><button class="save" id="saveBtn" onclick="saveSale()">Log sale →</button></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+var NB="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/newbiz-api";
+var BASESHOP_LEADER="Elijah Cox";
+var CODE=null,NAME="",BIZ="life",SCOPE="me",TAB="active",POLICIES=[],SUM=null;
+var $=function(i){return document.getElementById(i);};
+function nb(b){return fetch(NB,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();}).catch(function(){return{ok:false};});}
+function money(n){n=Number(n)||0;return '$'+Math.round(n).toLocaleString('en-US');}
+function moneyK(n){n=Number(n)||0;if(n>=1e6)return '$'+(n/1e6).toFixed(2)+'M';if(n>=1e3)return '$'+(n/1e3).toFixed(1)+'K';return '$'+Math.round(n);}
+function initials(s){s=(s||'').trim();if(!s)return '?';var p=s.split(/\s+/);return ((p[0][0]||'')+(p.length>1?p[p.length-1][0]:'')).toUpperCase();}
+function toast(m){var t=$('toast');t.textContent=m;t.classList.add('on');setTimeout(function(){t.classList.remove('on');},1900);}
+function drawer(on){document.body.classList.toggle('drawer',on===undefined?!document.body.classList.contains('drawer'):on);}
+function toggleTheme(){var d=document.documentElement.getAttribute('data-theme')==='dark';document.documentElement.setAttribute('data-theme',d?'light':'dark');try{localStorage.setItem('gfi_theme',d?'light':'dark');}catch(e){}}
+(function(){try{document.documentElement.setAttribute('data-theme',localStorage.getItem('gfi_theme')||'light');}catch(e){}})();
+
+/* sidebar */
+var NAVI=[['home','Home','index.html','M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z'],
+['calendar','Calendar','calendar.html','M3 4.5h18v16H3zM3 9h18M8 3v3M16 3v3'],
+['check','My Tracker','checklist.html','M20 6 9 17l-5-5'],
+['users','Leads','marketing.html','M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z'],
+['dollar','New Business','newbusiness.html','M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6'],
+['team','My Team','team.html','M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z'],
+['tree','Org Chart','org.html','M9 3h6v5H9zM3 16h6v5H3zM15 16h6v5h-6zM12 8v4M6 16v-2h12v2'],
+['book','Resources','resources.html','M4 5a2 2 0 0 1 2-2h13v18H6a2 2 0 0 1-2-2zM9 3v18'],
+['chart','Ops Dashboard','dashboard.html','M3 3v18h18M7 13v4M12 8v9M17 11v6']];
+function buildSide(){
+  var h='<a class="brand" href="index.html"><img src="logo.png" alt="" onerror="this.style.visibility=\'hidden\'"><span class="bn">The <b>Standard</b></span></a>';
+  NAVI.forEach(function(n){var on=n[2]==='newbusiness.html'?' on':'';h+='<a class="slink'+on+'" href="'+n[2]+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="'+n[3]+'"/></svg><span>'+n[1]+'</span></a>';});
+  h+='<div class="sfoot"><a class="slink" href="#" onclick="signOut();return false;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg><span>Sign out</span></a></div>';
+  $('side').innerHTML=h;
+}
+function signOut(){try{localStorage.removeItem('tsfg_code');localStorage.removeItem('tsfg_name');}catch(e){}location.href='index.html';}
+
+function setBiz(b){BIZ=b;$('bLife').classList.toggle('on',b==='life');$('bAnn').classList.toggle('on',b==='annuity');load();}
+function setScope(s){SCOPE=s;$('vMe').classList.toggle('on',s==='me');$('vShop').classList.toggle('on',s==='shop');load();}
+function setTab(t){TAB=t;render();}
+
+function statusLabel(s){return {submitted:'Submitted',pending:'Pending',approved:'Approved',paid:'Paid Out',closed:'Closed'}[s]||s;}
+function cycleStatus(id,cur){
+  if(SCOPE!=='me'){toast('Switch to Personal to edit your own sales');return;}
+  var order=['submitted','pending','approved','paid','closed'];var nx=order[(order.indexOf(cur)+1)%order.length];
+  nb({action:'newbiz_setstatus',id:id,status:nx,code:CODE}).then(function(r){if(r.ok){load();toast('Moved to '+statusLabel(nx));}else toast(r.error||'Could not update');});
+}
+
+function renderKpis(){
+  var s=SUM||{};
+  var cards=[['AP Submitted',moneyK(s.ap_submitted),'blue'],['Pending AP',moneyK(s.ap_pending),''],['Approved AP',moneyK(s.ap_approved),'green'],['Paid AP',moneyK(s.ap_paid),'green'],['Closed AP',moneyK(s.ap_closed),'red'],['Total Coverage',moneyK(s.total_coverage),'blue']];
+  $('kpis').innerHTML=cards.map(function(c){return '<div class="kpi '+c[2]+'"><div class="kl">'+c[0]+'</div><div class="kv">'+c[1]+'</div></div>';}).join('');
+  var c=(s.counts||{});
+  var stages=[['submitted','Submitted',c.submitted||0,'M9 3h6v4H9zM7 7h10v13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1z'],['pending','Pending',c.pending||0,'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 2'],['approved','Approved',c.approved||0,'M20 6 9 17l-5-5'],['paid','Paid Out',c.paid||0,'M3 10.5 12 4l9 6.5V20H3zM9 20v-6h6v6'],['closed','Closed',c.closed||0,'M18 6 6 18M6 6l12 12']];
+  var h='';stages.forEach(function(st,i){h+='<div class="pstage s-'+st[0]+'"><div class="pic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="'+st[3]+'"/></svg></div><div><div class="pn">'+st[2]+'</div><div class="pt">'+st[1]+'</div></div></div>';if(i<stages.length-1)h+='<div class="parrow"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>';});
+  $('pipe').innerHTML=h;
+  var c2=c;
+  $('tabs').innerHTML=[['active','Active',c2.active||0],['pending','Stuck',c2.pending||0],['paid','Paid Out',c2.paid||0],['closed','Closed',c2.closed||0],['all','All',(SUM&&SUM.total)||0]].map(function(t){return '<button class="'+(TAB===t[0]?'on':'')+'" onclick="setTab(\''+t[0]+'\')">'+t[1]+'<span class="c">'+t[2]+'</span></button>';}).join('');
+}
+function passTab(p){if(TAB==='all')return true;if(TAB==='active')return ['submitted','pending','approved'].indexOf(p.status)>=0;return p.status===TAB;}
+function render(){
+  renderKpis();
+  var q=($('q').value||'').toLowerCase();
+  var rows=POLICIES.filter(function(p){return passTab(p)&&(!q||((p.client_name||'')+(p.carrier||'')+(p.agent_name||'')+(p.split_agent||'')).toLowerCase().indexOf(q)>=0);});
+  var tb=$('rows');tb.innerHTML='';
+  $('empty').classList.toggle('hide',rows.length>0);
+  rows.forEach(function(p){
+    var tr=document.createElement('tr');
+    var cov=p.coverage?('$'+Number(p.coverage).toLocaleString('en-US')+' coverage'):'';
+    var d=(p.submitted_date||'').slice(0,10);
+    tr.innerHTML='<td><div class="cli"><div class="av">'+initials(p.client_name)+'</div><div><div class="cn">'+esc(p.client_name||'—')+'</div><div class="cm">'+esc(cov)+'</div></div></div></td>'+
+      '<td><button class="stpill st-'+p.status+'" onclick="cycleStatus('+p.id+',\''+p.status+'\')">'+statusLabel(p.status)+'</button>'+(p.stage?'<div class="stage-note">'+esc(p.stage)+'</div>':'')+'</td>'+
+      '<td class="muted">'+esc(d||'—')+'</td>'+
+      '<td>'+esc(p.state||'—')+'</td>'+
+      '<td>'+esc(p.carrier||'—')+'</td>'+
+      '<td class="muted">'+esc(p.policy_number||'—')+'</td>'+
+      '<td>'+esc(p.product||'—')+'</td>'+
+      '<td>'+esc(p.split_agent||'<span class="muted">—</span>')+'</td>'+
+      '<td class="r"><div class="prem">'+money(p.annual_premium)+'</div><div class="premc">annual</div></td>'+
+      '<td class="r">'+((SCOPE==='me')?'<button class="del" title="Delete" onclick="delPolicy('+p.id+')">🗑</button>':'')+'</td>';
+    tb.appendChild(tr);
+  });
+}
+function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+function delPolicy(id){if(!confirm('Delete this policy?'))return;nb({action:'newbiz_delete',id:id,code:CODE}).then(function(r){if(r.ok){load();toast('Deleted');}else toast(r.error||'Could not delete');});}
+
+function load(){
+  var q={action:'newbiz_summary',business_type:BIZ};var q2={action:'newbiz_list',business_type:BIZ};
+  if(SCOPE==='me'){q.code=CODE;q2.code=CODE;}else{q.leader=BASESHOP_LEADER;q2.leader=BASESHOP_LEADER;}
+  Promise.all([nb(q),nb(q2)]).then(function(r){SUM=(r[0]&&r[0].summary)||{};POLICIES=(r[1]&&r[1].policies)||[];render();});
+}
+
+/* modal */
+function openModal(){$('f_date').value=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Los_Angeles'}).format(new Date());$('f_bt').value=BIZ;$('ov').classList.add('on');}
+function closeModal(){$('ov').classList.remove('on');}
+function saveSale(){
+  var v=function(i){return $(i).value.trim();};
+  if(!v('f_client')){toast('Enter a client name');return;}
+  var b={action:'newbiz_add',code:CODE,client_name:v('f_client'),business_type:$('f_bt').value,status:$('f_status').value,
+    carrier:v('f_carrier'),product:v('f_product'),policy_number:v('f_polnum'),state:v('f_state'),
+    annual_premium:v('f_prem'),coverage:v('f_cov'),split_agent:v('f_split'),stage:v('f_stage'),submitted_date:v('f_date')};
+  $('saveBtn').disabled=true;$('saveBtn').textContent='Saving…';
+  nb(b).then(function(r){$('saveBtn').disabled=false;$('saveBtn').textContent='Log sale →';
+    if(r.ok){closeModal();['f_client','f_carrier','f_product','f_polnum','f_state','f_prem','f_cov','f_split','f_stage'].forEach(function(i){$(i).value='';});BIZ=b.business_type;setBiz(BIZ);toast('Sale logged ✓');}
+    else toast(r.error||'Could not save');});
+}
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeModal();});
+$('ov').addEventListener('click',function(e){if(e.target===$('ov'))closeModal();});
+
+/* boot: require login */
+(function(){
+  buildSide();
+  try{CODE=localStorage.getItem('tsfg_code');NAME=localStorage.getItem('tsfg_name')||'';}catch(e){}
+  if(!CODE){location.href='index.html';return;}
+  load();
+})();
+</script>
+</body>
+</html>
