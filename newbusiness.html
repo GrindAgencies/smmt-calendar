@@ -381,5 +381,6 @@ $('ov').addEventListener('click',function(e){if(e.target===$('ov'))closeModal();
   fetch(TA,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'load',code:CODE})}).then(function(r){return r.json();}).then(function(d){if(d&&d.ok&&d.agent){MYMD=d.agent.md||'';MYEMD=d.agent.emd||'';}}).catch(function(){});
 })();
 </script>
+<script defer src="notif.js"></script>
 </body>
 </html>

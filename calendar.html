@@ -349,5 +349,6 @@ function spotSearch(){var q=($('spotI').value||'').toLowerCase();var items=[];
 function spotKey(e){if(e.key==='ArrowDown'){e.preventDefault();SPOTSEL=Math.min(SPOTITEMS.length-1,SPOTSEL+1);spotHi();}else if(e.key==='ArrowUp'){e.preventDefault();SPOTSEL=Math.max(0,SPOTSEL-1);spotHi();}else if(e.key==='Enter'){if(SPOTITEMS[SPOTSEL])SPOTITEMS[SPOTSEL].act();}}
 function spotHi(){[].forEach.call($('spotR').children,function(el,i){el.classList.toggle('sel',i===SPOTSEL);});}
 </script>
+<script defer src="notif.js"></script>
 </body>
 </html>
