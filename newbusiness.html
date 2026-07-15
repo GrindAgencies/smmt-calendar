@@ -354,13 +354,13 @@ function saveSale(){
   if(!$('f_client').value.trim()){toast('Enter a client name');return;}
   var b=collect();
   if(EDIT){b.action='newbiz_update';b.id=EDIT.id;}else{b.action='newbiz_add';}
-  if(OPS)b.token='2026';else b.code=CODE;
+  b.code=CODE; if(OPS)b.token='2026';
   $('saveBtn').disabled=true;$('saveBtn').textContent='Saving…';
   api(b).then(function(r){$('saveBtn').disabled=false;$('saveBtn').textContent=EDIT?'Save Changes':'Save Sale';
     if(r&&r.ok){closeModal();BIZ=b.business_type;$('bLife').classList.toggle('on',BIZ==='life');$('bAnn').classList.toggle('on',BIZ==='annuity');load();toast(EDIT?'Saved ✓':'Sale logged ✓');}
     else toast((r&&r.error)||'Could not save');});
 }
-function delFromModal(){if(!EDIT)return;if(!confirm('Delete this policy? This cannot be undone.'))return;var b={action:'newbiz_delete',id:EDIT.id};if(OPS)b.token='2026';else b.code=CODE;api(b).then(function(r){if(r&&r.ok){closeModal();load();toast('Deleted');}else toast((r&&r.error)||'Could not delete');});}
+function delFromModal(){if(!EDIT)return;if(!confirm('Delete this policy? This cannot be undone.'))return;var b={action:'newbiz_delete',id:EDIT.id,code:CODE};if(OPS)b.token='2026';api(b).then(function(r){if(r&&r.ok){closeModal();load();toast('Deleted');}else toast((r&&r.error)||'Could not delete');});}
 document.addEventListener('keydown',function(e){if(e.key==='Escape')closeModal();});
 $('ov').addEventListener('click',function(e){if(e.target===$('ov'))closeModal();});
 
