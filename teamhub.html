@@ -354,13 +354,11 @@ function sendNow(){
   var t=$('cin');var body=t.value.trim();
   if(!body&&!PENDATTACH)return;
   // @Question -> post user msg + AI reply
-  var isQ=/^@question\b/i.test(body);
   var msg={action:'hub_send',code:CODE,channel:CHAN,author_name:NAME,body:body,reply_to:REPLYTO};
   if(PENDATTACH){msg.attach=PENDATTACH;}
-  t.value='';autoresize();clearReply();var att=PENDATTACH;PENDATTACH=null;
-  h(msg).then(function(rr){if(rr&&rr.ok===false){toast(rr.error||'Message not sent');}loadMsgs(true);
-    if(isQ){var q=body.replace(/^@question\b/i,'').trim();h({action:'hub_ask',q:q}).then(function(r){h({action:'hub_send',code:CODE,channel:CHAN,author_name:'Bob',kind:'ai',body:r.answer,attach:r.source?{source:r.source}:null}).then(function(){loadMsgs(true);});});}
-  });
+  t.value='';autoresize();clearReply();PENDATTACH=null;
+  // Bob (Questions AI) auto-answers server-side when the message is a question or @Question
+  h(msg).then(function(rr){if(rr&&rr.ok===false){toast(rr.error||'Message not sent');}loadMsgs(true);if(rr&&rr.bot){setTimeout(function(){loadMsgs(true);},400);}});
 }
 function onFile(ev){var f=ev.target.files[0];if(!f)return;if(f.size>2600000){toast('File too large (max ~2.5MB for now)');ev.target.value='';return;}
   var rd=new FileReader();rd.onload=function(){PENDATTACH=(f.type.indexOf('image')===0)?{type:'image',url:rd.result,name:f.name}:{type:'file',url:rd.result,name:f.name};toast('Attached: '+f.name+' — press Send');};rd.readAsDataURL(f);ev.target.value='';}
