@@ -251,7 +251,7 @@ function signOut(){try{localStorage.removeItem('tsfg_code');localStorage.removeI
 /* rooms */
 function renderRooms(){
   function cap(x){return (x||'').charAt(0).toUpperCase()+(x||'').slice(1);}
-  function chRow(c){var lbl=c.baseshop?({announcements:'Announcements',training:'Training',licensing:'Licensing',cft:'CFT Room'}[c.sub]||c.name):c.name;return '<div class="room'+(CHAN===c.id?' on':'')+'" onclick="openChan(\''+c.id+'\')"><div class="ri">'+(c.icon||'#')+'</div><div class="rn">'+esc(lbl)+'</div></div>';}
+  function chRow(c){var lbl=c.baseshop?({announcements:'Announcements',training:'Training',licensing:'Licensing',cft:'CFT Room',operations:'Operations'}[c.sub]||c.name):c.name;return '<div class="room'+(CHAN===c.id?' on':'')+'" onclick="openChan(\''+c.id+'\')"><div class="ri">'+(c.icon||'#')+'</div><div class="rn">'+esc(lbl)+'</div></div>';}
   var hier=CHANNELS.filter(function(c){return !c.baseshop;});
   var groups={},order=[];
   CHANNELS.forEach(function(c){if(c.baseshop){if(!groups[c.baseshop]){groups[c.baseshop]=[];order.push(c.baseshop);}groups[c.baseshop].push(c);}});
@@ -272,7 +272,7 @@ function dmId(other){return 'dm:'+[CODE,other].sort().join('|');}
 function chanMeta(id){
   if(id.indexOf('dm:')===0){var o=id.slice(3).split('|').filter(function(c){return c!==CODE;})[0]||'';return {icon:initials(MEMBERS[o]||o),name:MEMBERS[o]||o,sub:'Direct message · '+o,dm:true,other:o};}
   var SUBS={operations:'Direct line to Operations · Anais · 858-433-4429 · impactagency.ops@gmail.com',leadership:'Marketing Directors, EMDs & Operations only',licensing:'Agents completing licensing',licensed:'Licensed agents only',cft:'Certified Field Trainers only',announcements:'Company-wide announcements',main:'Everyone in the company',training:'Live training discussion'};
-  var c=CHANNELS.filter(function(c){return c.id===id;})[0]||{icon:'#',name:id};var subtxt=SUBS[id];if(!subtxt&&c.baseshop){var L={announcements:'Announcements',training:'Training',licensing:'Licensing',cft:'CFT Room'}[c.sub]||'';subtxt=(c.baseshopName||'')+' baseshop \u00b7 '+L;}return {icon:c.icon||'#',name:c.name,sub:subtxt||'Channel'};
+  var c=CHANNELS.filter(function(c){return c.id===id;})[0]||{icon:'#',name:id};var subtxt=SUBS[id];if(!subtxt&&c.baseshop){var L={announcements:'Announcements',training:'Training',licensing:'Licensing',cft:'CFT Room',operations:'Operations'}[c.sub]||'';subtxt=(c.baseshopName||'')+' baseshop \u00b7 '+L;}return {icon:c.icon||'#',name:c.name,sub:subtxt||'Channel'};
 }
 function openChan(id){CHAN=id;LASTID=0;$('mlist').innerHTML='';renderRooms();renderHead();loadMsgs(true);document.body.classList.remove('rooms-open');}
 function renderHead(){var m=chanMeta(CHAN);$('chead').innerHTML='<div class="ci">'+(m.dm?'<div class="dmav" style="width:34px;height:34px">'+m.icon+'</div>':m.icon)+'</div><div><div class="cn">'+esc(m.name)+'</div><div class="cs">'+esc(m.sub)+'</div></div><div class="presence"><span class="pd"></span>'+Object.keys(ONLINE).length+' online</div>';}
