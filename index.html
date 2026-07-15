@@ -142,6 +142,15 @@ button{font-family:inherit;cursor:pointer;}
 .stat .num small{font-size:18px;font-weight:700;color:var(--ink-2);}
 .stat .lbl{font-size:13.5px;color:var(--ink-2);font-weight:600;margin-top:7px;}
 .stat .set{font-size:11.5px;color:var(--accent);font-weight:700;margin-top:9px;display:inline-flex;align-items:center;gap:4px;cursor:pointer;}
+.stat .top{position:relative;}
+.cardedit{border:none;background:none;color:var(--ink-3);cursor:pointer;padding:5px;border-radius:9px;line-height:0;}
+.cardedit:hover{color:var(--accent);background:var(--accent-soft);}
+.cardedit svg{width:15px;height:15px;stroke-width:2;}
+.stat .num .gtar{font-size:17px;font-weight:700;color:var(--ink-3);}
+.gbar{height:6px;border-radius:999px;background:var(--line);overflow:hidden;margin-top:12px;}
+.gbar span{display:block;height:100%;background:linear-gradient(90deg,var(--accent),#8b9bff);border-radius:999px;transition:width .5s cubic-bezier(.2,.8,.2,1);}
+.gmeta{font-size:11px;color:var(--ink-3);font-weight:600;margin-top:6px;}
+.card.clk{cursor:pointer;}
 .stat.soon{opacity:.72;}
 .badge-soon{font-size:10.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-3);background:var(--panel-2);border:1px solid var(--line);padding:3px 8px;border-radius:8px;}
 
@@ -258,6 +267,7 @@ button{font-family:inherit;cursor:pointer;}
     <a class="side-link" href="calendar.html">${ICON.calendar}<span class="lbl">Calendar</span></a>
     <a class="side-link" href="checklist.html">${ICON.check}<span class="lbl">My Tracker</span></a>
     <a class="side-link" href="marketing.html">${ICON.users}<span class="lbl">Leads</span></a>
+    <a class="side-link" href="newbusiness.html">${ICON.dollar}<span class="lbl">New Business</span></a>
     <a class="side-link" href="team.html">${ICON.team}<span class="lbl">My Team</span></a>
     <a class="side-link" href="org.html">${ICON.tree}<span class="lbl">Org Chart</span></a>
     <a class="side-link" href="resources.html">${ICON.book}<span class="lbl">Resources</span></a>
@@ -355,6 +365,7 @@ var I=(function(){
     menu:s('<path d="M4 6h16M4 12h16M4 18h16"/>'),
     search:s('<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>'),
     bell:s('<path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0"/>'),
+    pencil:s('<path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/>'),
     moon:s('<path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/>'),
     sun:s('<circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>'),
     plus:s('<path d="M12 5v14M5 12h14"/>'),
@@ -383,8 +394,11 @@ var ICON=I;
 })();
 
 var API="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/tracker-api";
+var NBAPI="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/newbiz-api";
 var BASESHOP_LEADER="Elijah Cox";
-var CODE=null, NAME="", CTX="me", ME=null, SHOP=null, RAW=null;
+var CODE=null, NAME="", CTX="me", ME=null, SHOP=null, RAW=null, GOALS={personal:{},shop:{}};
+function nbapi(b){return fetch(NBAPI,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();}).catch(function(){return{ok:false};});}
+function monthStart(){return ptToday().slice(0,7)+'-01';}
 var $=function(id){return document.getElementById(id);};
 function api(body){return fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(function(r){return r.json();}).catch(function(){return{ok:false};});}
 function ptToday(){return new Intl.DateTimeFormat('en-CA',{timeZone:'America/Los_Angeles'}).format(new Date());}
@@ -434,23 +448,46 @@ function setPremium(){
   try{if(v==='')localStorage.removeItem(premiumKey());else localStorage.setItem(premiumKey(),v);}catch(e){}
   renderSnapshot();
 }
+function goalOf(key){var o=(CTX==='me')?GOALS.personal:GOALS.shop;return (o&&o[key]!=null)?Number(o[key]):null;}
+function editGoal(key,label,isMoney){
+  var scope=(CTX==='me')?'me':'shop';var cur=goalOf(key);
+  var v=prompt('Set your '+(scope==='shop'?'baseshop':'monthly')+' goal for '+label+':',cur!=null?cur:'');
+  if(v===null)return; v=(v+'').replace(/[^0-9.]/g,'');
+  var goals={}; goals[key]=(v===''?0:Number(v));
+  nbapi({action:'goals_set',scope:scope,code:CODE,by:NAME,goals:goals}).then(function(r){
+    if(r&&r.ok){ if(scope==='me'){GOALS.personal[key]=goals[key];} else {GOALS.shop[key]=goals[key];} renderSnapshot(); }
+    else { alert((r&&r.error)? (scope==='shop'?'Baseshop goals can only be set by a Senior Broker / Marketing Director.':r.error) : 'Could not save goal'); }
+  });
+}
+function goalCard(o){
+  // o: {ic,tone,num,goalKey,goalLabel,lbl,money,link}
+  var goal=goalOf(o.goalKey);
+  var actual=Number(o.num)||0;
+  var pctFill=(goal&&goal>0)?Math.min(100,Math.round(actual*100/goal)):0;
+  var big=o.money?money2(actual):actual;
+  var goalTxt=(goal!=null)?('<span class="gtar"> / '+(o.money?money2(goal):goal)+'</span>'):'';
+  var edit=o.goalKey?('<button class="cardedit" title="Edit goal" onclick="editGoal(\''+o.goalKey+'\',\''+o.goalLabel+'\','+(o.money?'true':'false')+')">'+I.pencil+'</button>'):'';
+  var bar=(o.goalKey)?('<div class="gbar"><span style="width:'+pctFill+'%"></span></div><div class="gmeta">'+(goal!=null?(pctFill+'% of goal'):'Set a monthly goal →')+'</div>'):'';
+  var body='<div class="stat"><div class="top"><div class="ic '+(o.tone||'')+'">'+o.ic+'</div>'+edit+'</div>'+
+    '<div class="num">'+big+goalTxt+'</div><div class="lbl">'+o.lbl+'</div>'+bar+'</div>';
+  var d=document.createElement(o.link?'a':'div');d.className='card'+(o.link?' clk':'');if(o.link)d.href=o.link;
+  d.innerHTML=body;return d;
+}
+function money2(n){n=Number(n)||0;if(n>=1e6)return '$'+(n/1e6).toFixed(2)+'M';if(n>=1e3)return '$'+(Math.round(n/100)/10)+'K';return '$'+Math.round(n);}
 function renderSnapshot(){
   var g=$('snapGrid');if(!g)return;g.innerHTML='';
   var me=(CTX==='me'); $('snapCtxLbl').textContent=me?'Your numbers':'Whole baseshop';
   $('perfCtx').textContent=me?'You':'Baseshop';
   var src=me?ME:SHOP; if(!src){for(var i=0;i<6;i++){var d=document.createElement('div');d.className='card';d.innerHTML='<div class="stat"><div class="top"><div class="ic skl" style="width:40px;height:40px;"></div></div><div class="num skl">00</div><div class="lbl skl">loading</div></div>';g.appendChild(d);}return;}
-  var prem=getPremium();
   var cards=[
-    {ic:I.heart,tone:'g',num:src.families,lbl:'Families Helped · this month'},
-    me?{ic:I.badge,tone:'',num:src.pct+'%',lbl:'Your Onboarding Progress'}
-       :{ic:I.badge,tone:'',num:src.agents,lbl:'Licensed Agents · baseshop'},
-    {ic:I.dollar,tone:'gold',num:prem!=null?money(prem):'—',lbl:'Annual Premium · this month',set:'setPremium()',setLbl:prem!=null?'Update':'Set amount'},
-    {ic:I.users,tone:'',num:src.leads,lbl:me?'Leads in Your Plan':'Leads · baseshop'},
-    {ic:I.dumbbell,tone:'o',num:src.ft,lbl:me?'Field Trainings · you':'Field Trainings · baseshop'},
-    me?{ic:I.task,tone:'',num:src.tasks+'/6',lbl:'Non-Negotiables Today'}
-       :{ic:I.spark,tone:'',num:src.onStreak,lbl:'On a Streak Today'}
+    {ic:I.heart,tone:'g',num:src.families,goalKey:'families',goalLabel:'Families Helped',lbl:'Families Helped · this month'},
+    {ic:I.team,tone:'',num:src.partners,goalKey:'partners',goalLabel:'New Partners',lbl:me?'Your Partners':'Baseshop Partners'},
+    {ic:I.dollar,tone:'gold',num:src.premium,money:true,goalKey:'premium',goalLabel:'Premium Submitted',lbl:'Premium Submitted · this month'},
+    {ic:I.badge,tone:'o',num:src.pending,lbl:'Pending Policies',link:'newbusiness.html'},
+    {ic:I.dumbbell,tone:'',num:src.fta,goalKey:'fta',goalLabel:'Field Training Appts',lbl:'Field Training Appts · this month'},
+    {ic:I.spark,tone:'',num:me?(src.pct+'%'):src.agents,lbl:me?'Your Onboarding Progress':'Licensed Agents · baseshop'}
   ];
-  cards.forEach(function(c){g.appendChild(statCard(c));});
+  cards.forEach(function(c){g.appendChild(c.goalKey!==undefined||c.link?goalCard(c):statCard(c));});
 }
 
 /* ---------- FOCUS LIST (personal daily non-negotiables preview) ---------- */
@@ -492,9 +529,10 @@ function computeMeFromRaw(a){
   var fam=wm.filter(function(c){return c&&c.outcome==='win'&&daysAgo(c.contactedDate||c.date,today)<=30;}).length;
   var added=function(n){return wm.filter(function(c){return c&&daysAgo(c.date,today)<=n;}).length;};
   var ft=a.ft_log&&typeof a.ft_log==='object'?Object.values(a.ft_log).filter(Boolean).length:0;
+  var ft30=a.ft_log&&typeof a.ft_log==='object'?Object.values(a.ft_log).filter(function(d){return d&&daysAgo(d,today)<=30;}).length:0;
   var done={};try{var s=JSON.parse(localStorage.getItem('tsfg_daily_'+CODE)||'null');if(s&&s.date===today)done=s.ids||{};}catch(e){}
   var tasks=Object.keys(done).length;
-  return {families:fam,pct:Math.min(100,Number(a.pct)||0),agents:1,leads:wm.length,ft:ft,tasks:tasks,onStreak:0,added7:added(7),added14:added(14),added30:added(30),ftSeries:[Math.max(0,ft-3),Math.max(0,ft-2),Math.max(0,ft-1),ft]};
+  return {families:fam,pct:Math.min(100,Number(a.pct)||0),agents:1,leads:wm.length,ft:ft,ft30:ft30,tasks:tasks,onStreak:0,added7:added(7),added14:added(14),added30:added(30),ftSeries:[Math.max(0,ft-3),Math.max(0,ft-2),Math.max(0,ft-1),ft]};
 }
 function computeShop(teamData,pulse){
   var today=ptToday();var ags=teamData&&teamData.agents?teamData.agents:[];
@@ -525,15 +563,28 @@ function buildFeed(teamData){
 }
 function loadData(){
   renderSnapshot();
+  var since=monthStart();
   Promise.all([
     api({action:'load',code:CODE}),
     api({action:'team',leader:BASESHOP_LEADER}),
-    fetch(API+'?action=pulse').then(function(r){return r.json();}).catch(function(){return{};})
+    fetch(API+'?action=pulse').then(function(r){return r.json();}).catch(function(){return{};}),
+    nbapi({action:'newbiz_summary',code:CODE,since:since}),
+    nbapi({action:'newbiz_summary',leader:BASESHOP_LEADER,since:since}),
+    nbapi({action:'goals_get',code:CODE})
   ]).then(function(res){
-    var meRes=res[0],team=res[1],pulse=res[2];
+    var meRes=res[0],team=res[1],pulse=res[2],nbMe=res[3],nbShop=res[4],goals=res[5];
+    if(goals&&goals.ok){GOALS.personal=goals.personal||{};GOALS.shop=goals.shop||{};}
     if(meRes&&meRes.ok&&meRes.agent){RAW=meRes.agent;ME=computeMeFromRaw(meRes.agent);}
-    else{ME={families:0,pct:0,agents:1,leads:0,ft:0,tasks:0,onStreak:0,added7:0,added14:0,added30:0,ftSeries:[0,0,0,0]};}
+    else{ME={families:0,pct:0,agents:1,leads:0,ft:0,ft30:0,tasks:0,onStreak:0,added7:0,added14:0,added30:0,ftSeries:[0,0,0,0]};}
     SHOP=computeShop(team,pulse);
+    var ags=(team&&team.agents)?team.agents:[];
+    var myL=(NAME||'').toLowerCase();
+    ME.partners=ags.filter(function(a){return (a.md||'').toLowerCase()===myL;}).length;
+    SHOP.partners=(pulse&&pulse.active)?pulse.active:ags.length;
+    var sMe=(nbMe&&nbMe.summary)||{},sShop=(nbShop&&nbShop.summary)||{};
+    ME.premium=sMe.ap_submitted||0; ME.pending=(sMe.counts&&sMe.counts.pending)||0;
+    SHOP.premium=sShop.ap_submitted||0; SHOP.pending=(sShop.counts&&sShop.counts.pending)||0;
+    ME.fta=ME.ft30||0; SHOP.fta=ags.reduce(function(t,a){return t+(Number(a.ft_30)||0);},0);
     var feed=buildFeed(team);
     renderSnapshot();renderFocus();renderPerf();renderFeed(feed);
   });
