@@ -33,10 +33,10 @@ a{color:inherit;text-decoration:none;}button{font-family:inherit;cursor:pointer;
 .scrim{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:880;}
 body.drawer .scrim{display:block;}
 /* hub layout: rooms | messages */
-.hub{position:fixed;left:var(--side);top:56px;right:0;bottom:0;display:grid;grid-template-columns:270px 1fr;}
+.hub{position:fixed;left:var(--side);top:56px;right:0;bottom:0;display:grid;grid-template-columns:270px 1fr;grid-template-rows:minmax(0,1fr);}
 @media(max-width:980px){.hub{grid-template-columns:0 1fr;}.rooms{position:fixed;left:var(--side);top:56px;bottom:0;width:270px;transform:translateX(-100%);transition:.22s;z-index:60;box-shadow:var(--shadow-lg);}body.rooms-open .rooms{transform:none;}}
 @media(max-width:860px){.side{transform:translateX(-100%);box-shadow:var(--shadow-lg);}body.drawer .side{transform:none;}.top{left:0;}.hub{left:0;}.rooms{left:0;}}
-.rooms{background:var(--panel);border-right:1px solid var(--line);overflow-y:auto;padding:14px 10px;}
+.rooms{background:var(--panel);border-right:1px solid var(--line);overflow-y:auto;min-height:0;padding:14px 10px;}
 @media(min-width:981px){body.rooms-collapsed .hub{grid-template-columns:0 1fr;}body.rooms-collapsed .rooms{display:none;}}
 .hsearch{display:flex;align-items:center;gap:8px;padding:9px 12px;border:1px solid var(--line2);border-radius:11px;background:var(--panel2);margin-bottom:12px;}
 .hsearch input{border:none;background:none;outline:none;color:var(--ink);font-size:13.5px;width:100%;font-family:inherit;}
@@ -63,12 +63,20 @@ body.drawer .scrim{display:block;}
 .opsbanner b{color:var(--gold);}
 .dmav{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#8b9bff);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
 /* messages pane */
-.msgpane{display:flex;flex-direction:column;min-width:0;}
+.msgpane{display:flex;flex-direction:column;min-width:0;min-height:0;}
 .chead{display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid var(--line);background:var(--panel);}
 .chead .ci{width:34px;height:34px;border-radius:10px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:17px;}
 .chead .cn{font-weight:800;font-size:15px;}.chead .cs{font-size:11.5px;color:var(--ink3);}
 .chead .presence{margin-left:auto;font-size:11.5px;color:var(--ink3);font-weight:600;display:flex;align-items:center;gap:6px;}
+.chead .presence{position:relative;cursor:default;}
 .chead .presence .pd{width:7px;height:7px;border-radius:50%;background:var(--green);}
+.preslist{display:none;position:absolute;top:130%;right:0;background:var(--panel);border:1px solid var(--line2);border-radius:12px;box-shadow:var(--shadow-lg);padding:8px;min-width:220px;max-height:320px;overflow:auto;z-index:80;text-align:left;}
+.chead .presence:hover .preslist{display:block;}
+.preshdr{font-weight:800;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink3);padding:4px 6px 7px;}
+.presrow{display:flex;align-items:flex-start;gap:8px;padding:6px;border-radius:8px;}
+.presrow .pdd{width:7px;height:7px;border-radius:50%;background:var(--green);flex:0 0 auto;margin-top:5px;}
+.presrow .pn{font-weight:700;font-size:12.5px;color:var(--ink);}
+.presrow .pc{font-size:11px;color:var(--ink3);}
 .mlist{flex:1;overflow-y:auto;padding:18px 20px 6px;display:flex;flex-direction:column;gap:2px;}
 .msg{display:flex;gap:11px;padding:6px 8px;border-radius:12px;position:relative;}
 .msg:hover{background:var(--panel2);}
@@ -296,8 +304,10 @@ function chanMeta(id){
   var SUBS={operations:'Direct line to Operations · Anais · 858-433-4429 · impactagency.ops@gmail.com',leadership:'Marketing Directors, EMDs & Operations only',licensing:'Agents completing licensing',licensed:'Licensed agents only',cft:'Certified Field Trainers only',announcements:'Company-wide announcements',main:'Everyone in the company',training:'Live training discussion'};
   var c=CHANNELS.filter(function(c){return c.id===id;})[0]||{icon:'#',name:id};var subtxt=SUBS[id];if(!subtxt&&c.baseshop){var L={announcements:'Announcements',training:'Training',licensing:'Licensing',cft:'CFT Room',operations:'Operations'}[c.sub]||'';subtxt=(c.baseshopName||'')+' baseshop \u00b7 '+L;}return {icon:c.icon||'#',name:c.name,sub:subtxt||'Channel'};
 }
-function openChan(id){CHAN=id;LASTID=0;$('mlist').innerHTML='';renderRooms();renderHead();loadMsgs(true);document.body.classList.remove('rooms-open');}
-function renderHead(){var m=chanMeta(CHAN);var del=(CHAN.indexOf('c_')===0)?'<button class="tic" title="Delete channel" onclick="deleteChannel()" style="margin-left:10px;flex:0 0 auto">\ud83d\uddd1\ufe0f</button>':'';$('chead').innerHTML='<div class="ci">'+(m.dm?'<div class="dmav" style="width:34px;height:34px">'+m.icon+'</div>':m.icon)+'</div><div><div class="cn">'+esc(m.name)+'</div><div class="cs">'+esc(m.sub)+'</div></div><div class="presence"><span class="pd"></span>'+Object.keys(ONLINE).length+' online</div>'+del;}
+function openChan(id){CHAN=id;LASTID=0;$('mlist').innerHTML='';renderRooms();renderHead();loadMsgs(true);document.body.classList.remove('rooms-open');if(typeof heartbeat==='function')heartbeat();}
+function chanNameOf(id){if(!id)return '';if(id.indexOf('dm:')===0)return 'a direct message';var c=CHANNELS.filter(function(x){return x.id===id;})[0];if(c){if(c.baseshop){var L={announcements:'Announcements',training:'Training',licensing:'Licensing',cft:'CFT Room',operations:'Operations'}[c.sub]||c.name;return (c.baseshopName?c.baseshopName+' \u00b7 ':'')+L;}return c.name;}return id;}
+function presenceList(){var codes=Object.keys(ONLINE);if(!codes.length)return '<div class="presrow"><span class="pc">No one online right now</span></div>';return codes.sort(function(a,b){return ((ONLINE[a]&&ONLINE[a].name)||'').localeCompare((ONLINE[b]&&ONLINE[b].name)||'');}).map(function(cd){var ob=ONLINE[cd]||{};var ch=ob.channel?chanNameOf(ob.channel):'';return '<div class="presrow"><span class="pdd"></span><div><div class="pn">'+esc(ob.name||cd)+'</div>'+(ch?'<div class="pc">in '+esc(ch)+'</div>':'')+'</div></div>';}).join('');}
+function renderHead(){var m=chanMeta(CHAN);var del=(CHAN.indexOf('c_')===0)?'<button class="tic" title="Delete channel" onclick="deleteChannel()" style="margin-left:10px;flex:0 0 auto">\ud83d\uddd1\ufe0f</button>':'';$('chead').innerHTML='<div class="ci">'+(m.dm?'<div class="dmav" style="width:34px;height:34px">'+m.icon+'</div>':m.icon)+'</div><div><div class="cn">'+esc(m.name)+'</div><div class="cs">'+esc(m.sub)+'</div></div><div class="presence"><span class="pd"></span>'+Object.keys(ONLINE).length+' online<div class="preslist"><div class="preshdr">Online now</div>'+presenceList()+'</div></div>'+del;}
 
 /* messages */
 var MSGS=[];
@@ -439,7 +449,7 @@ function openProfile(code){
 [ 'recOv','chOv','pfOv'].forEach(function(id){$(id).addEventListener('click',function(e){if(e.target===$(id))$(id).classList.remove('on');});});
 
 /* presence + poll */
-function heartbeat(){h({action:'hub_presence',code:CODE,name:NAME}).then(function(r){ONLINE={};((r&&r.online)||[]).forEach(function(o){ONLINE[o.code]=o.name;if(!MEMBERS[o.code])MEMBERS[o.code]=o.name;});renderRooms();renderHead();});}
+function heartbeat(){h({action:'hub_presence',code:CODE,name:NAME,channel:CHAN}).then(function(r){ONLINE={};((r&&r.online)||[]).forEach(function(o){ONLINE[o.code]={name:o.name,channel:o.channel||''};if(!MEMBERS[o.code])MEMBERS[o.code]=o.name;});renderRooms();renderHead();});}
 
 /* boot */
 (function(){
