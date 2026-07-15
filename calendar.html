@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link href="https://assets.calendly.com/assets/external/widget.css" rel="stylesheet">
+<script src="https://assets.calendly.com/assets/external/widget.js" async></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Standard Financial Group — Weekly Training Calendar</title>
+<link rel="icon" href="https://grindagencies.github.io/smmt-calendar/logo.png">
+<style>
+  :root{--bg:#f6f2ea;--panel:#ffffff;--ink:#ffffff;--muted:#6f6553;--line:#e7e0d2;--gold:#9c7515;--gold-bright:#c79a2e;--gold-deep:#b89a55;--silver:#7a7f8c;--silver-deep:#9aa0ad;--red:#c0432f;--today:#caa23a;}
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:radial-gradient(1100px 560px at 50% -8%, #fffdf8 0%, #f7f3ec 55%, var(--bg) 100%);
+    color:var(--ink);line-height:1.55;padding:22px 20px 76px;}
+  .wrap{max-width:1080px;margin:0 auto;}
+
+  /* TABS */
+  .tabs{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:0 0 16px;}
+  .tabs a{flex:1;min-width:210px;text-align:center;text-decoration:none;font-weight:900;font-size:14px;letter-spacing:.04em;text-transform:uppercase;
+    padding:14px 18px;border-radius:14px;border:1px solid var(--gold-deep);color:var(--gold);background:#f3ecdb;transition:.15s;}
+  .tabs a:hover{background:#f3ecdb;text-decoration:none;}
+  .tabs a.active{color:#0a0a0a;background:linear-gradient(90deg,var(--gold-bright),var(--gold));border-color:var(--gold);box-shadow:0 6px 18px rgba(212,175,55,.25);}
+
+  .toolbar{display:flex;justify-content:flex-end;gap:10px;margin:0 0 18px;flex-wrap:wrap;align-items:center;}
+  .btn{cursor:pointer;border:1px solid var(--gold-deep);background:#f3ecdb;color:var(--gold);
+    font-weight:800;font-size:12px;letter-spacing:.08em;text-transform:uppercase;padding:9px 16px;border-radius:999px;transition:.15s;text-decoration:none;display:inline-block;}
+  .btn:hover{background:var(--gold);color:#0a0a0a;text-decoration:none;}
+  .btn.gold{background:linear-gradient(90deg,var(--gold-bright),var(--gold));color:#0a0a0a;border-color:var(--gold);}
+  .btn.active{background:var(--gold);color:#0a0a0a;box-shadow:0 0 0 3px rgba(212,175,55,.25);}
+  .edit-hint{display:none;font-size:12px;color:var(--gold-bright);font-weight:700;align-self:center;margin-right:auto;}
+  body.editing .edit-hint{display:inline;}
+  body.editing [contenteditable]{outline:1px dashed rgba(212,175,55,.5);outline-offset:3px;border-radius:4px;}
+  body.editing [contenteditable]:focus{outline:2px solid var(--gold);background:rgba(212,175,55,.06);}
+
+  .hero{position:relative;text-align:center;border:1px solid var(--line);border-radius:22px;padding:34px 26px 30px;overflow:hidden;
+    background:linear-gradient(135deg,#ffffff 0%,#faf7ef 100%);box-shadow:0 18px 50px rgba(0,0,0,.65);}
+  .hero:before{content:"";position:absolute;top:-40%;right:-10%;width:60%;height:180%;transform:rotate(18deg);
+    background:linear-gradient(90deg,transparent,rgba(247,216,115,.10),rgba(212,175,55,.04),transparent);pointer-events:none;}
+  .emblem{width:72px;height:72px;margin:0 auto 10px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(circle at 50% 35%,#ffffff,#ffffff);border:2px solid var(--gold);box-shadow:0 0 22px rgba(212,175,55,.45);}
+  .emblem span{font-family:Georgia,"Times New Roman",serif;font-weight:700;font-size:38px;line-height:1;
+    background:linear-gradient(180deg,#241f17,var(--gold) 55%,var(--gold-deep));-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .emblem-img{height:104px;width:auto;display:block;margin:0 auto 6px;mix-blend-mode:screen;filter:drop-shadow(0 6px 16px rgba(212,175,55,.35));}
+  .wordmark{font-family:Georgia,"Times New Roman",serif;letter-spacing:.34em;font-size:15px;font-weight:700;color:var(--gold);text-transform:uppercase;}
+  .wordmark .fg{display:block;font-size:10.5px;letter-spacing:.42em;color:var(--muted);margin-top:5px;}
+  .hero h1{margin:14px 0 4px;font-weight:900;text-transform:uppercase;line-height:.98;letter-spacing:1px;font-size:clamp(34px,7vw,64px);}
+  .hero h1 .g{background:linear-gradient(180deg,#241f17,var(--gold-bright) 45%,var(--gold-deep));-webkit-background-clip:text;background-clip:text;color:transparent;display:block;}
+  .hero h1 .s{background:linear-gradient(180deg,#ffffff,#e6e9f1 45%,var(--silver-deep));-webkit-background-clip:text;background-clip:text;color:transparent;display:block;}
+  .ribbon{display:inline-block;margin-top:10px;border:1px solid var(--gold-deep);border-radius:8px;padding:7px 18px;
+    font-size:12.5px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--gold-bright);background:rgba(212,175,55,.06);}
+  .hero p{margin:14px 0 0;color:var(--muted);font-weight:600;letter-spacing:.04em;font-size:13px;}
+  .motto{margin:18px 0 0;text-align:center;font-style:italic;font-weight:800;letter-spacing:.04em;font-size:15px;
+    background:linear-gradient(90deg,var(--gold-bright),var(--gold-deep));-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .hero .cta{margin-top:16px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;}
+
+  .section-title{display:flex;align-items:center;gap:12px;margin:40px 0 16px;font-size:13px;font-weight:900;
+    letter-spacing:.22em;text-transform:uppercase;color:var(--gold);}
+  .section-title:before,.section-title:after{content:"";height:1px;background:linear-gradient(90deg,transparent,var(--gold-deep),transparent);flex:1;}
+  .section-title span{white-space:nowrap;}
+
+  .success-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  @media(max-width:720px){.success-grid{grid-template-columns:1fr;}}
+  .daily-card{border:1px solid var(--line);border-radius:16px;padding:20px 22px;
+    background:linear-gradient(160deg,#ffffff 0%,#ffffff 100%);border-left:5px solid var(--gold);}
+  .daily-card h3{margin:0 0 4px;font-size:18px;font-weight:900;color:#241f17;}
+  .daily-card .time{color:var(--gold);font-weight:800;font-size:14px;letter-spacing:.04em;}
+  .daily-card .desc{color:var(--muted);font-size:14px;margin-top:10px;}
+  .meta{font-size:13px;color:var(--ink);margin-top:10px;}
+  .meta b{color:var(--muted);font-weight:700;}
+
+  .tz{font-size:11.5px;color:var(--muted);margin-top:5px;letter-spacing:.02em;}
+  .tz b{color:var(--gold);font-weight:800;}
+
+  /* ADD-TO-CALENDAR BUTTONS */
+  .addbtns{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;}
+  .ics{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;border-radius:999px;padding:5px 11px;text-decoration:none;white-space:nowrap;}
+  .ics.apple{color:#0a0a0a;background:linear-gradient(90deg,var(--gold-bright),var(--gold));border:1px solid var(--gold);}
+  .ics.gg{color:var(--gold);background:#ffffff;border:1px solid var(--gold-deep);}
+  .ics:hover{filter:brightness(1.08);text-decoration:none;}
+
+  table{width:100%;border-collapse:separate;border-spacing:0;border:1px solid var(--line);border-radius:16px;overflow:hidden;}
+  thead th{background:#ffffff;color:var(--gold);text-align:left;font-size:11px;letter-spacing:.14em;text-transform:uppercase;padding:14px 16px;border-bottom:1px solid var(--line);}
+  tbody td{padding:16px;border-bottom:1px solid var(--line);vertical-align:top;font-size:14px;}
+  tbody tr:last-child td{border-bottom:none;}
+  tbody tr{border-left:5px solid var(--gold-deep);transition:.2s;}
+  .day-cell{font-weight:900;font-size:15px;width:150px;color:#241f17;text-transform:uppercase;letter-spacing:.04em;}
+  .day-cell small{display:block;color:var(--muted);font-weight:600;font-size:11px;letter-spacing:.1em;text-transform:uppercase;margin-top:4px;}
+  .sess{margin:0 0 18px;}
+  .sess:last-child{margin-bottom:0;}
+  .sess .name{font-weight:800;color:#241f17;}
+  .sess .time{color:var(--gold);font-weight:700;font-size:13px;}
+  a{color:var(--gold-bright);text-decoration:none;font-weight:700;}
+  a:hover{text-decoration:underline;}
+
+  tbody tr.today{background:linear-gradient(90deg,rgba(212,175,55,.16),rgba(212,175,55,.04));border-left:5px solid var(--today);box-shadow:inset 0 0 0 1px rgba(247,216,115,.35);}
+  .today-badge{display:none;background:var(--gold-bright);color:#0a0a0a;font-size:10px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border-radius:999px;margin-left:8px;vertical-align:middle;animation:pulse 1.8s ease-in-out infinite;}
+  tr.today .today-badge{display:inline-block;}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(247,216,115,.6);}50%{box-shadow:0 0 0 6px rgba(247,216,115,0);}}
+  .weekend-note{text-align:center;color:var(--muted);font-size:12.5px;margin-top:10px;font-style:italic;}
+
+  .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  @media(max-width:720px){.detail-grid{grid-template-columns:1fr;}}
+  .card{border:1px solid var(--line);border-radius:16px;padding:20px 22px;background:var(--panel);}
+  .card .top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
+  .card h3{margin:0;font-size:17px;font-weight:900;color:#241f17;}
+  .card .when{color:var(--gold);font-weight:800;font-size:13px;margin-top:2px;}
+  .card .desc{color:var(--muted);font-size:13.5px;margin:12px 0;}
+  .card .links{font-size:13px;border-top:1px dashed var(--line);padding-top:12px;}
+  .card .links div{margin-bottom:4px;}
+  .tag{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:4px 9px;border-radius:999px;white-space:nowrap;background:rgba(212,175,55,.16);color:var(--gold);border:1px solid var(--gold-deep);}
+
+  .legend{margin-top:14px;text-align:center;font-size:12px;color:var(--muted);background:rgba(212,175,55,.06);border:1px solid var(--line);border-radius:12px;padding:10px 14px;}
+  .legend b{color:var(--gold);}
+
+  .book{border:1px solid var(--gold-deep);border-radius:18px;padding:24px 26px;background:linear-gradient(160deg,#ffffff 0%,#ffffff 100%);}
+  .book .sub{color:var(--muted);font-size:13.5px;font-weight:700;margin:-2px 0 18px;}
+  .book-group{margin-bottom:20px;}
+  .book-group:last-child{margin-bottom:0;}
+  .book-group h3{margin:0 0 12px;font-size:13px;font-weight:900;letter-spacing:.16em;text-transform:uppercase;color:var(--gold-bright);display:flex;align-items:center;gap:10px;}
+  .book-group h3 .line{height:1px;background:var(--gold-deep);flex:1;opacity:.5;}
+  .book-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media(max-width:720px){.book-grid{grid-template-columns:1fr;}}
+  .book-card{display:flex;justify-content:space-between;align-items:center;gap:12px;background:rgba(212,175,55,.06);border:1px solid var(--line);border-radius:12px;padding:14px 16px;}
+  .book-card .who{font-weight:800;font-size:15px;color:#241f17;}
+  .book-card .role{display:block;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-top:2px;}
+  .es{color:#e0533d;font-weight:800;}
+  .book-btn{white-space:nowrap;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#0a0a0a;background:linear-gradient(90deg,var(--gold-bright),var(--gold));padding:8px 14px;border-radius:999px;}
+  .book-btn:hover{filter:brightness(1.08);text-decoration:none;}
+
+  /* OPERATIONS BLOCK */
+  .ops{border:1px solid var(--gold);border-radius:18px;padding:24px 26px;background:linear-gradient(160deg,#ffffff 0%,#ffffff 100%);box-shadow:0 0 26px rgba(212,175,55,.12);}
+  .ops-grid{display:flex;gap:24px;align-items:center;flex-wrap:wrap;justify-content:space-between;}
+  .ops-info{flex:1;min-width:280px;}
+  .ops-info h3{margin:0 0 6px;font-size:19px;font-weight:900;color:#241f17;}
+  .ops-info p{margin:0 0 14px;color:var(--muted);font-size:13.5px;}
+  .ops-hours div{font-size:12.5px;color:var(--ink);margin-bottom:6px;}
+  .ops-hours b{color:var(--gold);font-weight:800;}
+  .ops-actions{display:flex;flex-direction:column;gap:10px;min-width:240px;}
+  .ops-btn{text-align:center;font-weight:800;font-size:13px;letter-spacing:.04em;text-transform:uppercase;padding:13px 18px;border-radius:12px;text-decoration:none;}
+  .ops-btn.book{color:#0a0a0a;background:linear-gradient(90deg,var(--gold-bright),var(--gold));border:1px solid var(--gold);}
+  .ops-btn.call{color:var(--gold);background:#ffffff;border:1px solid var(--gold-deep);}
+  .ops-btn:hover{filter:brightness(1.08);text-decoration:none;}
+
+  .nn{border:1px solid var(--gold-deep);border-radius:18px;padding:24px 26px;background:linear-gradient(160deg,#ffffff 0%,#ffffff 100%);}
+  .nn h2{margin:0 0 6px;font-size:20px;font-weight:900;color:var(--gold-bright);}
+  .nn .sub{color:var(--muted);font-size:13.5px;font-weight:700;margin-bottom:16px;}
+  .nn-list{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media(max-width:720px){.nn-list{grid-template-columns:1fr;}}
+  .nn-item{display:flex;align-items:center;gap:12px;background:rgba(212,175,55,.06);border:1px solid var(--line);border-radius:12px;padding:14px 16px;font-weight:800;font-size:15px;color:#241f17;}
+  .nn-item .n{font-size:22px;line-height:1;}
+  .nn-foot{margin-top:14px;font-size:12.5px;color:var(--muted);}
+
+  .build{margin-top:22px;border:1px solid var(--line);border-radius:18px;padding:22px 20px;background:linear-gradient(160deg,#ffffff,#faf7ef);}
+  .build h3{text-align:center;margin:0 0 16px;font-size:13px;font-weight:900;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);}
+  .build-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;}
+  @media(max-width:720px){.build-row{grid-template-columns:1fr 1fr;}}
+  .build-item{text-align:center;padding:12px 8px;border-radius:12px;background:rgba(212,175,55,.05);border:1px solid var(--line);}
+  .build-item .ic{font-size:22px;}
+  .build-item .lb{margin-top:8px;font-size:11.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#241f17;}
+
+  .moti{margin-top:42px;text-align:center;border-radius:20px;padding:36px 28px;background:linear-gradient(135deg,#faf7ef 0%,#faf7ef 100%);border:1px solid var(--line);}
+  .moti .rocket{font-size:34px;}
+  .moti h2{font-size:clamp(22px,4vw,34px);margin:8px 0 14px;font-weight:900;text-transform:uppercase;letter-spacing:.5px;
+    background:linear-gradient(90deg,var(--gold-bright),var(--gold-deep));-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .moti p{color:var(--ink);max-width:680px;margin:0 auto 10px;font-size:15.5px;}
+  .moti .sign{margin-top:20px;color:var(--gold);font-size:13px;font-weight:800;letter-spacing:.06em;}
+  .foot{text-align:center;color:var(--muted);font-size:12px;margin-top:30px;}
+</style>
+<style id="ga-shell">
+:root{--ga-gold:#d4af37;--ga-gold-br:#f7d873;--ga-gold-dp:#8a6d1f;--ga-muted:#b6a982;--ga-line:#2a2206;}
+.ga-top{position:sticky;top:0;z-index:60;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;padding:10px 18px;background:linear-gradient(180deg,#141005,#0b0a05);border-bottom:1px solid var(--ga-gold-dp);box-shadow:0 6px 22px rgba(0,0,0,.35);}
+.ga-brand{display:flex;align-items:center;gap:10px;text-decoration:none;font-weight:900;letter-spacing:.05em;font-size:14.5px;color:#fff6da;text-transform:uppercase;white-space:nowrap;}
+.ga-brand img{height:30px;width:auto;border-radius:6px;}
+.ga-brand b{background:linear-gradient(180deg,#fff4cf,var(--ga-gold-br) 50%,var(--ga-gold-dp));-webkit-background-clip:text;background-clip:text;color:transparent;}
+.ga-nav{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+.ga-nav a{display:inline-flex;align-items:center;gap:6px;text-decoration:none;font-weight:800;font-size:12.5px;letter-spacing:.02em;color:var(--ga-gold);background:#171206;border:1px solid var(--ga-gold-dp);border-radius:999px;padding:8px 13px;transition:.15s;white-space:nowrap;}
+.ga-nav a:hover{border-color:var(--ga-gold);color:#fff6da;}
+.ga-nav a.ga-on{color:#0a0a0a;background:linear-gradient(90deg,var(--ga-gold-br),var(--ga-gold));border-color:var(--ga-gold);box-shadow:0 4px 14px rgba(212,175,55,.3);}
+.ga-nav a.ga-lead{color:#bcdcff;border-color:#3b6ea5;background:rgba(59,110,165,.12);}
+.ga-nav a.ga-lead.ga-on{color:#06223f;background:linear-gradient(90deg,#bcdcff,#7fb0e6);border-color:#7fb0e6;box-shadow:0 4px 14px rgba(59,110,165,.3);}
+.ga-pulse{margin:14px 16px 0;border:1px solid var(--ga-gold-dp);border-radius:14px;padding:12px 14px;background:linear-gradient(160deg,#15110a,#0b0a05);}
+.ga-pulse-h{font-weight:900;font-size:13px;color:var(--ga-gold-br);margin-bottom:9px;text-transform:uppercase;letter-spacing:.05em;}
+.ga-pulse-h span{font-weight:700;color:var(--ga-muted);font-size:11px;}
+.ga-pulse-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+.ga-chip{font-size:12px;font-weight:700;color:#fff6da;background:#171206;border:1px solid var(--ga-line);border-radius:999px;padding:5px 10px;}
+.ga-chip b{font-weight:900;}
+.ga-chip.g b{color:#3ec98a;}.ga-chip.y b{color:#f7d873;}.ga-chip.o b{color:#e08c3a;}.ga-chip.r b{color:#e0533d;}
+.ga-sep{flex-basis:100%;height:0;}
+.ga-mv{font-size:12px;font-weight:700;color:#cdbe8e;}
+.ga-muted{color:var(--ga-muted);font-style:italic;font-size:12px;}
+.ga-start{margin:14px 16px 0;border:1px solid var(--ga-gold-dp);border-radius:14px;padding:14px 16px;background:linear-gradient(160deg,#1a1408,#0c0a05);}
+.ga-start h4{margin:0 0 4px;font-size:14.5px;color:var(--ga-gold-br);font-weight:900;}
+.ga-start p{margin:0 0 10px;font-size:12.5px;color:var(--ga-muted);}
+.ga-steps{display:flex;flex-wrap:wrap;gap:8px;}
+.ga-step{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;color:#fff6da;background:#0c0b05;border:1px solid var(--ga-line);border-radius:10px;padding:8px 11px;}
+.ga-step b{color:var(--ga-gold);font-weight:900;}
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style id="lightfix">
+  body{font-family:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:#241f17;}
+  .wrap{max-width:1000px;}
+  /* serif display */
+  .hero h1,.wordmark,.card h3,.daily-card h3,.book h3,.book-group h3,.section-title span{font-family:'Fraunces',Georgia,serif;}
+  /* HERO -> light letterhead */
+  .hero{background:linear-gradient(180deg,#ffffff,#fbf7ee)!important;border:1px solid #ece4d2!important;box-shadow:0 10px 36px rgba(60,45,10,.07)!important;}
+  .hero:before{display:none!important;}
+  .emblem{background:#fff!important;border:2px solid var(--gold)!important;box-shadow:0 4px 16px rgba(156,117,21,.18)!important;}
+  .emblem span,.emblem-img{filter:none!important;mix-blend-mode:normal!important;}
+  .emblem span{-webkit-text-fill-color:#9c7515!important;color:#9c7515!important;background:none!important;}
+  .wordmark{color:#9c7515!important;letter-spacing:.30em;}
+  .wordmark .fg{color:#8a8474!important;}
+  .hero h1 .g{-webkit-text-fill-color:#1f1b13!important;color:#1f1b13!important;background:none!important;font-weight:600;}
+  .hero h1 .s{-webkit-text-fill-color:#9c7515!important;color:#9c7515!important;background:none!important;font-weight:600;}
+  .hero p{color:#6f6553!important;}
+  .ribbon{color:#7c5e12!important;background:#faf2dd!important;border:1px solid #e6cf90!important;}
+  .motto{-webkit-text-fill-color:#9c7515!important;color:#9c7515!important;background:none!important;}
+  /* section dividers */
+  .section-title{color:#7c5e12!important;}
+  .section-title:before,.section-title:after{background:linear-gradient(90deg,transparent,#e2cf94,transparent)!important;}
+  /* cards / surfaces -> white w/ soft shadow + clear text */
+  .card,.daily-card,.book,.book-card,.legend,.weekend-note,.detail-grid .card,.cftcal{
+    box-shadow:0 2px 12px rgba(60,45,10,.05);border-color:#ece4d2!important;}
+  .card h3,.daily-card h3,.day-cell,.sess .name,.book-card .who{color:#241f17!important;}
+  .card .desc,.daily-card .desc,.book .sub,.weekend-note,.tz,.cftcal-sub,.cftcal-hint,.meta b,.card .links,.day-cell small{color:#6f6553!important;}
+  .meta{color:#3a342a!important;}
+  thead th{background:#f3ecdb!important;color:#7c5e12!important;}
+  tbody tr{border-left-color:#e2cf94!important;}
+  tbody tr.today{background:linear-gradient(90deg,rgba(202,162,58,.14),rgba(202,162,58,.04))!important;box-shadow:inset 0 0 0 1px rgba(202,162,58,.3)!important;}
+  a{color:#9c7515;}
+  .book-group h3,.cftcal-h{color:#7c5e12!important;}
+  /* the ics 'gg' (Google) + cft chips readable on light */
+  .ics.gg{background:#f3ecdb!important;color:#7c5e12!important;border-color:#e2cf94!important;}
+  .cftcal-days button,.cftsp,.cftrole,.cftedit-btn{background:#f3ecdb!important;color:#7c5e12!important;border-color:#e2cf94!important;}
+  .cftcal-days button.on,.cftsp.on,.cftrole.on{background:linear-gradient(90deg,#e7c24a,#c79a2e)!important;color:#241f17!important;border-color:#c79a2e!important;}
+  .cftrow,.slot{background:#faf7ef!important;border-color:#ece4d2!important;}
+  /* Team Pulse + Start Here (in shared header style) -> light */
+  .ga-pulse,.ga-start{background:#ffffff!important;border:1px solid #ece4d2!important;box-shadow:0 2px 12px rgba(60,45,10,.05);}
+  .ga-pulse-h,.ga-start h4{color:#7c5e12!important;}
+  .ga-pulse-h span,.ga-start p,.ga-mv,.ga-muted{color:#6f6553!important;}
+  .ga-chip{background:#faf3df!important;border-color:#ece4d2!important;color:#241f17!important;}
+  .ga-step{background:#faf7ef!important;border-color:#ece4d2!important;color:#241f17!important;}
+  .ga-step b{color:#9c7515!important;}
+  .ga-start a{color:#9c7515!important;-webkit-text-fill-color:#9c7515!important;}
+</style>
+<style id="goldbtn">
+  .book-btn,.ics,.ics.apple,.ics.gg,.cftbook,.cftsave,.btn,.btn.gold,.ops-btn,.dash,.docbtn,.cftcal-days button,.cftsp,.cftrole,.cftedit-btn,.today-badge{
+    background:linear-gradient(180deg,#edc657,#cda22f)!important;color:#1c1206!important;border:1px solid #b6901f!important;box-shadow:0 1px 3px rgba(120,90,10,.18)!important;text-shadow:none!important;-webkit-text-fill-color:#1c1206!important;font-weight:800!important;}
+  .book-btn:hover,.ics:hover,.cftbook:hover,.cftcal-days button:hover,.cftsp:hover,.cftrole:hover,.btn:hover,.ops-btn:hover,.dash:hover,.docbtn:hover{filter:brightness(1.05)!important;}
+  .cftcal-days button.on,.cftsp.on,.cftrole.on,.btn.active{background:linear-gradient(180deg,#dcb138,#b88c1f)!important;box-shadow:0 0 0 2px rgba(120,90,10,.5)!important;}
+  /* info chips (not buttons) -> light & readable */
+  .ga-chip{background:#fbf3df!important;border:1px solid #ece0bf!important;color:#241f17!important;}
+  .ga-step{background:#faf6ea!important;border:1px solid #ece0bf!important;color:#241f17!important;}
+  .ga-step b{color:#9c7515!important;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="ga-top">
+  <a class="ga-brand" href="index.html"><img src="logo.png" alt="GRIND Agencies"><span>GRIND <b>Agencies</b></span></a>
+  <nav class="ga-nav">
+    <a href="index.html" class="">🏠 Home</a>
+    <a href="calendar.html" class="ga-on">🗓️ Calendar</a>
+    <a href="checklist.html" class="">✅ My Tracker</a>
+    <a href="resources.html" class="">📚 Resources</a>
+    <a href="dashboard.html" class="ga-lead">🔒 Ops</a>
+    <a href="marketing.html" class="ga-lead">🔒 Leads</a>
+    <a href="team.html" class="ga-lead">👥 My Team</a>
+      <a href="org.html" class="ga-lead">🌳 Org Chart</a>
+  </nav>
+</header>
+  <div class="ga-pulse" id="gaPulse">
+    <div class="ga-pulse-h">📊 Team Pulse <span id="gaPulseDate"></span></div>
+    <div class="ga-pulse-row" id="gaPulseRow"><span class="ga-muted">Loading live team metrics…</span></div>
+  </div>
+  <div class="ga-start">
+    <h4>🚀 New here? Start with these — in order.</h4>
+    <p>The fastest path from sign-on to producing. Knock these out first, then plug into the weekly trainings below.</p>
+    <div class="ga-steps">
+      <div class="ga-step"><b>1</b> Book your exam</div>
+      <div class="ga-step"><b>2</b> Pass your test</div>
+      <div class="ga-step"><b>3</b> Daily huddle</div>
+      <div class="ga-step"><b>4</b> Attend orientation</div>
+      <div class="ga-step"><b>5</b> Build your marketing plan → <a href="checklist.html" style="color:var(--ga-gold-br);font-weight:900;">My Tracker</a></div>
+    </div>
+  </div>
+  <div class="ga-start" style="margin-top:12px;">
+    <h4>📚 Day 1 Orientation — Homework</h4>
+    <p>New agents: knock these two out before your next session.</p>
+    <div class="ga-steps">
+      <div class="ga-step">📕 Read <b>"Money, Wealth, Life Insurance"</b> — Jake Thompson → <a href="https://drive.google.com/file/d/1ScqEQ0PQdV5buyzP77Lwm7ksIZyi5tE3/view" target="_blank" rel="noopener" style="color:var(--ga-gold-br);font-weight:900;">Open PDF</a></div>
+      <div class="ga-step">🎧 Chapter 1 of <b>"Rich Dad Poor Dad"</b> → <a href="https://www.youtube.com/results?search_query=rich+dad+poor+dad+chapter+1+audiobook+free" target="_blank" rel="noopener" style="color:var(--ga-gold-br);font-weight:900;">Free audio on YouTube</a></div>
+    </div>
+  </div>
+  <script>(function(){
+    var API="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/tracker-api";
+    function chip(label,val,cls){return '<span class="ga-chip '+(cls||'')+'"><b>'+val+'</b> '+label+'</span>';}
+    fetch(API+"?action=pulse").then(function(r){return r.json();}).then(function(d){
+      if(!d||!d.ok)return; var b=d.buckets||{};
+      var movers=(d.builders||[]).slice(0,3).map(function(x){return x.name+' ('+x.value+')';}).join(' · ')||'—';
+      var ft=(d.trainings||[]).slice(0,3).map(function(x){return x.name+' ('+x.value+')';}).join(' · ')||'—';
+      var row=document.getElementById('gaPulseRow'); if(!row)return;
+      row.innerHTML=chip('active agents',d.active,'g')+chip('on track ≤7d',b.green||0,'g')+chip('slowing 8–14d',b.yellow||0,'y')+chip('stalling 15–30d',b.orange||0,'o')+chip('stalled 30d+',b.red||0,'r')+'<span class="ga-sep"></span>'+'<span class="ga-mv" title="Most contacts added to a 90-day tracker in the last 7 days">🔥 Most leads added (7d): '+movers+'</span>'+'<span class="ga-mv" title="Total field trainings logged since joining (all-time)">🎓 Field trainings (total): '+ft+'</span>';
+      var dt=document.getElementById('gaPulseDate'); if(dt&&d.today)dt.textContent='· '+d.today;
+    }).catch(function(){});
+  })();</script>
+
+  <div class="toolbar">
+    <span class="edit-hint">✏️ Edit mode ON — click any text to change it, then Download to save.</span>
+    <a class="btn gold" href="https://grindagencies.github.io/smmt-calendar/ics/all.ics">📥 Add ALL (Apple/Outlook)</a>
+    <button class="btn" id="editBtn" onclick="toggleEdit()">✏️ Edit Mode</button>
+    <button class="btn" onclick="downloadHTML()">💾 Download</button>
+  </div>
+
+  <div class="hero">
+    <img class="emblem-img" src="https://grindagencies.github.io/smmt-calendar/logo.png" alt="The Standard Financial Group logo">
+    <div class="wordmark" contenteditable="false">The Standard <span class="fg">Financial Group</span></div>
+    <h1 contenteditable="false"><span class="g">Weekly Training</span><span class="s">Calendar</span></h1>
+    <div class="ribbon" contenteditable="false">Leadership &amp; Growth Training</div>
+    <p contenteditable="false">All times shown in PST · MST · CST · EST &nbsp;·&nbsp; 🍎 Apple/Outlook &amp; 🟢 Google — one tap to add</p>
+    <div class="motto" contenteditable="false">Build Momentum. Create Results. Lead From the Front.</div>
+    <div class="cta">
+      <a class="ics apple" href="https://grindagencies.github.io/smmt-calendar/ics/all.ics">🍎 Add All to Apple / Outlook</a>
+    </div>
+  </div>
+
+  <div class="section-title"><span>⭐ Weekly Success Schedule</span></div>
+  <style>
+    .aud{display:inline-block;font-size:9.5px;font-weight:900;letter-spacing:.04em;text-transform:uppercase;padding:2px 7px;border-radius:999px;margin-left:7px;vertical-align:middle;border:1px solid;white-space:nowrap;}
+    .aud-all{color:#2c6b4d;background:#e7f6ec;border-color:#8fd3ab;}
+    .aud-new{color:#1e4b86;background:#e7f0fb;border-color:#9cc1ee;}
+    .aud-cft{color:#8a5a12;background:#fbf0d8;border-color:#e2c98c;}
+    .aud-lic{color:#6b2fb3;background:#f0e9fb;border-color:#c4a9ec;}
+    .aud-legend{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:-2px 16px 14px;}
+    .aud-leg-l{font-size:12px;font-weight:800;color:#9c7515;text-transform:uppercase;letter-spacing:.04em;}
+  </style>
+  <div class="aud-legend">
+    <span class="aud-leg-l">Who's it for?</span>
+    <span class="aud aud-all">All Agents</span>
+    <span class="aud aud-new">New Agents</span>
+    <span class="aud aud-cft">CFTs &amp; Above</span>
+    <span class="aud aud-lic">Licensed Only</span>
+  </div>
+  <div class="success-grid">
+    <div class="daily-card">
+      <h3 contenteditable="false">📣 Daily Morning Huddle</h3>
+      <div class="time" contenteditable="false">⏰ 8:00 AM PST · Mon–Fri</div>
+      <div class="tz" contenteditable="false">🕐 <b>PST</b> 8:00 AM · <b>MST</b> 9:00 AM · <b>CST</b> 10:00 AM · <b>EST</b> 11:00 AM</div>
+      <div class="desc" contenteditable="false">Daily alignment, goals, wins, accountability, and momentum. Start every day sharp.</div>
+      <div class="meta" contenteditable="false"><b>ID:</b> 964 650 9994 &nbsp;|&nbsp; <b>PW:</b> WEALTH</div>
+      <div class="meta">🔗 <a href="https://us02web.zoom.us/j/9646509994?pwd=a2s1OXhzeTB3N3BBOWRkUmw1VHE2Zz09">Join Zoom (1-tap, password included) →</a></div>
+      <div class="addbtns">
+        <a class="ics apple" href="https://grindagencies.github.io/smmt-calendar/ics/huddle.ics">🍎 Apple / Outlook</a>
+        <a class="ics gg" href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=TSFG%20Daily%20Morning%20Huddle&dates=20260608T080000%2F20260608T083000&ctz=America%2FLos_Angeles&recur=RRULE%3AFREQ%3DWEEKLY%3BBYDAY%3DMO%2CTU%2CWE%2CTH%2CFR&details=Daily%20alignment%2C%20goals%2C%20wins%2C%20accountability%2C%20and%20momentum.%0Ahttps%3A%2F%2Fzoom.us%2Fj%2F9646509994&location=https%3A%2F%2Fus02web.zoom.us%2Fj%2F9646509994%3Fpwd%3Da2s1OXhzeTB3N3BBOWRkUmw1VHE2Zz09" target="_blank" rel="noopener">🟢 Google</a>
+      </div>
+    </div>
+    <div class="daily-card">
+      <h3 contenteditable="false">📞 Phone Zone</h3>
+      <div class="time" contenteditable="false">⏰ 12:00 – 2:00 PM PST · Wednesday Only</div>
+      <div class="tz" contenteditable="false">🕐 <b>PST</b> 12–2 PM · <b>MST</b> 1–3 PM · <b>CST</b> 2–4 PM · <b>EST</b> 3–5 PM</div>
+      <div class="desc" contenteditable="false">Prospecting, follow-up, recruiting, and appointment-setting. Phones up, distractions down.</div>
+      <div class="meta" contenteditable="false"><b>Host:</b> Christopher Lorenz &nbsp;|&nbsp; <b>ID:</b> 964 650 9953</div>
+      <div class="meta">🔗 <a href="https://zoom.us/j/9646509953">https://zoom.us/j/9646509953</a></div>
+      <div class="addbtns">
+        <a class="ics apple" href="https://grindagencies.github.io/smmt-calendar/ics/phonezone.ics">🍎 Apple / Outlook</a>
+        <a class="ics gg" href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=TSFG%20Phone%20Zone&dates=20260610T120000%2F20260610T140000&ctz=America%2FLos_Angeles&recur=RRULE%3AFREQ%3DWEEKLY%3BBYDAY%3DWE&details=Prospecting%2C%20follow-up%2C%20recruiting%20%26%20appointment-setting.%20Host%3A%20Christopher%20Lorenz.%20Zoom%20ID%20964%20650%209953&location=https%3A%2F%2Fzoom.us%2Fj%2F9646509953" target="_blank" rel="noopener">🟢 Google</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="legend" contenteditable="false">🕐 <b>Times shown in PST · MST · CST · EST.</b> Tap <b>🍎 Apple / Outlook</b> to add straight to your phone or Mac calendar, or <b>🟢 Google</b> to add to Google Calendar — both adjust to your local time and repeat weekly automatically.</div>
+
+  <div class="section-title"><span>🗓️ The Week at a Glance</span></div>
+  <table>
+    <thead><tr><th>Day</th><th>Sessions &amp; Times</th><th>Add to Calendar</th></tr></thead>
+    <tbody>
+      <tr data-day="1">
+        <td class="day-cell">Momentum Monday <span class="today-badge">Today</span><small>Train</small></td>
+        <td>
+          <div class="sess"><span class="name">🔥 Momentum Monday Training</span><br>
+          <span class="time">9:00 AM PST</span> · Lead Trainer: Matthew Welsh · ID 619 997 0102 · PW: 2026
+          <div class="tz">🕐 PST 9:00 AM · MST 10:00 AM · CST 11:00 AM · EST 12:00 PM</div>
+          🔗 <a href="https://zoom.us/j/6199970102">Join Zoom →</a></div>
+          <div class="sess"><span class="name">🔥 Team Training</span><br>
+          <span class="time">6:00 PM PST</span> · Host: Elijah Cox · ID 964 650 9994 · PW: WEALTH
+          <div class="tz">🕐 PST 6:00 PM · MST 7:00 PM · CST 8:00 PM · EST 9:00 PM</div>
+          🔗 <a href="https://us02web.zoom.us/j/9646509994?pwd=a2s1OXhzeTB3N3BBOWRkUmw1VHE2Zz09">Join Zoom →</a></div>
+        </td>
+        <td>
+          <div class="addbtns">
+            <a class="ics apple" href="https://grindagencies.github.io/smmt-calendar/ics/momentum9.ics">🍎 9 AM</a>
+            <a class="ics gg" href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=TSFG%20Momentum%20Monday%20%289%20AM%29%20Training&dates=20260608T090000%2F20260608T100000&ctz=America%2FLos_Angeles&recur=RRULE%3AFREQ%3DWEEKLY%3BBYDAY%3DMO&details=Momentum%20Monday%20%E2%80%94%20leadership%2C%20recruiting%2C%20sales%20%26%20production%20growth%2C%20mindset%20%26%20weekly%20action%20plan.%20Lead%20Trainer%3A%20Matthew%20Welsh.%20Zoom%20ID%20619%20997%200102.%20Passcode%202026&location=https%3A%2F%2Fzoom.us%2Fj%2F6199970102" target="_blank" rel="noopener">🟢 9 AM</a>
+            <a class="ics apple" href="https://grindagencies.github.io/smmt-calendar/ics/training.ics">🍎 6 PM</a>
+            <a class="ics gg" href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=TSFG%20Momentum%20Monday%20%E2%80%94%20Team%20Training&dates=20260608T180000%2F20260608T190000&ctz=America%2FLos_Angeles&recur=RRULE%3AFREQ%3DWEEKLY%3BBYDAY%3DMO&details=Leadership%2C%20recruiting%2C%20sales%20%26%20production%20growth%2C%20mindset%20%26%20weekly%20action%20plan.%20Host%3A%20Elijah%20Cox%20%26%20Team.%20Zoom%20ID%20964%20650%209994.%20Password%20WEALTH&location=https%3A%2F%2Fus02web.zoom.us%2Fj%2F9646509994%3Fpwd%3Da2s1OXhzeTB3N3BBOWRkUmw1VHE2Zz09" target="_blank" rel="noopener">🟢 Google</a>
+          </div>
+        </td>
+      </tr>
+      <tr data-day="2">
+        <td class="day-cell">Tuesday <span class="today-badge">Today</span><small>Onboard</small></td>
+        <td>
+          <div class="sess"><span class="name">🚀 CFT Orientation (AM)</span><br>
+          <span class="time">6:00 – 8:00 AM PST</span> · Host: Christopher Lorenz · ID 964 650 9953
+          <div class="tz">🕐 PST 6–8 AM · MST 7–9 AM · CST 8–10 AM · EST 9–11 AM</div>
+          <div class="addbtns">
+            <a class="ics apple" href="https://grindagencies.github.io/smmt-calendar/ics/cftAM.ics">🍎 Apple</a>
+            <a class="ics gg" href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=TSFG%20CFT%20Orientation%20%28Morning%29&dates=20260609T060000%2F20260609T080000&ctz=America%2FLos_Angeles&recur=RRULE%3AFREQ%3DWEEKLY%3BBYDAY%3DTU%2CTH%2CFR&details=New%20agent%20onboarding%2C%20systems%20training%2C%20licensing%20guidance%20%26%20culture.%20Host%3A%20Christopher%20Lorenz.%20Zoom%20ID%20964%20650%209953&location=https%3A%2F%2Fzoom.us%2Fj%2F9646509953" target="_blank" rel="noopener">🟢 Google</a>
+          </div></div>
+          🔗 <a href="https://zoom.us/j/9646509953">zoom.us/j/9646509953</a>
+        </td>
+        <td><span class="tz">Buttons inline →</span></td>
+      </tr>
+      <tr data-day="3">
+        <td class="day-cell">Wednesday <span class="today-badge">Today</span><small>Military</small></td>
+        <td>
+          <div class="sess"><span class="name">📞 Phone Zone</span><br>
+          <span class="time">12:00 – 2:00 PM PST</span> · ID 964 650 9953
+          <div class="tz">🕐 PST 12–2 PM · MST 1–3 PM · CST 2–4 PM · EST 3–5 PM</div>
+          🔗 <a href="https://zoom.us/j/9646509953">Join Zoom →</a>
+          <div class="addbtns">
+            <a class="ics apple" href="https://grindagencies.github.io/smmt-calendar/ics/phonezone.ics">🍎 Apple</a>
+            <a class="ics gg" href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=TSFG%20Phone%20Zone&dates=20260610T120000%2F20260610T140000&ctz=America%2FLos_Angeles&recur=RRULE%3AFREQ%3DWEEKLY%3BBYDAY%3DWE&details=Prospecting%2C%20follow-up%2C%20recruiting%20%26%20appointment-setting.%20Host%3A%20Christopher%20Lorenz.%20Zoom%20ID%20964%20650%209953&location=https%3A%2F%2Fzoom.us%2Fj%2F9646509953" target="_blank" rel="noopener">🟢 Google</a>
+          </div></div>
+          <div class="sess"><span class="name">🇺🇸 Armed Forces Call</span><br>
+          <span class="time">5:00 PM PST</span> · Zoom ID 680 683 9747
+          <div class="tz">🕐 PST 5:00 PM · MST 6:00 PM · CST 7:00 PM · EST 8:00 PM</div>
+          🔗 <a href="https://zoom.us/j/6806839747">Join Zoom →</a>
+          <div class="addbtns">
+            <a class="ics apple" href="https://grindagencies.github.io/smmt-calendar/ics/armedforces.ics">🍎 Apple</a>
+            <a class="ics gg" href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=TSFG%20Armed%20Forces%20Call&dates=20260610T170000%2F20260610T180000&ctz=America%2FLos_Angeles&recur=RRULE%3AFREQ%3DWEEKLY%3BBYDAY%3DWE&details=Military%20market%20training%2C%20recruiting%20strategies%2C%20leadership%20updates%20%26%20field%20support.%20Zoom%20ID%20680%20683%209747&location=https%3A%2F%2Fzoom.us%2Fj%2F6806839747" target="_blank" rel="noopener">🟢 Google</a>
+          </div></div>
+          <div class="sess"><span class="name">🎯 Orientation Day 1</span><br>
+          <span class="time">6:00 PM PST</span> · Host: Elijah Cox · ID 964 650 9994
+          <div class="tz">🕐 PST 6:00 PM · MST 7:00 PM · CST 8:00 PM · EST 9:00 PM</div>
+          🔗 <a href="https://us02web.zoom.us/j/9646509994?pwd=a2s1OXhzeTB3N3BBOWRkUmw1VHE2Zz09">Join Zoom →</a>
+          <div class="addbtns">
+            <a class="ics apple" href="https://grindagencies.github.io/smmt-calendar/ics/orient1.ics">🍎 Apple</a>
+            <a class="ics gg" href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=TSFG%20Orientation%20Day%201&dates=20260610T180000%2F20260610T190000&ctz=America%2FLos_Angeles&recur=RRULE%3AFREQ%3DWEEKLY%3BBYDAY%3DWE&details=Onboarding%20foundation%2C%20systems%20setup%2C%20expectations%20%26%20first-week%20success%20plan.%20Host%3A%20Elijah%20Cox.%20Zoom%20ID%20964%20650%209994&location=https%3A%2F%2Fus02web.zoom.us%2Fj%2F9646509994%3Fpwd%3Da2s1OXhzeTB3N3BBOWRkUmw1VHE2Zz09" target="_blank" rel="noopener">🟢 Google</a>
+          </div></div>
+        </td>
+        <td><span class="tz">Buttons inline →</span></td>
+      </tr>
+      <tr data-day="4">
+        <td class="day-cell">Thursday <span class="today-badge">Today</span><small>Onboard</small></td>
+        <td>
+          <div class="sess"><span class="name">🚀 CFT Orientation (Morning)</span><br>
+          <span class="time">6:00 – 8:00 AM PST</span> · Host: Christopher Lorenz · ID 964 650 9953
+          <div class="tz">🕐 PST 6–8 AM · MST 7–9 AM · CST 8–10 AM · EST 9–11 AM</div>
+          🔗 <a href="https://zoom.us/j/9646509953">Join Zoom →</a>
+          <div class="addbtns">
+            <a class="ics apple" href="https://grindagencies.github.io/smmt-calendar/ics/cftAM.ics">🍎 Apple</a>
+            <a class="ics gg" href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=TSFG%20CFT%20Orientation%20%28Morning%29&dates=20260609T060000%2F20260609T080000&ctz=America%2FLos_Angeles&recur=RRULE%3AFREQ%3DWEEKLY%3BBYDAY%3DTU%2CTH%2CFR&details=New%20agent%20onboarding%2C%20systems%20training%2C%20licensing%20guidance%20%26%20culture.%20Host%3A%20Christopher%20Lorenz.%20Zoom%20ID%20964%20650%209953&location=https%3A%2F%2Fzoom.us%2Fj%2F9646509953" target="_blank" rel="noopener">🟢 Google</a>
+          </div></div>
+          <div class="sess"><span class="name">🎯 Orientation Day 2</span><br>
+          <span class="time">6:00 PM PST</span> · Host: Elijah Cox · ID 964 650 9994
+          <div class="tz">🕐 PST 6:00 PM · MST 7:00 PM · CST 8:00 PM · EST 9:00 PM</div>
+          🔗 <a href="https://us02web.zoom.us/j/9646509994?pwd=a2s1OXhzeTB3N3BBOWRkUmw1VHE2Zz09">Join Zoom →</a></div>
+        </td>
+        <td>
+          <div class="addbtns">
+            <a class="ics apple" href="https://grindagencies.github.io/smmt-calendar/ics/orient2.ics">🍎 Apple</a>
+            <a class="ics gg" href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=TSFG%20Orientation%20Day%202&dates=20260611T180000%2F20260611T190000&ctz=America%2FLos_Angeles&recur=RRULE%3AFREQ%3DWEEKLY%3BBYDAY%3DTH&details=Advanced%20onboarding%2C%20systems%20setup%2C%20expectations%20%26%20first-week%20success%20plan.%20Host%3A%20Elijah%20Cox.%20Zoom%20ID%20964%20650%209994&location=https%3A%2F%2Fus02web.zoom.us%2Fj%2F9646509994%3Fpwd%3Da2s1OXhzeTB3N3BBOWRkUmw1VHE2Zz09" target="_blank" rel="noopener">🟢 Google</a>
+          </div>
+        </td>
+      </tr>
+      <tr data-day="5">
+        <td class="day-cell">Friday <span class="today-badge">Today</span><small>Onboard</small></td>
+        <td>
+          <div class="sess"><span class="name">🚀 CFT Orientation (AM)</span><br>
+          <span class="time">6:00 – 8:00 AM PST</span> · Host: Christopher Lorenz · ID 964 650 9953
+          <div class="tz">🕐 PST 6–8 AM · MST 7–9 AM · CST 8–10 AM · EST 9–11 AM</div>
+          <div class="addbtns">
+            <a class="ics apple" href="https://grindagencies.github.io/smmt-calendar/ics/cftAM.ics">🍎 Apple</a>
+            <a class="ics gg" href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=TSFG%20CFT%20Orientation%20%28Morning%29&dates=20260609T060000%2F20260609T080000&ctz=America%2FLos_Angeles&recur=RRULE%3AFREQ%3DWEEKLY%3BBYDAY%3DTU%2CTH%2CFR&details=New%20agent%20onboarding%2C%20systems%20training%2C%20licensing%20guidance%20%26%20culture.%20Host%3A%20Christopher%20Lorenz.%20Zoom%20ID%20964%20650%209953&location=https%3A%2F%2Fzoom.us%2Fj%2F9646509953" target="_blank" rel="noopener">🟢 Google</a>
+          </div></div>
+          🔗 <a href="https://zoom.us/j/9646509953">zoom.us/j/9646509953</a>
+        </td>
+        <td><span class="tz">Buttons inline →</span></td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="weekend-note" id="weekendNote"></div>
+
+  <div class="section-title"><span>📅 Book a CFT Practice / Appointment</span></div>
+  <div class="book">
+    <div class="sub" contenteditable="false">Tap a name to book on their Calendly. <span class="es">★ Spanish</span> available where marked.</div>
+    <div class="book-group">
+      <h3>🎖️ Marketing Directors <span class="line"></span></h3>
+      <div class="book-grid">
+        <div class="book-card"><div><span class="who" contenteditable="false">Christopher Lorenz</span><span class="role" contenteditable="false">MD</span></div><a class="book-btn" href="https://calendly.com/GrindAgenciesInc">📅 Book</a></div>
+        <div class="book-card"><div><span class="who" contenteditable="false">Edgar Zavala</span><span class="role" contenteditable="false">MD · <span class="es">★ Spanish</span></span></div><a class="book-btn" href="https://calendly.com/zavalaedgar25">📅 Book</a></div>
+      </div>
+    </div>
+    <div class="book-group">
+      <h3>⚔️ CFTs <span class="line"></span></h3>
+      <style>
+        .cftcal{border:1px solid var(--gold-deep);border-radius:14px;padding:14px;margin:0 0 16px;background:linear-gradient(160deg,#ffffff,#ffffff);}
+        .cftcal-h{font-weight:900;font-size:14px;color:var(--gold-bright);}
+        .cftcal-sub{font-size:12px;color:var(--muted);margin:3px 0 11px;}
+        .cftcal-top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+        .cftcal-days{display:flex;flex-wrap:wrap;gap:6px;}
+        .cftcal-days button{font:inherit;cursor:pointer;font-weight:800;font-size:12.5px;color:var(--gold);background:#f3ecdb;border:1px solid var(--gold-deep);border-radius:999px;padding:7px 12px;display:flex;align-items:center;gap:6px;}
+        .cftcal-days button.on{color:#0a0a0a;background:linear-gradient(90deg,var(--gold-bright),var(--gold));border-color:var(--gold);}
+        .cftcal-days .dc{font-size:10px;font-weight:900;border-radius:999px;padding:1px 6px;background:#faf7ef;color:var(--green);}
+        .cftcal-days button.on .dc{background:rgba(0,0,0,.18);color:#06150e;}
+        .cftsp{font:inherit;cursor:pointer;font-size:11px;font-weight:800;color:var(--gold);background:#f3ecdb;border:1px solid var(--gold-deep);border-radius:999px;padding:7px 11px;white-space:nowrap;}
+        .cftsp.on{color:#0a0a0a;background:var(--gold-bright);border-color:var(--gold);}
+        .cftfilters{display:flex;gap:6px;flex-wrap:wrap;}
+        .cftrole{font:inherit;cursor:pointer;font-size:11px;font-weight:800;color:var(--gold);background:#f3ecdb;border:1px solid var(--gold-deep);border-radius:999px;padding:7px 11px;}
+        .cftrole.on{color:#0a0a0a;background:var(--gold-bright);border-color:var(--gold);}
+        .cftrt{font-size:9px;font-weight:900;letter-spacing:.04em;border:1px solid currentColor;border-radius:5px;padding:0 4px;opacity:.85;}
+        .cftrow{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:11px;padding:8px 11px;margin-bottom:7px;background:#faf7ef;flex-wrap:wrap;}
+        .cfttime{font-weight:900;color:var(--gold-bright);font-size:13px;min-width:74px;}
+        .cftbtns{display:flex;flex-wrap:wrap;gap:6px;}
+        .cftbook{text-decoration:none;font-size:12px;font-weight:800;color:#06150e;background:linear-gradient(90deg,#7ee0b0,var(--green));border:1px solid var(--green);border-radius:999px;padding:6px 11px;white-space:nowrap;}
+        .cftbook:hover{filter:brightness(1.08);}
+        .cftcal-hint{color:var(--muted);font-size:12.5px;font-style:italic;}
+        .cftcal-foot{margin-top:11px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;}
+        .cftedit-btn{font:inherit;cursor:pointer;font-size:11px;font-weight:800;color:var(--gold);background:#f3ecdb;border:1px solid var(--gold-deep);border-radius:999px;padding:7px 12px;}
+        .cftedit-grid{overflow-x:auto;margin:8px 0 4px;}
+        .cftedit-grid table{min-width:520px;border-collapse:collapse;}
+        .cftedit-grid th,.cftedit-grid td{border:1px solid var(--line);padding:6px 7px;text-align:center;font-size:11px;}
+        .cftedit-grid th{color:var(--gold);font-weight:800;line-height:1.2;}
+        .cftedit-grid td.nm{text-align:left;color:#241f17;font-weight:700;white-space:nowrap;}
+        .cftedit-grid input{width:17px;height:17px;cursor:pointer;accent-color:#3ec98a;}
+        .cftsave{font:inherit;cursor:pointer;font-size:12px;font-weight:900;color:#0a0a0a;background:linear-gradient(90deg,var(--gold-bright),var(--gold));border:none;border-radius:999px;padding:9px 16px;margin-top:8px;}
+        .cftneed{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:2px 0 11px;}
+        .cftneed-l{font-size:11.5px;font-weight:900;color:var(--gold);text-transform:uppercase;letter-spacing:.05em;margin-right:2px;}
+        .cftneed button{font:inherit;cursor:pointer;font-size:12px;font-weight:800;border-radius:999px;padding:6px 12px;border:1px solid;transition:.12s;}
+        .cftneed button:hover{filter:brightness(1.04);transform:translateY(-1px);}
+        .cftneed .b-ft{color:#155e42;background:#e6f7ee;border-color:#8fd3ab;}
+        .cftneed .b-hire{color:#1e4b86;background:#e9f1fc;border-color:#9cc1ee;}
+        .cftneed .b-mil{color:#5a4634;background:#efe7dc;border-color:#cbb69d;}
+        .cftneed .b-es{color:#6b2fb3;background:#f2ebfb;border-color:#c4a9ec;}
+        .cftneed .b-all{color:#6f6553;background:#f1ede3;border-color:#ddd3bf;}
+      </style>
+      <div class="cftcal" id="cftcal">
+        <div class="cftcal-h">🗓️ Book a trainer — CFT &amp; MD availability</div>
+        <div class="cftcal-sub">Tap a day to see every open time — MDs and CFTs — each with a one-tap Book button. No calendar hunting.</div>
+        <div class="cftneed" id="cftNeed"><span class="cftneed-l">I need a…</span><button class="b-ft" onclick="cftNeed('CFT',false)">🏋️ Field Training</button><button class="b-hire" onclick="cftNeed('MD',false)">🤝 Hiring Interview</button><button class="b-mil" onclick="cftNeed('MD',false)">🎖️ Military Consultation</button><button class="b-es" onclick="cftNeed('all',true)">🗣️ Spanish Speaking Call</button><button class="b-all" onclick="cftNeed('all',false)">↺ All</button></div>
+        <div class="cftcal-top"><div class="cftcal-days" id="cftDays"></div><div class="cftfilters"><button class="cftrole on" data-r="all" onclick="cftRole('all')">All</button><button class="cftrole" data-r="MD" onclick="cftRole('MD')">Marketing Directors</button><button class="cftrole" data-r="CFT" onclick="cftRole('CFT')">CFTs</button><button class="cftsp" id="cftSp" onclick="cftSpanish()">&#9733; Spanish</button></div></div>
+        <div id="cftBody"><span class="cftcal-hint">Loading availability&hellip;</span></div>
+        <div class="cftcal-foot"><span id="cftUpdated" class="cftcal-hint"></span><button class="cftedit-btn" id="cftEditBtn" onclick="cftEdit()">&#9999;&#65039; Update availability (leadership)</button></div>
+      </div>
+      <script>(function(){
+        var API="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/tracker-api";
+        var AV=null,curDay=null,sp=false,roleFilter='all',editMode=false,editTok="";
+        var WD=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+        function el(id){return document.getElementById(id);}
+        function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+        function fn(n){return (n||'').split(' ')[0];}
+        function dayCount(dy){var n=0;AV.cfts.forEach(function(c){if(c.hidden)return;if(sp&&!c.es)return;if(roleFilter!=="all"&&c.role!==roleFilter)return;n+=(c.slots[dy]||[]).length;});return n;}
+        function renderDays(){el('cftDays').innerHTML=AV.days.map(function(dy){var n=dayCount(dy);return '<button class="'+(dy===curDay?'on':'')+'" onclick="cftDay(\''+dy+'\')">'+dy+'<span class="dc">'+n+'</span></button>';}).join('');}
+        function renderBody(){
+          if(editMode){renderEditor();return;}
+          var html='',any=false;
+          AV.slots.forEach(function(s){
+            var open=AV.cfts.filter(function(c){return !c.hidden && (c.slots[curDay]||[]).indexOf(s)>=0 && (!sp||c.es) && (roleFilter==="all"||c.role===roleFilter);});
+            if(!open.length)return; any=true;
+            html+='<div class="cftrow"><span class="cfttime">'+esc(s)+'</span><div class="cftbtns">'+open.map(function(c){return '<a class="cftbook" href="'+esc(c.calendly)+'" target="_blank" rel="noopener" title="Book with '+esc(c.name)+' ('+esc(c.role||'')+')">'+esc(fn(c.name))+(c.es?' ★':'')+' <span class="cftrt">'+esc(c.role==='MD'?'Marketing Director':(c.role||''))+'</span> 📅</a>';}).join('')+'</div></div>';
+          });
+          el('cftBody').innerHTML=any?html:'<span class="cftcal-hint">No '+(sp?'Spanish ':'')+'openings on '+esc(curDay)+'. Try another day.</span>';
+        }
+        window.cftDay=function(dy){curDay=dy;renderDays();renderBody();};
+        window.cftSpanish=function(){sp=!sp;el('cftSp').classList.toggle('on',sp);renderDays();renderBody();};
+        window.cftRole=function(r){roleFilter=r;Array.prototype.forEach.call(document.querySelectorAll('.cftrole'),function(b){b.classList.toggle('on',b.getAttribute('data-r')===r);});renderDays();renderBody();};
+        window.cftNeed=function(r,spanish){roleFilter=r;Array.prototype.forEach.call(document.querySelectorAll('.cftrole'),function(b){b.classList.toggle('on',b.getAttribute('data-r')===r);});sp=!!spanish;var spb=el('cftSp');if(spb)spb.classList.toggle('on',sp);renderDays();renderBody();var c=el('cftcal');if(c)c.scrollIntoView({behavior:'smooth',block:'start'});};
+        window.cftEdit=function(){
+          if(!editMode){var p=prompt('Leadership passcode to edit CFT availability:');if(!p)return;editTok=p;editMode=true;el('cftEditBtn').textContent='✕ Cancel edit';renderEditor();}
+          else{editMode=false;editTok='';el('cftEditBtn').textContent='✏️ Update availability (leadership)';renderBody();}
+        };
+        function renderEditor(){
+          var head='<tr><th>CFT</th>'+AV.slots.map(function(s){return '<th>'+s.replace(' ','<br>')+'</th>';}).join('')+'</tr>';
+          var rows=AV.cfts.map(function(c,ci){var tds=AV.slots.map(function(s){var on=(c.slots[curDay]||[]).indexOf(s)>=0;return '<td><input type="checkbox" data-ci="'+ci+'" data-slot="'+esc(s)+'" '+(on?'checked':'')+'></td>';}).join('');return '<tr><td class="nm">'+esc(c.name)+(c.es?' ★':'')+'</td>'+tds+'</tr>';}).join('');
+          el('cftBody').innerHTML='<div class="cftcal-hint">Editing <b style="color:var(--gold-bright)">'+esc(curDay)+'</b> &mdash; check the times each CFT is open, then Save.</div><div class="cftedit-grid"><table>'+head+rows+'</table></div><button class="cftsave" onclick="cftSave()">💾 Save '+esc(curDay)+'</button>';
+        }
+        window.cftSave=function(){
+          AV.cfts.forEach(function(c){c.slots[curDay]=[];});
+          Array.prototype.forEach.call(el('cftBody').querySelectorAll('input[type=checkbox]'),function(cb){if(cb.checked){AV.cfts[+cb.getAttribute('data-ci')].slots[curDay].push(cb.getAttribute('data-slot'));}});
+          AV.updated=new Date().toISOString().slice(0,10);
+          fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'setcftavail',token:editTok,value:AV})}).then(function(r){return r.json();}).then(function(d){
+            if(d&&d.ok){editMode=false;editTok='';el('cftEditBtn').textContent='✏️ Update availability (leadership)';if(el('cftUpdated'))el('cftUpdated').textContent='Updated '+AV.updated;renderDays();renderBody();alert('Saved '+curDay+' ✓');}else{alert('Save failed — wrong passcode?');}
+          }).catch(function(){alert('Network error — try again.');});
+        };
+        fetch(API+"?action=cftavail").then(function(r){return r.json();}).then(function(d){
+          if(!d||!d.ok||!d.value){el('cftBody').innerHTML='<span class="cftcal-hint">Availability not set yet.</span>';return;}
+          AV=d.value;var t=WD[new Date().getDay()];curDay=(AV.days.indexOf(t)>=0)?t:AV.days[0];
+          if(el('cftUpdated'))el('cftUpdated').textContent='Updated '+(AV.updated||(d.updated_at||'').slice(0,10));
+          renderDays();renderBody();
+        }).catch(function(){el('cftBody').innerHTML='<span class="cftcal-hint">Could not load availability.</span>';});
+      })();</script>
+      <div class="book-grid">
+        <div class="book-card"><div><span class="who" contenteditable="false">Cassandra Akenson</span><span class="role" contenteditable="false">CFT</span></div><a class="book-btn" href="https://calendly.com/gficassandra">📅 Book</a></div>
+        <div class="book-card"><div><span class="who" contenteditable="false">Nikki Buchholz</span><span class="role" contenteditable="false">CFT</span></div><a class="book-btn" href="https://calendly.com/GFInikki">📅 Book</a></div>
+        <div class="book-card"><div><span class="who" contenteditable="false">Michael Bachelor</span><span class="role" contenteditable="false">CFT</span></div><a class="book-btn" href="https://calendly.com/GFIBachelor">📅 Book</a></div>
+        <div class="book-card"><div><span class="who" contenteditable="false">Cesar Coss</span><span class="role" contenteditable="false">CFT · <span class="es">★ Spanish</span></span></div><a class="book-btn" href="https://calendly.com/cesarcossgfi">📅 Book</a></div>
+        <div class="book-card"><div><span class="who" contenteditable="false">Abagael Coker</span><span class="role" contenteditable="false">CFT</span></div><a class="book-btn" href="https://calendly.com/abagaelcoker">📅 Book</a></div>
+        <div class="book-card"><div><span class="who" contenteditable="false">Edrian Parafina</span><span class="role" contenteditable="false">CFT</span></div><a class="book-btn" href="https://calendly.com/edrian04parafina">📅 Book</a></div>
+        <div class="book-card"><div><span class="who" contenteditable="false">Courtney Whitbey</span><span class="role" contenteditable="false">CFT</span></div><a class="book-btn" href="https://calendly.com/TheWealthHouseGFI">📅 Book</a></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title"><span>🛠️ Operations &amp; Licensing Support</span></div>
+  <div class="ops">
+    <div class="ops-grid">
+      <div class="ops-info">
+        <h3 contenteditable="false">Book Operations &amp; Licensing</h3>
+        <p contenteditable="false">The Operations team handles licensing, onboarding paperwork, and back-office support. Book a slot or call the direct line during the windows below.</p>
+        <div class="ops-hours">
+          <div contenteditable="false"><b>Available Monday – Friday</b> &nbsp;·&nbsp; booking at 11:00, 11:30, 5:00 &amp; 5:30 PST</div>
+          <div contenteditable="false">🕐 <b>Window 1</b> — PST 11:00 AM–12:00 PM · MST 12–1 PM · CST 1–2 PM · EST 2–3 PM</div>
+          <div contenteditable="false">🕐 <b>Window 2</b> — PST 5:00–6:00 PM · MST 6–7 PM · CST 7–8 PM · EST 8–9 PM</div>
+          <div style="margin-top:10px;">🎥 <b>Join Zoom:</b> <a href="https://us02web.zoom.us/j/8584334429">https://us02web.zoom.us/j/8584334429</a> &nbsp;·&nbsp; <b>ID</b> 858 433 4429 · <b>Passcode</b> 2026</div>
+        </div>
+      </div>
+      <div class="ops-actions">
+        <a class="ops-btn book" href="https://calendly.com/impactagency-ops/licensing">📅 Book Operations</a>
+        <a class="ops-btn book" href="https://us02web.zoom.us/j/8584334429" target="_blank" rel="noopener">🎥 Join Ops Zoom · Passcode 2026</a>
+        <a class="ops-btn call" href="tel:+18584334429">📞 Call Ops · (858) 433-4429</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title"><span>⚔️ Non-Negotiables — If You're Not a CFT</span></div>
+  <div class="nn">
+    <h2 contenteditable="false">Not a CFT yet? These two are locked in.</h2>
+    <div class="sub" contenteditable="false">Everything else is opportunity. These are the floor — every single week, no exceptions.</div>
+    <div class="nn-list">
+      <div class="nn-item"><span class="n">1️⃣</span><span contenteditable="false">One (1) CFT Practice per week</span></div>
+      <div class="nn-item"><span class="n">📞</span><span contenteditable="false">Phone Zone — every week</span></div>
+    </div>
+    <div class="nn-foot" contenteditable="false">Hit these two and you're in the game. CFTs, you already know the standard is higher.</div>
+  </div>
+
+  <div class="moti">
+    <div class="rocket">🚀</div>
+    <h2 contenteditable="false">We Don't Hope to Win. We Train to Win.</h2>
+    <p contenteditable="false">Growth isn't an accident — it's the reps you put in when no one's watching and the standard you refuse to drop. Every huddle, every CFT practice, every Phone Zone is a deposit into the leader you're becoming.</p>
+    <p contenteditable="false">Be consistent. Be accountable. Be coachable. Build momentum, create results, and lead from the front.</p>
+    <div class="sign" contenteditable="false">Hosted by Elijah Cox &amp; Team — The Standard Financial Group</div>
+  </div>
+
+  <div class="foot">The Standard Financial Group · Weekly Training Calendar · Times in PST · MST · CST · EST</div>
+
+</div>
+
+<script>
+  (function(){
+    var pstDay;
+    try{
+      var f = new Intl.DateTimeFormat('en-US',{weekday:'long',timeZone:'America/Los_Angeles'});
+      var map = {Sunday:0,Monday:1,Tuesday:2,Wednesday:3,Thursday:4,Friday:5,Saturday:6};
+      pstDay = map[f.format(new Date())];
+    }catch(e){ pstDay = new Date().getDay(); }
+    var row = document.querySelector('tr[data-day="'+pstDay+'"]');
+    if(row){ row.classList.add('today'); }
+    else{ var n=document.getElementById('weekendNote'); if(n) n.textContent="It's the weekend — recharge, then come back Monday with momentum. 🚀"; }
+  })();
+  function toggleEdit(){
+    var on = document.body.classList.toggle('editing');
+    document.getElementById('editBtn').classList.toggle('active', on);
+    document.querySelectorAll('[contenteditable]').forEach(function(el){ el.setAttribute('contenteditable', on ? 'true' : 'false'); });
+  }
+  function downloadHTML(){
+    if(document.body.classList.contains('editing')) toggleEdit();
+    var html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+    var blob = new Blob([html], {type:'text/html'});
+    var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'TSFG_Training_Calendar.html';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(a.href);
+  }
+</script>
+<script>
+  document.addEventListener('click',function(e){
+    var t=e.target; var a=t&&t.closest?t.closest('a[href*="calendly.com"]'):null;
+    if(a && window.Calendly){ e.preventDefault(); window.Calendly.initPopupWidget({url:a.getAttribute('href')}); }
+  },true);
+</script>
+<script>
+/* Audience auto-tagging: badge each session by who it's for. Non-destructive (badges are siblings, not inside editable text). */
+(function(){
+  function tier(t){
+    t=(t||'').toLowerCase();
+    if(t.indexOf('orientation')>=0||t.indexOf('new agent')>=0) return ['New Agents','aud-new'];
+    if(t.indexOf('cft')>=0||t.indexOf('field training')>=0||t.indexOf('bldrs')>=0||t.indexOf('builder')>=0) return ['CFTs & Above','aud-cft'];
+    if(t.indexOf('licensed')>=0||t.indexOf('licensing')>=0) return ['Licensed Only','aud-lic'];
+    if(t.indexOf('huddle')>=0||t.indexOf('momentum')>=0||t.indexOf('phone zone')>=0||t.indexOf('armed forces')>=0||t.indexOf('training')>=0||t.indexOf('call')>=0) return ['All Agents','aud-all'];
+    return null;
+  }
+  function badge(el){
+    if(!el) return;
+    if(el.nextElementSibling && el.nextElementSibling.classList && el.nextElementSibling.classList.contains('aud')) return;
+    var a=tier(el.textContent); if(!a) return;
+    var s=document.createElement('span'); s.className='aud '+a[1]; s.textContent=a[0];
+    el.parentNode.insertBefore(s, el.nextSibling);
+  }
+  function run(){
+    Array.prototype.forEach.call(document.querySelectorAll('.sess .name'), badge);
+    Array.prototype.forEach.call(document.querySelectorAll('.card .top h3, .daily-card h3'), badge);
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', run); else run();
+})();
+</script>
+<style>
+  .share-btn{cursor:pointer;font:inherit;font-size:12px;font-weight:800;color:#7c5e12;background:#f3ecdb;border:1px solid #e2cf94;border-radius:999px;padding:6px 12px;white-space:nowrap;}
+  .share-btn:hover{filter:brightness(1.05);}
+  .book-card{flex-wrap:wrap;gap:8px;}
+  .book-card .bk-btns{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto;}
+</style>
+<script>
+function copyLink(url,btn){
+  function done(){var o=btn.getAttribute('data-lbl')||btn.textContent;btn.setAttribute('data-lbl',o);btn.textContent='✓ Link copied!';setTimeout(function(){btn.textContent=o;},1600);}
+  function fb(){var ta=document.createElement('textarea');ta.value=url;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.focus();ta.select();try{document.execCommand('copy');done();}catch(e){prompt('Copy this booking link:',url);}ta.remove();}
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(url).then(done).catch(fb);}else{fb();}
+}
+(function(){
+  document.querySelectorAll('.book-card').forEach(function(card){
+    var a=card.querySelector('.book-btn'); if(!a||card.querySelector('.share-btn'))return;
+    var url=a.getAttribute('href'); if(!url)return;
+    var wrap=document.createElement('span'); wrap.className='bk-btns';
+    a.parentNode.insertBefore(wrap,a); wrap.appendChild(a);
+    var b=document.createElement('button'); b.type='button'; b.className='share-btn'; b.textContent='Share'; b.title='Copy '+url;
+    b.addEventListener('click',function(){copyLink(url,b);});
+    wrap.appendChild(b);
+  });
+})();
+</script>
+
+</body>
+</html>
