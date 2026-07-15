@@ -7,7 +7,7 @@
 <link rel="icon" href="logo.png">
 <style>
 *{box-sizing:border-box}
-body{margin:0;background:radial-gradient(1200px 600px at 50% -8%,#171207 0%,#f5f5f7 60%);color:#1d1d1f;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;}
+body{margin:0;background:radial-gradient(1200px 600px at 50% -8%,#171207 0%,#1d1d1f 60%);color:#1d1d1f;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;}
 .wrap{max-width:100%;margin:0 auto;padding-bottom:80px;}
 a{color:inherit}
 .head{text-align:center;padding:24px 16px 4px;}
@@ -45,14 +45,14 @@ a{color:inherit}
 .tree>ul>li::before,.tree>ul>li::after{display:none;}
 .tree li.collapsed>ul{display:none;}
 
-.card{position:relative;display:flex;flex-direction:column;align-items:center;gap:5px;width:132px;border:1px solid #ececf0;border-top-width:4px;border-radius:14px;background:linear-gradient(170deg,#17120a,#0e0b06);padding:12px 10px 10px;box-shadow:0 3px 12px rgba(0,0,0,.3);transition:border-color .14s,transform .1s;user-select:none;-webkit-user-select:none;}
+.card{position:relative;display:flex;flex-direction:column;align-items:center;gap:5px;width:132px;border:1px solid #ececf0;border-top-width:4px;border-radius:14px;background:linear-gradient(170deg,#ffffff,#fbfbfd);padding:12px 10px 10px;box-shadow:0 3px 12px rgba(0,0,0,.3);transition:border-color .14s,transform .1s;user-select:none;-webkit-user-select:none;}
 .card:hover{border-color:#4a3f1c;}
 .av{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:15px;color:#fbfbfd;box-shadow:inset 0 0 0 2px rgba(255,255,255,.15);}
 .nm{font-weight:800;font-size:13px;color:#1d1d1f;line-height:1.15;text-align:center;cursor:pointer;}
 .nm:hover{text-decoration:underline;text-decoration-color:#7fb0e6;text-underline-offset:2px;}
 .loverlay{position:fixed;inset:0;z-index:130;background:rgba(6,5,2,.72);display:none;align-items:flex-start;justify-content:center;padding:40px 14px;overflow:auto;}
 .loverlay.on{display:flex;}
-.lmodal{width:100%;max-width:520px;background:linear-gradient(170deg,#17120a,#0e0b06);border:1px solid #e3e3e8;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.6);overflow:hidden;}
+.lmodal{width:100%;max-width:520px;background:linear-gradient(170deg,#ffffff,#fbfbfd);border:1px solid #e3e3e8;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.6);overflow:hidden;}
 .lmhead{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 16px;border-bottom:1px solid #ececf0;background:linear-gradient(180deg,#221a08,#140f06);}
 .lmhead h3{margin:0;font-size:16px;color:#1d1d1f;font-weight:900;}
 .lmhead .sub{font-size:11.5px;color:#6e6e73;margin-top:2px;}
@@ -72,7 +72,7 @@ a{color:inherit}
 .lstat.lost{background:#3a1d18;color:#f3b0a2;border:1px solid #8a3a2a;}
 .lmempty{color:#6e6e73;font-style:italic;font-size:13px;padding:14px 4px;text-align:center;}
 .lmfoot{padding:10px 14px 14px;border-top:1px solid #ececf0;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;}
-.lmfoot a{text-decoration:none;font-size:12.5px;font-weight:800;color:#f5f5f7;background:linear-gradient(180deg,#c99a2e,#cda22f);border:1px solid #b6901f;border-radius:999px;padding:8px 13px;}
+.lmfoot a{text-decoration:none;font-size:12.5px;font-weight:800;color:#1d1d1f;background:linear-gradient(180deg,#c99a2e,#cda22f);border:1px solid #b6901f;border-radius:999px;padding:8px 13px;}
 .lmfoot .cnt{font-size:12px;color:#6e6e73;}
 .cmeta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:center;}
 .role{font-size:8.5px;font-weight:900;text-transform:uppercase;letter-spacing:.04em;padding:2px 7px;border-radius:999px;}
@@ -113,10 +113,11 @@ body.editing .card:active{cursor:grabbing;}
 .ga-nav{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
 .ga-nav a{display:inline-flex;align-items:center;gap:6px;text-decoration:none;font-weight:800;font-size:12.5px;letter-spacing:.02em;color:var(--ga-gold);background:#f2f2f5;border:1px solid var(--ga-gold-dp);border-radius:999px;padding:8px 13px;transition:.15s;white-space:nowrap;}
 .ga-nav a:hover{border-color:var(--ga-gold);color:#1d1d1f;}
-.ga-nav a.ga-on{color:#f5f5f7;background:linear-gradient(90deg,var(--ga-gold-br),var(--ga-gold));border-color:var(--ga-gold);box-shadow:0 4px 14px rgba(212,175,55,.3);}
+.ga-nav a.ga-on{color:#1d1d1f;background:linear-gradient(90deg,var(--ga-gold-br),var(--ga-gold));border-color:var(--ga-gold);box-shadow:0 4px 14px rgba(212,175,55,.3);}
 .ga-nav a.ga-lead{color:#bcdcff;border-color:#3b6ea5;background:rgba(59,110,165,.12);}
 .ga-nav a.ga-lead.ga-on{color:#06223f;background:linear-gradient(90deg,#bcdcff,#7fb0e6);border-color:#7fb0e6;box-shadow:0 4px 14px rgba(59,110,165,.3);}
 </style>
+
 
 <style id="tsfg-skin">
 :root, html[data-theme]{
@@ -170,6 +171,7 @@ input,textarea,select{border-radius:12px;}
 </head>
 <body>
 <div class="tsfg-scrim" onclick="tsfgDrawer(false)"></div><aside class="tsfg-side"><a class="tsfg-brand" href="index.html"><img src="logo.png" alt="" onerror="this.style.visibility='hidden'"><span class="bn">The <b>Standard</b></span></a><a class="side-link" href="index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span class="lbl">Home</span></a><a class="side-link" href="calendar.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9h18M8 3v3M16 3v3"/></svg><span class="lbl">Calendar</span></a><a class="side-link" href="checklist.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span class="lbl">My Tracker</span></a><a class="side-link" href="marketing.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg><span class="lbl">Leads</span></a><a class="side-link" href="team.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg><span class="lbl">My Team</span></a><a class="side-link on" href="org.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="5" rx="1.5"/><rect x="3" y="16" width="6" height="5" rx="1.5"/><rect x="15" y="16" width="6" height="5" rx="1.5"/><path d="M12 8v4M6 16v-2h12v2"/></svg><span class="lbl">Org Chart</span></a><a class="side-link" href="resources.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5a2 2 0 0 1 2-2h13v18H6a2 2 0 0 1-2-2z"/><path d="M4 5v14M9 3v18"/></svg><span class="lbl">Resources</span></a><a class="side-link" href="dashboard.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="6" rx="1"/><rect x="12" y="7" width="3" height="10" rx="1"/><rect x="17" y="13" width="3" height="4" rx="1"/></svg><span class="lbl">Ops Dashboard</span></a><div class="tsfg-foot"><a class="side-link" href="#" onclick="tsfgSignOut();return false;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg><span class="lbl">Sign out</span></a></div></aside><header class="tsfg-top"><button class="tsfg-ic" onclick="tsfgToggle()" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button><div class="tsfg-title">Org Chart</div><div style="flex:1"></div><button class="tsfg-ic" onclick="tsfgTheme()" id="tsfgThemeBtn" aria-label="Theme"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg></button></header>
+
 <div class="wrap">
   <header class="ga-top">
     <a class="ga-brand" href="index.html"><img src="logo.png" alt="GRIND Agencies"><span>GRIND <b>Agencies</b></span></a>
@@ -446,6 +448,9 @@ async function load(){
 }
 load();
 </script>
+
+
+
 
 <script>
 function tsfgToggle(){ if(window.innerWidth<=860){tsfgDrawer(!document.body.classList.contains('tsfg-drawer'));} }
