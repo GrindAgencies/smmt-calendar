@@ -373,7 +373,7 @@ window.toggleEdit=function(){
 };
 window.save=async function(){
   if(!dirty) return;
-  const value={updated:new Date().toISOString().slice(0,10), root:ROOT, nodes:NODES.map(n=>({id:n.id,name:n.name,role:n.role,parent:n.parent,gfi:n.gfi||'',ord:n.ord??0}))};
+  const value={updated:new Date().toISOString().slice(0,10), root:ROOT, nodes:NODES.filter(n=>!n._derived).map(n=>({id:n.id,name:n.name,role:n.role,parent:n.parent,gfi:n.gfi||'',ord:n.ord??0}))};
   $('saveBtn').disabled=true; $('saveBtn').textContent='Saving…';
   try{
     const r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'setorg',by:EDITOR,value})});
@@ -449,6 +449,14 @@ async function load(){
     const missing=NODES.some(n=>n.ord===undefined||n.ord===null);
     if(missing){ const parents=[...new Set(NODES.map(n=>n.parent))];
       parents.forEach(pid=>{ NODES.filter(n=>n.parent===pid).sort((a,b)=>a.name.localeCompare(b.name)).forEach((n,i)=>n.ord=i); }); }
+    try{
+      const rr=await fetch('https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/hub-api?action=hub_roster').then(r=>r.json());
+      const members=(rr&&rr.members)||[];
+      const byGfi={}; NODES.forEach(n=>{ if(n.gfi) byGfi[String(n.gfi).toUpperCase()]=n; });
+      let changed=false;
+      members.forEach(m=>{ const code=String(m.code||'').toUpperCase(); const dt=String(m.direct_to||'').toUpperCase(); if(!code||!dt) return; const target=byGfi[dt]; if(!target) return; let node=byGfi[code]; if(node){ if(node.id!==target.id && node.parent!==target.id){ node.parent=target.id; changed=true; } } else { node={id:'A_'+code,name:m.name||code,role:'agent',gfi:code,parent:target.id,ord:999,_derived:true}; NODES.push(node); byGfi[code]=node; changed=true; } });
+      if(changed){ idx(); [...new Set(NODES.map(n=>n.parent))].forEach(pid=>renumber(pid)); }
+    }catch(e){}
     openSet.clear(); openSet.add(ROOT); // start tidy: only the top expanded
     render();
     $('foot').textContent='Colored by activity · everyone starts under Christopher — drag them into place · last saved '+(orgR.value.updated||'');
