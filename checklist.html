@@ -911,6 +911,9 @@ input,textarea,select{border-radius:12px;}
 
 <script>
   var API="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/tracker-api";
+  var HUBAPI="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/hub-api";
+  function myName(){var w=el("who");if(w&&w.textContent){return w.textContent.split(" \u00b7 ")[0].trim();}return "A teammate";}
+  function hubKevin(text){if(!code)return;try{fetch(HUBAPI,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"hub_send",code:code,channel:"main",author_name:"Kevin",kind:"recognition",body:text})});}catch(e){}}
   var CARRIERS=[['na','North American'],['fng','F&G'],['corebridge','Corebridge'],['amequity','American Equity'],['ethos','Ethos'],['foresters','Foresters'],['moo','Mutual of Omaha'],['quility','Quility'],['allianz','Allianz'],['ameritas','Ameritas'],['symetra','Symetra']];
   // build producer field trainings (25), business-submitted slots (12), and carrier rows
   (function(){
@@ -929,9 +932,9 @@ input,textarea,select{border-radius:12px;}
   function promoFam30(){var t=ptToday(),n=0;(warmMarket||[]).forEach(function(c){if(c&&c.outcome==='win'){var d=c.contactedDate||c.date;if(d){var g=actDaysAgo(d,t);if(g>=0&&g<=30)n++;}}});return n;}
   function pbar(v,goal){var p=Math.max(0,Math.min(100,Math.round((v/goal)*100)));return '<div class="pbar"><span style="width:'+p+'%"></span></div>';}
   function setPromo(k,v){promoData[k]=v;renderPromo();saveNow();}
-  function promoBump(k,delta,min){var v=(+promoData[k]||0)+delta;if(v<min)v=min;setPromo(k,v);}
+  function promoBump(k,delta,min){var old=(+promoData[k]||0);var v=old+delta;if(v<min)v=min;setPromo(k,v);if(k==="bp"&&v>old){hubKevin("\ud83e\udd1d "+myName()+" just brought on a new Business Partner! The team is growing \ud83d\udcaa ("+v+"/3 toward Senior Associate)");}}
   function promoSetPoints(){var e2=el('mdPoints');if(!e2)return;setPromo('points',parseInt((e2.value||'0').replace(/[^0-9]/g,''),10)||0);}
-  function promote(rank){promoData.rank=rank;renderPromo();saveNow();try{celebrate&&celebrate();}catch(e){}}
+  function promote(rank){promoData.rank=rank;renderPromo();saveNow();try{celebrate&&celebrate();}catch(e){}var lbl=rank==="marketing_director"?"Marketing Director \ud83d\udc51":"Senior Associate \ud83c\udfc6";hubKevin("\ud83c\udf89 HUGE \u2014 "+myName()+" just PROMOTED to "+lbl+"! Congratulations! \ud83d\udc4f\ud83d\udd25");}
   function renderPromo(){
     var host=el('promoCard'); if(!host)return;
     if(!code){host.innerHTML='';return;}
