@@ -702,17 +702,29 @@ var PREC={'Protect Family':['Income-replacement coverage (Term or IUL)','covers 
   box.innerHTML='<div class="aiscript"><h4>✨ Discovery → Close script for '+esc(first)+'</h4>'+segs.map(function(s){return '<div class="seg"><div class="seglbl">'+esc(s[0])+'</div><div class="segtx">'+esc(s[1])+'</div></div>';}).join('')+'<div class="aitools"><button onclick="copyScript()">📋 Copy script</button><button onclick="aiScript()">🔄 Regenerate</button><span class="aitag" id="aiTag">Tailored from this PFR — edit to your voice.</span></div></div>';
   aiEnhance(dd,c);
 }
+function pfrAIContext(dd,c){
+  var L=[];
+  L.push('Client: '+((dd.client&&dd.client.name)||'the client')+(dd.retire&&dd.retire.clientAge?(', age '+dd.retire.clientAge):''));
+  L.push('Monthly income '+money(c.inc)+', monthly expenses '+money(c.exp)+', remaining cash flow '+money(c.netMo)+' ('+Math.round((c.savingsRate||0)*100)+'% savings rate).');
+  L.push('Assets '+money(c.assets)+', investments '+money(c.invest)+', debt '+money(c.debt)+', net worth '+money(c.netWorth)+'.');
+  L.push('Ideal retirement age '+dd.retire.best+', plan through age '+dd.retire.deathAge+', desired income '+money(dd.goal.bestMo)+'/mo.');
+  L.push('Estimated annual '+(c.gapYr<0?'shortfall':'surplus')+' '+money(Math.abs(c.gapYr))+'; estimated insurable/protection need '+money(c.insurable)+'.');
+  L.push('Top priorities (ranked): '+(dd.priorities||[]).slice(0,4).join(', ')+'.');
+  if(dd.lifestyle&&dd.lifestyle.length)L.push('Lifestyle goals: '+dd.lifestyle.join(', ')+'.');
+  L.push('Confidence in current plan: '+((FACES[dd.confidence-1]||['','unsure'])[1])+'.');
+  if(dd.advisor)L.push('Client response when asked to learn more: '+dd.advisor);
+  return L.join('\n');
+}
 function aiEnhance(dd,c){
-  var tag=$('aiTag'); if(tag)tag.textContent='Checking for live AI…';
-  var top=(dd.priorities||[]).slice(0,3).join(', ');
-  var q='You are a top life-insurance sales coach. Write a warm, specific discovery-to-close talk track (5 short labeled sections) for a client named '+((dd.client&&dd.client.name)||'the client')+' whose top priorities are '+top+', with about a '+money(Math.abs(c.gapYr))+'/yr retirement gap, '+money(c.insurable)+' protection need, and a '+money(dd.goal.bestMo)+'/mo income goal. Recommend IUL or FIA where it fits. Keep it human.';
-  fetch('https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/hub-api',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'hub_ask',q:q})}).then(function(r){return r.json();}).then(function(r){
-    var a=r&&r.answer; if(!tag)return;
-    if(a && a.length>140 && !/don.t have a verified answer/i.test(a)){
+  var tag=$('aiTag'); if(tag)tag.textContent='🤖 Claude is analyzing this PFR…';
+  var prompt=pfrAIContext(dd,c);
+  fetch('https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/ai-api',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'pfr_ai',prompt:prompt})}).then(function(r){return r.json();}).then(function(r){
+    if(!tag)return; var a=r&&r.answer;
+    if(r&&r.ok&&a&&a.length>140){
       var live=document.createElement('div'); live.className='aiscript'; live.style.marginTop='10px';
-      live.innerHTML='<h4>🤖 Live AI version (Claude)</h4><div class="segtx" style="white-space:pre-wrap">'+esc(a)+'</div><div class="aitools"><button onclick="copyLive(this)">📋 Copy</button><span class="aitag">Generated live by Claude</span></div>';
-      $('aiBox').appendChild(live); tag.textContent='Tailored from this PFR — a live AI version was added below.';
-    } else { tag.textContent='Tailored from this PFR. (Add an Anthropic key to turn on live AI — ask Ops.)'; }
+      live.innerHTML='<h4>🤖 Live AI analysis — Claude</h4><div class="segtx" style="white-space:pre-wrap">'+esc(a)+'</div><div class="aitools"><button onclick="copyLive(this)">📋 Copy</button><span class="aitag">Generated live by Claude ('+esc(r.model||'')+')</span></div>';
+      $('aiBox').appendChild(live); tag.textContent='Tailored script above · live Claude analysis added below.';
+    } else { tag.textContent='Tailored from this PFR — edit to your voice.'+((r&&r.error)?(' (Live AI: '+esc(r.error)+')'):''); }
   }).catch(function(){ if(tag)tag.textContent='Tailored from this PFR — edit to your voice.'; });
 }
 function copyScript(){var segs=window.__aiSegs||[];var txt=segs.map(function(s){return s[0].toUpperCase()+'\n'+s[1];}).join('\n\n');copyText(txt);}

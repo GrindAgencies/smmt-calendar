@@ -1443,6 +1443,57 @@ function tsfgTheme(){var d=document.documentElement.getAttribute('data-theme')==
 function tsfgSignOut(){try{localStorage.removeItem('tsfg_code');localStorage.removeItem('tsfg_name');}catch(e){}location.href='index.html';}
 </script>
 
+<!-- ===== AI Training Coach ===== -->
+<style>
+.tc-fab{position:fixed;right:20px;bottom:20px;z-index:1200;display:inline-flex;align-items:center;gap:8px;border:none;cursor:pointer;
+  background:linear-gradient(135deg,#6470ff,#5b6cff);color:#fff;font-weight:800;font-size:14px;padding:13px 18px;border-radius:999px;
+  box-shadow:0 10px 30px rgba(91,108,255,.4);font-family:inherit;}
+.tc-fab:hover{filter:brightness(1.05);transform:translateY(-1px);}
+.tc-panel{position:fixed;right:20px;bottom:20px;z-index:1201;width:380px;max-width:calc(100vw - 24px);height:560px;max-height:calc(100vh - 40px);
+  background:#fff;border:1px solid #e6e6ea;border-radius:20px;box-shadow:0 30px 70px rgba(0,0,0,.3);display:none;flex-direction:column;overflow:hidden;font-family:inherit;}
+.tc-panel.on{display:flex;}
+.tc-head{background:linear-gradient(135deg,#6470ff,#5b6cff);color:#fff;padding:15px 18px;display:flex;align-items:center;gap:10px;}
+.tc-head .t{font-weight:800;font-size:15px;}.tc-head .s{font-size:11.5px;opacity:.9;}
+.tc-head .x{margin-left:auto;background:rgba(255,255,255,.2);border:none;color:#fff;width:28px;height:28px;border-radius:8px;cursor:pointer;font-size:15px;}
+.tc-body{flex:1;overflow-y:auto;padding:14px;background:#f7f7fb;display:flex;flex-direction:column;gap:10px;}
+.tc-msg{max-width:86%;padding:10px 13px;border-radius:14px;font-size:13.5px;line-height:1.45;white-space:pre-wrap;}
+.tc-msg.bot{background:#fff;border:1px solid #ececf0;color:#1d1d1f;align-self:flex-start;border-bottom-left-radius:5px;}
+.tc-msg.me{background:#5b6cff;color:#fff;align-self:flex-end;border-bottom-right-radius:5px;}
+.tc-chips{display:flex;flex-wrap:wrap;gap:6px;}
+.tc-chip{border:1px solid #d7d9e6;background:#fff;color:#4b5168;border-radius:999px;padding:6px 11px;font-size:12px;cursor:pointer;font-family:inherit;}
+.tc-chip:hover{border-color:#5b6cff;color:#5b6cff;}
+.tc-foot{border-top:1px solid #ececf0;padding:10px;display:flex;gap:8px;background:#fff;}
+.tc-foot input{flex:1;border:1px solid #d7d9e6;border-radius:12px;padding:11px 13px;font-size:14px;font-family:inherit;outline:none;}
+.tc-foot input:focus{border-color:#5b6cff;}
+.tc-foot button{border:none;background:#5b6cff;color:#fff;border-radius:12px;padding:0 15px;font-weight:800;cursor:pointer;font-family:inherit;}
+@media(max-width:640px){.tc-panel{right:8px;left:8px;width:auto;}}
+</style>
+<button class="tc-fab" id="tcFab" onclick="tcToggle(true)">🎓 AI Coach</button>
+<div class="tc-panel" id="tcPanel">
+  <div class="tc-head"><div><div class="t">🎓 AI Training Coach</div><div class="s">Licensing · BLDRs · scripts · pace — powered by Claude</div></div><button class="x" onclick="tcToggle(false)">✕</button></div>
+  <div class="tc-body" id="tcBody"></div>
+  <div class="tc-foot"><input id="tcInput" placeholder="Ask anything about your training…" onkeydown="if(event.key==='Enter')tcSend()"><button onclick="tcSend()">Send</button></div>
+</div>
+<script>
+(function(){
+  var AI='https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/ai-api';
+  var seeded=false;
+  function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function add(t,who){var b=document.getElementById('tcBody');var d=document.createElement('div');d.className='tc-msg '+who;d.textContent=t;b.appendChild(d);b.scrollTop=b.scrollHeight;return d;}
+  window.tcToggle=function(on){var p=document.getElementById('tcPanel'),f=document.getElementById('tcFab');p.classList.toggle('on',on);f.style.display=on?'none':'inline-flex';
+    if(on&&!seeded){seeded=true;add('Hey! I’m your AI Training Coach. Ask me anything about licensing, the BLDRs onboarding, running a PFR, warm-market scripts, or staying on pace. 💪','bot');
+      var chips=document.createElement('div');chips.className='tc-msg bot';chips.innerHTML='<div class="tc-chips">'+['How do I run a PFR?','What’s my licensing path?','Give me a warm-market opener','How do I hit Senior Associate?'].map(function(q){return '<button class="tc-chip" onclick="tcAsk(this.textContent)">'+esc(q)+'</button>';}).join('')+'</div>';
+      document.getElementById('tcBody').appendChild(chips);}
+    if(on)setTimeout(function(){document.getElementById('tcInput').focus();},60);
+  };
+  window.tcAsk=function(q){document.getElementById('tcInput').value=q;tcSend();};
+  window.tcSend=function(){var i=document.getElementById('tcInput');var q=(i.value||'').trim();if(!q)return;i.value='';add(q,'me');var pend=add('…','bot');
+    fetch(AI,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'tutor',q:q})}).then(function(r){return r.json();}).then(function(r){
+      pend.textContent=(r&&r.answer)||'I couldn’t reach the coach just now — try again, or ask Operations (Anais, 858-433-4429).';
+    }).catch(function(){pend.textContent='Connection hiccup — try again in a moment.';});
+  };
+})();
+</script>
 <script defer src="notif.js"></script>
 </body>
 </html>
