@@ -391,6 +391,7 @@ function blank(){return {client:{name:'',phone:'',email:''},
   debt:{'Student Loan':0,'Auto Loan':0,Mortgage:0,'Personal Loan':0,'Credit Cards':0,Medical:0,HELOC:0,'Payday Loans':0,'Equity Loans':0,'Pension Loans':0},
   expenses:{'Mortgage/Rent':0,'Property Tax':0,HOA:0,Utilities:0,Phone:0,Internet:0,Groceries:0,Subscriptions:0,Insurances:0,Gas:0,Childcare:0,Pets:0,'Petty Cash':0,'Debt Payments':0,Unforeseen:0},
   priorities:['Protect Family','Retirement','Emergency Savings','Debt Reduction','Tax Efficiency','College Funding','Legacy Planning','Business Planning','Charitable Giving'],
+  health:{tier:'Standard',tobacco:false},
   advisor:''
 };}
 function sum(o){var t=0;for(var k in o)t+=Number(o[k])||0;return t;}
@@ -739,12 +740,109 @@ function buildObs(c,dd){var o=[];
   return o.map(function(x){return '<div class="obs '+x[0]+'"><div class="ic">'+x[1]+'</div><div class="ot">'+esc(x[2])+'</div></div>';}).join('');
 }
 
-RENDER.advisor=function(){var opts=['Yes, I’d like to learn more.','I have a few questions first.','I’d like time to think about it.','Not at this time.'];
-  return '<div class="eyebrow">One Last Question</div>'+
-   '<h1 class="qh">Would you be open to exploring a strategy built around this?</h1>'+
-   '<p class="qsub">If there were a conservative financial strategy designed to help you work toward these goals — aligned with everything you’ve shared — would you be open to exploring it together?</p>'+
-   '<div class="chips" style="flex-direction:column;align-items:stretch">'+opts.map(function(o){var on=d().advisor===o;return '<button class="chip'+(on?' on':'')+'" style="justify-content:flex-start" onclick="d().advisor=\''+o.replace(/\x27/g,"\\x27")+'\';scheduleSave();renderStep()">'+o+'</button>';}).join('')+'</div>';
+/* ===== strategy engine (top-3 GFI carrier match by age / health / finances) ===== */
+var GFI_CARRIERS={
+  IUL:['Symetra','North American','Ameritas','Allianz Life','Corebridge Financial','F&G','Mutual of Omaha'],
+  Term:['Ethos','Corebridge Financial','Ameritas','Mutual of Omaha','Foresters Financial'],
+  FIA:['Allianz Life','F&G','American Equity','North American','Corebridge Financial'],
+  WL:['Mutual of Omaha','Foresters Financial','Ameritas','Corebridge Financial']
 };
+var CNOTE={'Symetra':'top-tier high-cash-value accumulation','North American':'strong accumulation IUL + competitive FIA','Ameritas':'low-cost IUL & competitive term','Allianz Life':'premier FIA income riders','Corebridge Financial':'broad, forgiving underwriting','F&G':'strong income products, friendlier underwriting','Mutual of Omaha':'senior-friendly underwriting','Foresters Financial':'family-friendly, moderate-health underwriting','Ethos':'instant no-exam decision for young & healthy','American Equity':'guaranteed-income FIA specialist'};
+var LENIENT=['Mutual of Omaha','Foresters Financial','F&G','Corebridge Financial'];
+var PLABEL={IUL:'Indexed Universal Life',Term:'Term Life',FIA:'Fixed Index Annuity',WL:'Whole Life / Final Expense'};
+function hInfo(dd){var h=dd.health||{tier:'Standard',tobacco:false};var t=h.tier||'Standard';
+  var lifeMult=t==='Excellent'?0.8:t==='Great'?0.9:t==='Poor'?1.5:t==='Ongoing health issues'?2.0:1.0;
+  var wlMult=t==='Excellent'?0.85:t==='Great'?0.92:t==='Poor'?1.4:t==='Ongoing health issues'?1.8:1.0;
+  var risky=!!h.tobacco||t==='Poor'||t==='Ongoing health issues';
+  var noInstant=t==='Poor'||t==='Ongoing health issues';
+  return {tier:t,tobacco:!!h.tobacco,lifeMult:lifeMult,wlMult:wlMult,risky:risky,noInstant:noInstant,word:(h.tobacco?'tobacco-use, ':'')+t.toLowerCase()+' health'};}
+function roundTo(v,step){v=Math.max(0,Math.round(v||0));return Math.round(v/step)*step;}
+function orderCarriers(prod,dd){var list=GFI_CARRIERS[prod].slice();var hi=hInfo(dd);
+  if(prod==='Term'&&hi.noInstant)list=list.filter(function(x){return x!=='Ethos';});
+  if(hi.risky)list.sort(function(a,b){return (LENIENT.indexOf(a)>=0?0:1)-(LENIENT.indexOf(b)>=0?0:1);});
+  return list;}
+function pickPrimary(c,dd){var age=+((dd.retire||{}).clientAge)||0;var lead=(dd.priorities||[])[0]||'';var surplus=Math.max(0,c.netMo);var liquid=c.liquid||0;
+  if(lead==='Legacy Planning')return age>=58?'WL':'IUL';
+  if(lead==='Protect Family')return (age>=60||surplus<200)?'Term':(age<55?'IUL':'Term');
+  if(lead==='Retirement'||lead==='Tax Efficiency'||lead==='Business Planning')return age>=55?'FIA':'IUL';
+  if(lead==='Emergency Savings'||lead==='Debt Reduction'||lead==='College Funding')return 'IUL';
+  if(age>=60)return liquid>=50000?'FIA':'WL';
+  if(age>=55)return 'FIA';
+  return 'IUL';}
+function pickComp(prim,c,dd){var age=+((dd.retire||{}).clientAge)||0;
+  if(prim==='Term')return (Math.max(0,c.netMo)>=250&&age<58)?'IUL':'FIA';
+  if(prim==='WL')return 'Term';
+  return 'Term';}
+function nIUL(c,dd){var surplus=Math.max(0,c.netMo);
+  var prem=surplus>0?Math.min(Math.max(roundTo(surplus*0.4,25),150),4000):Math.max(150,roundTo((c.inc||0)*0.08,25));
+  var face=Math.max(roundTo(c.insurable,25000),150000);return {mo:prem,yr:prem*12,face:face};}
+function nTerm(c,dd,faceOv){var age=+((dd.retire||{}).clientAge)||40;var hi=hInfo(dd);
+  var face=faceOv||Math.max(roundTo(c.insurable,25000),250000);
+  var rate=age<30?0.032:age<40?0.05:age<50?0.085:age<60?0.19:0.42;
+  var mo=Math.max(12,Math.round(face/1000*rate*hi.lifeMult*(hi.tobacco?2.2:1)));
+  var term=Math.max(10,Math.min(30,roundTo(Math.max(0,((dd.retire||{}).best||65)-age),5)||10));
+  return {mo:mo,yr:mo*12,face:face,term:term};}
+function nFIA(c,dd){var age=+((dd.retire||{}).clientAge)||55;
+  var prem=Math.max(roundTo(Math.max((c.liquid||0)*0.5,(c.invest||0)*0.4),5000),25000);
+  var rate=age<60?0.05:age<65?0.055:age<70?0.06:0.065;var incYr=Math.round(prem*rate);
+  return {prem:prem,incYr:incYr,incMo:Math.round(incYr/12)};}
+function nWL(c,dd){var age=+((dd.retire||{}).clientAge)||60;var hi=hInfo(dd);
+  var face=((dd.priorities||[])[0]==='Legacy Planning')?50000:20000;
+  var per=age<50?1.2:age<60?2.2:age<70?3.6:5.6;
+  var mo=Math.max(15,Math.round(face/1000*per*hi.wlMult*(hi.tobacco?1.6:1)));
+  return {mo:mo,yr:mo*12,face:face};}
+function stratHeadline(prim,comp){var m={IUL:'a max-funded IUL for tax-free growth + protection',FIA:'a fixed index annuity for protected retirement income',Term:'low-cost term protection',WL:'guaranteed whole-life / final-expense coverage'};var l={IUL:'an IUL accumulation layer',FIA:'a guaranteed-income annuity',Term:'a term protection layer',WL:'final-expense coverage'};return 'Lead with '+m[prim]+', layered with '+l[comp]+'.';}
+function whyLine(prod,car,c,dd){var age=+((dd.retire||{}).clientAge)||0;var hi=hInfo(dd);var note=CNOTE[car]||'a strong fit';
+  if(prod==='IUL')return 'Puts part of your '+money(Math.max(0,c.netMo))+'/mo surplus into tax-free growth and works to close the '+money(Math.abs(c.gapYr))+'/yr gap — '+note+', a fit at age '+age+' in '+hi.word+'.';
+  if(prod==='Term')return 'Covers your family’s '+money(c.insurable)+' protection need at the lowest cost — '+note+', well-suited to age '+age+' in '+hi.word+'.';
+  if(prod==='FIA')return 'Converts a lump sum into protected lifetime income for retirement at '+((dd.retire||{}).best||65)+' with no market risk — '+note+'.';
+  return 'Locks in guaranteed coverage with simple underwriting — '+note+', ideal at age '+age+' in '+hi.word+'.';}
+function numsFor(prod,c,dd){if(prod==='IUL'){var x=nIUL(c,dd);return [['Target premium',money(x.mo)+'/mo ('+money(x.yr)+'/yr)'],['Death benefit',money(x.face)]];}
+  if(prod==='Term'){var t=nTerm(c,dd);return [['Est. premium',money(t.mo)+'/mo ('+money(t.yr)+'/yr)'],['Coverage',money(t.face)+' · '+t.term+'-yr term']];}
+  if(prod==='FIA'){var f=nFIA(c,dd);return [['Starting premium',money(f.prem)],['Est. guaranteed income',money(f.incMo)+'/mo ('+money(f.incYr)+'/yr)']];}
+  var w=nWL(c,dd);return [['Est. premium',money(w.mo)+'/mo ('+money(w.yr)+'/yr)'],['Death benefit',money(w.face)]];}
+function buildStrategy(c,dd){var prim=pickPrimary(c,dd);var comp=pickComp(prim,c,dd);
+  var primCar=orderCarriers(prim,dd),compCar=orderCarriers(comp,dd);var recs=[];
+  [0,1].forEach(function(i){var car=primCar[i];if(!car)return;recs.push({rank:recs.length+1,carrier:car,prod:prim,label:PLABEL[prim],nums:numsFor(prim,c,dd),why:whyLine(prim,car,c,dd)});});
+  var used=recs.map(function(r){return r.carrier;});var c3=compCar.filter(function(x){return used.indexOf(x)<0;})[0]||compCar[0];
+  recs.push({rank:recs.length+1,carrier:c3,prod:comp,label:PLABEL[comp],nums:numsFor(comp,c,dd),why:whyLine(comp,c3,c,dd)});
+  return {headline:stratHeadline(prim,comp),primary:prim,comp:comp,recs:recs.slice(0,3)};}
+function stratCards(s){return s.recs.map(function(r){var nums=r.nums.map(function(n){return '<span class="pill" style="background:var(--gold-soft);color:var(--gold);border:none;font-weight:600"><b>'+esc(n[0])+':</b> '+esc(n[1])+'</span>';}).join(' ');
+  return '<div class="pbrec"><div class="n" style="width:26px;height:26px;border-radius:8px;background:var(--accent-soft);color:var(--accent);font-weight:800;display:flex;align-items:center;justify-content:center;flex:0 0 auto">'+r.rank+'</div><div style="flex:1"><div class="pri">'+esc(r.carrier)+' — '+esc(r.label)+'</div><div style="margin:6px 0;display:flex;flex-wrap:wrap;gap:6px">'+nums+'</div><div class="wy">'+esc(r.why)+'</div></div></div>';}).join('');}
+function renderStrategyInner(c,dd){var s=buildStrategy(c,dd);
+  return '<div class="sec"><div class="obs neu" style="padding-top:0"><div class="ic">🧭</div><div class="ot"><b>Strategy:</b> '+esc(s.headline)+'</div></div>'+
+   '<div style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin:14px 0 8px">Top 3 carrier matches</div>'+stratCards(s)+
+   '<div id="stratAI" style="margin-top:12px"></div>'+
+   '<div class="obs neu" style="margin-top:10px"><div class="ic">⚠️</div><div class="ot" style="font-size:12px">Carriers and figures are starting estimates for illustration only — run the carrier illustration to confirm. Final rates depend on underwriting.</div></div></div>';}
+RENDER.advisor=function(){var c=calc(d());var dd=d();if(!dd.health)dd.health={tier:'Standard',tobacco:false};
+  var first=esc((dd.client.name||'').split(' ')[0]||'there');
+  var tiers=['Excellent','Great','Standard','Poor','Ongoing health issues'];
+  var tchips=tiers.map(function(t){return '<button class="chip'+(dd.health.tier===t?' on':'')+'" onclick="setHTier(\''+t.replace(/\x27/g,"\\x27")+'\')">'+esc(t)+'</button>';}).join('');
+  var tob='<button class="chip'+(dd.health.tobacco?' on':'')+'" onclick="setHTob()">'+(dd.health.tobacco?'☑':'☐')+' Tobacco / nicotine</button>';
+  return '<div class="eyebrow">Recommended Strategy</div>'+
+   '<h1 class="qh">Here’s the strategy we’d build for you, '+first+'.</h1>'+
+   '<p class="qsub">Matched across The Standard’s partnered carriers to your age, health, and finances. Starting numbers are estimates for illustration only.</p>'+
+   '<div class="sec"><div style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin-bottom:8px">Quick health snapshot — sharpens the carrier match</div>'+
+    '<div class="chips" style="margin-bottom:8px;flex-wrap:wrap">'+tchips+'</div><div class="chips">'+tob+'</div></div>'+
+   '<div id="stratBox">'+renderStrategyInner(c,dd)+'</div>';
+};
+AFTER.advisor=function(){stratAIEnhance(d(),calc(d()));};
+function setHTier(t){d().health.tier=t;scheduleSave();renderStep();}
+function setHTob(){d().health.tobacco=!d().health.tobacco;scheduleSave();renderStep();}
+function stratAIEnhance(dd,c){if(!dd)return;var box=$('stratAI');if(!box)return;
+  box.innerHTML='<div class="aiscript"><h4>🤖 Live AI carrier match</h4><div class="segtx" style="color:var(--ink3)">Claude is matching carriers to this profile…</div></div>';
+  fetch('https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/ai-api',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'pfr_strategy',prompt:pfrAIContext(dd,c)})}).then(function(r){return r.json();}).then(function(r){
+    var b=$('stratAI');if(!b)return;var a=r&&r.answer;
+    if(r&&r.ok&&a&&a.length>60){b.innerHTML='<div class="aiscript"><h4>🤖 Live AI carrier match — Claude</h4><div class="segtx" style="white-space:pre-wrap">'+esc(a)+'</div><div class="aitools"><button onclick="copyLive(this)">📋 Copy</button><span class="aitag">Generated live by Claude ('+esc(r.model||'')+') · verify with the illustration</span></div></div>';}
+    else{b.innerHTML='<div class="aitag" style="font-size:12px;color:var(--ink3)">Live AI unavailable right now — the top-3 above are ready to use.'+((r&&r.error)?(' ('+esc(r.error)+')'):'')+'</div>';}
+  }).catch(function(){var b=$('stratAI');if(b)b.innerHTML='<div class="aitag" style="font-size:12px;color:var(--ink3)">Live AI unavailable right now — the top-3 above are ready to use.</div>';});}
+function buildStrategyReport(c,dd){var s=buildStrategy(c,dd);var h=dd.health||{tier:'Standard',tobacco:false};
+  var rows=s.recs.map(function(r){var nums=r.nums.map(function(n){return n[0]+': '+n[1];}).join('  ·  ');
+    return '<div class="pbstep"><div class="n">'+r.rank+'</div><div class="t"><b>'+esc(r.carrier)+' — '+esc(r.label)+'</b><div class="wy">'+esc(nums)+'</div><div class="wy">'+esc(r.why)+'</div></div></div>';}).join('');
+  return '<div class="sec"><h2>🎯 Recommended Strategy</h2>'+
+   '<div class="obs neu" style="padding-top:0"><div class="ic">🧭</div><div class="ot"><b>'+esc(s.headline)+'</b> Health snapshot: '+esc(h.tier)+(h.tobacco?', tobacco':', non-tobacco')+'.</div></div>'+
+   '<div style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin:14px 0 8px">Top 3 carrier matches (starting estimates)</div>'+rows+
+   '<div class="obs neu" style="margin-top:10px"><div class="ic">⚠️</div><div class="ot" style="font-size:12px">Starting estimates for illustration only — confirm with the carrier illustration; final rates depend on underwriting.</div></div></div>';}
 
 /* ===== finish ===== */
 function finishFlow(){CUR.status='complete';saveNow();showSummary();}
@@ -770,7 +868,7 @@ function showSummary(){
    (dd.lifestyle.length?'<div class="sec"><h2>Lifestyle Goals</h2>'+dd.lifestyle.map(function(l){return '<span class="pill">'+esc(l)+'</span>';}).join('')+'</div>':'')+
    '<div class="sec"><h2>Priority Ranking</h2>'+dd.priorities.slice(0,6).map(function(p,i){return '<span class="pill"><b>'+(i+1)+'</b> '+esc(p)+'</span>';}).join('')+'</div>'+
    '<div class="sec"><h2>Key Observations &amp; Discussion Topics</h2>'+buildObs(c,dd)+'</div>'+
-   (dd.advisor?'<div class="sec"><h2>Next Step</h2><div class="obs neu"><div class="ic">🗨️</div><div class="ot">Client response: <b>'+esc(dd.advisor)+'</b></div></div></div>':'')+
+   buildStrategyReport(c,dd)+
    buildDebtPlan(c,dd)+buildBudgetPlan(c,dd)+buildHNW(c,dd)+buildPlaybook(c,dd)+buildInternalNotes(dd)+'<div class="repbtns"><button onclick="backToGallery()">← Builder</button><button onclick="editCurrent()">Edit</button><button onclick="shareEmail()">✉ Share PDF</button><button class="prime" onclick="saveComplete()">✓ Save PFR</button></div>'+
    '</div>';
 }
@@ -801,6 +899,7 @@ var PREC={'Protect Family':['Income-replacement coverage (Term or IUL)','covers 
 function pfrAIContext(dd,c){
   var L=[];
   L.push('Client: '+((dd.client&&dd.client.name)||'the client')+(dd.retire&&dd.retire.clientAge?(', age '+dd.retire.clientAge):''));
+  var _h=dd.health||{tier:'Standard',tobacco:false};L.push('Health class: '+(_h.tier||'Standard')+(_h.tobacco?', TOBACCO/nicotine user':', non-tobacco')+'.');
   L.push('Monthly income '+money(c.inc)+', monthly expenses '+money(c.exp)+', remaining cash flow '+money(c.netMo)+' ('+Math.round((c.savingsRate||0)*100)+'% savings rate).');
   L.push('Assets '+money(c.assets)+', investments '+money(c.invest)+', debt '+money(c.debt)+', net worth '+money(c.netWorth)+'.');
   L.push('Ideal retirement age '+dd.retire.best+', plan through age '+dd.retire.deathAge+', desired income '+money(dd.goal.bestMo)+'/mo.');
