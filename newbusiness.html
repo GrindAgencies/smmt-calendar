@@ -155,6 +155,7 @@ tbody tr{cursor:pointer;}tbody tr:hover{background:var(--bg);}
     <div class="srch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input id="qc" placeholder="Search client by name…" oninput="render()"></div>
     <select class="viewsel" id="viewsel" onchange="setScope(this.value)"><option value="me">View Personal</option><option value="team">View Team</option><option value="shop">View Baseshop</option><option value="hier">View Hierarchy</option></select>
     <button class="opsbtn" id="opsBtn" onclick="toggleOps()">🔒 Ops</button>
+    <button class="opsbtn" id="syncBtn" style="display:none" onclick="syncAP()">⟳ Sync Agency Pulse</button>
     <button class="newbtn" onclick="openNew()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>New Sale</button>
   </div>
 
@@ -190,6 +191,12 @@ tbody tr{cursor:pointer;}tbody tr:hover{background:var(--bg);}
   <div class="commbox"><div class="cl">Expected Commission</div><div class="cv" id="commOut">$0</div></div>
   <div class="sec-l">Dates</div>
   <div class="frow"><div class="fg"><label>Date written *</label><input id="f_written" type="date"></div><div class="fg"><label>First draft date</label><input id="f_draft" type="date"></div></div>
+  <label class="chk" id="suitToggle" style="display:none"><input type="checkbox" id="f_suit"> ✅ Annuity suitability reviewed &amp; on file</label>
+  <div class="sec-l">Deposit · Chargeback · Trailing <span style="font-weight:500;color:var(--ink3);text-transform:none;letter-spacing:0">— optional, for issued business</span></div>
+  <div class="frow"><div class="fg"><label>Paid-out date</label><input id="f_paidout" type="date"></div><div class="fg"><label>Trailing months</label><input id="f_trmonths" type="number" placeholder="e.g. 9"></div><div class="fg"><label>Trailing status</label><select id="f_trstatus"><option value="">—</option><option>On track</option><option>Behind</option><option>Complete</option></select></div></div>
+  <div class="frow"><div class="fg"><label>Chargeback type</label><select id="f_cbtype"><option value="">None</option><option>Full</option><option>Partial</option><option>Pending</option></select></div><div class="fg"><label>Chargeback amount</label><input id="f_cbamt" type="number" placeholder="$"></div><div class="fg"><label>Chargeback date</label><input id="f_cbdate" type="date"></div></div>
+  <div class="fg"><label>Chargeback note</label><input id="f_cbnote" placeholder="Reason / carrier ref (optional)"></div>
+  <div class="sec-l">Notes</div>
   <div class="fg"><label>Notes</label><textarea id="f_notes" rows="2" placeholder="Add a note…"></textarea></div>
   <button class="pfrbtn" onclick="toast('PFR attachment coming soon')">＋ Attach Client's PFR</button>
   <div class="hint" style="text-align:center;margin-top:6px">Optional. Attach the PFR that justified this sale so reviewers have full context.</div>
@@ -264,8 +271,20 @@ function toggleOps(){
     else toast('Incorrect passcode');
   });
 }
+function syncAP(){
+  if(!OPS){toast('Ops only');return;}
+  if(!confirm('Pull all business from Agency Pulse and sync it into New Business? Existing records are updated, new ones added.'))return;
+  var b=$('syncBtn');b.disabled=true;var t0=b.textContent;b.textContent='⟳ Syncing…';
+  fetch('https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/ap-sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'sync',token:'2026'})})
+   .then(function(r){return r.json();}).then(function(r){
+     b.disabled=false;b.textContent=t0;
+     if(r&&r.ok){toast('Synced ✓ — '+r.inserted+' new, '+r.updated+' updated of '+r.ap_total);load();}
+     else toast('Sync failed: '+((r&&r.error)||'unknown'));
+   }).catch(function(){b.disabled=false;b.textContent=t0;toast('Sync could not reach the server');});
+}
 function applyOps(){
   $('opsBtn').classList.toggle('on',OPS);$('opsBtn').textContent=OPS?'🔓 Ops':'🔒 Ops';$('opsBadge').classList.toggle('hide',!OPS);
+  $('syncBtn').style.display=OPS?'inline-flex':'none';
   var vs=$('viewsel');
   var hasAll=Array.prototype.some.call(vs.options,function(o){return o.value==='all';});
   if(OPS&&!hasAll){var op=document.createElement('option');op.value='all';op.textContent='View All (Ops)';vs.appendChild(op);}
@@ -290,16 +309,16 @@ function renderKpis(){
   var sum=function(arr,k){return arr.reduce(function(t,r){return t+(Number(r[k])||0);},0);};
   var openR=rows.filter(function(r){return r.status!=='closed';});
   var byB=function(b){return rows.filter(function(r){return bucket(r.status)===b;});};
-  var cards=[['AP Submitted',moneyK(sum(openR,'annual_premium')),'blue'],['Pending Comm.',moneyK(sum(byB('pending'),'expected_commission')),'gold'],['Approved AP',moneyK(sum(byB('approved'),'annual_premium')),'green'],['In Force',moneyK(sum(byB('paid'),'annual_premium')),'green'],['Paid Comm.',moneyK(sum(byB('paid'),'expected_commission')),'gold'],['Closed AP',moneyK(sum(byB('closed'),'annual_premium')),'red'],['Total Coverage',moneyK(sum(openR,'coverage')),'blue']];
+  var cards=[['AP Submitted',moneyK(sum(openR,'annual_premium')),'blue'],['Pending Comm.',moneyK(sum(byB('pending'),'expected_commission')),'gold'],['Approved AP',moneyK(sum(byB('approved'),'annual_premium')),'green'],['In Force',moneyK(sum(byB('paid'),'annual_premium')),'green'],['Paid Comm.',moneyK(sum(byB('paid'),'expected_commission')),'gold'],['Chargebacks',moneyK(sum(rows,'chargeback_amount')),'red'],['Closed AP',moneyK(sum(byB('closed'),'annual_premium')),'red'],['Total Coverage',moneyK(sum(openR,'coverage')),'blue']];
   $('kpis').innerHTML=cards.map(function(c){return '<div class="kpi '+c[2]+'"><div class="kl">'+c[0]+'</div><div class="kv">'+c[1]+'</div></div>';}).join('');
   var cnt=function(b){return byB(b).length;};
   var stages=[['submitted','Submitted',openR.length,'M9 3h6v4H9zM7 7h10v13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1z'],['pending','Pending',cnt('pending'),'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 2'],['approved','Approved',cnt('approved'),'M20 6 9 17l-5-5'],['paid','Paid Out',cnt('paid'),'M3 10.5 12 4l9 6.5V20H3zM9 20v-6h6v6'],['closed','Closed',cnt('closed'),'M18 6 6 18M6 6l12 12']];
   var h='';stages.forEach(function(st,i){h+='<div class="pstage s-'+st[0]+'"><div class="pic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="'+st[3]+'"/></svg></div><div><div class="pn">'+st[2]+'</div><div class="pt">'+st[1]+'</div></div></div>';if(i<stages.length-1)h+='<div class="parrow"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>';});
   $('pipe').innerHTML=h;
   var stuck=rows.filter(function(r){return bucket(r.status)==='stuck';}).length;
-  $('tabs').innerHTML=[['active','Active',byB('pending').length+byB('approved').length],['stuck','Stuck',stuck],['paid','Paid Out',cnt('paid')],['closed','Closed',cnt('closed')],['all','All',rows.length]].map(function(t){return '<button class="'+(TAB===t[0]?'on':'')+'" onclick="setTab(\''+t[0]+'\')">'+t[1]+'<span class="c">'+t[2]+'</span></button>';}).join('');
+  $('tabs').innerHTML=[['active','Active',byB('pending').length+byB('approved').length],['stuck','Stuck',stuck],['paid','Paid Out',cnt('paid')],['deposits','💰 Deposits',cnt('paid')],['closed','Closed',cnt('closed')],['all','All',rows.length]].map(function(t){return '<button class="'+(TAB===t[0]?'on':'')+'" onclick="setTab(\''+t[0]+'\')">'+t[1]+'<span class="c">'+t[2]+'</span></button>';}).join('');
 }
-function passTab(p){var b=bucket(p.status);if(TAB==='all')return true;if(TAB==='active')return b==='pending'||b==='approved';if(TAB==='stuck')return b==='stuck';return b===TAB;}
+function passTab(p){var b=bucket(p.status);if(TAB==='all')return true;if(TAB==='active')return b==='pending'||b==='approved';if(TAB==='stuck')return b==='stuck';if(TAB==='deposits')return b==='paid';return b===TAB;}
 
 var COLS=[['client_name','Client'],['status','Status'],['submitted_date','Submitted'],['state','State'],['carrier','Carrier'],['policy_number','Policy #'],['product','Product'],['split_agent','Split Agent'],['annual_premium','Annual Premium']];
 function renderHead(){
@@ -316,7 +335,7 @@ function render(){
     var tr=document.createElement('tr');tr.onclick=function(){openEdit(p);};
     var cov=p.coverage?('$'+Number(p.coverage).toLocaleString('en-US')+' coverage'):'';
     var d=(p.submitted_date||'').slice(0,10);
-    tr.innerHTML='<td><div class="cli"><div class="av">'+initials(p.client_name)+'</div><div><div class="cn">'+esc(p.client_name||'—')+'</div><div class="cm">'+esc(cov)+(p.split_flag?' · split':'')+'</div></div></div></td>'+
+    tr.innerHTML='<td><div class="cli"><div class="av">'+initials(p.client_name)+'</div><div><div class="cn">'+esc(p.client_name||'—')+'</div><div class="cm">'+esc(cov)+(p.split_flag?' · split':'')+(p.suitability_ok?' · ✅ suitability':'')+(Number(p.chargeback_amount)?' · ⚠ chargeback':'')+(p.paid_out_date?(' · 💰 '+String(p.paid_out_date).slice(0,10)):'')+'</div></div></div></td>'+
       '<td><span class="stpill '+pillClass(p.status)+'">'+esc(stLabel(p.status))+'</span></td>'+
       '<td class="muted">'+esc(d||'—')+'</td><td>'+esc(p.state||'—')+'</td><td>'+esc(p.carrier||'—')+'</td>'+
       '<td class="muted">'+esc(p.policy_number||'—')+'</td><td>'+esc(p.product||'—')+'</td>'+
@@ -353,13 +372,20 @@ function fillForm(p){
   set('f_carrier',p.carrier);set('f_product',p.product);set('f_state',p.state);set('f_polnum',p.policy_number);set('f_ccode',p.carrier_code);
   set('f_cov',p.coverage);set('f_prem',p.annual_premium);set('f_contract',p.contract_pct);
   set('f_written',(p.date_written||'').slice(0,10));set('f_draft',(p.first_draft_date||'').slice(0,10));set('f_notes',p.notes);
+  set('f_paidout',(p.paid_out_date||'').slice(0,10));set('f_trmonths',p.trailing_months);set('f_trstatus',p.trailing_status);
+  set('f_cbtype',p.chargeback_type);set('f_cbamt',p.chargeback_amount);set('f_cbdate',(p.chargeback_date||'').slice(0,10));set('f_cbnote',p.chargeback_note);
+  $('f_suit').checked=!!p.suitability_ok; suitVis();
   calcComm();
 }
-function clearForm(){STATUS='pending';['f_client','f_phone','f_email','f_gender','f_dob','f_source','f_split','f_carrier','f_product','f_state','f_polnum','f_ccode','f_cov','f_prem','f_notes'].forEach(function(i){$(i).value='';});$('f_contract').value='80';$('f_writingoff').checked=false;$('f_splitflag').checked=false;$('splitWrap').style.display='none';$('f_written').value=ptToday();renderStatusGrid();calcComm();}
+function suitVis(){$('suitToggle').style.display=(BIZ==='annuity')?'flex':'none';}
+function clearForm(){STATUS='pending';['f_client','f_phone','f_email','f_gender','f_dob','f_source','f_split','f_carrier','f_product','f_state','f_polnum','f_ccode','f_cov','f_prem','f_notes','f_paidout','f_trmonths','f_trstatus','f_cbtype','f_cbamt','f_cbdate','f_cbnote'].forEach(function(i){$(i).value='';});$('f_contract').value='80';$('f_writingoff').checked=false;$('f_splitflag').checked=false;$('f_suit').checked=false;$('splitWrap').style.display='none';$('f_written').value=ptToday();suitVis();renderStatusGrid();calcComm();}
 function openNew(){EDIT=null;$('mTitle').textContent='New Sale';$('mSub').textContent='Log a fresh app to track through to commission.';$('mDel').classList.add('hide');$('saveBtn').textContent='Save Sale';clearForm();$('ov').classList.add('on');}
 function openEdit(p){if(!p)return;EDIT=p;var own=canEdit(p);$('mTitle').textContent=own?'Edit Sale':'View Sale';$('mSub').textContent=(p.agent_name||'')+(OPS?' · Operations edit':'');$('mDel').classList.toggle('hide',!own);$('saveBtn').textContent=own?'Save Changes':'Close';fillForm(p);$('ov').classList.add('on');}
 function closeModal(){$('ov').classList.remove('on');}
-function collect(){var v=function(i){return $(i).value.trim();};return {client_name:v('f_client'),phone:v('f_phone'),email:v('f_email'),gender:v('f_gender'),dob:v('f_dob'),source:v('f_source'),status:STATUS,business_type:BIZ,writing_off:$('f_writingoff').checked,split_flag:$('f_splitflag').checked,split_agent:v('f_split'),carrier:v('f_carrier'),product:v('f_product'),state:v('f_state'),policy_number:v('f_polnum'),carrier_code:v('f_ccode'),coverage:v('f_cov'),annual_premium:v('f_prem'),contract_pct:v('f_contract'),advance_pct:'100',date_written:v('f_written'),first_draft_date:v('f_draft'),notes:v('f_notes')};}
+function collect(){var v=function(i){return $(i).value.trim();};return {client_name:v('f_client'),phone:v('f_phone'),email:v('f_email'),gender:v('f_gender'),dob:v('f_dob'),source:v('f_source'),status:STATUS,business_type:BIZ,writing_off:$('f_writingoff').checked,split_flag:$('f_splitflag').checked,split_agent:v('f_split'),carrier:v('f_carrier'),product:v('f_product'),state:v('f_state'),policy_number:v('f_polnum'),carrier_code:v('f_ccode'),coverage:v('f_cov'),annual_premium:v('f_prem'),contract_pct:v('f_contract'),advance_pct:'100',date_written:v('f_written'),first_draft_date:v('f_draft'),notes:v('f_notes'),
+  paid_out_date:v('f_paidout'),trailing_months:v('f_trmonths'),trailing_status:v('f_trstatus'),
+  chargeback_type:v('f_cbtype'),chargeback_amount:v('f_cbamt'),chargeback_date:v('f_cbdate'),chargeback_note:v('f_cbnote'),
+  suitability_ok:$('f_suit').checked};}
 function saveSale(){
   if(EDIT&&!canEdit(EDIT)){closeModal();return;}
   if(!$('f_client').value.trim()){toast('Enter a client name');return;}
