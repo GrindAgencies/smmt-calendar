@@ -155,7 +155,6 @@ tbody tr{cursor:pointer;}tbody tr:hover{background:var(--bg);}
     <div class="srch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input id="qc" placeholder="Search client by name…" oninput="render()"></div>
     <select class="viewsel" id="viewsel" onchange="setScope(this.value)"><option value="me">View Personal</option><option value="team">View Team</option><option value="shop">View Baseshop</option><option value="hier">View Hierarchy</option></select>
     <button class="opsbtn" id="opsBtn" onclick="toggleOps()">🔒 Ops</button>
-    <button class="opsbtn" id="syncBtn" style="display:none" onclick="syncAP()">⟳ Sync Agency Pulse</button>
     <button class="newbtn" onclick="openNew()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>New Sale</button>
   </div>
 
@@ -271,20 +270,8 @@ function toggleOps(){
     else toast('Incorrect passcode');
   });
 }
-function syncAP(){
-  if(!OPS){toast('Ops only');return;}
-  if(!confirm('Pull all business from Agency Pulse and sync it into New Business? Existing records are updated, new ones added.'))return;
-  var b=$('syncBtn');b.disabled=true;var t0=b.textContent;b.textContent='⟳ Syncing…';
-  fetch('https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/ap-sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'sync',token:'2026'})})
-   .then(function(r){return r.json();}).then(function(r){
-     b.disabled=false;b.textContent=t0;
-     if(r&&r.ok){toast('Synced ✓ — '+r.inserted+' new, '+r.updated+' updated of '+r.ap_total);load();}
-     else toast('Sync failed: '+((r&&r.error)||'unknown'));
-   }).catch(function(){b.disabled=false;b.textContent=t0;toast('Sync could not reach the server');});
-}
 function applyOps(){
   $('opsBtn').classList.toggle('on',OPS);$('opsBtn').textContent=OPS?'🔓 Ops':'🔒 Ops';$('opsBadge').classList.toggle('hide',!OPS);
-  $('syncBtn').style.display=OPS?'inline-flex':'none';
   var vs=$('viewsel');
   var hasAll=Array.prototype.some.call(vs.options,function(o){return o.value==='all';});
   if(OPS&&!hasAll){var op=document.createElement('option');op.value='all';op.textContent='View All (Ops)';vs.appendChild(op);}
