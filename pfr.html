@@ -73,8 +73,12 @@ h1.pgh{font-size:30px;font-weight:800;letter-spacing:-.03em;margin:0 0 5px;}
 .fprog .bar{height:100%;background:linear-gradient(90deg,var(--accent),#8b9bff);width:0;transition:width .4s cubic-bezier(.2,.8,.2,1);}
 .ftop{display:flex;align-items:center;gap:14px;padding:16px 24px;}
 .ftop .step{font-size:12.5px;font-weight:700;color:var(--ink3);}
-.ftop .fx{margin-left:auto;border:1px solid var(--line2);background:var(--panel);border-radius:10px;padding:8px 13px;font-weight:600;font-size:13px;color:var(--ink2);display:flex;align-items:center;gap:7px;}
-.fsave{font-size:12px;color:var(--ink3);font-weight:600;}
+.ftop .fx{margin-left:10px;border:1px solid var(--line2);background:var(--panel);border-radius:10px;padding:8px 13px;font-weight:600;font-size:13px;color:var(--ink2);display:flex;align-items:center;gap:7px;}
+.fsave{font-size:12px;color:var(--ink3);font-weight:600;margin-left:auto;white-space:nowrap;}
+.fsave.dirty{color:var(--gold,#c99a2e);}
+.fsave.saved{color:var(--green,#34c759);}
+.ftop .fsavebtn{margin-left:12px;border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:10px;padding:8px 16px;font-weight:700;font-size:13px;cursor:pointer;transition:.12s;}
+.ftop .fsavebtn:hover{filter:brightness(1.06);}
 .fbody{flex:1;overflow-y:auto;display:flex;justify-content:center;}
 .fstage{width:100%;max-width:720px;padding:24px 24px 40px;animation:fade .45s cubic-bezier(.2,.8,.2,1);}
 @keyframes fade{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:none;}}
@@ -237,6 +241,7 @@ input[type=range]{width:100%;accent-color:var(--accent);height:6px;}
   <div class="ftop">
     <span class="step" id="stepLbl">Step 1</span>
     <span class="fsave" id="saveLbl"></span>
+    <button class="fsavebtn" id="saveBtnTop" onclick="saveManual()">Save</button>
     <button class="fx" onclick="exitFlow()"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg> Save &amp; Close</button>
   </div>
   <div class="fbody" id="fbody"><div class="fstage" id="stage"></div></div>
@@ -392,14 +397,24 @@ function renderStep(){
 var d=function(){return CUR.data;};
 
 /* autosave */
-function scheduleSave(){clearTimeout(saveTimer);saveTimer=setTimeout(function(){saveNow();},900);}
+function setSaveLbl(txt,cls){var l=$('saveLbl');if(!l)return;l.textContent=txt;l.className='fsave'+(cls?(' '+cls):'');}
+function scheduleSave(){clearTimeout(saveTimer);setSaveLbl('Unsaved changes…','dirty');saveTimer=setTimeout(function(){saveNow();},900);}
+function saveManual(){
+  if(!CUR)return;
+  var nm=(CUR.data.client.name||'').trim();
+  if(!CUR.id&&!nm){toast('Add the client’s name first, then save');try{var el=$('stage').querySelector('input');el&&el.focus();}catch(e){}return;}
+  clearTimeout(saveTimer);saveNow();toast('Saved ✓');
+}
 function saveNow(silent){
   if(!CUR)return;var dd=CUR.data;var c=calc(dd);
   if(!CUR.id&&!(dd.client.name||'').trim())return;
   var p={action:'pfr_save',id:CUR.id,code:CODE,agent_name:NAME,client_name:dd.client.name,client_phone:dd.client.phone,client_email:dd.client.email,data:dd,insurable_need:Math.round(c.insurable),status:CUR.status};
   if(OPS)p.token='2026';
-  $('saveLbl')&&($('saveLbl').textContent='Saving…');
-  api(p).then(function(r){if(r&&r.pfr&&r.pfr.id){CUR.id=r.pfr.id;}if($('saveLbl'))$('saveLbl').textContent='Saved ✓';});
+  setSaveLbl('Saving…','');
+  api(p).then(function(r){if(r&&r.pfr&&r.pfr.id){CUR.id=r.pfr.id;}
+    var t=new Date().toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
+    setSaveLbl('Saved ✓ · '+t,'saved');
+  }).catch(function(){setSaveLbl('Save failed — retry','dirty');});
 }
 
 /* ===== step renderers ===== */
