@@ -211,9 +211,42 @@ input[type=range]{width:100%;accent-color:var(--accent);height:6px;}
 .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--bg);padding:12px 20px;border-radius:12px;font-size:13.5px;font-weight:600;opacity:0;transition:.25s;z-index:200;box-shadow:var(--shadow-lg);}
 .toast.on{opacity:1;transform:translateX(-50%);}
 @media(max-width:640px){.cmp{grid-template-columns:1fr;}.qh{font-size:24px;}.stepper .val{font-size:56px;}}
+/* producer notes */
+.ftop .fnotes{border:1px solid var(--line2);background:var(--panel);color:var(--ink2);border-radius:10px;padding:8px 13px;font-weight:600;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;position:relative;}
+.ftop .fnotes:hover{border-color:var(--gold);color:var(--gold);}
+.ftop .fnotes .nb{background:var(--gold);color:#1a1400;border-radius:999px;font-size:10px;font-weight:800;padding:1px 6px;margin-left:2px;}
+.nov{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;display:none;align-items:flex-start;justify-content:center;padding:60px 16px;}
+.nov.on{display:flex;}
+.npanel{width:100%;max-width:520px;background:var(--panel);border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow-lg);max-height:80vh;display:flex;flex-direction:column;overflow:hidden;}
+.npanel h3{margin:0;padding:20px 22px 4px;font-size:19px;font-weight:800;letter-spacing:-.02em;}
+.npanel .nsub{padding:0 22px 14px;color:var(--ink3);font-size:12.5px;}
+.npanel .nlist{overflow-y:auto;padding:0 22px;flex:1;}
+.nitem{border-left:3px solid var(--gold);background:var(--panel2);border-radius:0 10px 10px 0;padding:10px 12px;margin:0 0 9px;}
+.nitem .nt{font-size:13.5px;color:var(--ink);white-space:pre-wrap;line-height:1.4;}
+.nitem .nmeta{font-size:11px;color:var(--ink3);margin-top:5px;display:flex;gap:8px;align-items:center;}
+.nitem .ndel{margin-left:auto;color:var(--red);cursor:pointer;border:none;background:none;font-size:12px;font-weight:600;}
+.nempty{color:var(--ink3);font-size:13px;font-style:italic;padding:8px 0 14px;}
+.nadd{border-top:1px solid var(--line);padding:14px 22px;display:flex;flex-direction:column;gap:10px;}
+.nadd textarea{border:1px solid var(--line2);border-radius:12px;padding:12px;font-family:inherit;font-size:14px;resize:vertical;min-height:66px;background:var(--panel2);color:var(--ink);}
+.nadd .nrow{display:flex;gap:10px;justify-content:flex-end;}
+.nadd button{border-radius:10px;padding:9px 16px;font-weight:700;font-size:13px;cursor:pointer;border:1px solid var(--line2);background:var(--panel);color:var(--ink2);}
+.nadd button.nsave{background:var(--gold);border-color:var(--gold);color:#1a1400;}
+/* internal notes block on report */
+.internal{border:1px dashed var(--gold)!important;background:var(--gold-soft)!important;}
+.internal .lock{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--gold);margin-bottom:8px;}
+/* AI discovery script */
+.aiscript{margin-top:14px;border:1px solid var(--line);border-radius:14px;background:var(--panel2);padding:16px 18px;}
+.aiscript h4{margin:0 0 4px;font-size:14px;font-weight:800;}
+.aiscript .seg{margin:12px 0 0;}
+.aiscript .seglbl{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--gold);margin-bottom:3px;}
+.aiscript .segtx{font-size:13.5px;line-height:1.5;color:var(--ink);white-space:pre-wrap;}
+.aiscript .aitools{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;}
+.aiscript .aitools button{border:1px solid var(--line2);background:var(--panel);color:var(--ink2);border-radius:9px;padding:7px 13px;font-weight:700;font-size:12.5px;cursor:pointer;}
+.aiscript .aitools button:hover{border-color:var(--accent);color:var(--accent);}
+.aiscript .aitag{font-size:11px;color:var(--ink3);align-self:center;}
 /* PRINT */
 @media print{
-  .top,.fnav,.ftop,.fprog,.repbtns,.tlink{display:none!important;}
+  .top,.fnav,.ftop,.fprog,.repbtns,.tlink,.noprint{display:none!important;}
   body{background:#fff;}
   .sec{box-shadow:none;border:1px solid #ddd;break-inside:avoid;}
   .rep{padding:0;}
@@ -231,7 +264,7 @@ input[type=range]{width:100%;accent-color:var(--accent);height:6px;}
     <div><h1 class="pgh">PFR Builder</h1><p class="pgsub">Personal Financial Reviews — build, review, and export for your clients.</p></div>
     <button class="newbtn" onclick="startNew()"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg> New PFR</button>
   </div>
-  <div class="srch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input id="gq" placeholder="Search by client name…" oninput="renderGallery()"></div>
+  <div class="srch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input id="gq" placeholder="Search by client name or note…" oninput="renderGallery()"></div>
   <div class="cards" id="cards"></div>
 </div>
 
@@ -241,6 +274,7 @@ input[type=range]{width:100%;accent-color:var(--accent);height:6px;}
   <div class="ftop">
     <span class="step" id="stepLbl">Step 1</span>
     <span class="fsave" id="saveLbl"></span>
+    <button class="fnotes" id="notesBtnTop" onclick="openNotes()">🔒 Notes<span class="nb" id="notesCount" style="display:none">0</span></button>
     <button class="fsavebtn" id="saveBtnTop" onclick="saveManual()">Save</button>
     <button class="fx" onclick="exitFlow()"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg> Save &amp; Close</button>
   </div>
@@ -248,6 +282,19 @@ input[type=range]{width:100%;accent-color:var(--accent);height:6px;}
   <div class="fnav">
     <button class="back" id="backBtn" onclick="prevStep()">Back</button>
     <button class="next" id="nextBtn" onclick="nextStep()">Continue</button>
+  </div>
+</div>
+
+<!-- PRODUCER NOTES -->
+<div class="nov" id="nov" onclick="if(event.target===this)closeNotes()">
+  <div class="npanel">
+    <h3>🔒 Internal Notes</h3>
+    <div class="nsub">Producer-only — saved to this client's PFR, never shown to the client or on the PDF.</div>
+    <div class="nlist" id="nlist"></div>
+    <div class="nadd">
+      <textarea id="nnew" placeholder="Add a note — carrier quirks, underwriting flags, follow-up reminders, family details…"></textarea>
+      <div class="nrow"><button onclick="closeNotes()">Close</button><button class="nsave" onclick="addNote()">Add note</button></div>
+    </div>
   </div>
 </div>
 
@@ -302,9 +349,12 @@ function loadPFRs(){
   var p={action:'pfr_list',code:CODE};if(OPS)p.token='2026';
   api(p).then(function(r){PFRS=(r&&r.pfrs)||[];renderGallery();});
 }
+function pfrNotesArr(x){try{return (x.data&&x.data.producerNotes)||[];}catch(e){return [];}}
+function pfrNotesText(x){return pfrNotesArr(x).map(function(n){return n&&n.t||'';}).join(' ').toLowerCase();}
+function pfrNoteCount(x){return pfrNotesArr(x).length;}
 function renderGallery(){
   var q=($('gq').value||'').toLowerCase();
-  var list=PFRS.filter(function(x){return !q||((x.client_name||'').toLowerCase().indexOf(q)>=0);});
+  var list=PFRS.filter(function(x){return !q||((x.client_name||'').toLowerCase().indexOf(q)>=0)||(pfrNotesText(x).indexOf(q)>=0);});
   if(!list.length){
     $('cards').innerHTML='<div class="empty" style="grid-column:1/-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 12h6M9 16h6M9 8h6"/><rect x="4" y="3" width="16" height="18" rx="2.5"/></svg><div style="font-weight:700;color:var(--ink2);font-size:16px">No reviews yet</div><div style="margin-top:6px">Click <b>New PFR</b> to build your first Personal Financial Review.</div></div>';
     return;
@@ -321,7 +371,7 @@ function renderGallery(){
       '</div>'+
       '<div class="ch"><div class="cav" style="background:'+col+'">'+esc(initials(nm)).toUpperCase()+'</div><div><div class="cn">'+esc(nm)+'</div><div class="cp">'+esc(x.client_phone||'')+'</div></div></div>'+
       '<div class="cneed">'+money(x.insurable_need)+'</div><div class="cl">Insurable Need</div>'+
-      '<div class="cfoot"><span>Updated '+fmtDate(x.updated_at)+'</span><span class="badge '+st+'">'+st+'</span></div>'+
+      '<div class="cfoot"><span>Updated '+fmtDate(x.updated_at)+(pfrNoteCount(x)?(' · 🔒 '+pfrNoteCount(x)+' note'+(pfrNoteCount(x)>1?'s':'')):'')+'</span><span class="badge '+st+'">'+st+'</span></div>'+
     '</div>';
   }).join('');
 }
@@ -334,7 +384,7 @@ function delPFR(id){if(!confirm('Delete this PFR? This cannot be undone.'))retur
 function blank(){return {client:{name:'',phone:'',email:''},
   retire:{best:60,worst:67,clientAge:35,deathAge:90},
   goal:{bestMo:8000,worstMo:5000},
-  lifestyle:[],confidence:0,confidenceWhy:'',
+  lifestyle:[],confidence:0,confidenceWhy:'',producerNotes:[],
   income:{Job:0,Spouse:0,'House Hack':0,Passive:0,Portfolio:0},
   assets:{House:0,Car:0,'Savings Acct.':0,Properties:0,Businesses:0,Checking:0},
   invest:{TSP:0,'401k':0,'Trad. IRA':0,'Roth IRA':0,CDs:0,Bonds:0,Crypto:0,Stocks:0,IUL:0,FIA:0,'403B':0,'457':0},
@@ -393,6 +443,7 @@ function renderStep(){
   var fn=RENDER[STEPS[STEP]];$('stage').innerHTML=fn?fn():'';
   if(AFTER[STEPS[STEP]])AFTER[STEPS[STEP]]();
   $('fbody').scrollTop=0;
+  refreshNoteBadge();
 }
 var d=function(){return CUR.data;};
 
@@ -405,6 +456,25 @@ function saveManual(){
   if(!CUR.id&&!nm){toast('Add the client’s name first, then save');try{var el=$('stage').querySelector('input');el&&el.focus();}catch(e){}return;}
   clearTimeout(saveTimer);saveNow();toast('Saved ✓');
 }
+/* ===== producer-only notes ===== */
+function pnotes(){ if(!CUR)return []; if(!Array.isArray(CUR.data.producerNotes))CUR.data.producerNotes=[]; return CUR.data.producerNotes; }
+function refreshNoteBadge(){ var b=$('notesCount'); if(!b)return; var n=pnotes().length; b.textContent=n; b.style.display=n?'inline-block':'none'; }
+function openNotes(){ if(!CUR){toast('Open a client PFR first');return;} renderNotesList(); $('nov').classList.add('on'); setTimeout(function(){$('nnew')&&$('nnew').focus();},60); }
+function closeNotes(){ $('nov').classList.remove('on'); }
+function noteWhen(ts){ try{return new Date(ts).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});}catch(e){return '';} }
+function renderNotesList(){
+  var L=$('nlist'); if(!L)return; var arr=pnotes();
+  if(!arr.length){ L.innerHTML='<div class="nempty">No internal notes yet. Add the first one below.</div>'; return; }
+  L.innerHTML=arr.map(function(n,i){return {n:n,i:i};}).reverse().map(function(o){
+    return '<div class="nitem"><div class="nt">'+esc(o.n.t)+'</div><div class="nmeta">'+esc(o.n.a||'Producer')+' · '+noteWhen(o.n.ts)+'<button class="ndel" onclick="delNote('+o.i+')">Delete</button></div></div>';
+  }).join('');
+}
+function addNote(){
+  var el=$('nnew'); if(!el)return; var t=(el.value||'').trim(); if(!t)return;
+  pnotes().push({t:t, a:(AGENT&&AGENT.name)||NAME||'Producer', ts:new Date().toISOString()});
+  el.value=''; renderNotesList(); refreshNoteBadge(); clearTimeout(saveTimer); saveNow(); toast('Note added ✓');
+}
+function delNote(i){ var arr=pnotes(); if(i<0||i>=arr.length)return; if(!confirm('Delete this note?'))return; arr.splice(i,1); renderNotesList(); refreshNoteBadge(); clearTimeout(saveTimer); saveNow(); }
 function saveNow(silent){
   if(!CUR)return;var dd=CUR.data;var c=calc(dd);
   if(!CUR.id&&!(dd.client.name||'').trim())return;
@@ -605,10 +675,54 @@ function showSummary(){
    '<div class="sec"><h2>Priority Ranking</h2>'+dd.priorities.slice(0,6).map(function(p,i){return '<span class="pill"><b>'+(i+1)+'</b> '+esc(p)+'</span>';}).join('')+'</div>'+
    '<div class="sec"><h2>Key Observations &amp; Discussion Topics</h2>'+buildObs(c,dd)+'</div>'+
    (dd.advisor?'<div class="sec"><h2>Next Step</h2><div class="obs neu"><div class="ic">🗨️</div><div class="ot">Client response: <b>'+esc(dd.advisor)+'</b></div></div></div>':'')+
-   buildPlaybook(c,dd)+   '<div class="repbtns"><button onclick="backToGallery()">← Builder</button><button onclick="editCurrent()">Edit</button><button onclick="shareEmail()">✉ Share PDF</button><button class="prime" onclick="saveComplete()">✓ Save PFR</button></div>'+
+   buildPlaybook(c,dd)+buildInternalNotes(dd)+'<div class="repbtns"><button onclick="backToGallery()">← Builder</button><button onclick="editCurrent()">Edit</button><button onclick="shareEmail()">✉ Share PDF</button><button class="prime" onclick="saveComplete()">✓ Save PFR</button></div>'+
    '</div>';
 }
-var PREC={'Protect Family':['Income-replacement coverage (Term or IUL)','covers the {NEED} protection gap so the family keeps their lifestyle no matter what.'],'Retirement':['FIA or IUL for tax-advantaged retirement income','closes the {GAP}/yr gap between today’s path and the {INC}/mo retirement goal.'],'Debt Reduction':['Cash-flow restructure + policy-loan strategy','redirects part of the {SURP}/mo surplus to clear {DEBT} in debt faster.'],'Emergency Savings':['IUL cash value as a liquid safety net','builds accessible reserves without locking the money away.'],'Tax Efficiency':['IUL tax-free distributions / Roth positioning','reduces future tax drag on retirement income.'],'College Funding':['IUL college strategy (flexible vs 529)','funds education with no penalties plus a protection benefit.'],'Legacy Planning':['Permanent death benefit + beneficiary review','passes wealth efficiently to the next generation.'],'Business Planning':['Key-person / buy-sell coverage','protects the business and its partners.'],'Charitable Giving':['Legacy gift via death-benefit earmark','amplifies giving at pennies on the dollar.']};function fill(t,c,dd){return t.replace('{NEED}',money(c.insurable)).replace('{GAP}',money(Math.abs(c.gapYr))).replace('{INC}',money(dd.goal.bestMo)).replace('{SURP}',money(Math.max(0,c.netMo))).replace('{DEBT}',money(c.debt));}function buildPlaybook(c,dd){var top=dd.priorities.slice(0,3);var fn=(dd.client.name||'The client').split(' ')[0];var conf=(FACES[dd.confidence-1]||['','set'])[1].toLowerCase();var recs=top.map(function(pr){var r=PREC[pr]||['Tailored strategy','aligns with what they told you.'];return '<div class="pbrec"><div class="n" style="width:26px;height:26px;border-radius:8px;background:var(--gold-soft);color:var(--gold);font-weight:800;display:flex;align-items:center;justify-content:center;flex:0 0 auto">★</div><div><div class="pri">'+esc(pr)+'</div><div class="sol">'+esc(r[0])+'</div><div class="wy">Why it lands: '+esc(fill(r[1],c,dd))+'</div></div></div>';}).join('');var lead=top[0]||'their goals';var steps=[['1','<b>Reflect what you heard.</b> “'+fn+', you told me <b>'+esc(lead)+'</b> matters most and you’re '+conf+' about the current plan — did I get that right?”'],['2','<b>Connect the gap to the goal.</b> “Your review shows about a <b>'+money(Math.abs(c.gapYr))+'/yr</b> gap and <b>'+money(c.insurable)+'</b> of protection need — that’s the distance between the retirement you described and today’s path.”'],['3','<b>Present the conservative strategy.</b> “There’s a strategy built around <b>'+esc((PREC[lead]||['a tailored solution'])[0])+'</b> designed to close that gap and protect your family — with no market risk to your principal.”'],['4','<b>Assume the next step.</b> '+(dd.advisor&&dd.advisor.indexOf('Yes')===0?'“Let’s get your illustration started — I’ll grab your date of birth and a quick health snapshot so I can show you real numbers.”':'“Let’s put 20 minutes on the calendar to walk through the illustration together — no pressure, just the numbers.”')]];return '<div class="sec"><h2>Advisor Playbook — Recommended Next Steps</h2>'+'<div class="obs neu" style="padding-top:0"><div class="ic">🧭</div><div class="ot"><b>'+esc(fn)+'</b> ranked <b>'+top.map(esc).join(', ')+'</b> highest and is '+conf+'. Lead with <b>'+esc(lead)+'</b>, tie every point back to it, and let the gap do the selling.</div></div>'+'<div style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin:16px 0 10px">Recommended solutions</div>'+recs+'<div style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin:18px 0 8px">Discovery → Close sequence</div>'+steps.map(function(x){return '<div class="pbstep"><div class="n">'+x[0]+'</div><div class="t">'+x[1]+'</div></div>';}).join('')+'<div style="margin-top:16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button class="aibtn" onclick="aiScript()">✨ Generate AI discovery script</button><span style="font-size:11.5px;color:var(--ink3)">Powered by @Question AI</span></div><div id="aiBox"></div>'+'</div>';}function aiScript(){var dd=CUR.data,c=calc(dd);var top=dd.priorities.slice(0,3).join(', ');var q='Give a warm, 4-step discovery-to-close talk track for a life-insurance client named '+(dd.client.name||'the client')+' whose top priorities are '+top+', with about a '+money(Math.abs(c.gapYr))+' per year retirement gap and '+money(c.insurable)+' of protection need. Recommend IUL or FIA where it fits.';var box=document.getElementById('aiBox');box.textContent='Thinking…';fetch('https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/hub-api',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'hub_ask',q:q})}).then(function(r){return r.json();}).then(function(r){box.textContent=(r&&r.answer)||'No response.';}).catch(function(){box.textContent='Could not reach the AI right now — use the playbook above.';});}function shareEmail(){if(!CUR)return;var dd=CUR.data,c=calc(dd);var first=(dd.client.name||'there').split(' ')[0];if(!(dd.client.email||'').trim()){if(!confirm('No client email is on file for this PFR. Open the email draft anyway (you can type their address)?'))return;}var subject='Your Personal Financial Review — '+first;var gapLbl=c.gapYr<0?'gap to close':'surplus';var L=['Hi '+first+',','','Thank you for taking the time to go through your Personal Financial Review with me. Here is a quick recap of what we found together:','','• Ideal retirement: age '+dd.retire.best,'• Desired retirement income: '+money(dd.goal.bestMo)+'/month','• Current monthly cash flow: '+money(c.netMo),'• Estimated annual '+gapLbl+': '+money(Math.abs(c.gapYr)),'• Protection need: '+money(c.insurable),'','I am attaching your full review as a PDF. Based on what matters most to you — '+(dd.priorities[0]||'your goals')+' — I would love to show you a conservative strategy designed to help close that gap while protecting your family.','',(AGENT.cal?('You can grab a time that works for you here: '+AGENT.cal):'Just reply with a good time and we will connect.'),'','Talk soon,',(AGENT.name||NAME),'The Standard Financial Group',(AGENT.email||''),(AGENT.phone||'')];var body=L.join('\n');var mailto='mailto:'+encodeURIComponent((dd.client.email||'').trim())+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);toast('Opening your email + PDF — attach the saved PDF to send');try{location.href=mailto;}catch(e){}setTimeout(function(){window.print();},650);}
+var PREC={'Protect Family':['Income-replacement coverage (Term or IUL)','covers the {NEED} protection gap so the family keeps their lifestyle no matter what.'],'Retirement':['FIA or IUL for tax-advantaged retirement income','closes the {GAP}/yr gap between today’s path and the {INC}/mo retirement goal.'],'Debt Reduction':['Cash-flow restructure + policy-loan strategy','redirects part of the {SURP}/mo surplus to clear {DEBT} in debt faster.'],'Emergency Savings':['IUL cash value as a liquid safety net','builds accessible reserves without locking the money away.'],'Tax Efficiency':['IUL tax-free distributions / Roth positioning','reduces future tax drag on retirement income.'],'College Funding':['IUL college strategy (flexible vs 529)','funds education with no penalties plus a protection benefit.'],'Legacy Planning':['Permanent death benefit + beneficiary review','passes wealth efficiently to the next generation.'],'Business Planning':['Key-person / buy-sell coverage','protects the business and its partners.'],'Charitable Giving':['Legacy gift via death-benefit earmark','amplifies giving at pennies on the dollar.']};function fill(t,c,dd){return t.replace('{NEED}',money(c.insurable)).replace('{GAP}',money(Math.abs(c.gapYr))).replace('{INC}',money(dd.goal.bestMo)).replace('{SURP}',money(Math.max(0,c.netMo))).replace('{DEBT}',money(c.debt));}function buildPlaybook(c,dd){var top=dd.priorities.slice(0,3);var fn=(dd.client.name||'The client').split(' ')[0];var conf=(FACES[dd.confidence-1]||['','set'])[1].toLowerCase();var recs=top.map(function(pr){var r=PREC[pr]||['Tailored strategy','aligns with what they told you.'];return '<div class="pbrec"><div class="n" style="width:26px;height:26px;border-radius:8px;background:var(--gold-soft);color:var(--gold);font-weight:800;display:flex;align-items:center;justify-content:center;flex:0 0 auto">★</div><div><div class="pri">'+esc(pr)+'</div><div class="sol">'+esc(r[0])+'</div><div class="wy">Why it lands: '+esc(fill(r[1],c,dd))+'</div></div></div>';}).join('');var lead=top[0]||'their goals';var steps=[['1','<b>Reflect what you heard.</b> “'+fn+', you told me <b>'+esc(lead)+'</b> matters most and you’re '+conf+' about the current plan — did I get that right?”'],['2','<b>Connect the gap to the goal.</b> “Your review shows about a <b>'+money(Math.abs(c.gapYr))+'/yr</b> gap and <b>'+money(c.insurable)+'</b> of protection need — that’s the distance between the retirement you described and today’s path.”'],['3','<b>Present the conservative strategy.</b> “There’s a strategy built around <b>'+esc((PREC[lead]||['a tailored solution'])[0])+'</b> designed to close that gap and protect your family — with no market risk to your principal.”'],['4','<b>Assume the next step.</b> '+(dd.advisor&&dd.advisor.indexOf('Yes')===0?'“Let’s get your illustration started — I’ll grab your date of birth and a quick health snapshot so I can show you real numbers.”':'“Let’s put 20 minutes on the calendar to walk through the illustration together — no pressure, just the numbers.”')]];return '<div class="sec"><h2>Advisor Playbook — Recommended Next Steps</h2>'+'<div class="obs neu" style="padding-top:0"><div class="ic">🧭</div><div class="ot"><b>'+esc(fn)+'</b> ranked <b>'+top.map(esc).join(', ')+'</b> highest and is '+conf+'. Lead with <b>'+esc(lead)+'</b>, tie every point back to it, and let the gap do the selling.</div></div>'+'<div style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin:16px 0 10px">Recommended solutions</div>'+recs+'<div style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin:18px 0 8px">Discovery → Close sequence</div>'+steps.map(function(x){return '<div class="pbstep"><div class="n">'+x[0]+'</div><div class="t">'+x[1]+'</div></div>';}).join('')+'<div style="margin-top:16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button class="aibtn" onclick="aiScript()">✨ Generate AI discovery script</button><span style="font-size:11.5px;color:var(--ink3)">Powered by @Question AI</span></div><div id="aiBox"></div>'+'</div>';}function aiScript(){
+  var dd=CUR.data,c=calc(dd);
+  var first=(dd.client.name||'').trim().split(' ')[0]||'there';
+  var top=(dd.priorities||[]).slice(0,3);
+  var lead=top[0]||'their goals';
+  var conf=(FACES[dd.confidence-1]||['','unsure'])[1].toLowerCase();
+  var retAge=dd.retire.best;
+  var rec=(PREC[lead]||['a tailored IUL or FIA strategy'])[0];
+  var gap=money(Math.abs(c.gapYr)),need=money(c.insurable),inc=money(dd.goal.bestMo),surp=money(Math.max(0,c.netMo));
+  var DISC={'Protect Family':'If something happened to you tomorrow, how many months could your family keep their lifestyle before money got tight?','Retirement':'When you picture retirement at '+retAge+', what does a great week look like — and about what would it cost each month?','Debt Reduction':'Of everything you owe, which balance weighs on you the most?','Emergency Savings':'If your car and your A/C broke in the same month, where would that money come from today?','Tax Efficiency':'How much of your retirement savings sits in accounts the IRS still gets to tax when you pull it out?','College Funding':'When your kids are ready for school, do you want that paid from cash flow, loans, or something you set up now?','Legacy Planning':'When you are gone, what do you want to be true for the people you leave behind?','Business Planning':'If you could not work for six months, what happens to the business and your income?','Charitable Giving':'Is there a cause or a person you would love to leave something meaningful to?'};
+  var qs=top.map(function(p){return DISC[p];}).filter(Boolean);
+  var yes=dd.advisor&&dd.advisor.indexOf('Yes')===0;
+  var segs=[];
+  segs.push(['Open — reflect back',first+', before we talk numbers — thank you for being this open with me. What I heard is that '+String(lead).toLowerCase()+' matters most to you, and that with your current plan you are feeling '+conf+'. Did I get that right?']);
+  if(qs.length)segs.push(['Discover — go one layer deeper',qs.map(function(q){return '• '+q;}).join('\n')]);
+  segs.push(['Frame the gap','Here is what your review actually showed. To reach the '+inc+'/month retirement you described by age '+retAge+', there is about a '+gap+' per-year gap between the path you are on and the one you want — and roughly '+need+' of protection your family is not covered for yet. That is not a criticism; it is just the distance we get to close together.']);
+  segs.push(['Recommend the strategy','Based on what matters most to you, the fit here is '+rec+'. It is built to close that gap and protect your family with no market risk to your principal'+(surp!=='$0'?(', and we can fund it from part of the '+surp+'/month already moving through your budget'):'')+'.']);
+  segs.push(['Handle the hesitation',(dd.confidence&&dd.confidence>=4)?'You already feel good about the direction, so the only real question is timing. The sooner the policy is in force, the sooner your family is protected and the longer your money has to grow.':'It is completely normal to want to think it over. Most people are not unsure about protecting their family — they are unsure this is the right vehicle. Let me show you the actual illustration so you are deciding on real numbers, not a feeling.']);
+  segs.push(['Close — assume the next step',yes?'Perfect — let us get your illustration started. I will grab your date of birth and a quick health snapshot so the numbers I show you are real.':'Let us put 20 minutes on the calendar to walk through the illustration together — no pressure, just the numbers side by side.']);
+  window.__aiSegs=segs;
+  var box=$('aiBox'); if(!box)return;
+  box.innerHTML='<div class="aiscript"><h4>✨ Discovery → Close script for '+esc(first)+'</h4>'+segs.map(function(s){return '<div class="seg"><div class="seglbl">'+esc(s[0])+'</div><div class="segtx">'+esc(s[1])+'</div></div>';}).join('')+'<div class="aitools"><button onclick="copyScript()">📋 Copy script</button><button onclick="aiScript()">🔄 Regenerate</button><span class="aitag" id="aiTag">Tailored from this PFR — edit to your voice.</span></div></div>';
+  aiEnhance(dd,c);
+}
+function aiEnhance(dd,c){
+  var tag=$('aiTag'); if(tag)tag.textContent='Checking for live AI…';
+  var top=(dd.priorities||[]).slice(0,3).join(', ');
+  var q='You are a top life-insurance sales coach. Write a warm, specific discovery-to-close talk track (5 short labeled sections) for a client named '+((dd.client&&dd.client.name)||'the client')+' whose top priorities are '+top+', with about a '+money(Math.abs(c.gapYr))+'/yr retirement gap, '+money(c.insurable)+' protection need, and a '+money(dd.goal.bestMo)+'/mo income goal. Recommend IUL or FIA where it fits. Keep it human.';
+  fetch('https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/hub-api',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'hub_ask',q:q})}).then(function(r){return r.json();}).then(function(r){
+    var a=r&&r.answer; if(!tag)return;
+    if(a && a.length>140 && !/don.t have a verified answer/i.test(a)){
+      var live=document.createElement('div'); live.className='aiscript'; live.style.marginTop='10px';
+      live.innerHTML='<h4>🤖 Live AI version (Claude)</h4><div class="segtx" style="white-space:pre-wrap">'+esc(a)+'</div><div class="aitools"><button onclick="copyLive(this)">📋 Copy</button><span class="aitag">Generated live by Claude</span></div>';
+      $('aiBox').appendChild(live); tag.textContent='Tailored from this PFR — a live AI version was added below.';
+    } else { tag.textContent='Tailored from this PFR. (Add an Anthropic key to turn on live AI — ask Ops.)'; }
+  }).catch(function(){ if(tag)tag.textContent='Tailored from this PFR — edit to your voice.'; });
+}
+function copyScript(){var segs=window.__aiSegs||[];var txt=segs.map(function(s){return s[0].toUpperCase()+'\n'+s[1];}).join('\n\n');copyText(txt);}
+function copyLive(btn){var box=btn.closest('.aiscript');var tx=box?box.querySelector('.segtx'):null;copyText(tx?tx.textContent:'');}
+function copyText(txt){try{navigator.clipboard.writeText(txt).then(function(){toast('Copied ✓');},function(){toast('Copy failed — select manually');});}catch(e){toast('Copy not supported here');}}
+function buildInternalNotes(dd){
+  var arr=Array.isArray(dd.producerNotes)?dd.producerNotes:[];
+  var inner=arr.length? arr.map(function(n){return '<div class="nitem" style="margin-bottom:8px"><div class="nt">'+esc(n.t)+'</div><div class="nmeta">'+esc(n.a||'Producer')+' · '+noteWhen(n.ts)+'</div></div>';}).join('') : '<div class="nempty">No internal notes yet — click 🔒 Notes in the builder to add producer-only notes.</div>';
+  return '<div class="sec internal noprint"><span class="lock">🔒 Internal — producer only</span><h2 style="margin-top:2px">Notes</h2>'+inner+'</div>';
+}function shareEmail(){if(!CUR)return;var dd=CUR.data,c=calc(dd);var first=(dd.client.name||'there').split(' ')[0];if(!(dd.client.email||'').trim()){if(!confirm('No client email is on file for this PFR. Open the email draft anyway (you can type their address)?'))return;}var subject='Your Personal Financial Review — '+first;var gapLbl=c.gapYr<0?'gap to close':'surplus';var L=['Hi '+first+',','','Thank you for taking the time to go through your Personal Financial Review with me. Here is a quick recap of what we found together:','','• Ideal retirement: age '+dd.retire.best,'• Desired retirement income: '+money(dd.goal.bestMo)+'/month','• Current monthly cash flow: '+money(c.netMo),'• Estimated annual '+gapLbl+': '+money(Math.abs(c.gapYr)),'• Protection need: '+money(c.insurable),'','I am attaching your full review as a PDF. Based on what matters most to you — '+(dd.priorities[0]||'your goals')+' — I would love to show you a conservative strategy designed to help close that gap while protecting your family.','',(AGENT.cal?('You can grab a time that works for you here: '+AGENT.cal):'Just reply with a good time and we will connect.'),'','Talk soon,',(AGENT.name||NAME),'The Standard Financial Group',(AGENT.email||''),(AGENT.phone||'')];var body=L.join('\n');var mailto='mailto:'+encodeURIComponent((dd.client.email||'').trim())+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);toast('Opening your email + PDF — attach the saved PDF to send');try{location.href=mailto;}catch(e){}setTimeout(function(){window.print();},650);}
 function saveComplete(){if(!CUR)return;CUR.status='complete';saveNow();toast('PFR saved ✓');setTimeout(backToGallery,700);}function kv(l,v){return '<div class="kv"><div class="l">'+l+'</div><div class="v">'+esc(v)+'</div></div>';}
 function kvc(l,v,good){return '<div class="kv"><div class="l">'+l+'</div><div class="v" style="color:'+(good?'#1a9c52':'var(--red)')+'">'+esc(v)+'</div></div>';}
 function backToGallery(){$('summary').classList.add('hide');$('gallery').classList.remove('hide');loadPFRs();}
