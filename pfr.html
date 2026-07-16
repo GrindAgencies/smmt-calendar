@@ -384,7 +384,7 @@ function delPFR(id){if(!confirm('Delete this PFR? This cannot be undone.'))retur
 function blank(){return {client:{name:'',phone:'',email:''},
   retire:{best:60,worst:67,clientAge:35,deathAge:90},
   goal:{bestMo:8000,worstMo:5000},
-  lifestyle:[],confidence:0,confidenceWhy:'',producerNotes:[],
+  lifestyle:[],confidence:0,confidenceWhy:'',producerNotes:[],hasBudget:'',
   income:{Job:0,Spouse:0,'House Hack':0,Passive:0,Portfolio:0},
   assets:{House:0,Car:0,'Savings Acct.':0,Properties:0,Businesses:0,Checking:0},
   invest:{TSP:0,'401k':0,'Trad. IRA':0,'Roth IRA':0,CDs:0,Bonds:0,Crypto:0,Stocks:0,IUL:0,FIA:0,'403B':0,'457':0},
@@ -413,11 +413,11 @@ function calc(d){
   var replaceYears=Math.min(Math.max(yearsLeft,10),20);
   var insurable=Math.max(0, (inc*12*replaceYears===0? (inc*12*10):0) );
   insurable=Math.max(0, inc*12*Math.min(replaceYears,10) + deb - liquid);
-  return {inc:inc,exp:exp,debt:deb,assets:ast,invest:inv,netMo:netMo,netYr:netYr,savingsRate:savingsRate,debtPay:debtPay,debtMonths:debtMonths,netWorth:netWorth,yearsLeft:yearsLeft,yearsRet:yearsRet,idealYr:idealYr,retireNeeded:retireNeeded,neededYr:neededYr,neededMo:neededMo,gapYr:gapYr,insurable:insurable};
+  return {inc:inc,exp:exp,debt:deb,assets:ast,invest:inv,netMo:netMo,netYr:netYr,savingsRate:savingsRate,debtPay:debtPay,debtMonths:debtMonths,netWorth:netWorth,yearsLeft:yearsLeft,yearsRet:yearsRet,idealYr:idealYr,retireNeeded:retireNeeded,neededYr:neededYr,neededMo:neededMo,gapYr:gapYr,insurable:insurable,liquid:liquid,accredited:(liquid>=300000)};
 }
 
 /* ===== flow control ===== */
-var STEPS=['welcome','vision','income','lifestyle','confidence','snapshot','cashflow','gap','priorities','reflection','advisor'];
+var STEPS=['welcome','import','vision','income','lifestyle','confidence','snapshot','cashflow','gap','priorities','reflection','advisor'];
 function startNew(){CUR={id:null,data:blank(),status:'draft'};STEP=0;openFlow();}
 function openPFR(id,toReport){togglePop&&document.querySelectorAll('.pop').forEach(function(x){x.classList.add('hide');});
   api({action:'pfr_get',id:id}).then(function(r){var p=r&&r.pfr;if(!p){toast('Could not load');return;}
@@ -497,6 +497,68 @@ RENDER.welcome=function(){return '<div class="eyebrow">Personal Financial Review
 };
 function wfield(label,key,ph,type){return '<div class="wfield"><label>'+label+'</label><input type="'+type+'" placeholder="'+ph+'" value="'+esc(d().client[key])+'" oninput="d().client[\''+key+'\']=this.value;scheduleSave()"></div>';}
 
+RENDER.import=function(){
+  return '<div class="eyebrow">Getting Started</div>'+
+  '<h1 class="qh">Do you already have a family budget or financial plan?</h1>'+
+  '<p class="qsub">If you do, upload or paste it and we’ll auto-fill your numbers so you don’t have to type them in. If not, no problem — we’ll build it together.</p>'+
+  '<div class="cmp" style="margin-top:6px">'+
+    '<div class="cmpc'+(d().hasBudget==='no'?' best':'')+'" style="cursor:pointer" onclick="budgetChoice(\'no\')"><div class="cl">No budget yet</div><div style="font-size:34px;margin:8px 0">📝</div><div class="cl">Build it with me — continue</div></div>'+
+    '<div class="cmpc'+(d().hasBudget==='yes'?' best':'')+'" style="cursor:pointer" onclick="budgetChoice(\'yes\')"><div class="cl">Yes, I have one</div><div style="font-size:34px;margin:8px 0">📥</div><div class="cl">Import &amp; auto-fill</div></div>'+
+  '</div>'+
+  '<div id="importBox" style="display:'+(d().hasBudget==='yes'?'block':'none')+';margin-top:18px"></div>';
+};
+AFTER.import=function(){ if(d().hasBudget==='yes') renderImportBox(); };
+function budgetChoice(v){ d().hasBudget=v; scheduleSave();
+  document.querySelectorAll('.cmpc').forEach(function(c){c.classList.remove('best');});
+  var box=$('importBox');
+  if(v==='no'){ if(box)box.style.display='none'; toast('Great — we’ll build it together'); setTimeout(nextStep,350); }
+  else { if(box){box.style.display='block';} renderImportBox(); renderStep(); }
+}
+function renderImportBox(){
+  var box=$('importBox'); if(!box)return;
+  box.innerHTML='<div class="mgroup" style="padding:16px 18px">'+
+    '<div style="font-weight:800;font-size:14px;margin-bottom:8px">📥 Import the client’s budget</div>'+
+    '<div style="font-size:13px;color:var(--ink3);margin-bottom:12px">Upload a file (CSV, spreadsheet export, or a text/PDF budget) <b>or</b> paste the numbers below. Our AI reads it and fills your fields automatically.</div>'+
+    '<input type="file" id="budgetFile" accept=".csv,.txt,.tsv,.md,.json,application/pdf,text/*" onchange="budgetFilePicked(this)" style="margin-bottom:10px">'+
+    '<textarea id="budgetPaste" placeholder="…or paste the budget here (income, rent, utilities, groceries, debts, savings, etc.)" style="width:100%;min-height:120px;border:1px solid var(--line2);border-radius:12px;padding:12px;font-family:inherit;font-size:13.5px;background:var(--panel2);color:var(--ink);resize:vertical"></textarea>'+
+    '<div style="display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap">'+
+      '<button class="aibtn" onclick="parseBudget()">✨ Read &amp; auto-fill</button>'+
+      '<button class="fsavebtn" style="background:var(--panel);border:1px solid var(--line2);color:var(--ink2)" onclick="nextStep()">Skip &amp; enter manually →</button>'+
+      '<span class="fsave" id="importStatus" style="margin-left:0"></span>'+
+    '</div></div>';
+}
+var __budgetText='';
+function budgetFilePicked(inp){
+  var f=inp.files&&inp.files[0]; if(!f)return; var st=$('importStatus'); if(st)st.textContent='Reading '+f.name+'…';
+  if(/pdf$/i.test(f.name)||f.type==='application/pdf'){ if(st)st.textContent='PDF picked — please copy the text into the box (PDF text extraction is limited in-browser).'; return; }
+  var r=new FileReader(); r.onload=function(){ __budgetText=String(r.result||''); var pb=$('budgetPaste'); if(pb)pb.value=__budgetText.slice(0,6000); if(st)st.textContent='Loaded '+f.name+' — click “Read & auto-fill”.'; }; r.readAsText(f);
+}
+function parseBudget(){
+  var txt=(($('budgetPaste')&&$('budgetPaste').value)||__budgetText||'').trim();
+  var st=$('importStatus');
+  if(!txt){ if(st)st.textContent='Add a file or paste the budget first.'; return; }
+  if(st)st.textContent='🤖 Reading the budget…';
+  var sys='You extract a household budget from messy text into STRICT JSON. Output ONLY a JSON object, no prose. Use these exact keys and put monthly dollar amounts (numbers only, no $ or commas; 0 if unknown):\\n'+
+    '{"income":{"Job":0,"Spouse":0,"Passive":0,"Portfolio":0},'+
+    '"expenses":{"Mortgage/Rent":0,"Property Tax":0,"HOA":0,"Utilities":0,"Phone":0,"Internet":0,"Groceries":0,"Subscriptions":0,"Insurances":0,"Gas":0,"Childcare":0,"Pets":0,"Petty Cash":0,"Debt Payments":0,"Unforeseen":0},'+
+    '"assets":{"House":0,"Car":0,"Savings Acct.":0,"Checking":0,"Properties":0,"Businesses":0},'+
+    '"invest":{"401k":0,"Roth IRA":0,"Trad. IRA":0,"Stocks":0,"Bonds":0,"CDs":0,"Crypto":0,"IUL":0,"FIA":0},'+
+    '"debt":{"Mortgage":0,"Auto Loan":0,"Student Loan":0,"Credit Cards":0,"Personal Loan":0,"Medical":0,"HELOC":0}}\\n'+
+    'Map synonyms (rent->Mortgage/Rent, food->Groceries, car payment->Debt Payments AND Auto Loan balance if given, 401(k)->401k, etc.). Balances (assets/debt/invest) are totals, not monthly.';
+  fetch('https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/ai-api',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'ask',system:sys,prompt:txt,max_tokens:900})})
+   .then(function(r){return r.json();}).then(function(r){
+     if(!(r&&r.ok&&r.answer)){ if(st)st.textContent='Could not read it — you can enter the numbers manually. '+((r&&r.error)?('('+r.error+')'):''); return; }
+     var j=null; try{ var m=r.answer.match(/\{[\s\S]*\}/); j=JSON.parse(m?m[0]:r.answer); }catch(e){ j=null; }
+     if(!j){ if(st)st.textContent='The file was hard to read — please enter the numbers manually.'; return; }
+     var dd=d(); var merged=0;
+     ['income','expenses','assets','invest','debt'].forEach(function(cat){ if(j[cat]&&typeof j[cat]==='object'){ if(!dd[cat])dd[cat]={}; for(var k in j[cat]){ var v=Number(j[cat][k])||0; if(v){ dd[cat][k]=v; merged++; } } } });
+     scheduleSave();
+     if(st)st.textContent='✓ Imported '+merged+' values — review them on the next steps.';
+     toast('Budget imported ✓ — auto-filled '+merged+' fields');
+     setTimeout(nextStep,900);
+   }).catch(function(){ if(st)st.textContent='Connection issue — enter the numbers manually.'; });
+}
+
 RENDER.vision=function(){return '<div class="eyebrow">Retirement Vision</div>'+
   '<h1 class="qh">When would you like to retire?</h1>'+
   '<p class="qsub">In a best-case scenario, at what age would you love to retire? Then — realistically — what’s the latest you think you might have to.</p>'+
@@ -553,25 +615,59 @@ RENDER.confidence=function(){return '<div class="eyebrow">Confidence Assessment<
 };
 function setConf(n){d().confidence=n;scheduleSave();renderStep();}
 
+var SNAP_CSS='<style>'+
+ '.snapbar{position:sticky;top:0;z-index:20;display:grid;grid-template-columns:repeat(4,1fr);gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:13px 16px;margin:2px 0 18px;box-shadow:var(--shadow-sm);}'+
+ '.snapstat .sl{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);}'+
+ '.snapstat .sv{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums;margin-top:3px;letter-spacing:-.02em;}'+
+ '.snapstat .sv.good{color:var(--green);}.snapstat .sv.bad{color:var(--red);}'+
+ '.macc{background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow-sm);overflow:hidden;margin-bottom:12px;transition:border-color .15s;}'+
+ '.macc.open{border-color:var(--line2);}'+
+ '.macc-h{display:flex;align-items:center;gap:12px;width:100%;border:none;background:transparent;cursor:pointer;font:inherit;padding:15px 18px;color:var(--ink);text-align:left;}'+
+ '.macc-h .mi{font-size:19px;width:34px;height:34px;border-radius:10px;background:var(--panel2);display:flex;align-items:center;justify-content:center;flex:0 0 auto;}'+
+ '.macc-h .mt{font-weight:800;font-size:14.5px;letter-spacing:-.01em;}'+
+ '.macc-h .mt small{display:block;font-weight:600;font-size:11px;color:var(--ink3);letter-spacing:0;}'+
+ '.macc-h .mg{margin-left:auto;font-weight:800;font-size:16px;color:var(--accent);font-variant-numeric:tabular-nums;}'+
+ '.macc-h .mcar{color:var(--ink3);transition:.2s;font-size:12px;flex:0 0 auto;}'+
+ '.macc.open .macc-h .mcar{transform:rotate(180deg);}'+
+ '.macc-b{display:none;padding:0 8px 8px;}.macc.open .macc-b{display:block;}'+
+ '@media(max-width:640px){.snapbar{grid-template-columns:repeat(2,1fr);}.snapstat .sv{font-size:17px;}}'+
+ '</style>';
+function snapbarHTML(c){
+  return '<div class="snapstat"><div class="sl">Monthly income</div><div class="sv" id="sb_inc">'+money(c.inc)+'</div></div>'+
+   '<div class="snapstat"><div class="sl">Monthly expenses</div><div class="sv" id="sb_exp">'+money(c.exp)+'</div></div>'+
+   '<div class="snapstat"><div class="sl">Net cash flow</div><div class="sv '+(c.netMo>=0?'good':'bad')+'" id="sb_net">'+money(c.netMo)+'</div></div>'+
+   '<div class="snapstat"><div class="sl">Total debt</div><div class="sv bad" id="sb_debt">'+money(c.debt)+'</div></div>';
+}
 RENDER.snapshot=function(){
   function row(key,k,label,custom){var o=d()[key];var vv=o[k]?('$'+Number(o[k]).toLocaleString('en-US')):'';
     var del=custom?('<button type="button" class="delitem" title="Remove" onclick="pfrDelItem(\''+key+'\',\''+esc(k)+'\')">&times;</button>'):'';
     return '<div class="mrow'+(custom?' custom':'')+'"><label>'+esc(label)+'</label><input class="mnum" type="text" inputmode="numeric" placeholder="$0" value="'+vv+'" oninput="moneyIn(this,\''+key+'\',\''+esc(k)+'\')">'+del+'</div>';}
-  function grp(title,key,map){var o=d()[key];var rows='';
+  function grp(icon,title,sub,key,map,open){var o=d()[key];var rows='';
     for(var k in map){rows+=row(key,k,map[k],false);}
     for(var ck in o){if(!map.hasOwnProperty(ck)){rows+=row(key,ck,ck,true);}}
     rows+='<button type="button" class="additem" onclick="pfrAddItem(\''+key+'\')"><b>+</b> Add item</button>';
-    return '<div class="mgroup"><div class="gh2"><span>'+title+'</span><span class="gt" id="tot_'+key+'">'+money(sum(o))+'</span></div>'+rows+'</div>';}
-  return '<div class="eyebrow">Current Financial Snapshot</div>'+
-   '<h1 class="qh">Let’s capture where things stand today.</h1>'+
-   '<p class="qsub">Monthly figures for income &amp; expenses; current balances for assets, investments &amp; debt. Estimates are perfectly fine — totals update as you go.</p>'+
-   grp('Monthly Income','income',{Job:'Your job',Spouse:'Spouse / partner','House Hack':'House hack',Passive:'Passive income',Portfolio:'Portfolio income'})+
-   grp('Monthly Expenses','expenses',{'Mortgage/Rent':'Mortgage / rent','Property Tax':'Property tax',HOA:'HOA',Utilities:'Utilities',Phone:'Phone',Internet:'Internet',Groceries:'Groceries',Subscriptions:'Subscriptions',Insurances:'Insurances',Gas:'Gas',Childcare:'Childcare',Pets:'Pets','Petty Cash':'Petty cash / misc','Debt Payments':'Debt payments',Unforeseen:'Unforeseen'})+
-   grp('Assets','assets',{House:'Home value',Car:'Vehicles','Savings Acct.':'Savings',Properties:'Other properties',Businesses:'Businesses',Checking:'Checking'})+
-   grp('Investments','invest',{TSP:'TSP','401k':'401(k)','Trad. IRA':'Traditional IRA','Roth IRA':'Roth IRA',CDs:'CDs',Bonds:'Bonds',Crypto:'Crypto',Stocks:'Stocks',IUL:'IUL',FIA:'FIA','403B':'403(b)','457':'457'})+
-   grp('Debt (balances owed)','debt',{'Student Loan':'Student loans','Auto Loan':'Auto loans',Mortgage:'Mortgage','Personal Loan':'Personal loans','Credit Cards':'Credit cards',Medical:'Medical',HELOC:'HELOC','Payday Loans':'Payday loans','Equity Loans':'Equity loans','Pension Loans':'Pension loans'});
+    return '<div class="macc'+(open?' open':'')+'"><button type="button" class="macc-h" onclick="this.parentNode.classList.toggle(\'open\')">'+
+      '<span class="mi">'+icon+'</span><span class="mt">'+title+'<small>'+sub+'</small></span>'+
+      '<span class="mg" id="tot_'+key+'">'+money(sum(o))+'</span><span class="mcar">▾</span></button>'+
+      '<div class="macc-b">'+rows+'</div></div>';}
+  var c=calc(d());
+  return SNAP_CSS+
+   '<div class="eyebrow">Current Financial Snapshot</div>'+
+   '<h1 class="qh">Where things stand today</h1>'+
+   '<p class="qsub">Fill in what you can — estimates are perfectly fine. Your numbers update live as you go. Tap a section to expand it.</p>'+
+   '<div class="snapbar">'+snapbarHTML(c)+'</div>'+
+   grp('💵','Monthly Income','What comes in each month','income',{Job:'Your job',Spouse:'Spouse / partner','House Hack':'House hack',Passive:'Passive income',Portfolio:'Portfolio income'},true)+
+   grp('🏠','Monthly Expenses','What goes out each month','expenses',{'Mortgage/Rent':'Mortgage / rent','Property Tax':'Property tax',HOA:'HOA',Utilities:'Utilities',Phone:'Phone',Internet:'Internet',Groceries:'Groceries',Subscriptions:'Subscriptions',Insurances:'Insurances',Gas:'Gas',Childcare:'Childcare',Pets:'Pets','Petty Cash':'Petty cash / misc','Debt Payments':'Debt payments',Unforeseen:'Unforeseen'},false)+
+   grp('💳','Debt Owed','Every balance — the total updates live','debt',{'Credit Cards':'Credit cards','Auto Loan':'Auto loans','Student Loan':'Student loans','Personal Loan':'Personal loans',Medical:'Medical',Mortgage:'Mortgage',HELOC:'HELOC','Payday Loans':'Payday loans','Equity Loans':'Equity loans','Pension Loans':'Pension loans'},false)+
+   grp('📈','Assets','What you own','assets',{House:'Home value',Car:'Vehicles','Savings Acct.':'Savings',Properties:'Other properties',Businesses:'Businesses',Checking:'Checking'},false)+
+   grp('🪙','Investments','Retirement &amp; brokerage','invest',{TSP:'TSP','401k':'401(k)','Trad. IRA':'Traditional IRA','Roth IRA':'Roth IRA',CDs:'CDs',Bonds:'Bonds',Crypto:'Crypto',Stocks:'Stocks',IUL:'IUL',FIA:'FIA','403B':'403(b)','457':'457'},false);
 };
-function snapTot(){['income','expenses','assets','invest','debt'].forEach(function(k){var el=$('tot_'+k);if(el)el.textContent=money(sum(d()[k]));});}
+function snapTot(){
+  ['income','expenses','assets','invest','debt'].forEach(function(k){var el=$('tot_'+k);if(el)el.textContent=money(sum(d()[k]));});
+  var c=calc(d());var set=function(id,v){var e=$(id);if(e)e.textContent=money(v);};
+  set('sb_inc',c.inc);set('sb_exp',c.exp);set('sb_debt',c.debt);
+  var net=$('sb_net');if(net){net.textContent=money(c.netMo);net.className='sv '+(c.netMo>=0?'good':'bad');}
+}
 function moneyIn(el,field,key){var digits=(el.value||'').replace(/[^0-9]/g,'');var n=digits?parseInt(digits,10):0;d()[field][key]=n;el.value=n?('$'+n.toLocaleString('en-US')):'';snapTot();scheduleSave();}
 function pfrAddItem(field){var raw=prompt('Add a custom line item to this category — what would you like to call it?');if(raw===null)return;var name=raw.replace(/[&<>"'\\]/g,'').replace(/\s+/g,' ').trim();if(!name){return;}var o=d()[field];if(Object.prototype.hasOwnProperty.call(o,name)){toast('“'+name+'” is already in this category');return;}o[name]=0;scheduleSave();renderStep();var g=$('tot_'+field);if(g&&g.closest){var box=g.closest('.mgroup');if(box){var ins=box.querySelectorAll('.mnum');if(ins.length)ins[ins.length-1].focus();}}}
 function pfrDelItem(field,key){var o=d()[field];if(Object.prototype.hasOwnProperty.call(o,key)){delete o[key];snapTot();scheduleSave();renderStep();}}
@@ -675,7 +771,7 @@ function showSummary(){
    '<div class="sec"><h2>Priority Ranking</h2>'+dd.priorities.slice(0,6).map(function(p,i){return '<span class="pill"><b>'+(i+1)+'</b> '+esc(p)+'</span>';}).join('')+'</div>'+
    '<div class="sec"><h2>Key Observations &amp; Discussion Topics</h2>'+buildObs(c,dd)+'</div>'+
    (dd.advisor?'<div class="sec"><h2>Next Step</h2><div class="obs neu"><div class="ic">🗨️</div><div class="ot">Client response: <b>'+esc(dd.advisor)+'</b></div></div></div>':'')+
-   buildPlaybook(c,dd)+buildInternalNotes(dd)+'<div class="repbtns"><button onclick="backToGallery()">← Builder</button><button onclick="editCurrent()">Edit</button><button onclick="shareEmail()">✉ Share PDF</button><button class="prime" onclick="saveComplete()">✓ Save PFR</button></div>'+
+   buildDebtPlan(c,dd)+buildBudgetPlan(c,dd)+buildHNW(c,dd)+buildPlaybook(c,dd)+buildInternalNotes(dd)+'<div class="repbtns"><button onclick="backToGallery()">← Builder</button><button onclick="editCurrent()">Edit</button><button onclick="shareEmail()">✉ Share PDF</button><button class="prime" onclick="saveComplete()">✓ Save PFR</button></div>'+
    '</div>';
 }
 var PREC={'Protect Family':['Income-replacement coverage (Term or IUL)','covers the {NEED} protection gap so the family keeps their lifestyle no matter what.'],'Retirement':['FIA or IUL for tax-advantaged retirement income','closes the {GAP}/yr gap between today’s path and the {INC}/mo retirement goal.'],'Debt Reduction':['Cash-flow restructure + policy-loan strategy','redirects part of the {SURP}/mo surplus to clear {DEBT} in debt faster.'],'Emergency Savings':['IUL cash value as a liquid safety net','builds accessible reserves without locking the money away.'],'Tax Efficiency':['IUL tax-free distributions / Roth positioning','reduces future tax drag on retirement income.'],'College Funding':['IUL college strategy (flexible vs 529)','funds education with no penalties plus a protection benefit.'],'Legacy Planning':['Permanent death benefit + beneficiary review','passes wealth efficiently to the next generation.'],'Business Planning':['Key-person / buy-sell coverage','protects the business and its partners.'],'Charitable Giving':['Legacy gift via death-benefit earmark','amplifies giving at pennies on the dollar.']};function fill(t,c,dd){return t.replace('{NEED}',money(c.insurable)).replace('{GAP}',money(Math.abs(c.gapYr))).replace('{INC}',money(dd.goal.bestMo)).replace('{SURP}',money(Math.max(0,c.netMo))).replace('{DEBT}',money(c.debt));}function buildPlaybook(c,dd){var top=dd.priorities.slice(0,3);var fn=(dd.client.name||'The client').split(' ')[0];var conf=(FACES[dd.confidence-1]||['','set'])[1].toLowerCase();var recs=top.map(function(pr){var r=PREC[pr]||['Tailored strategy','aligns with what they told you.'];return '<div class="pbrec"><div class="n" style="width:26px;height:26px;border-radius:8px;background:var(--gold-soft);color:var(--gold);font-weight:800;display:flex;align-items:center;justify-content:center;flex:0 0 auto">★</div><div><div class="pri">'+esc(pr)+'</div><div class="sol">'+esc(r[0])+'</div><div class="wy">Why it lands: '+esc(fill(r[1],c,dd))+'</div></div></div>';}).join('');var lead=top[0]||'their goals';var steps=[['1','<b>Reflect what you heard.</b> “'+fn+', you told me <b>'+esc(lead)+'</b> matters most and you’re '+conf+' about the current plan — did I get that right?”'],['2','<b>Connect the gap to the goal.</b> “Your review shows about a <b>'+money(Math.abs(c.gapYr))+'/yr</b> gap and <b>'+money(c.insurable)+'</b> of protection need — that’s the distance between the retirement you described and today’s path.”'],['3','<b>Present the conservative strategy.</b> “There’s a strategy built around <b>'+esc((PREC[lead]||['a tailored solution'])[0])+'</b> designed to close that gap and protect your family — with no market risk to your principal.”'],['4','<b>Assume the next step.</b> '+(dd.advisor&&dd.advisor.indexOf('Yes')===0?'“Let’s get your illustration started — I’ll grab your date of birth and a quick health snapshot so I can show you real numbers.”':'“Let’s put 20 minutes on the calendar to walk through the illustration together — no pressure, just the numbers.”')]];return '<div class="sec"><h2>Advisor Playbook — Recommended Next Steps</h2>'+'<div class="obs neu" style="padding-top:0"><div class="ic">🧭</div><div class="ot"><b>'+esc(fn)+'</b> ranked <b>'+top.map(esc).join(', ')+'</b> highest and is '+conf+'. Lead with <b>'+esc(lead)+'</b>, tie every point back to it, and let the gap do the selling.</div></div>'+'<div style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin:16px 0 10px">Recommended solutions</div>'+recs+'<div style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin:18px 0 8px">Discovery → Close sequence</div>'+steps.map(function(x){return '<div class="pbstep"><div class="n">'+x[0]+'</div><div class="t">'+x[1]+'</div></div>';}).join('')+'<div style="margin-top:16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button class="aibtn" onclick="aiScript()">✨ Generate AI discovery script</button><span style="font-size:11.5px;color:var(--ink3)">Powered by @Question AI</span></div><div id="aiBox"></div>'+'</div>';}function aiScript(){
@@ -709,6 +805,7 @@ function pfrAIContext(dd,c){
   L.push('Assets '+money(c.assets)+', investments '+money(c.invest)+', debt '+money(c.debt)+', net worth '+money(c.netWorth)+'.');
   L.push('Ideal retirement age '+dd.retire.best+', plan through age '+dd.retire.deathAge+', desired income '+money(dd.goal.bestMo)+'/mo.');
   L.push('Estimated annual '+(c.gapYr<0?'shortfall':'surplus')+' '+money(Math.abs(c.gapYr))+'; estimated insurable/protection need '+money(c.insurable)+'.');
+  L.push('Liquid assets '+money(c.liquid)+(c.accredited?' — LIKELY ACCREDITED INVESTOR ($300K+ liquid): also raise real estate investing and SPV (special purpose vehicle) opportunities.':'.'));
   L.push('Top priorities (ranked): '+(dd.priorities||[]).slice(0,4).join(', ')+'.');
   if(dd.lifestyle&&dd.lifestyle.length)L.push('Lifestyle goals: '+dd.lifestyle.join(', ')+'.');
   L.push('Confidence in current plan: '+((FACES[dd.confidence-1]||['','unsure'])[1])+'.');
@@ -730,6 +827,51 @@ function aiEnhance(dd,c){
 function copyScript(){var segs=window.__aiSegs||[];var txt=segs.map(function(s){return s[0].toUpperCase()+'\n'+s[1];}).join('\n\n');copyText(txt);}
 function copyLive(btn){var box=btn.closest('.aiscript');var tx=box?box.querySelector('.segtx'):null;copyText(tx?tx.textContent:'');}
 function copyText(txt){try{navigator.clipboard.writeText(txt).then(function(){toast('Copied ✓');},function(){toast('Copy failed — select manually');});}catch(e){toast('Copy not supported here');}}
+function buildDebtPlan(c,dd){
+  var debts=[]; for(var k in dd.debt){var v=Number(dd.debt[k])||0; if(v>0) debts.push([k,v]);}
+  if(!debts.length) return '<div class="sec"><h2>💳 Debt Management Plan</h2><div class="obs pos"><div class="ic">✅</div><div class="ot">No consumer debt on record — outstanding position. Redirect what others spend on debt into tax-advantaged growth (IUL / FIA) and keep an emergency reserve.</div></div></div>';
+  var total=debts.reduce(function(t,d){return t+d[1];},0);
+  var surplus=Math.max(0,c.netMo);
+  var current=c.debtPay||0;
+  var extra=Math.round(surplus*0.5); // suggest half of discretionary toward debt
+  var pay=Math.max(current, current+extra, Math.round(total*0.03));
+  var months=pay>0?Math.ceil(total/pay):null;
+  var snow=debts.slice().sort(function(a,b){return a[1]-b[1];}); // snowball: smallest first
+  var rows=snow.map(function(d,i){return '<div class="pbstep"><div class="n">'+(i+1)+'</div><div class="t"><b>'+esc(d[0])+'</b> — '+money(d[1])+'<div class="wy">'+(i===0?'Attack this first (smallest balance) for a fast win, then roll its payment into the next.':'Then roll the freed-up payment into this one.')+'</div></div></div>';}).join('');
+  return '<div class="sec"><h2>💳 Debt Management Plan</h2>'+
+    '<div class="stats"><div class="stat"><div class="l">Total debt</div><div class="v">'+money(total)+'</div></div>'+
+    '<div class="stat accent"><div class="l">Recommended monthly payoff</div><div class="v">'+money(pay)+'</div></div>'+
+    '<div class="stat '+(months&&months<=60?'good':'')+'"><div class="l">Debt-free in</div><div class="v">'+(months?(months+' mo'):'—')+'</div></div></div>'+
+    '<div style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin:16px 0 8px">Snowball payoff order (fastest momentum)</div>'+rows+
+    '<div class="obs neu" style="margin-top:12px"><div class="ic">🧭</div><div class="ot">Put <b>'+money(pay)+'/mo</b> toward debt using the snowball above. As each balance clears, add its payment to the next — the payoff accelerates. A policy-loan / IUL strategy can also restructure high-interest debt so you’re paying yourself back instead of the bank.</div></div></div>';
+}
+function buildBudgetPlan(c,dd){
+  var inc=c.inc; if(inc<=0) return '';
+  // recommended long-term allocation (needs 50% / wants 30% / save-invest 20%, adjusted if debt-heavy)
+  var needsPct=0.5, wantsPct=0.3, savePct=0.2;
+  if(c.debt>inc*12){ needsPct=0.5; wantsPct=0.2; savePct=0.3; } // debt-heavy -> save/pay more
+  var needs=Math.round(inc*needsPct), wants=Math.round(inc*wantsPct), save=Math.round(inc*savePct);
+  var curSaveRate=Math.round((c.savingsRate||0)*100);
+  var targetSaveRate=Math.round(savePct*100);
+  return '<div class="sec"><h2>📊 Recommended Long-Term Budget</h2>'+
+    '<p class="qsub" style="margin:0 0 12px">A simple, sustainable monthly framework based on your '+money(inc)+' income — so the plan works for years, not weeks.</p>'+
+    '<div class="stats">'+
+     '<div class="stat"><div class="l">Essentials (~'+Math.round(needsPct*100)+'%)</div><div class="v">'+money(needs)+'</div></div>'+
+     '<div class="stat"><div class="l">Lifestyle (~'+Math.round(wantsPct*100)+'%)</div><div class="v">'+money(wants)+'</div></div>'+
+     '<div class="stat accent"><div class="l">Save &amp; Invest (~'+targetSaveRate+'%)</div><div class="v">'+money(save)+'</div></div>'+
+    '</div>'+
+    '<div class="obs '+(curSaveRate>=targetSaveRate?'pos':'neu')+'" style="margin-top:12px"><div class="ic">'+(curSaveRate>=targetSaveRate?'✅':'📈')+'</div><div class="ot">You’re currently saving about <b>'+curSaveRate+'%</b>; the long-term target is <b>'+targetSaveRate+'%</b> ('+money(save)+'/mo). Automate the <b>Save &amp; Invest</b> slice first — ideally into a tax-advantaged vehicle (IUL for flexible tax-free growth, or FIA for protected retirement income) so it compounds and can’t be spent by accident.</div></div></div>';
+}
+function buildHNW(c,dd){
+  if(!c.accredited) return '';
+  return '<div class="sec" style="border:1px solid var(--gold);background:var(--gold-soft)"><h2>🏛️ High-Net-Worth Strategy</h2>'+
+    '<div class="obs neu" style="padding-top:0"><div class="ic">💎</div><div class="ot">With about <b>'+money(c.liquid)+'</b> in liquid assets, this client likely meets the <b>accredited investor</b> threshold ($300K+ liquid). Beyond insurance, open the conversation to <b>real estate investing</b> and <b>SPV (Special Purpose Vehicle) opportunities</b> — pooled, deal-specific investments available to accredited investors.</div></div>'+
+    '<div style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--gold);margin:14px 0 8px">Talking points</div>'+
+    '<div class="pbstep"><div class="n">1</div><div class="t"><b>IUL as the tax-free foundation</b> — max-funded IUL for tax-free growth &amp; liquidity, then leverage policy loans for other investments (infinite banking).</div></div>'+
+    '<div class="pbstep"><div class="n">2</div><div class="t"><b>Real estate</b> — direct rentals, syndications, or a 1031 strategy for appreciation, cash flow, and tax advantages.</div></div>'+
+    '<div class="pbstep"><div class="n">3</div><div class="t"><b>SPV / private deals</b> — accredited-only pooled vehicles for a single asset or fund; diversify beyond the market. Confirm accreditation ($300K+ liquid or income tests) before presenting.</div></div>'+
+    '<div class="obs neu" style="margin-top:10px"><div class="ic">⚠️</div><div class="ot" style="font-size:12.5px">Real estate and SPVs are investments, not insurance — confirm accreditation and suitability, and involve the appropriate licensed parties. This is a discussion starter, not advice.</div></div></div>';
+}
 function buildInternalNotes(dd){
   var arr=Array.isArray(dd.producerNotes)?dd.producerNotes:[];
   var inner=arr.length? arr.map(function(n){return '<div class="nitem" style="margin-bottom:8px"><div class="nt">'+esc(n.t)+'</div><div class="nmeta">'+esc(n.a||'Producer')+' · '+noteWhen(n.ts)+'</div></div>';}).join('') : '<div class="nempty">No internal notes yet — click 🔒 Notes in the builder to add producer-only notes.</div>';
