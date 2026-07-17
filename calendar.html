@@ -152,6 +152,7 @@ a{color:inherit;text-decoration:none;}.hide{display:none!important;}
       <button id="tab_train" onclick="setTab('train')">Trainers</button>
       <button id="tab_me" onclick="setTab('me')">My Schedule</button>
       <button id="tab_avail" onclick="setTab('avail')" style="display:none">My Availability</button>
+      <button id="tab_xfer" onclick="setTab('xfer')" style="display:none">Transfers</button>
     </div>
     <div id="view"><div class="spin">Loading your scheduler…</div></div>
   </div>
@@ -238,14 +239,17 @@ function trainersAt(dstr,time){return TRAINERS.filter(function(c){return availTi
 function trainerAvailToday(c){return availTimesForTrainer(c,todayStr());}
 function nextOpening(c){for(var i=0;i<14;i++){var ds=ymd(addDays(i));var a=availTimesForTrainer(c,ds);if(a.length)return {date:ds,time:a[0]};}return null;}
 function loadDayBooked(dstr,cb){fetch(AT+'?action=atlas_day&date='+encodeURIComponent(dstr)).then(function(r){return r.json();}).then(function(r){DAYBOOKED=(r&&r.bookings)||[];cb&&cb();}).catch(function(){DAYBOOKED=[];cb&&cb();});}
-function setTab(t){TAB=t;['dash','book','train','me','avail'].forEach(function(x){var el=$('tab_'+x);if(el)el.classList.toggle('on',x===t);});render();}
-function render(){if(TAB==='dash')renderDash();else if(TAB==='book')renderBook();else if(TAB==='train')renderTrainers();else if(TAB==='avail')renderAvail();else renderMe();}
+function setTab(t){TAB=t;['dash','book','train','me','avail','xfer'].forEach(function(x){var el=$('tab_'+x);if(el)el.classList.toggle('on',x===t);});render();}
+function render(){if(TAB==='dash')renderDash();else if(TAB==='book')renderBook();else if(TAB==='train')renderTrainers();else if(TAB==='avail')renderAvail();else if(TAB==='xfer')renderTransfers();else renderMe();}
 function myTrainerProfile(){if(!TRAINERS||!TRAINERS.length)return null;var lname=(NAME||'').trim().toLowerCase();if(!lname)return null;return TRAINERS.filter(function(c){return c.name&&c.name.trim().toLowerCase()===lname;})[0]||null;}
-function revealAvailTab(){if(myTrainerProfile()){var el=$('tab_avail');if(el)el.style.display='';}}
+function myRole(){var me=myTrainerProfile();return me?((me.role||'').toUpperCase()):'';}
+function isEmd(){return myRole()==='EMD';}
+function revealAvailTab(){if(myTrainerProfile()){var el=$('tab_avail');if(el)el.style.display='';}
+  if(isEmd()){var xt=$('tab_xfer');if(xt)xt.style.display='';}}
 function renderDash(){
   var t=todayStr();var wd=wdOf(t);
   var availNow=TRAINERS.filter(function(c){return trainerAvailToday(c).length>0;});
-  var myUp=MYB.filter(function(b){return b.status==='booked'&&b.date>=t;});
+  var myUp=MYB.filter(function(b){return (b.status==='booked'||b.status==='confirmed'||b.status==='pending')&&b.date>=t;});
   var todayTrain=trainingsFor(wd);
   var recTr=recommendTrainers().slice(0,4);
   var h='<div class="hero"><h1>Book a trainer in 30 seconds.</h1><p>Pick a time, pick a trainer, done. Live availability across every Certified Field Trainer.</p><button class="hbtn" onclick="setTab(\'book\')">Start booking →</button></div>';
@@ -275,10 +279,15 @@ function trainerCard(c,tag){var av=trainerAvailToday(c);var no=nextOpening(c);va
    (lockedNow?'<button class="book" disabled style="opacity:.55;cursor:not-allowed">Manual booking only</button>':'<button class="book" onclick="event.stopPropagation();startBookWith(\''+encodeURIComponent(c.name)+'\')">Book '+esc(c.name.split(' ')[0])+'</button>')+
    '</div>';
 }
-function roleLabel(r){return r==='MD'?'Marketing Director · Field Trainer':(r==='CFT'?'Certified Field Trainer':(r||'Trainer'));}
+function roleLabel(r){return r==='EMD'?'Executive Marketing Director':(r==='MD'?'Marketing Director · Field Trainer':(r==='CFT'?'Certified Field Trainer':(r||'Trainer')));}
 function shortDate(dstr){if(dstr===todayStr())return 'Today';return new Date(dstr+'T12:00:00Z').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',timeZone:'UTC'});}
 function trainingRow(s){return '<div class="trow"><div class="ti"><div class="h">'+(s.h%12===0?12:s.h%12)+'</div><div class="ap">'+(s.h>=12?'PM':'AM')+'</div></div><div><div class="tt">'+esc(s.t)+'</div><div class="ts">'+fmtHM(s.h,s.m)+' PT · '+esc(s.host)+' · '+esc(s.zt)+'</div></div><a class="zj" href="'+s.z+'" target="_blank" rel="noopener">Join Zoom</a></div>';}
-function aptRow(b){var col=avColor(b.trainer_name);return '<div class="apt"><div class="tav" style="width:42px;height:42px;font-size:14px;background:'+col+'">'+initials(b.trainer_name)+'</div><div><div style="font-weight:700;font-size:14.5px">'+esc(b.trainer_name)+' · '+esc(b.category||'Training')+'</div><div style="font-size:12.5px;color:var(--ink3)">'+prettyDate(b.date)+' · '+esc(b.time)+' PT <span class="conf">· '+esc(b.conf||'')+'</span></div></div>'+(b.status==='booked'?'<button class="x can" onclick="cancelBk(\''+b.id+'\')">Cancel</button>':'<span class="conf" style="margin-left:auto">'+esc(b.status)+'</span>')+'</div>';}
+function aptRow(b){var col=avColor(b.trainer_name);
+  var right;
+  if(b.status==='pending')right='<span class="tstat" style="margin-left:auto;background:var(--gold-soft);color:var(--gold)"><span class="d"></span>Pending approval</span><button class="x can" style="margin-left:8px" onclick="cancelBk(\''+b.id+'\')">Cancel</button>';
+  else if(b.status==='booked'||b.status==='confirmed')right='<button class="x can" style="margin-left:auto" onclick="cancelBk(\''+b.id+'\')">Cancel</button>';
+  else right='<span class="conf" style="margin-left:auto">'+esc(b.status)+'</span>';
+  return '<div class="apt"><div class="tav" style="width:42px;height:42px;font-size:14px;background:'+col+'">'+initials(b.trainer_name)+'</div><div><div style="font-weight:700;font-size:14.5px">'+esc(b.trainer_name)+' · '+esc(b.category||'Training')+(b.status==='confirmed'?' <span style="color:var(--green);font-weight:800">✓</span>':'')+'</div><div style="font-size:12.5px;color:var(--ink3)">'+prettyDate(b.date)+' · '+esc(b.time)+' PT <span class="conf">· '+esc(b.conf||'')+'</span></div></div>'+right+'</div>';}
 function renderBook(){
   if(!SELDATE)SELDATE=todayStr();
   var h='<div class="bstep"><div class="lbl">1 · Pick a date</div><div class="dstrip" id="dstrip"></div></div>';
@@ -335,40 +344,77 @@ function doBook(encName){var name=decodeURIComponent(encName);var c=TRAINERS.fil
 }
 function finishBook(){$('bkOv').classList.remove('on');SELTIME=null;setTab('me');}
 function cancelBk(id){if(!confirm('Cancel this appointment?'))return;fetch(AT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'atlas_setstatus',id:id,status:'canceled',code:CODE})}).then(function(r){return r.json();}).then(function(){toast('Appointment canceled');loadMy(function(){render();});});}
-// === Transfer engine (Phase 1) — a trainer hands a session to another available trainer ===
+// === Approvals + Transfer engine (Phase 1/2) ===
+// pending -> Approve/Decline (the booked MD/EMD). booked/confirmed -> Transfer
+// (CFT can peer-transfer own session to another CFT; EMD/Ops transfer anything).
 function trainerAptRow(b){var col=avColor(b.agent_name||b.agent_code||'');
+  var right;
+  if(b.status==='pending'){
+    right='<div style="margin-left:auto;display:flex;gap:8px"><button class="book" style="width:auto;margin:0;padding:9px 16px;background:var(--green-soft);color:#1a9c52" onclick="doApprove(\''+b.id+'\',\'approve\')">Approve</button><button class="x can" onclick="doApprove(\''+b.id+'\',\'decline\')">Decline</button></div>';
+  } else if((b.status==='booked'||b.status==='confirmed')&&(myRole()==='CFT'||isEmd())){
+    right='<button class="x" style="margin-left:auto" onclick="openTransfer(\''+b.id+'\',\''+(isEmd()?'manager':'peer')+'\')">Transfer</button>';
+  } else {
+    right='<span class="conf" style="margin-left:auto">'+esc(b.status)+'</span>';
+  }
   return '<div class="apt"><div class="tav" style="width:42px;height:42px;font-size:14px;background:'+col+'">'+initials(b.agent_name||b.agent_code||'')+'</div>'+
-   '<div><div style="font-weight:700;font-size:14.5px">'+esc(b.agent_name||b.agent_code||'Agent')+' · '+esc(b.category||'Training')+'</div>'+
-   '<div style="font-size:12.5px;color:var(--ink3)">'+prettyDate(b.date)+' · '+esc(b.time)+' PT <span class="conf">· '+esc(b.conf||'')+'</span></div></div>'+
-   '<button class="x" style="margin-left:auto" onclick="openTransfer(\''+b.id+'\')">Transfer</button></div>';}
-var XFER=null;
-function openTransfer(id){var b=MYT.filter(function(x){return x.id===id;})[0];if(!b)return;XFER=b;
+   '<div><div style="font-weight:700;font-size:14.5px">'+esc(b.agent_name||b.agent_code||'Agent')+' · '+esc(b.category||'Training')+(b.status==='pending'?' <span style="color:var(--gold);font-weight:800">· needs approval</span>':'')+'</div>'+
+   '<div style="font-size:12.5px;color:var(--ink3)">'+prettyDate(b.date)+' · '+esc(b.time)+' PT <span class="conf">· '+esc(b.conf||'')+'</span></div></div>'+right+'</div>';}
+function doApprove(id,decision){
+  fetch(AT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'atlas_approve',id:id,decision:decision,code:CODE})}).then(function(r){return r.json();}).then(function(r){
+    if(r&&r.taken){toast(r.error||'You have a conflict at that time.');return;}
+    if(!r||!r.ok){toast((r&&r.error)||'Could not update.');return;}
+    toast(decision==='approve'?'Approved ✓':'Declined');
+    loadMyTrainer(function(){loadMy(function(){render();});});
+  }).catch(function(){toast('Network error — try again.');});}
+var XFER=null,XMODE='peer',MANAGE=[];
+function openTransfer(id,mode){var b=(MYT.filter(function(x){return x.id===id;})[0])||(MANAGE.filter(function(x){return x.id===id;})[0]);if(!b)return;XFER=b;XMODE=mode||'peer';
   $('bkDrawer').innerHTML='<h3>Transfer session</h3><p class="dsub">'+esc(b.agent_name||b.agent_code||'Agent')+' · '+prettyDate(b.date)+' at '+esc(b.time)+' PT</p><div class="spin">Finding available trainers…</div>';
   $('bkOv').classList.add('on');
   loadDayBooked(b.date,function(){renderTransferCandidates(b);});}
 function renderTransferCandidates(b){
   var cur=(b.trainer_name||'').trim().toLowerCase();
   var cands=trainersAt(b.date,b.time).filter(function(c){return (c.name||'').trim().toLowerCase()!==cur;});
+  if(XMODE==='peer')cands=cands.filter(function(c){return (c.role||'').toUpperCase()==='CFT';});
+  var note=(XMODE==='peer')?'<div style="font-size:12px;color:var(--ink3);margin:0 2px 12px">Peer transfer — hand this to another available CFT. Same time, same confirmation for the agent.</div>':'';
   var body;
-  if(!cands.length){body='<div class="empty">No other trainer has '+esc(b.time)+' open on '+prettyDate(b.date)+'. The receiving trainer needs that slot free in their availability.</div>';}
+  if(!cands.length){body='<div class="empty">No '+(XMODE==='peer'?'CFT ':'')+'trainer has '+esc(b.time)+' open on '+prettyDate(b.date)+'. They need that slot free in their availability.</div>';}
   else{body='<div class="grid g3">'+cands.map(function(c){var col=avColor(c.name);var wl=DAYBOOKED.filter(function(x){return x.trainer_name===c.name;}).length;
     return '<div class="tcard"><div class="th"><div class="tav" style="background:'+col+'">'+initials(c.name)+'</div><div><div class="tn">'+esc(c.name)+'</div><div class="tr">'+esc(roleLabel(c.role))+'</div></div></div>'+
      '<div class="tmeta"><span class="m">'+esc(b.time)+' free</span><span class="m">'+wl+' booked '+esc(shortDate(b.date))+'</span></div>'+
      '<button class="book" onclick="doTransfer(\''+b.id+'\',\''+encodeURIComponent(c.name)+'\')">Transfer to '+esc(c.name.split(' ')[0])+'</button></div>';}).join('')+'</div>';}
-  $('bkDrawer').innerHTML='<h3>Transfer session</h3><p class="dsub">'+esc(b.agent_name||b.agent_code||'Agent')+' · '+esc(b.category||'Training')+' · '+prettyDate(b.date)+' at '+esc(b.time)+' PT</p>'+body+'<div class="dact" style="margin-top:18px"><button onclick="$(\'bkOv\').classList.remove(\'on\')">Close</button></div>';}
+  $('bkDrawer').innerHTML='<h3>Transfer session</h3><p class="dsub">'+esc(b.agent_name||b.agent_code||'Agent')+' · '+esc(b.category||'Training')+' · '+prettyDate(b.date)+' at '+esc(b.time)+' PT</p>'+note+body+'<div class="dact" style="margin-top:18px"><button onclick="$(\'bkOv\').classList.remove(\'on\')">Close</button></div>';}
 function doTransfer(id,encName){var name=decodeURIComponent(encName);
   fetch(AT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'atlas_transfer',id:id,to_trainer_name:name,code:CODE})}).then(function(r){return r.json();}).then(function(r){
     if(r&&r.taken){toast(r.error||'That trainer was just booked.');loadDayBooked(XFER.date,function(){renderTransferCandidates(XFER);});return;}
     if(!r||!r.ok){toast((r&&r.error)||'Transfer failed.');return;}
     toast('Transferred to '+name.split(' ')[0]);$('bkOv').classList.remove('on');
-    loadMyTrainer(function(){loadMy(function(){render();});});
+    loadMyTrainer(function(){loadMy(function(){if(TAB==='xfer')loadManage(function(){render();});else render();});});
   }).catch(function(){toast('Network error — try again.');});}
+function loadManage(cb){fetch(AT+'?action=atlas_manage_upcoming&code='+encodeURIComponent(CODE)).then(function(r){return r.json();}).then(function(r){MANAGE=(r&&r.bookings)||[];cb&&cb();}).catch(function(){MANAGE=[];cb&&cb();});}
+function manageRow(b){var col=avColor(b.trainer_name);return '<div class="apt"><div class="tav" style="width:42px;height:42px;font-size:14px;background:'+col+'">'+initials(b.trainer_name)+'</div>'+
+  '<div><div style="font-weight:700;font-size:14.5px">'+esc(b.trainer_name)+' <span style="color:var(--ink3);font-weight:600">← </span>'+esc(b.agent_name||b.agent_code||'Agent')+'</div>'+
+  '<div style="font-size:12.5px;color:var(--ink3)">'+esc(b.category||'Training')+' · '+prettyDate(b.date)+' · '+esc(b.time)+' PT <span class="conf">· '+esc(b.status)+'</span></div></div>'+
+  '<button class="x" style="margin-left:auto" onclick="openTransfer(\''+b.id+'\',\'manager\')">Transfer</button></div>';}
+function renderTransfers(){
+  if(!isEmd()){$('view').innerHTML='<div class="empty">Transfers are managed by EMD / Ops only.</div>';return;}
+  $('view').innerHTML='<div class="hero" style="background:linear-gradient(135deg,#4f46e5,#7c8bff)"><h1>Transfers</h1><p>Reassign any upcoming session to another available trainer. EMD / Ops only.</p></div><div class="spin">Loading upcoming sessions…</div>';
+  loadManage(function(){
+    var t=todayStr();var rows=MANAGE.filter(function(b){return b.date>=t;});
+    var h='<div class="hero" style="background:linear-gradient(135deg,#4f46e5,#7c8bff)"><h1>Transfers</h1><p>Reassign any upcoming session to another available trainer. EMD / Ops only.</p></div>';
+    h+='<div class="sec"><div class="sech"><h2>Upcoming sessions</h2><span style="font-size:12px;color:var(--ink3)">'+rows.length+'</span></div>';
+    h+=rows.length?rows.map(manageRow).join(''):'<div class="empty">No upcoming sessions to manage.</div>';
+    h+='</div>';
+    $('view').innerHTML=h;
+  });}
 function renderTrainers(){var rec=recommendTrainers();
   $('view').innerHTML='<div class="sech" style="margin-bottom:14px"><h2>Certified Field Trainers</h2><a onclick="setTab(\'book\')">Fast book →</a></div><div class="grid g3">'+(rec.length?rec.map(function(o){return trainerCard(o.cft,o.tag);}).join(''):'<div class="empty">No trainers configured.</div>')+'</div>';}
-function renderMe(){var t=todayStr();var up=MYB.filter(function(b){return b.status==='booked'&&b.date>=t;});var past=MYB.filter(function(b){return b.status!=='booked'||b.date<t;});
-  var myTrain=MYT.filter(function(b){return (b.status==='booked'||b.status==='confirmed')&&b.date>=t;});
+function renderMe(){var t=todayStr();
+  var isUp=function(b){return (b.status==='booked'||b.status==='confirmed'||b.status==='pending')&&b.date>=t;};
+  var up=MYB.filter(isUp);var past=MYB.filter(function(b){return !isUp(b);});
+  var myTrain=MYT.filter(isUp);
+  var pendCount=myTrain.filter(function(b){return b.status==='pending';}).length;
   var h='<div class="sec"><div class="sech"><h2>Upcoming appointments</h2><a onclick="setTab(\'book\')">Book another →</a></div>'+(up.length?up.map(aptRow).join(''):'<div class="empty">Nothing on the books — tap Book a Trainer to schedule.</div>')+'</div>';
-  if(myTrain.length){h+='<div class="sec"><div class="sech"><h2>Sessions you\'re training</h2><span style="font-size:12px;color:var(--ink3)">'+myTrain.length+' upcoming</span></div><div style="font-size:12.5px;color:var(--ink3);margin:0 2px 10px">Can\'t make one? Transfer it — the agent keeps the same time and confirmation.</div>'+myTrain.map(trainerAptRow).join('')+'</div>';}
+  if(myTrain.length){h+='<div class="sec"><div class="sech"><h2>Sessions you\'re training</h2><span style="font-size:12px;color:var(--ink3)">'+myTrain.length+' upcoming'+(pendCount?' · '+pendCount+' to approve':'')+'</span></div><div style="font-size:12.5px;color:var(--ink3);margin:0 2px 10px">'+(pendCount?'Approve or decline pending requests below.':'Your upcoming sessions.')+'</div>'+myTrain.map(trainerAptRow).join('')+'</div>';}
   h+='<div class="sec"><div class="sech"><h2>This week’s trainings</h2></div>';
   for(var i=0;i<7;i++){var dd=addDays(i);var w=dd.getUTCDay();var ts=trainingsFor(w);if(!ts.length)continue;h+='<div style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin:14px 2px 8px">'+(i===0?'Today':dd.toLocaleDateString('en-US',{weekday:'long',timeZone:'UTC'}))+'</div>'+ts.map(trainingRow).join('');}
   h+='</div>';
