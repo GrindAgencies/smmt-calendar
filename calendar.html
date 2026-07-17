@@ -5,8 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Scheduler — The Standard</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link href="https://assets.calendly.com/assets/external/widget.css" rel="stylesheet">
-<script src="https://assets.calendly.com/assets/external/widget.js" async></script>
 <style>
 :root{
   --bg:#f5f5f7;--panel:#fff;--panel2:#fbfbfd;--ink:#1d1d1f;--ink2:#6e6e73;--ink3:#8e8e93;
@@ -221,9 +219,16 @@ function addDays(n){var d=new Date(todayStr()+'T12:00:00Z');d.setUTCDate(d.getUT
 function wdOf(dstr){return new Date(dstr+'T12:00:00Z').getUTCDay();}
 function prettyDate(dstr){return new Date(dstr+'T12:00:00Z').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',timeZone:'UTC'});}
 function t2min(t){var m=/(\d+):(\d+)\s*(AM|PM)/i.exec(t);if(!m)return 0;var h=+m[1]%12;if(/PM/i.test(m[3]))h+=12;return h*60+ +m[2];}
-function availTimesForTrainer(cft,dstr){var key=DAYS[wdOf(dstr)];var slots=(cft.slots&&cft.slots[key])?cft.slots[key]:[];
+function inRange(dstr,r){return r&&dstr>=r.start&&dstr<=r.end;}
+function availTimesForTrainer(cft,dstr){
+  if(cft.locked)return [];
+  if((cft.lockouts||[]).some(function(r){return inRange(dstr,r);}))return [];
+  if((cft.vacations||[]).some(function(r){return inRange(dstr,r);}))return [];
+  if((cft.blackouts||[]).indexOf(dstr)>=0)return [];
+  var key=DAYS[wdOf(dstr)];var slots=(cft.slots&&cft.slots[key])?cft.slots[key]:[];
   var taken=DAYBOOKED.filter(function(b){return b.trainer_name===cft.name;}).map(function(b){return b.time;});
-  return slots.filter(function(t){return taken.indexOf(t)<0;});}
+  return slots.filter(function(t){return taken.indexOf(t)<0;});
+}
 function allTimesForDate(dstr){var map={};TRAINERS.forEach(function(c){availTimesForTrainer(c,dstr).forEach(function(t){map[t]=(map[t]||0)+1;});});
   return Object.keys(map).sort(function(a,b){return t2min(a)-t2min(b);}).map(function(t){return {time:t,count:map[t]};});}
 function trainersAt(dstr,time){return TRAINERS.filter(function(c){return availTimesForTrainer(c,dstr).indexOf(time)>=0;});}
@@ -255,11 +260,15 @@ function recommendTrainers(){
   return out;
 }
 function trainerCard(c,tag){var av=trainerAvailToday(c);var no=nextOpening(c);var col=avColor(c.name);
-  return '<div class="tcard" onclick="startBookWith(\''+encodeURIComponent(c.name)+'\')">'+(tag?'<span class="badge">'+esc(tag)+'</span>':'')+
+  var lockedNow=!!c.locked;
+  var badge=lockedNow?'<span class="badge">Manual only</span>':(tag?'<span class="badge">'+esc(tag)+'</span>':'');
+  var stateLabel=lockedNow?'Contact directly':(av.length?('Available today · '+av.length+' slots'):'Booked up today');
+  return '<div class="tcard"'+(lockedNow?'':' onclick="startBookWith(\''+encodeURIComponent(c.name)+'\')"')+'>'+badge+
    '<div class="th"><div class="tav" style="background:'+col+'">'+initials(c.name)+'</div><div><div class="tn">'+esc(c.name)+'</div><div class="tr">'+esc(roleLabel(c.role))+'</div></div></div>'+
-   '<span class="tstat '+(av.length?'on':'off')+'"><span class="d"></span>'+(av.length?('Available today · '+av.length+' slots'):'Booked up today')+'</span>'+
-   '<div class="tmeta"><span class="m">Next: '+(no?(shortDate(no.date)+' '+no.time):'—')+'</span><span class="m">'+esc((TZ.split(' ')[0]||'PT'))+'</span></div>'+
-   '<button class="book" onclick="event.stopPropagation();startBookWith(\''+encodeURIComponent(c.name)+'\')">Book '+esc(c.name.split(' ')[0])+'</button></div>';
+   '<span class="tstat '+(av.length&&!lockedNow?'on':'off')+'"><span class="d"></span>'+esc(stateLabel)+'</span>'+
+   '<div class="tmeta"><span class="m">Next: '+(lockedNow?'By request':(no?(shortDate(no.date)+' '+no.time):'—'))+'</span><span class="m">'+esc((TZ.split(' ')[0]||'PT'))+'</span></div>'+
+   (lockedNow?'<button class="book" disabled style="opacity:.55;cursor:not-allowed">Manual booking only</button>':'<button class="book" onclick="event.stopPropagation();startBookWith(\''+encodeURIComponent(c.name)+'\')">Book '+esc(c.name.split(' ')[0])+'</button>')+
+   '</div>';
 }
 function roleLabel(r){return r==='MD'?'Marketing Director · Field Trainer':(r==='CFT'?'Certified Field Trainer':(r||'Trainer'));}
 function shortDate(dstr){if(dstr===todayStr())return 'Today';return new Date(dstr+'T12:00:00Z').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',timeZone:'UTC'});}
@@ -314,15 +323,11 @@ function doBook(encName){var name=decodeURIComponent(encName);var c=TRAINERS.fil
     if(!r||!r.ok){toast((r&&r.error)||'Could not book.');$('cbtn').disabled=false;$('cbtn').textContent='Confirm booking';return;}
     var b=r.booking;
     $('bkDrawer').innerHTML='<div class="done"><div class="chk">✓</div><h3>You’re booked!</h3><p class="dsub">'+esc(name)+' · '+prettyDate(SELDATE)+' at '+esc(SELTIME)+' PT</p><div class="cnum">Confirmation '+esc(b.conf||'')+'</div>'+
-      '<div class="dact" style="margin-top:22px"><button onclick="finishBook()">Done</button><button class="go" onclick="openCalendly(\''+encodeURIComponent(c.calendly||'')+'\')">Finalize on Calendly →</button></div>'+
-      '<div style="font-size:11.5px;color:var(--ink3);margin-top:12px">We’ll add this to '+esc(name.split(' ')[0])+'’s calendar via Calendly and your schedule.</div></div>';
+      '<div class="dact" style="margin-top:22px"><button class="go" onclick="finishBook()">Done</button></div>'+
+      '<div style="font-size:11.5px;color:var(--ink3);margin-top:12px">Notification sent to '+esc(name.split(' ')[0])+'. You can cancel any time from My Schedule.</div></div>';
     loadMy(function(){});
-    setTimeout(function(){openCalendly(encodeURIComponent(c.calendly||''),true);},350);
   }).catch(function(){toast('Network error — try again.');$('cbtn').disabled=false;$('cbtn').textContent='Confirm booking';});
 }
-function openCalendly(encUrl,auto){var url=decodeURIComponent(encUrl||'');if(!url){if(!auto)toast('No Calendly link on file for this trainer.');return;}
-  try{if(window.Calendly&&Calendly.initPopupWidget){Calendly.initPopupWidget({url:url});return;}}catch(e){}
-  window.open(url,'_blank');}
 function finishBook(){$('bkOv').classList.remove('on');SELTIME=null;setTab('me');}
 function cancelBk(id){if(!confirm('Cancel this appointment?'))return;fetch(AT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'atlas_setstatus',id:id,status:'canceled',code:CODE})}).then(function(r){return r.json();}).then(function(){toast('Appointment canceled');loadMy(function(){render();});});}
 function renderTrainers(){var rec=recommendTrainers();
