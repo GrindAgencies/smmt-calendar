@@ -480,6 +480,11 @@ function saveNow(silent){
   if(!CUR)return;var dd=CUR.data;var c=calc(dd);
   if(!CUR.id&&!(dd.client.name||'').trim())return;
   var p={action:'pfr_save',id:CUR.id,code:CODE,agent_name:NAME,client_name:dd.client.name,client_phone:dd.client.phone,client_email:dd.client.email,data:dd,insurable_need:Math.round(c.insurable),status:CUR.status};
+  /* capture the #1 recommended carrier/product so New Business can compare sold-vs-recommended */
+  try{var _sd=dd.health?dd:JSON.parse(JSON.stringify(dd));if(!_sd.health)_sd.health={tier:'Standard',tobacco:false};
+    var _s=buildStrategy(c,_sd);
+    if(_s&&_s.recs&&_s.recs[0]){p.recommended_carrier=_s.recs[0].carrier||'';p.recommended_product=_s.recs[0].label||'';p.recommended_strategy=_s.headline||'';}
+  }catch(e){}
   if(OPS)p.token='2026';
   setSaveLbl('Saving…','');
   api(p).then(function(r){if(r&&r.pfr&&r.pfr.id){CUR.id=r.pfr.id;}
