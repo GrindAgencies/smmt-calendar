@@ -151,6 +151,7 @@ a{color:inherit;text-decoration:none;}.hide{display:none!important;}
       <button id="tab_book" onclick="setTab('book')">Book a Trainer</button>
       <button id="tab_train" onclick="setTab('train')">Trainers</button>
       <button id="tab_me" onclick="setTab('me')">My Schedule</button>
+      <button id="tab_company" onclick="setTab('company')" style="display:none">Company</button>
       <button id="tab_avail" onclick="setTab('avail')" style="display:none">My Availability</button>
       <button id="tab_xfer" onclick="setTab('xfer')" style="display:none">Transfers</button>
     </div>
@@ -239,12 +240,12 @@ function trainersAt(dstr,time){return TRAINERS.filter(function(c){return availTi
 function trainerAvailToday(c){return availTimesForTrainer(c,todayStr());}
 function nextOpening(c){for(var i=0;i<14;i++){var ds=ymd(addDays(i));var a=availTimesForTrainer(c,ds);if(a.length)return {date:ds,time:a[0]};}return null;}
 function loadDayBooked(dstr,cb){fetch(AT+'?action=atlas_day&date='+encodeURIComponent(dstr)).then(function(r){return r.json();}).then(function(r){DAYBOOKED=(r&&r.bookings)||[];cb&&cb();}).catch(function(){DAYBOOKED=[];cb&&cb();});}
-function setTab(t){TAB=t;['dash','book','train','me','avail','xfer'].forEach(function(x){var el=$('tab_'+x);if(el)el.classList.toggle('on',x===t);});render();}
-function render(){if(TAB==='dash')renderDash();else if(TAB==='book')renderBook();else if(TAB==='train')renderTrainers();else if(TAB==='avail')renderAvail();else if(TAB==='xfer')renderTransfers();else renderMe();}
+function setTab(t){TAB=t;['dash','book','train','me','company','avail','xfer'].forEach(function(x){var el=$('tab_'+x);if(el)el.classList.toggle('on',x===t);});render();}
+function render(){if(TAB==='dash')renderDash();else if(TAB==='book')renderBook();else if(TAB==='train')renderTrainers();else if(TAB==='company')renderCompany();else if(TAB==='avail')renderAvail();else if(TAB==='xfer')renderTransfers();else renderMe();}
 function myTrainerProfile(){if(!TRAINERS||!TRAINERS.length)return null;var lname=(NAME||'').trim().toLowerCase();if(!lname)return null;return TRAINERS.filter(function(c){return c.name&&c.name.trim().toLowerCase()===lname;})[0]||null;}
 function myRole(){var me=myTrainerProfile();return me?((me.role||'').toUpperCase()):'';}
 function isEmd(){return myRole()==='EMD';}
-function revealAvailTab(){if(myTrainerProfile()){var el=$('tab_avail');if(el)el.style.display='';}
+function revealAvailTab(){if(myTrainerProfile()){var a=$('tab_avail');if(a)a.style.display='';var cp=$('tab_company');if(cp)cp.style.display='';}
   if(isEmd()){var xt=$('tab_xfer');if(xt)xt.style.display='';}}
 function renderDash(){
   var t=todayStr();var wd=wdOf(t);
@@ -254,6 +255,18 @@ function renderDash(){
   var recTr=recommendTrainers().slice(0,4);
   var h='<div class="hero"><h1>Book a trainer in 30 seconds.</h1><p>Pick a time, pick a trainer, done. Live availability across every Certified Field Trainer.</p><button class="hbtn" onclick="setTab(\'book\')">Start booking →</button></div>';
   h+='<div class="grid g4" style="margin-bottom:24px">'+tile('Trainers available today',availNow.length)+tile('Your upcoming',myUp.length)+tile('Live trainings today',todayTrain.length)+tile('Active trainers',TRAINERS.length)+'</div>';
+  var _me=myTrainerProfile();
+  if(_me){
+    var mineToday=MYT.filter(function(b){return b.date===t&&(b.status==='booked'||b.status==='confirmed');});
+    var pendMe=MYT.filter(function(b){return b.status==='pending'&&b.date>=t;});
+    var upMe=MYT.filter(function(b){return (b.status==='booked'||b.status==='confirmed')&&b.date>=t;});
+    h+='<div class="sec"><div class="sech"><h2>Your training day</h2><a onclick="setTab(\'company\')">Company view →</a></div>';
+    h+='<div class="grid g4" style="margin-bottom:10px">'+tile('Sessions today',mineToday.length)+tile('Pending approvals',pendMe.length)+tile('Upcoming you train',upMe.length)+'</div>';
+    if(pendMe.length)h+=pendMe.slice(0,4).map(trainerAptRow).join('');
+    else if(mineToday.length)h+=mineToday.map(trainerAptRow).join('');
+    else h+='<div class="empty">No sessions to train today — enjoy the breathing room.</div>';
+    h+='</div>';
+  }
   h+='<div class="sec"><div class="sech"><h2>Recommended for you</h2><a onclick="setTab(\'train\')">All trainers</a></div><div class="grid g3">'+(recTr.length?recTr.map(function(o){return trainerCard(o.cft,o.tag);}).join(''):'<div class="empty">No trainer availability configured yet.</div>')+'</div></div>';
   h+='<div class="sec"><div class="sech"><h2>Your upcoming appointments</h2><a onclick="setTab(\'me\')">My schedule</a></div>'+(myUp.length?myUp.slice(0,4).map(aptRow).join(''):'<div class="empty">No appointments yet — book your first training.</div>')+'</div>';
   h+='<div class="sec"><div class="sech"><h2>Live trainings today</h2></div>'+(todayTrain.length?todayTrain.map(trainingRow).join(''):'<div class="empty">No scheduled trainings today.</div>')+'</div>';
@@ -406,6 +419,44 @@ function renderTransfers(){
     h+='</div>';
     $('view').innerHTML=h;
   });}
+// === Company Availability view (Phase 2) ===
+function ptDate(iso){try{return new Intl.DateTimeFormat('en-CA',{timeZone:'America/Los_Angeles'}).format(new Date(iso));}catch(e){return '';}}
+function ptTime(iso){try{return new Date(iso).toLocaleTimeString('en-US',{timeZone:'America/Los_Angeles',hour:'numeric',minute:'2-digit'});}catch(e){return '';}}
+var COMPANY=[];
+function loadCompany(cb){fetch(AT+'?action=atlas_upcoming').then(function(r){return r.json();}).then(function(r){COMPANY=(r&&r.bookings)||[];cb&&cb();}).catch(function(){COMPANY=[];cb&&cb();});}
+function renderCompany(){
+  $('view').innerHTML='<div class="hero" style="background:linear-gradient(135deg,#0a84ff,#5b6cff)"><h1>Company Availability</h1><p>Live coverage across every trainer — who’s open, who’s booked, where the gaps are.</p></div><div class="spin">Loading coverage…</div>';
+  loadCompany(function(){loadDayBooked(todayStr(),function(){paintCompany();});});
+}
+function paintCompany(){
+  var t=todayStr();var wd=wdOf(t);
+  var availNow=TRAINERS.filter(function(c){return availTimesForTrainer(c,t).length>0;});
+  var openSlots=0;var slotMap={};
+  TRAINERS.forEach(function(c){var a=availTimesForTrainer(c,t);openSlots+=a.length;a.forEach(function(tm){slotMap[tm]=(slotMap[tm]||0)+1;});});
+  var slots=Object.keys(slotMap).sort(function(a,b){return t2min(a)-t2min(b);});
+  var maxSlot=slots.length?Math.max.apply(null,slots.map(function(s){return slotMap[s];})):0;
+  var h='<div class="hero" style="background:linear-gradient(135deg,#0a84ff,#5b6cff)"><h1>Company Availability</h1><p>Live coverage across every trainer — who’s open, who’s booked, where the gaps are.</p></div>';
+  h+='<div class="grid g4" style="margin-bottom:22px">'+tile('Trainers open today',availNow.length+' / '+TRAINERS.length)+tile('Open slots today',openSlots)+tile('Booked today',DAYBOOKED.length)+tile('Live trainings today',trainingsFor(wd).length)+'</div>';
+  h+='<div class="sec"><div class="sech"><h2>Today’s open coverage by time</h2><span style="font-size:12px;color:var(--ink3)">'+prettyDate(t)+'</span></div>';
+  if(!slots.length)h+='<div class="empty">No open trainer slots today — full coverage gap.</div>';
+  else h+='<div style="display:flex;flex-wrap:wrap;gap:8px">'+slots.map(function(tm){var n=slotMap[tm];var pct=maxSlot?n/maxSlot:0;var bg='rgba(52,199,89,'+(0.16+pct*0.5).toFixed(2)+')';return '<div style="min-width:86px;text-align:center;padding:10px 8px;border-radius:12px;background:'+bg+';border:1px solid var(--line)"><div style="font-weight:800;font-size:13px">'+esc(tm)+'</div><div style="font-size:11px;color:var(--ink2)">'+n+' open</div></div>';}).join('')+'</div>';
+  h+='</div>';
+  h+='<div class="sec"><div class="sech"><h2>Trainer status</h2></div><div class="grid g3">'+TRAINERS.map(function(c){
+     var free=availTimesForTrainer(c,t).length;var booked=DAYBOOKED.filter(function(x){return x.trainer_name===c.name;}).length;var no=nextOpening(c);var col=avColor(c.name);
+     var state=c.locked?'Locked (manual only)':(free?free+' open today':'Booked up today');
+     return '<div class="tcard"><div class="th"><div class="tav" style="background:'+col+'">'+initials(c.name)+'</div><div><div class="tn">'+esc(c.name)+'</div><div class="tr">'+esc(roleLabel(c.role))+'</div></div></div>'+
+       '<span class="tstat '+(free&&!c.locked?'on':'off')+'"><span class="d"></span>'+esc(state)+'</span>'+
+       '<div class="tmeta"><span class="m">'+booked+' booked today</span><span class="m">Next: '+(no?(esc(shortDate(no.date))+' '+esc(no.time)):'—')+'</span></div></div>';
+   }).join('')+'</div></div>';
+  var days=[];for(var i=0;i<7;i++){days.push({ds:ymd(addDays(i)),n:0});}
+  var timeCount={};
+  COMPANY.forEach(function(b){var ds=b.date||ptDate(b.starts_at);var tm=b.time||ptTime(b.starts_at);var d=days.filter(function(x){return x.ds===ds;})[0];if(d)d.n++;if(tm)timeCount[tm]=(timeCount[tm]||0)+1;});
+  var maxN=Math.max(1,Math.max.apply(null,days.map(function(d){return d.n;})));
+  h+='<div class="sec"><div class="sech"><h2>Next 7 days — booked sessions</h2></div><div style="display:flex;align-items:flex-end;gap:10px;padding:8px 2px">'+days.map(function(d){var dd=new Date(d.ds+'T12:00:00Z');var lbl=(d.ds===t)?'Today':dd.toLocaleDateString('en-US',{weekday:'short',timeZone:'UTC'});var ht=Math.round((d.n/maxN)*90)+6;return '<div style="flex:1;text-align:center"><div style="height:96px;display:flex;align-items:flex-end;justify-content:center"><div style="width:58%;background:var(--accent);border-radius:8px 8px 0 0;height:'+ht+'px"></div></div><div style="font-size:11px;color:var(--ink3);margin-top:4px">'+esc(lbl)+'</div><div style="font-size:12px;font-weight:800">'+d.n+'</div></div>';}).join('')+'</div>';
+  var peak=Object.keys(timeCount).sort(function(a,b){return timeCount[b]-timeCount[a];})[0];
+  h+='<div style="font-size:12.5px;color:var(--ink3);margin-top:10px">Peak time: <b style="color:var(--ink)">'+(peak?esc(peak)+' · '+timeCount[peak]+' booked':'—')+'</b></div></div>';
+  $('view').innerHTML=h;
+}
 function renderTrainers(){var rec=recommendTrainers();
   $('view').innerHTML='<div class="sech" style="margin-bottom:14px"><h2>Certified Field Trainers</h2><a onclick="setTab(\'book\')">Fast book →</a></div><div class="grid g3">'+(rec.length?rec.map(function(o){return trainerCard(o.cft,o.tag);}).join(''):'<div class="empty">No trainers configured.</div>')+'</div>';}
 function renderMe(){var t=todayStr();
