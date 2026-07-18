@@ -152,6 +152,7 @@ a{color:inherit;text-decoration:none;}.hide{display:none!important;}
       <button id="tab_train" onclick="setTab('train')">Trainers</button>
       <button id="tab_me" onclick="setTab('me')">My Schedule</button>
       <button id="tab_company" onclick="setTab('company')" style="display:none">Company</button>
+      <button id="tab_clients" onclick="setTab('clients')" style="display:none">Clients</button>
       <button id="tab_avail" onclick="setTab('avail')" style="display:none">My Availability</button>
       <button id="tab_xfer" onclick="setTab('xfer')" style="display:none">Transfers</button>
     </div>
@@ -240,14 +241,14 @@ function trainersAt(dstr,time){return TRAINERS.filter(function(c){return availTi
 function trainerAvailToday(c){return availTimesForTrainer(c,todayStr());}
 function nextOpening(c){for(var i=0;i<14;i++){var ds=ymd(addDays(i));var a=availTimesForTrainer(c,ds);if(a.length)return {date:ds,time:a[0]};}return null;}
 function loadDayBooked(dstr,cb){fetch(AT+'?action=atlas_day&date='+encodeURIComponent(dstr)).then(function(r){return r.json();}).then(function(r){DAYBOOKED=(r&&r.bookings)||[];cb&&cb();}).catch(function(){DAYBOOKED=[];cb&&cb();});}
-function setTab(t){TAB=t;['dash','book','train','me','company','avail','xfer'].forEach(function(x){var el=$('tab_'+x);if(el)el.classList.toggle('on',x===t);});render();}
-function render(){if(TAB==='dash')renderDash();else if(TAB==='book')renderBook();else if(TAB==='train')renderTrainers();else if(TAB==='company')renderCompany();else if(TAB==='avail')renderAvail();else if(TAB==='xfer')renderTransfers();else renderMe();}
+function setTab(t){TAB=t;['dash','book','train','me','company','clients','avail','xfer'].forEach(function(x){var el=$('tab_'+x);if(el)el.classList.toggle('on',x===t);});render();}
+function render(){if(TAB==='dash')renderDash();else if(TAB==='book')renderBook();else if(TAB==='train')renderTrainers();else if(TAB==='company')renderCompany();else if(TAB==='clients')renderClients();else if(TAB==='avail')renderAvail();else if(TAB==='xfer')renderTransfers();else renderMe();}
 function myTrainerProfile(){if(!TRAINERS||!TRAINERS.length)return null;var lname=(NAME||'').trim().toLowerCase();if(!lname)return null;return TRAINERS.filter(function(c){return c.name&&c.name.trim().toLowerCase()===lname;})[0]||null;}
 function myRole(){var me=myTrainerProfile();return me?((me.role||'').toUpperCase()):'';}
 function isEmd(){return myRole()==='EMD';}
 function slugify(s){return (s||'').toString().trim().toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');}
 function copyLink(){var el=$('pubLink');if(!el)return;el.select();try{navigator.clipboard.writeText(el.value);}catch(e){document.execCommand('copy');}toast('Link copied');}
-function revealAvailTab(){if(myTrainerProfile()){var a=$('tab_avail');if(a)a.style.display='';var cp=$('tab_company');if(cp)cp.style.display='';}
+function revealAvailTab(){if(myTrainerProfile()){var a=$('tab_avail');if(a)a.style.display='';var cp=$('tab_company');if(cp)cp.style.display='';var cl=$('tab_clients');if(cl)cl.style.display='';}
   if(isEmd()){var xt=$('tab_xfer');if(xt)xt.style.display='';}}
 function renderDash(){
   var t=todayStr();var wd=wdOf(t);
@@ -305,11 +306,66 @@ function aptRow(b){var col=avColor(b.trainer_name);
   return '<div class="apt"><div class="tav" style="width:42px;height:42px;font-size:14px;background:'+col+'">'+initials(b.trainer_name)+'</div><div><div style="font-weight:700;font-size:14.5px">'+esc(b.trainer_name)+' · '+esc(b.category||'Training')+(b.status==='confirmed'?' <span style="color:var(--green);font-weight:800">✓</span>':'')+'</div><div style="font-size:12.5px;color:var(--ink3)">'+prettyDate(b.date)+' · '+esc(b.time)+' PT <span class="conf">· '+esc(b.conf||'')+'</span></div></div>'+right+'</div>';}
 function renderBook(){
   if(!SELDATE)SELDATE=todayStr();
-  var h='<div class="bstep"><div class="lbl">1 · Pick a date</div><div class="dstrip" id="dstrip"></div></div>';
+  var h='<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap"><div style="font-size:12.5px;color:var(--ink3)">Booking a training for yourself? Use the steps below. Booking a client appointment for someone else?</div><button class="qbtn" style="margin:0" onclick="openStaffBook()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Book for a client</button></div>';
+  h+='<div class="bstep"><div class="lbl">1 · Pick a date</div><div class="dstrip" id="dstrip"></div></div>';
   h+='<div class="bstep"><div class="lbl">2 · Training type</div><div class="catrow" id="catrow"></div></div>';
   h+='<div class="bstep"><div class="lbl">3 · Available times</div><div id="timesWrap"><div class="spin">Loading availability…</div></div></div>';
   h+='<div class="bstep" id="trWrap"></div>';
   $('view').innerHTML=h;renderDStrip();renderCats();loadDayBooked(SELDATE,function(){renderTimes();});
+}
+// === Book for a client (3c — book-on-behalf) ===
+var BTYPES=[],SBSLOTS=[];
+var _IST='width:100%;border:1.5px solid var(--line2);border-radius:12px;padding:11px 13px;font-size:15px;background:var(--panel);color:var(--ink);outline:none';
+var _LST='display:block;font-size:12px;font-weight:700;color:var(--ink2);margin-bottom:5px';
+var _FST='margin-bottom:11px';
+function loadBTypes(cb){if(BTYPES.length)return cb&&cb();fetch(AT+'?action=atlas_public_types').then(function(r){return r.json();}).then(function(r){BTYPES=(r&&r.types)||[];cb&&cb();}).catch(function(){cb&&cb();});}
+function openStaffBook(){
+  SBSLOTS=[];
+  loadBTypes(function(){
+    var tOpts=TRAINERS.map(function(c){return '<option value="'+esc(c.name)+'">'+esc(c.name)+' · '+esc(roleLabel(c.role))+'</option>';}).join('');
+    var tyOpts=BTYPES.map(function(t){return '<option value="'+esc(t.key)+'">'+esc(t.name)+' ('+(t.variable_duration?'varies':t.duration+'m')+')</option>';}).join('');
+    $('bkDrawer').innerHTML='<h3>Book for a client</h3><p class="dsub">Schedule an appointment on behalf of a client — they’re added to your pipeline automatically.</p>'+
+      '<div style="'+_FST+'"><label style="'+_LST+'">Trainer</label><select id="sb_trainer" style="'+_IST+'" onchange="sbTrainerChange()"><option value="">Select a trainer…</option>'+tOpts+'</select></div>'+
+      '<div style="'+_FST+'"><label style="'+_LST+'">Appointment type</label><select id="sb_type" style="'+_IST+'"><option value="">Select…</option>'+tyOpts+'</select></div>'+
+      '<div style="display:flex;gap:10px"><div style="'+_FST+';flex:1"><label style="'+_LST+'">Date</label><select id="sb_date" style="'+_IST+'" onchange="sbDateChange()"><option value="">Pick trainer first</option></select></div>'+
+      '<div style="'+_FST+';flex:1"><label style="'+_LST+'">Time</label><select id="sb_time" style="'+_IST+'"><option value="">—</option></select></div></div>'+
+      '<div style="'+_FST+'"><label style="'+_LST+'">Client name *</label><input id="sb_name" style="'+_IST+'" placeholder="Full name"></div>'+
+      '<div style="display:flex;gap:10px"><div style="'+_FST+';flex:1"><label style="'+_LST+'">Client email</label><input id="sb_email" type="email" style="'+_IST+'" placeholder="name@email.com"></div>'+
+      '<div style="'+_FST+';flex:1"><label style="'+_LST+'">Client phone</label><input id="sb_phone" type="tel" style="'+_IST+'" placeholder="(555) 555-1234"></div></div>'+
+      '<div style="'+_FST+'"><label style="'+_LST+'">Notes</label><textarea id="sb_notes" style="'+_IST+';min-height:60px;resize:vertical" placeholder="Anything to note…"></textarea></div>'+
+      '<label style="display:flex;gap:9px;align-items:flex-start;font-size:12px;color:var(--ink2);margin:2px 0 6px"><input type="checkbox" id="sb_consent" style="margin-top:2px;width:16px;height:16px"> Client agreed to be contacted by phone, text, and email.</label>'+
+      '<div class="dact"><button onclick="$(\'bkOv\').classList.remove(\'on\')">Cancel</button><button class="go" id="sbBtn" onclick="doStaffBook()">Book appointment</button></div>'+
+      '<div id="sbErr" style="color:var(--red);font-size:12.5px;font-weight:600;margin-top:8px;text-align:center"></div>';
+    $('bkOv').classList.add('on');
+  });
+}
+function sbTrainerChange(){var name=$('sb_trainer').value;var ds=$('sb_date');$('sb_time').innerHTML='<option value="">—</option>';
+  if(!name){ds.innerHTML='<option value="">Pick trainer first</option>';return;}
+  ds.innerHTML='<option value="">Loading…</option>';
+  fetch(AT+'?action=atlas_public_trainer&slug='+encodeURIComponent(slugify(name))).then(function(r){return r.json();}).then(function(r){SBSLOTS=(r&&r.slots)||[];
+    if(!SBSLOTS.length){ds.innerHTML='<option value="">No open dates in 2 weeks</option>';return;}
+    ds.innerHTML='<option value="">Select a date…</option>'+SBSLOTS.map(function(s){return '<option value="'+s.date+'">'+esc(prettyDate(s.date))+'</option>';}).join('');
+  }).catch(function(){ds.innerHTML='<option value="">Could not load</option>';});
+}
+function sbDateChange(){var d=$('sb_date').value;var ts=$('sb_time');var day=SBSLOTS.filter(function(s){return s.date===d;})[0];
+  if(!day){ts.innerHTML='<option value="">—</option>';return;}
+  ts.innerHTML='<option value="">Select a time…</option>'+day.times.map(function(t){return '<option value="'+esc(t)+'">'+esc(t)+' PT</option>';}).join('');
+}
+function doStaffBook(){
+  var err=$('sbErr');err.textContent='';
+  var trainer=$('sb_trainer').value,type=$('sb_type').value,date=$('sb_date').value,time=$('sb_time').value;
+  var name=$('sb_name').value.trim(),email=$('sb_email').value.trim(),phone=$('sb_phone').value.trim();
+  if(!trainer||!type||!date||!time){err.textContent='Pick a trainer, type, date, and time.';return;}
+  if(!name){err.textContent='Enter the client’s name.';return;}
+  if(!email&&!phone){err.textContent='Enter the client’s email or phone.';return;}
+  var btn=$('sbBtn');btn.disabled=true;btn.textContent='Booking…';
+  fetch(AT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'atlas_staff_book',code:CODE,trainer_name:trainer,type:type,date:date,time:time,client_name:name,client_email:email,client_phone:phone,notes:$('sb_notes').value.trim(),consent:$('sb_consent').checked})}).then(function(r){return r.json();}).then(function(r){
+    if(r&&r.taken){btn.disabled=false;btn.textContent='Book appointment';err.textContent=r.error||'That time was just taken.';return;}
+    if(!r||!r.ok){btn.disabled=false;btn.textContent='Book appointment';err.textContent=(r&&r.error)||'Could not book.';return;}
+    toast('Booked '+name.split(' ')[0]+' with '+trainer.split(' ')[0]+(r.pending?' — pending approval':''));
+    $('bkOv').classList.remove('on');
+    loadMyTrainer(function(){render();});
+  }).catch(function(){btn.disabled=false;btn.textContent='Book appointment';err.textContent='Network error — try again.';});
 }
 function renderDStrip(){var h='';for(var i=0;i<14;i++){var d=addDays(i);var ds=ymd(d);var on=ds===SELDATE?' on':'';var td=ds===todayStr()?' today':'';
   var wname=d.toLocaleDateString('en-US',{weekday:'short',timeZone:'UTC'});var dn=d.getUTCDate();var mn=d.toLocaleDateString('en-US',{month:'short',timeZone:'UTC'});
@@ -458,6 +514,52 @@ function paintCompany(){
   var peak=Object.keys(timeCount).sort(function(a,b){return timeCount[b]-timeCount[a];})[0];
   h+='<div style="font-size:12.5px;color:var(--ink3);margin-top:10px">Peak time: <b style="color:var(--ink)">'+(peak?esc(peak)+' · '+timeCount[peak]+' booked':'—')+'</b></div></div>';
   $('view').innerHTML=h;
+}
+// === Clients tab (Phase 3d) — a trainer's clients + history, from their own feed ===
+function clientBookings(){return MYT.filter(function(b){return b.source==='public'||b.source==='staff'||b.client_email||b.client_id;});}
+function clientKey(b){return (b.client_email||b.client_phone||b.agent_name||'').toString().toLowerCase();}
+function clientList(q){
+  var map={};
+  clientBookings().forEach(function(b){var k=clientKey(b);if(!k)return;var c=map[k]=map[k]||{name:'',email:'',phone:'',bookings:[]};c.bookings.push(b);if(b.agent_name)c.name=b.agent_name;if(b.client_email)c.email=b.client_email;if(b.client_phone)c.phone=b.client_phone;});
+  var t=todayStr();
+  var arr=Object.keys(map).map(function(k){var c=map[k];c.key=k;
+    c.upcoming=c.bookings.filter(function(b){return (b.status==='booked'||b.status==='confirmed'||b.status==='pending')&&b.date>=t;}).length;
+    c.noshows=c.bookings.filter(function(b){return b.status==='no_show';}).length;
+    c.total=c.bookings.length;
+    c.last=c.bookings.map(function(b){return b.date;}).sort().slice(-1)[0]||'';
+    return c;});
+  if(q){q=q.toLowerCase();arr=arr.filter(function(c){return ((c.name||'')+' '+(c.email||'')+' '+(c.phone||'')).toLowerCase().indexOf(q)>=0;});}
+  arr.sort(function(a,b){return (b.last||'').localeCompare(a.last||'');});
+  return arr;
+}
+function clientRow(c){var col=avColor(c.name||c.key);
+  return '<div class="apt" onclick="openClient(\''+esc(c.key)+'\')" style="cursor:pointer"><div class="tav" style="width:42px;height:42px;font-size:14px;background:'+col+'">'+initials(c.name||'?')+'</div><div><div style="font-weight:700;font-size:14.5px">'+esc(c.name||'Client')+'</div><div style="font-size:12.5px;color:var(--ink3)">'+esc(c.email||c.phone||'')+' · '+c.total+' appt'+(c.total===1?'':'s')+(c.noshows?' · '+c.noshows+' no-show':'')+'</div></div><span class="conf" style="margin-left:auto">'+(c.upcoming?c.upcoming+' upcoming':'—')+'</span></div>';}
+function renderClients(){
+  var me=myTrainerProfile();
+  if(!me){$('view').innerHTML='<div class="empty">The client list is for trainers. Sign in with your trainer profile to see it.</div>';return;}
+  var h='<div class="sec"><div class="sech"><h2>Your clients</h2><a onclick="setTab(\'book\')">Book for a client →</a></div>';
+  h+='<div style="margin-bottom:12px"><input id="cq" oninput="paintClientList()" placeholder="Search clients by name, email, or phone…" style="width:100%;border:1.5px solid var(--line2);border-radius:12px;padding:11px 14px;font-size:14px;background:var(--panel);color:var(--ink);outline:none"></div>';
+  h+='<div style="font-size:12px;color:var(--ink3);margin:0 2px 10px">People who booked you through your public link or were booked on their behalf. History shown is your appointments with them.</div>';
+  h+='<div id="clientList"></div></div>';
+  $('view').innerHTML=h;paintClientList();
+}
+function paintClientList(){var q=($('cq')&&$('cq').value)||'';var list=clientList(q);var el=$('clientList');if(!el)return;
+  el.innerHTML=list.length?list.map(clientRow).join(''):'<div class="empty">No clients yet — they appear here once someone books you.</div>';}
+function openClient(key){
+  var bks=clientBookings().filter(function(b){return clientKey(b)===key;});
+  if(!bks.length)return;
+  bks.sort(function(a,b){return (b.date+' '+b.time).localeCompare(a.date+' '+a.time);});
+  var name='',email='',phone='';bks.forEach(function(b){if(b.agent_name)name=b.agent_name;if(b.client_email)email=b.client_email;if(b.client_phone)phone=b.client_phone;});
+  var t=todayStr();
+  var up=bks.filter(function(b){return (b.status==='booked'||b.status==='confirmed'||b.status==='pending')&&b.date>=t;}).length;
+  var noshow=bks.filter(function(b){return b.status==='no_show';}).length;
+  var rows=bks.map(function(b){var col=b.status==='no_show'||b.status==='canceled'||b.status==='declined'?'var(--red)':(b.status==='confirmed'?'var(--green)':(b.status==='pending'?'var(--gold)':'var(--ink3)'));
+    return '<div class="confrow"><div><div style="font-weight:700;font-size:13.5px">'+esc(b.category||'Appointment')+'</div><div style="font-size:12px;color:var(--ink3)">'+prettyDate(b.date)+' · '+esc(b.time)+' PT <span class="conf">'+esc(b.conf||'')+'</span></div></div><span style="margin-left:auto;font-size:11.5px;font-weight:800;color:'+col+'">'+esc(b.status)+'</span></div>';}).join('');
+  $('bkDrawer').innerHTML='<h3>'+esc(name||'Client')+'</h3><p class="dsub">'+esc(email||'')+(phone?(email?' · ':'')+esc(phone):'')+'</p>'+
+    '<div class="grid g4" style="margin-bottom:16px">'+tile('Appointments',bks.length)+tile('Upcoming',up)+tile('No-shows',noshow)+'</div>'+
+    '<div style="font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin-bottom:6px">History</div>'+rows+
+    '<div class="dact" style="margin-top:20px"><button class="go" onclick="$(\'bkOv\').classList.remove(\'on\')">Close</button></div>';
+  $('bkOv').classList.add('on');
 }
 function renderTrainers(){var rec=recommendTrainers();
   $('view').innerHTML='<div class="sech" style="margin-bottom:14px"><h2>Certified Field Trainers</h2><a onclick="setTab(\'book\')">Fast book →</a></div><div class="grid g3">'+(rec.length?rec.map(function(o){return trainerCard(o.cft,o.tag);}).join(''):'<div class="empty">No trainers configured.</div>')+'</div>';}
