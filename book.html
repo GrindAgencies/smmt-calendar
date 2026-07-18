@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Book an Appointment — The Standard</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f5f5f7;--panel:#fff;--ink:#1d1d1f;--ink2:#6e6e73;--ink3:#8e8e93;
+  --line:#ececf0;--line2:#e3e3e8;--accent:#5b6cff;--accent2:#4f46e5;--accent-soft:rgba(91,108,255,.10);
+  --green:#34c759;--green-soft:rgba(52,199,89,.13);--red:#ff3b30;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.04),0 1px 3px rgba(0,0,0,.03);
+  --shadow:0 2px 8px rgba(0,0,0,.05),0 14px 40px rgba(0,0,0,.07);
+  --font:'Inter',-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',system-ui,sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font-family:var(--font);-webkit-font-smoothing:antialiased;letter-spacing:-.01em;}
+button,input,select,textarea{font-family:inherit;}button{cursor:pointer;}
+.wrap{max-width:560px;margin:0 auto;padding:22px 16px 60px;}
+.brand{text-align:center;margin:8px 0 18px;}
+.brand .bn{font-weight:800;font-size:16px;letter-spacing:-.01em;}
+.brand .bn b{color:var(--accent);}
+.brand .tag{font-size:12px;color:var(--ink3);margin-top:2px;}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);overflow:hidden;}
+.thead{display:flex;align-items:center;gap:14px;padding:22px 22px 18px;background:linear-gradient(135deg,var(--accent),#7c8bff);color:#fff;}
+.tav{width:58px;height:58px;border-radius:50%;flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:20px;background:rgba(255,255,255,.22);overflow:hidden;}
+.tav img{width:100%;height:100%;object-fit:cover;}
+.thead .tn{font-weight:800;font-size:20px;}
+.thead .ts{font-size:13px;opacity:.92;margin-top:2px;}
+.body{padding:20px 20px 24px;}
+.step{margin-bottom:22px;}
+.lbl{font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin-bottom:11px;}
+.types{display:grid;gap:10px;}
+.type{border:1.5px solid var(--line2);background:var(--panel);border-radius:14px;padding:14px 16px;text-align:left;display:flex;align-items:center;justify-content:space-between;gap:12px;transition:.14s;}
+.type:hover{border-color:var(--accent);}
+.type.on{border-color:var(--accent);background:var(--accent-soft);}
+.type .tt{font-weight:700;font-size:14.5px;}
+.type .td{font-size:12px;color:var(--ink3);margin-top:2px;}
+.type .dur{font-size:12px;font-weight:700;color:var(--accent);white-space:nowrap;}
+.dstrip{display:flex;gap:9px;overflow-x:auto;padding:2px 2px 8px;}
+.dpill{flex:0 0 auto;width:62px;text-align:center;border:1.5px solid var(--line2);background:var(--panel);border-radius:14px;padding:10px 0;transition:.14s;}
+.dpill:hover{border-color:var(--accent);}
+.dpill.on{background:var(--accent);color:#fff;border-color:var(--accent);}
+.dpill .dw{font-size:10.5px;font-weight:700;opacity:.7;text-transform:uppercase;}
+.dpill .dd{font-size:20px;font-weight:800;line-height:1.15;}
+.dpill .dm{font-size:10px;opacity:.7;}
+.chips{display:flex;flex-wrap:wrap;gap:9px;}
+.chip{border:1.5px solid var(--line2);background:var(--panel);border-radius:12px;padding:10px 15px;font-weight:700;font-size:14px;transition:.14s;}
+.chip:hover{border-color:var(--accent);}
+.chip.on{background:var(--accent);color:#fff;border-color:var(--accent);}
+.field{margin-bottom:13px;}
+.field label{display:block;font-size:12.5px;font-weight:700;color:var(--ink2);margin-bottom:6px;}
+.field input,.field select,.field textarea{width:100%;border:1.5px solid var(--line2);border-radius:12px;padding:12px 14px;font-size:15px;background:var(--panel);color:var(--ink);outline:none;}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent);}
+.field textarea{min-height:74px;resize:vertical;}
+.hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden;}
+.consent{display:flex;gap:10px;align-items:flex-start;font-size:12.5px;color:var(--ink2);line-height:1.45;margin:6px 0 4px;}
+.consent input{margin-top:2px;width:17px;height:17px;flex:0 0 auto;}
+.go{width:100%;border:none;background:var(--accent);color:#fff;font-weight:800;font-size:16px;padding:15px;border-radius:14px;box-shadow:0 8px 20px var(--accent-soft);margin-top:8px;}
+.go:hover{background:var(--accent2);}
+.go:disabled{opacity:.55;cursor:not-allowed;}
+.empty{color:var(--ink3);font-size:14px;padding:16px;text-align:center;border:1px dashed var(--line2);border-radius:14px;}
+.spin{text-align:center;color:var(--ink3);padding:40px;font-size:14px;}
+.done{text-align:center;padding:16px 6px;}
+.done .chk{width:72px;height:72px;border-radius:50%;background:var(--green-soft);color:#1a9c52;display:flex;align-items:center;justify-content:center;font-size:38px;margin:0 auto 16px;}
+.done h2{font-size:22px;font-weight:800;margin:0 0 6px;}
+.done .sub{color:var(--ink2);font-size:14.5px;margin:0 0 14px;}
+.done .cnum{display:inline-block;font-size:13px;font-weight:800;color:var(--accent);letter-spacing:.05em;background:var(--accent-soft);padding:8px 14px;border-radius:10px;}
+.foot{text-align:center;font-size:11px;color:var(--ink3);margin-top:18px;}
+.err{color:var(--red);font-size:12.5px;font-weight:600;margin-top:8px;text-align:center;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand"><div class="bn">The <b>Standard</b> Financial Group</div><div class="tag">Schedule your appointment</div></div>
+  <div class="card"><div id="view"><div class="spin">Loading…</div></div></div>
+  <div class="foot">Powered by The Standard · Pacific Time (PT)</div>
+</div>
+<script>
+var AT="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/atlas-api";
+var SLUG=new URLSearchParams(location.search).get('t')||'';
+var TRAINER=null,SLOTS=[],TYPES=[],SELTYPE=null,SELDATE=null,SELTIME=null,SUBMITTING=false;
+function $(id){return document.getElementById(id);}
+function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+function initials(nm){nm=(nm||'').trim();var p=nm.split(/\s+/);return (((p[0]||'')[0]||'')+((p[1]||'')[0]||'')).toUpperCase();}
+function prettyDate(dstr){return new Date(dstr+'T12:00:00Z').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',timeZone:'UTC'});}
+function t2min(t){var m=/(\d+):(\d+)\s*(AM|PM)/i.exec(t);if(!m)return 0;var h=+m[1]%12;if(/PM/i.test(m[3]))h+=12;return h*60+ +m[2];}
+
+if(!SLUG){document.getElementById('view').innerHTML='<div class="body"><div class="empty">This booking link is missing a trainer. Please use the full link you were given.</div></div>';}
+else{init();}
+
+function init(){
+  Promise.all([
+    fetch(AT+'?action=atlas_public_types').then(function(r){return r.json();}),
+    fetch(AT+'?action=atlas_public_trainer&slug='+encodeURIComponent(SLUG)).then(function(r){return r.json();})
+  ]).then(function(res){
+    TYPES=(res[0]&&res[0].types)||[];
+    var tr=res[1]||{};
+    if(!tr.ok||!tr.trainer){$('view').innerHTML='<div class="body"><div class="empty">We couldn’t find that trainer. Please check your link.</div></div>';return;}
+    TRAINER=tr.trainer;SLOTS=tr.slots||[];
+    renderHead();renderForm();
+  }).catch(function(){$('view').innerHTML='<div class="body"><div class="empty">Something went wrong loading this page. Please try again.</div></div>';});
+}
+function renderHead(){
+  var av=TRAINER.photo?('<img src="'+esc(TRAINER.photo)+'" alt="">'):esc(initials(TRAINER.name));
+  return '<div class="thead"><div class="tav">'+av+'</div><div><div class="tn">'+esc(TRAINER.name)+'</div><div class="ts">The Standard Financial Group</div></div></div>';
+}
+function renderForm(){
+  if(TRAINER.locked){$('view').innerHTML=renderHead()+'<div class="body"><div class="empty">'+esc(TRAINER.name)+' is not taking online bookings right now. Please reach out directly to schedule.</div></div>';return;}
+  var h=renderHead()+'<div class="body">';
+  // Step 1 — type
+  h+='<div class="step"><div class="lbl">1 · What would you like to book?</div><div class="types" id="types"></div></div>';
+  // Step 2 — date/time (hidden until type chosen)
+  h+='<div class="step" id="whenStep" style="display:none"><div class="lbl">2 · Pick a date &amp; time</div><div class="dstrip" id="dstrip"></div><div id="times" style="margin-top:12px"></div></div>';
+  // Step 3 — details
+  h+='<div class="step" id="formStep" style="display:none"><div class="lbl">3 · Your details</div>'+
+     '<div class="field"><label>Full name *</label><input id="f_name" autocomplete="name" placeholder="Jane Smith"></div>'+
+     '<div class="field"><label>Email *</label><input id="f_email" type="email" autocomplete="email" placeholder="jane@email.com"></div>'+
+     '<div class="field"><label>Phone</label><input id="f_phone" type="tel" autocomplete="tel" placeholder="(555) 555-1234"></div>'+
+     '<div class="field"><label>How did you hear about us?</label><select id="f_ref"><option value="">Select…</option><option>Referral</option><option>Google search</option><option>Social media</option><option>Event</option><option>Military network</option><option>Other</option></select></div>'+
+     '<div class="field"><label>Anything we should know? (optional)</label><textarea id="f_notes" placeholder="A sentence about what you’re looking for…"></textarea></div>'+
+     '<input class="hp" id="f_website" tabindex="-1" autocomplete="off" placeholder="Leave blank">'+
+     '<label class="consent"><input type="checkbox" id="f_consent"><span>By booking, I agree The Standard Financial Group may contact me by phone, text, and email about my appointment and services. Message/data rates may apply. I can opt out anytime.</span></label>'+
+     '<button class="go" id="submitBtn" onclick="submitBooking()">Confirm booking</button>'+
+     '<div class="err" id="formErr"></div>'+
+     '</div>';
+  h+='</div>';
+  $('view').innerHTML=h;
+  renderTypes();
+}
+function renderTypes(){
+  $('types').innerHTML=TYPES.map(function(t){
+    var mins=t.variable_duration?'Varies':(t.duration+' min');
+    var medium=t.location_based?'In person':(t.medium==='phone'?'Phone':'Video');
+    return '<button class="type'+(SELTYPE&&SELTYPE.key===t.key?' on':'')+'" onclick="pickType(\''+esc(t.key)+'\')"><div><div class="tt">'+esc(t.name)+'</div><div class="td">'+esc(medium)+'</div></div><div class="dur">'+esc(mins)+'</div></button>';
+  }).join('');
+}
+function pickType(key){SELTYPE=TYPES.filter(function(t){return t.key===key;})[0]||null;SELDATE=null;SELTIME=null;renderTypes();
+  $('whenStep').style.display='';$('formStep').style.display='none';
+  renderDates();$('times').innerHTML='<div class="empty">Pick a date to see open times.</div>';
+  $('whenStep').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function renderDates(){
+  if(!SLOTS.length){$('dstrip').innerHTML='';$('times').innerHTML='<div class="empty">No open times in the next two weeks. Please check back soon.</div>';return;}
+  $('dstrip').innerHTML=SLOTS.map(function(s){var d=new Date(s.date+'T12:00:00Z');
+    var w=d.toLocaleDateString('en-US',{weekday:'short',timeZone:'UTC'});var dn=d.getUTCDate();var mn=d.toLocaleDateString('en-US',{month:'short',timeZone:'UTC'});
+    return '<div class="dpill'+(s.date===SELDATE?' on':'')+'" onclick="pickDate(\''+s.date+'\')"><div class="dw">'+w+'</div><div class="dd">'+dn+'</div><div class="dm">'+mn+'</div></div>';
+  }).join('');
+}
+function pickDate(ds){SELDATE=ds;SELTIME=null;renderDates();
+  var day=SLOTS.filter(function(s){return s.date===ds;})[0];var times=(day&&day.times||[]).slice().sort(function(a,b){return t2min(a)-t2min(b);});
+  $('times').innerHTML='<div class="chips">'+times.map(function(t){return '<button class="chip'+(t===SELTIME?' on':'')+'" onclick="pickTime(\''+t+'\')">'+esc(t)+'</button>';}).join('')+'</div>';
+}
+function pickTime(t){SELTIME=t;pickDate(SELDATE);$('formStep').style.display='';$('formStep').scrollIntoView({behavior:'smooth',block:'nearest'});}
+function submitBooking(){
+  if(SUBMITTING)return;
+  var err=$('formErr');err.textContent='';
+  if(!SELTYPE||!SELDATE||!SELTIME){err.textContent='Please pick an appointment type, date, and time.';return;}
+  var name=$('f_name').value.trim(),email=$('f_email').value.trim(),phone=$('f_phone').value.trim();
+  if(!name){err.textContent='Please enter your name.';return;}
+  if(!email){err.textContent='Please enter your email.';return;}
+  if(!$('f_consent').checked){err.textContent='Please check the box to agree to be contacted.';return;}
+  SUBMITTING=true;var btn=$('submitBtn');btn.disabled=true;btn.textContent='Booking…';
+  fetch(AT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+    action:'atlas_public_book',slug:SLUG,date:SELDATE,time:SELTIME,type:SELTYPE.key,
+    client_name:name,client_email:email,client_phone:phone,
+    referral_source:$('f_ref').value,notes:$('f_notes').value.trim(),
+    consent:true,website:$('f_website').value
+  })}).then(function(r){return r.json();}).then(function(r){
+    SUBMITTING=false;
+    if(r&&r.taken){btn.disabled=false;btn.textContent='Confirm booking';err.textContent=r.error||'That time was just taken. Please pick another.';fetch(AT+'?action=atlas_public_trainer&slug='+encodeURIComponent(SLUG)).then(function(x){return x.json();}).then(function(x){SLOTS=(x&&x.slots)||[];SELTIME=null;renderDates();$('times').innerHTML='<div class="empty">Please pick another open time.</div>';});return;}
+    if(!r||!r.ok){btn.disabled=false;btn.textContent='Confirm booking';err.textContent=(r&&r.error)||'Could not complete booking. Please try again.';return;}
+    showDone(r);
+  }).catch(function(){SUBMITTING=false;btn.disabled=false;btn.textContent='Confirm booking';err.textContent='Network error — please try again.';});
+}
+function showDone(r){
+  var pend=r.pending;
+  $('view').innerHTML=renderHead()+'<div class="body"><div class="done"><div class="chk">✓</div>'+
+    '<h2>'+(pend?'Request sent!':'You’re booked!')+'</h2>'+
+    '<p class="sub">'+esc(SELTYPE.name)+'<br>'+esc(r.when||(prettyDate(SELDATE)+' at '+SELTIME+' PT'))+'<br>with '+esc(TRAINER.name)+'</p>'+
+    (pend?'<p class="sub" style="color:var(--ink3);font-size:13px">'+esc(TRAINER.name)+' will confirm your time shortly — you’ll hear from us.</p>':'')+
+    '<div class="cnum">Confirmation '+esc(r.conf||'')+'</div>'+
+    '<p class="sub" style="margin-top:16px;font-size:13px;color:var(--ink3)">A member of our team will be in touch. Need to change it? Just reply to our message.</p>'+
+    '</div></div>';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+</script>
+</body>
+</html>
