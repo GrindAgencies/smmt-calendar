@@ -213,7 +213,7 @@ function signOut(){try{localStorage.removeItem('tsfg_code');localStorage.removeI
   fetch(TA,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'cftavail'})}).then(function(r){return r.json();}).then(function(r){
     var v=r&&r.value;TRAINERS=(v&&Array.isArray(v.cfts))?v.cfts:[];if(v&&v.tz)TZ=v.tz;
     revealAvailTab();
-    loadMy(function(){loadMyTrainer(function(){render();});});
+    loadSched(function(){loadMy(function(){loadMyTrainer(function(){render();});});});
   }).catch(function(){TRAINERS=[];render();});
   document.addEventListener('keydown',function(e){if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();openSpot();}if(e.key==='Escape'){closeSpot();$('bkOv').classList.remove('on');}});
 })();
@@ -228,12 +228,15 @@ function t2min(t){var m=/(\d+):(\d+)\s*(AM|PM)/i.exec(t);if(!m)return 0;var h=+m
 function inRange(dstr,r){return r&&dstr>=r.start&&dstr<=r.end;}
 function availTimesForTrainer(cft,dstr){
   if(cft.locked)return [];
+  if(isClosureCli(dstr))return [];
   if((cft.lockouts||[]).some(function(r){return inRange(dstr,r);}))return [];
   if((cft.vacations||[]).some(function(r){return inRange(dstr,r);}))return [];
   if((cft.blackouts||[]).indexOf(dstr)>=0)return [];
   var key=DAYS[wdOf(dstr)];var slots=(cft.slots&&cft.slots[key])?cft.slots[key]:[];
   var taken=DAYBOOKED.filter(function(b){return b.trainer_name===cft.name;}).map(function(b){return b.time;});
-  return slots.filter(function(t){return taken.indexOf(t)<0;});
+  var out=slots.filter(function(t){return taken.indexOf(t)<0;});
+  var cut=schedCutoff();
+  return out.filter(function(t){if(dstr>cut.date)return true;if(dstr<cut.date)return false;return t2min(t)>=cut.minutes;});
 }
 function allTimesForDate(dstr){var map={};TRAINERS.forEach(function(c){availTimesForTrainer(c,dstr).forEach(function(t){map[t]=(map[t]||0)+1;});});
   return Object.keys(map).sort(function(a,b){return t2min(a)-t2min(b);}).map(function(t){return {time:t,count:map[t]};});}
@@ -248,6 +251,19 @@ function myRole(){var me=myTrainerProfile();return me?((me.role||'').toUpperCase
 function isEmd(){return myRole()==='EMD';}
 function slugify(s){return (s||'').toString().trim().toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');}
 function copyLink(){var el=$('pubLink');if(!el)return;el.select();try{navigator.clipboard.writeText(el.value);}catch(e){document.execCommand('copy');}toast('Link copied');}
+var SCHED={min_notice_hours:2,closures:[]};
+function loadSched(cb){fetch(AT+'?action=atlas_scheduler_config').then(function(r){return r.json();}).then(function(r){if(r&&r.config)SCHED=r.config;cb&&cb();}).catch(function(){cb&&cb();});}
+function isClosureCli(dstr){return (SCHED.closures||[]).some(function(cl){if(typeof cl==='string')return cl===dstr;if(cl&&cl.date)return cl.date===dstr;if(cl&&cl.start&&cl.end)return dstr>=cl.start&&dstr<=cl.end;return false;});}
+function nowPTmin(){var f=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Los_Angeles',hour:'2-digit',minute:'2-digit',hour12:false});var p={};f.formatToParts(new Date()).forEach(function(x){p[x.type]=x.value;});return (Number(p.hour)%24)*60+Number(p.minute);}
+function schedCutoff(){var total=nowPTmin()+(Number(SCHED.min_notice_hours)||0)*60;var k=Math.floor(total/1440);return {date:ymd(addDays(k)),minutes:total-k*1440};}
+function saveSched(payload,msg){payload.action='atlas_scheduler_config';payload.op='save';payload.code=CODE;
+  fetch(AT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).then(function(r){return r.json();}).then(function(r){
+    if(!r||!r.ok){toast((r&&r.error)||'Save failed');return;}
+    if(r.config)SCHED=r.config;toast(msg||'Saved');if(TAB==='company')render();
+  }).catch(function(){toast('Network error');});}
+function addClosure(){var d=$('clNew')&&$('clNew').value;if(!d)return toast('Pick a date');var arr=(SCHED.closures||[]).slice();var has=arr.some(function(x){return x===d||(x&&x.date===d);});if(!has)arr.push(d);saveSched({closures:arr},'Closure added');}
+function removeClosure(d){var arr=(SCHED.closures||[]).filter(function(x){return !(x===d||(x&&x.date===d));});saveSched({closures:arr},'Closure removed');}
+function saveMinNotice(){var v=Math.max(0,Number($('mnHours').value)||0);saveSched({min_notice_hours:v},'Minimum notice saved');}
 function revealAvailTab(){if(myTrainerProfile()){var a=$('tab_avail');if(a)a.style.display='';var cp=$('tab_company');if(cp)cp.style.display='';var cl=$('tab_clients');if(cl)cl.style.display='';}
   if(isEmd()){var xt=$('tab_xfer');if(xt)xt.style.display='';}}
 function renderDash(){
@@ -513,6 +529,13 @@ function paintCompany(){
   h+='<div class="sec"><div class="sech"><h2>Next 7 days — booked sessions</h2></div><div style="display:flex;align-items:flex-end;gap:10px;padding:8px 2px">'+days.map(function(d){var dd=new Date(d.ds+'T12:00:00Z');var lbl=(d.ds===t)?'Today':dd.toLocaleDateString('en-US',{weekday:'short',timeZone:'UTC'});var ht=Math.round((d.n/maxN)*90)+6;return '<div style="flex:1;text-align:center"><div style="height:96px;display:flex;align-items:flex-end;justify-content:center"><div style="width:58%;background:var(--accent);border-radius:8px 8px 0 0;height:'+ht+'px"></div></div><div style="font-size:11px;color:var(--ink3);margin-top:4px">'+esc(lbl)+'</div><div style="font-size:12px;font-weight:800">'+d.n+'</div></div>';}).join('')+'</div>';
   var peak=Object.keys(timeCount).sort(function(a,b){return timeCount[b]-timeCount[a];})[0];
   h+='<div style="font-size:12.5px;color:var(--ink3);margin-top:10px">Peak time: <b style="color:var(--ink)">'+(peak?esc(peak)+' · '+timeCount[peak]+' booked':'—')+'</b></div></div>';
+  if(isEmd()){
+    var cls=(SCHED.closures||[]).map(function(cl){return (typeof cl==='string')?cl:(cl&&cl.date?cl.date:((cl&&cl.start)?cl.start+'→'+cl.end:''));}).filter(Boolean);
+    var clTags=cls.length?cls.map(function(d){return '<span style="display:inline-flex;align-items:center;gap:6px;background:var(--gold-soft);color:var(--gold);padding:6px 10px;border-radius:8px;font-size:12.5px;font-weight:600;margin:0 6px 6px 0">'+esc(d)+' <a onclick="removeClosure(\''+esc(d)+'\')" style="cursor:pointer;color:var(--red);font-weight:800">✕</a></span>';}).join(''):'<span style="color:var(--ink3);font-size:13px">No closures set.</span>';
+    h+='<div class="sec"><div class="sech"><h2>Scheduler settings (EMD / Ops)</h2></div>'+
+      '<div style="padding:16px;border:1px solid var(--line);border-radius:14px;background:var(--panel);margin-bottom:12px"><div style="font-weight:700;font-size:14.5px;margin-bottom:6px">Minimum notice</div><div style="font-size:12.5px;color:var(--ink3);margin-bottom:10px">Clients can’t book within this many hours of now.</div><label style="font-size:13.5px;color:var(--ink2)">Hours: <input id="mnHours" type="number" min="0" max="336" value="'+(Number(SCHED.min_notice_hours)||0)+'" style="width:80px;padding:7px 10px;border:1px solid var(--line2);border-radius:8px;background:var(--panel);color:var(--ink);font-size:13px;margin:0 6px"></label><button style="border:none;padding:9px 16px;border-radius:10px;font-weight:700;font-size:13px;background:var(--accent);color:#fff;cursor:pointer" onclick="saveMinNotice()">Save</button></div>'+
+      '<div style="padding:16px;border:1px solid var(--line);border-radius:14px;background:var(--panel)"><div style="font-weight:700;font-size:14.5px;margin-bottom:6px">Company closures</div><div style="font-size:12.5px;color:var(--ink3);margin-bottom:12px">Holidays / company-wide dates when nobody can be booked.</div><div style="display:flex;flex-wrap:wrap;margin-bottom:12px">'+clTags+'</div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input type="date" id="clNew" style="padding:8px 10px;border:1px solid var(--line2);border-radius:8px;background:var(--panel);color:var(--ink);font-size:13px"><button style="border:none;padding:9px 16px;border-radius:10px;font-weight:700;font-size:13px;background:var(--accent);color:#fff;cursor:pointer" onclick="addClosure()">Add closure date</button></div></div></div>';
+  }
   $('view').innerHTML=h;
 }
 // === Clients tab (Phase 3d) — a trainer's clients + history, from their own feed ===
