@@ -76,7 +76,7 @@ button,input,select,textarea{font-family:inherit;}button{cursor:pointer;}
 <div class="wrap">
   <div class="brand"><div class="bn">The <b>Standard</b> Financial Group</div><div class="tag">Schedule your appointment</div></div>
   <div class="card"><div id="view"><div class="spin">Loading…</div></div></div>
-  <div class="foot">Powered by The Standard · Pacific Time (PT)</div>
+  <div class="foot">Pacific Time (PT) · <a onclick="renderManage()" style="color:var(--accent);cursor:pointer;font-weight:700">Manage an existing booking</a></div>
 </div>
 <script>
 var AT="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/atlas-api";
@@ -88,7 +88,11 @@ function initials(nm){nm=(nm||'').trim();var p=nm.split(/\s+/);return (((p[0]||'
 function prettyDate(dstr){return new Date(dstr+'T12:00:00Z').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',timeZone:'UTC'});}
 function t2min(t){var m=/(\d+):(\d+)\s*(AM|PM)/i.exec(t);if(!m)return 0;var h=+m[1]%12;if(/PM/i.test(m[3]))h+=12;return h*60+ +m[2];}
 
-if(!SLUG){document.getElementById('view').innerHTML='<div class="body"><div class="empty">This booking link is missing a trainer. Please use the full link you were given.</div></div>';}
+var MANAGE_MODE=new URLSearchParams(location.search).has('manage');
+var MB=null,MRSLOTS=[],MRDATE=null,MRTIME=null;
+function slugify(s){return (s||'').toString().trim().toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');}
+if(MANAGE_MODE){renderManage();}
+else if(!SLUG){document.getElementById('view').innerHTML='<div class="body"><div class="empty">This booking link is missing a trainer. Please use the full link you were given.</div></div>';}
 else{init();}
 
 function init(){
@@ -185,6 +189,71 @@ function showDone(r){
     '<p class="sub" style="margin-top:16px;font-size:13px;color:var(--ink3)">A member of our team will be in touch. Need to change it? Just reply to our message.</p>'+
     '</div></div>';
   window.scrollTo({top:0,behavior:'smooth'});
+}
+// === Manage an existing booking (3e — client self-service) ===
+function mErr(t){var e=$('mErr');if(e)e.textContent=t||'';}
+function renderManage(){
+  var tg=document.querySelector('.brand .tag');if(tg)tg.textContent='Manage your appointment';
+  var back=SLUG?'<div style="text-align:center;margin-top:14px"><a href="book.html?t='+encodeURIComponent(SLUG)+'" style="font-size:12.5px;color:var(--accent);font-weight:700">← Back to booking</a></div>':'';
+  $('view').innerHTML='<div class="body"><div class="step"><div class="lbl">Find your booking</div>'+
+    '<div class="field"><label>Confirmation code</label><input id="m_conf" placeholder="GFI-XXXXX" style="text-transform:uppercase" autocomplete="off"></div>'+
+    '<div class="field"><label>Email you booked with</label><input id="m_email" type="email" placeholder="you@email.com"></div>'+
+    '<button class="go" id="mBtn" onclick="manageLookup()">Find my booking</button>'+
+    '<div class="err" id="mErr"></div>'+back+'</div></div>';
+}
+function manageLookup(){
+  var conf=($('m_conf').value||'').trim().toUpperCase(),email=($('m_email').value||'').trim();mErr('');
+  if(!conf||!email){mErr('Enter your confirmation code and email.');return;}
+  var b=$('mBtn');b.disabled=true;b.textContent='Finding…';
+  fetch(AT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'atlas_public_manage',op:'lookup',conf:conf,email:email})}).then(function(r){return r.json();}).then(function(r){
+    b.disabled=false;b.textContent='Find my booking';
+    if(!r||!r.ok){mErr((r&&r.error)||'Not found.');return;}
+    MB=r.booking;MB.email=email;showManage();
+  }).catch(function(){b.disabled=false;b.textContent='Find my booking';mErr('Network error — try again.');});
+}
+function showManage(){
+  var active=(MB.status==='booked'||MB.status==='confirmed'||MB.status==='pending');
+  $('view').innerHTML='<div class="body"><div class="step"><div class="lbl">Your appointment</div>'+
+    '<div style="border:1px solid var(--line2);border-radius:16px;padding:16px"><div style="font-weight:800;font-size:16px">'+esc(MB.type||'Appointment')+'</div><div style="color:var(--ink2);font-size:14px;margin-top:4px">'+esc(MB.when)+'</div><div style="color:var(--ink3);font-size:13px;margin-top:2px">with '+esc(MB.trainer)+' · '+esc(MB.conf)+' · '+esc(MB.status)+'</div></div>'+
+    (active?'<div style="display:flex;gap:10px;margin-top:16px"><button class="go" style="background:var(--panel);color:var(--accent);border:1.5px solid var(--accent);box-shadow:none" onclick="startReschedule()">Reschedule</button><button class="go" style="background:var(--red);box-shadow:none" onclick="doManageCancel()">Cancel</button></div>':'<div class="empty" style="margin-top:14px">This booking is '+esc(MB.status)+' and can’t be changed online. Please call us for help.</div>')+
+    '<div class="err" id="mErr"></div><div style="text-align:center;margin-top:14px"><a onclick="renderManage()" style="font-size:12.5px;color:var(--accent);font-weight:700;cursor:pointer">← Look up another</a></div></div></div>';
+}
+function doManageCancel(){
+  if(!confirm('Cancel this appointment?'))return;mErr('');
+  fetch(AT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'atlas_public_manage',op:'cancel',conf:MB.conf,email:MB.email})}).then(function(r){return r.json();}).then(function(r){
+    if(!r||!r.ok){mErr((r&&r.error)||'Could not cancel.');return;}
+    $('view').innerHTML='<div class="body"><div class="done"><div class="chk" style="background:rgba(255,59,48,.12);color:var(--red)">✓</div><h2>Booking canceled</h2><p class="sub">Your '+esc(MB.type)+' with '+esc(MB.trainer)+' is canceled. Book again anytime.</p></div></div>';
+  }).catch(function(){mErr('Network error — try again.');});
+}
+function startReschedule(){
+  $('view').innerHTML='<div class="body"><div class="spin">Loading open times…</div></div>';
+  fetch(AT+'?action=atlas_public_trainer&slug='+encodeURIComponent(slugify(MB.trainer))).then(function(r){return r.json();}).then(function(r){
+    MRSLOTS=(r&&r.slots)||[];MRDATE=null;MRTIME=null;paintReschedule();
+  }).catch(function(){$('view').innerHTML='<div class="body"><div class="empty">Could not load times. Please call us.</div></div>';});
+}
+function paintReschedule(){
+  var h='<div class="body"><div class="step"><div class="lbl">New time for your '+esc(MB.type)+'</div>';
+  if(!MRSLOTS.length)h+='<div class="empty">No open times in the next two weeks. Please call us.</div>';
+  else h+='<div class="dstrip" id="rdstrip"></div><div id="rtimes" style="margin-top:12px"><div class="empty">Pick a date to see times.</div></div>';
+  h+='<div class="err" id="mErr"></div><div style="text-align:center;margin-top:14px"><a onclick="showManage()" style="font-size:12.5px;color:var(--accent);font-weight:700;cursor:pointer">← Back</a></div></div></div>';
+  $('view').innerHTML=h;if(MRSLOTS.length)paintRDates();
+}
+function paintRDates(){
+  $('rdstrip').innerHTML=MRSLOTS.map(function(s){var d=new Date(s.date+'T12:00:00Z');var w=d.toLocaleDateString('en-US',{weekday:'short',timeZone:'UTC'});var dn=d.getUTCDate();var mn=d.toLocaleDateString('en-US',{month:'short',timeZone:'UTC'});
+    return '<div class="dpill'+(s.date===MRDATE?' on':'')+'" onclick="pickRDate(\''+s.date+'\')"><div class="dw">'+w+'</div><div class="dd">'+dn+'</div><div class="dm">'+mn+'</div></div>';}).join('');
+}
+function pickRDate(ds){MRDATE=ds;MRTIME=null;paintRDates();var day=MRSLOTS.filter(function(s){return s.date===ds;})[0];var times=(day&&day.times||[]).slice().sort(function(a,b){return t2min(a)-t2min(b);});
+  $('rtimes').innerHTML='<div class="chips">'+times.map(function(t){return '<button class="chip'+(t===MRTIME?' on':'')+'" onclick="pickRTime(\''+t+'\')">'+esc(t)+'</button>';}).join('')+'</div>';}
+function pickRTime(t){MRTIME=t;pickRDate(MRDATE);
+  $('rtimes').insertAdjacentHTML('beforeend','<button class="go" id="rBtn" style="margin-top:14px" onclick="confirmReschedule()">Move to '+esc(MRTIME)+'</button>');}
+function confirmReschedule(){
+  if(!MRDATE||!MRTIME){mErr('Pick a date and time.');return;}mErr('');
+  var b=$('rBtn');if(b){b.disabled=true;b.textContent='Rescheduling…';}
+  fetch(AT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'atlas_public_manage',op:'reschedule',conf:MB.conf,email:MB.email,date:MRDATE,time:MRTIME})}).then(function(r){return r.json();}).then(function(r){
+    if(r&&r.taken){if(b){b.disabled=false;b.textContent='Move to '+MRTIME;}mErr(r.error||'That time was just taken.');startReschedule();return;}
+    if(!r||!r.ok){if(b){b.disabled=false;b.textContent='Move to '+MRTIME;}mErr((r&&r.error)||'Could not reschedule.');return;}
+    $('view').innerHTML='<div class="body"><div class="done"><div class="chk">✓</div><h2>Rescheduled!</h2><p class="sub">Your '+esc(MB.type)+' with '+esc(MB.trainer)+' is now<br>'+esc(r.when)+'</p><div class="cnum">Confirmation '+esc(MB.conf)+'</div></div></div>';
+  }).catch(function(){if(b){b.disabled=false;b.textContent='Move to '+MRTIME;}mErr('Network error — try again.');});
 }
 </script>
 </body>
