@@ -336,14 +336,21 @@ function paintOps(r){
   h+='<div class="sec">'+(ppl.length?ppl.map(opsRow).join(''):'<div class="empty">No one in this base yet.</div>')+'</div>';
   el.innerHTML=h;
 }
+var LEVELS=['Associate','Senior Associate','MD','EMD'];
 function opsRow(p){
   var col=avColor(p.name);var lvl=p.contract_level||'Associate';
-  var badge='<span style="font-size:10.5px;font-weight:800;padding:2px 7px;border-radius:7px;background:var(--panel2);color:var(--ink2);margin-left:7px">'+esc(lvl)+'</span>';
+  var lvlSel='<select onchange="setLevel(\''+esc(p.code)+'\',this.value,\''+esc(p.name)+'\')" title="Contract level" style="font-size:11px;font-weight:700;padding:3px 22px 3px 8px;border-radius:8px;border:1px solid var(--line2);background:var(--panel);color:var(--ink2);cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url(&quot;data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'14\' height=\'14\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%238e8e93\' stroke-width=\'2.5\' stroke-linecap=\'round\'><path d=\'m6 9 6 6 6-6\'/></svg>&quot;);background-repeat:no-repeat;background-position:right 6px center">'+LEVELS.map(function(o){return '<option'+(o===lvl?' selected':'')+'>'+o+'</option>';}).join('')+'</select>';
   var baseb=p.baseshop?'<span style="font-size:10.5px;color:var(--ink3);margin-left:6px">'+esc(p.baseshop)+'</span>':'';
   var btn=p.bookable
     ? '<button onclick="toggleBookable(\''+esc(p.code)+'\',\''+esc(p.name)+'\',false)" style="border:1px solid var(--green);background:var(--green-soft,rgba(52,199,89,.14));color:var(--green);border-radius:10px;padding:7px 13px;font-weight:800;font-size:12.5px;cursor:pointer;white-space:nowrap">Bookable ✓</button>'
     : '<button onclick="toggleBookable(\''+esc(p.code)+'\',\''+esc(p.name)+'\',true)" style="border:none;background:var(--accent);color:#fff;border-radius:10px;padding:7px 13px;font-weight:700;font-size:12.5px;cursor:pointer;white-space:nowrap">Make bookable</button>';
-  return '<div class="apt"><div class="tav" style="width:40px;height:40px;background:'+col+'">'+initials(p.name)+'</div><div style="min-width:0"><div style="font-weight:700;font-size:14px">'+esc(p.name)+badge+baseb+'</div><div style="font-size:12px;color:var(--ink3)">'+esc(p.code)+(p.email?' · '+esc(p.email):'')+'</div></div><span style="margin-left:auto">'+btn+'</span></div>';
+  return '<div class="apt"><div class="tav" style="width:40px;height:40px;background:'+col+'">'+initials(p.name)+'</div><div style="min-width:0"><div style="font-weight:700;font-size:14px">'+esc(p.name)+baseb+'</div><div style="font-size:12px;color:var(--ink3);display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:3px"><span>'+esc(p.code)+(p.email?' · '+esc(p.email):'')+'</span>'+lvlSel+'</div></div><span style="margin-left:auto">'+btn+'</span></div>';
+}
+function setLevel(code2,level,name2){
+  fetch(PA,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'set_level',code:CODE,target_code:code2,level:level})}).then(function(r){return r.json();}).then(function(r){
+    if(!r||!r.ok){toast((r&&r.error)||'Could not update');renderOps();return;}
+    toast(name2+' → '+level);renderOps();
+  }).catch(function(){toast('Network error');});
 }
 function toggleBookable(code2,name2,on){
   fetch(PA,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'enable_bookable',code:CODE,target_code:code2,bookable:on})}).then(function(r){return r.json();}).then(function(r){
