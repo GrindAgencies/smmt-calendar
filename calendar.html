@@ -337,9 +337,12 @@ function paintOps(r){
   el.innerHTML=h;
 }
 var LEVELS=['Associate','Senior Associate','MD','EMD'];
+function canPromote(){return PROFILE&&(PROFILE.access_scope==='super'||(PROFILE.contract_level||'').toUpperCase()==='EMD');}
 function opsRow(p){
   var col=avColor(p.name);var lvl=p.contract_level||'Associate';
-  var lvlSel='<select onchange="setLevel(\''+esc(p.code)+'\',this.value,\''+esc(p.name)+'\')" title="Contract level" style="font-size:11px;font-weight:700;padding:3px 22px 3px 8px;border-radius:8px;border:1px solid var(--line2);background:var(--panel);color:var(--ink2);cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url(&quot;data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'14\' height=\'14\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%238e8e93\' stroke-width=\'2.5\' stroke-linecap=\'round\'><path d=\'m6 9 6 6 6-6\'/></svg>&quot;);background-repeat:no-repeat;background-position:right 6px center">'+LEVELS.map(function(o){return '<option'+(o===lvl?' selected':'')+'>'+o+'</option>';}).join('')+'</select>';
+  var lvlSel=canPromote()
+    ? '<select onchange="setLevel(\''+esc(p.code)+'\',this.value,\''+esc(p.name)+'\')" title="Contract level" style="font-size:11px;font-weight:700;padding:3px 22px 3px 8px;border-radius:8px;border:1px solid var(--line2);background:var(--panel);color:var(--ink2);cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url(&quot;data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'14\' height=\'14\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%238e8e93\' stroke-width=\'2.5\' stroke-linecap=\'round\'><path d=\'m6 9 6 6 6-6\'/></svg>&quot;);background-repeat:no-repeat;background-position:right 6px center">'+LEVELS.map(function(o){return '<option'+(o===lvl?' selected':'')+'>'+o+'</option>';}).join('')+'</select>'
+    : '<span style="font-size:10.5px;font-weight:800;padding:2px 7px;border-radius:7px;background:var(--panel2);color:var(--ink2)">'+esc(lvl)+'</span>';
   var baseb=p.baseshop?'<span style="font-size:10.5px;color:var(--ink3);margin-left:6px">'+esc(p.baseshop)+'</span>':'';
   var btn=p.bookable
     ? '<button onclick="toggleBookable(\''+esc(p.code)+'\',\''+esc(p.name)+'\',false)" style="border:1px solid var(--green);background:var(--green-soft,rgba(52,199,89,.14));color:var(--green);border-radius:10px;padding:7px 13px;font-weight:800;font-size:12.5px;cursor:pointer;white-space:nowrap">Bookable ✓</button>'
