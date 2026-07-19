@@ -392,6 +392,7 @@ function blank(){return {client:{name:'',phone:'',email:''},
   expenses:{'Mortgage/Rent':0,'Property Tax':0,HOA:0,Utilities:0,Phone:0,Internet:0,Groceries:0,Subscriptions:0,Insurances:0,Gas:0,Childcare:0,Pets:0,'Petty Cash':0,'Debt Payments':0,Unforeseen:0},
   priorities:['Protect Family','Retirement','Emergency Savings','Debt Reduction','Tax Efficiency','College Funding','Legacy Planning','Business Planning','Charitable Giving'],
   health:{tier:'Standard',tobacco:false},
+  household:{type:'',spouse:{name:'',dob:'',incomeMo:0},kids:[]},
   advisor:''
 };}
 function sum(o){var t=0;for(var k in o)t+=Number(o[k])||0;return t;}
@@ -418,7 +419,7 @@ function calc(d){
 }
 
 /* ===== flow control ===== */
-var STEPS=['welcome','import','vision','income','lifestyle','confidence','snapshot','cashflow','gap','priorities','reflection','advisor'];
+var STEPS=['welcome','household','import','vision','income','lifestyle','confidence','snapshot','cashflow','gap','priorities','reflection','advisor'];
 function startNew(){CUR={id:null,data:blank(),status:'draft'};STEP=0;openFlow();}
 function openPFR(id,toReport){togglePop&&document.querySelectorAll('.pop').forEach(function(x){x.classList.add('hide');});
   api({action:'pfr_get',id:id}).then(function(r){var p=r&&r.pfr;if(!p){toast('Could not load');return;}
@@ -663,8 +664,8 @@ RENDER.snapshot=function(){
    '<p class="qsub">Fill in what you can — estimates are perfectly fine. Your numbers update live as you go. Tap a section to expand it.</p>'+
    '<div class="snapbar">'+snapbarHTML(c)+'</div>'+
    grp('💵','Monthly Income','What comes in each month','income',{Job:'Your job',Spouse:'Spouse / partner','House Hack':'House hack',Passive:'Passive income',Portfolio:'Portfolio income'},true)+
-   grp('🏠','Monthly Expenses','What goes out each month','expenses',{'Mortgage/Rent':'Mortgage / rent','Property Tax':'Property tax',HOA:'HOA',Utilities:'Utilities',Phone:'Phone',Internet:'Internet',Groceries:'Groceries',Subscriptions:'Subscriptions',Insurances:'Insurances',Gas:'Gas',Childcare:'Childcare',Pets:'Pets','Petty Cash':'Petty cash / misc','Debt Payments':'Debt payments',Unforeseen:'Unforeseen'},false)+
-   grp('💳','Debt Owed','Every balance — the total updates live','debt',{'Credit Cards':'Credit cards','Auto Loan':'Auto loans','Student Loan':'Student loans','Personal Loan':'Personal loans',Medical:'Medical',Mortgage:'Mortgage',HELOC:'HELOC','Payday Loans':'Payday loans','Equity Loans':'Equity loans','Pension Loans':'Pension loans'},false)+
+   grp('🏠','Monthly Expenses','What goes out each month','expenses',{'Mortgage/Rent':'Mortgage / rent payment (monthly)','Property Tax':'Property tax',HOA:'HOA',Utilities:'Utilities',Phone:'Phone',Internet:'Internet',Groceries:'Groceries',Subscriptions:'Subscriptions',Insurances:'Insurances',Gas:'Gas',Childcare:'Childcare',Pets:'Pets','Petty Cash':'Petty cash / misc','Debt Payments':'Debt payments',Unforeseen:'Unforeseen'},false)+
+   grp('💳','Debt Owed','Every balance — the total updates live','debt',{'Credit Cards':'Credit cards','Auto Loan':'Auto loans','Student Loan':'Student loans','Personal Loan':'Personal loans',Medical:'Medical',Mortgage:'Mortgage balance (total owed)',HELOC:'HELOC','Payday Loans':'Payday loans','Equity Loans':'Equity loans','Pension Loans':'Pension loans'},false)+
    grp('📈','Assets','What you own','assets',{House:'Home value',Car:'Vehicles','Savings Acct.':'Savings',Properties:'Other properties',Businesses:'Businesses',Checking:'Checking'},false)+
    grp('🪙','Investments','Retirement &amp; brokerage','invest',{TSP:'TSP','401k':'401(k)','Trad. IRA':'Traditional IRA','Roth IRA':'Roth IRA',CDs:'CDs',Bonds:'Bonds',Crypto:'Crypto',Stocks:'Stocks',IUL:'IUL',FIA:'FIA','403B':'403(b)','457':'457'},false);
 };
@@ -829,7 +830,8 @@ RENDER.advisor=function(){var c=calc(d());var dd=d();if(!dd.health)dd.health={ti
    '<p class="qsub">Matched across The Standard’s partnered carriers to your age, health, and finances. Starting numbers are estimates for illustration only.</p>'+
    '<div class="sec"><div style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin-bottom:8px">Quick health snapshot — sharpens the carrier match</div>'+
     '<div class="chips" style="margin-bottom:8px;flex-wrap:wrap">'+tchips+'</div><div class="chips">'+tob+'</div></div>'+
-   '<div id="stratBox">'+renderStrategyInner(c,dd)+'</div>';
+   '<div id="stratBox">'+renderStrategyInner(c,dd)+'</div>'+
+   (hasFamily(dd)?familyBlock(dd,c):'');
 };
 AFTER.advisor=function(){stratAIEnhance(d(),calc(d()));};
 function setHTier(t){d().health.tier=t;scheduleSave();renderStep();}
@@ -874,6 +876,7 @@ function showSummary(){
    '<div class="sec"><h2>Priority Ranking</h2>'+dd.priorities.slice(0,6).map(function(p,i){return '<span class="pill"><b>'+(i+1)+'</b> '+esc(p)+'</span>';}).join('')+'</div>'+
    '<div class="sec"><h2>Key Observations &amp; Discussion Topics</h2>'+buildObs(c,dd)+'</div>'+
    buildStrategyReport(c,dd)+
+   (hasFamily(dd)?familyReport(c,dd):'')+
    buildDebtPlan(c,dd)+buildBudgetPlan(c,dd)+buildHNW(c,dd)+buildPlaybook(c,dd)+buildInternalNotes(dd)+'<div class="repbtns"><button onclick="backToGallery()">← Builder</button><button onclick="editCurrent()">Edit</button><button onclick="shareEmail()">✉ Share PDF</button><button class="prime" onclick="saveComplete()">✓ Save PFR</button></div>'+
    '</div>';
 }
@@ -913,6 +916,10 @@ function pfrAIContext(dd,c){
   L.push('Top priorities (ranked): '+(dd.priorities||[]).slice(0,4).join(', ')+'.');
   if(dd.lifestyle&&dd.lifestyle.length)L.push('Lifestyle goals: '+dd.lifestyle.join(', ')+'.');
   L.push('Confidence in current plan: '+((FACES[dd.confidence-1]||['','unsure'])[1])+'.');
+  if(hasFamily(dd)){var h=dd.household||{};var fp=familyProtection(dd,c);
+    if(h.type==='joint'){L.push('MARRIED / JOINT household. Spouse monthly income '+money((h.spouse&&h.spouse.incomeMo)||0)+'. Estimated household protection need '+money(fp.total)+' (client '+money(c.insurable)+' + spouse income replacement '+money(fp.spouseNeed)+').');}
+    if(h.kids&&h.kids.length){L.push(h.kids.length+' child(ren). Total estimated college cost '+money(fp.eduNeed)+'. Discuss a family plan: Million Dollar Baby (child IUL) vs 529 for each child, side by side. Child IUL locks in insurability at a young age, grows tax-advantaged cash value usable for ANY purpose with no penalty, and is permanent; a 529 grows tax-free but ONLY for qualified education and penalizes non-education withdrawals. Present both neutrally and let the family choose.');}
+  }
   if(dd.advisor)L.push('Client response when asked to learn more: '+dd.advisor);
   return L.join('\n');
 }
@@ -985,6 +992,90 @@ function saveComplete(){if(!CUR)return;CUR.status='complete';saveNow();toast('PF
 function kvc(l,v,good){return '<div class="kv"><div class="l">'+l+'</div><div class="v" style="color:'+(good?'#1a9c52':'var(--red)')+'">'+esc(v)+'</div></div>';}
 function backToGallery(){$('summary').classList.add('hide');$('gallery').classList.remove('hide');loadPFRs();}
 function editCurrent(){STEP=0;openFlow();}
+
+/* ===== Family / household plan (added 2026-07-17) ===== */
+function hasFamily(dd){var h=(dd&&dd.household)||{};return h.type==='joint'||(h.kids&&h.kids.length>0);}
+function _fvL(pv,r,y){return (Number(pv)||0)*Math.pow(1+r,y);}
+function _fvM(pmt,r,y){pmt=Number(pmt)||0;var m=r/12,n=y*12;return m===0?pmt*n:pmt*((Math.pow(1+m,n)-1)/m);}
+function familyProtection(dd,c){var h=dd.household||{};var spMo=(h.spouse&&Number(h.spouse.incomeMo))||0;var spouseNeed=spMo*12*10;var eduNeed=(h.kids||[]).reduce(function(t,k){return t+(Number(k.collegeCost)||0);},0);return {spouseNeed:spouseNeed,eduNeed:eduNeed,total:(Number(c.insurable)||0)+spouseNeed};}
+
+/* ---- household step ---- */
+RENDER.household=function(){var dd=d();if(!dd.household)dd.household={type:'',spouse:{name:'',dob:'',incomeMo:0},kids:[]};var h=dd.household;
+ var seg=function(v,lbl){return '<button type="button" class="chip'+(h.type===v?' on':'')+'" onclick="setHH(\''+v+'\')">'+lbl+'</button>';};
+ var spouse = h.type==='joint' ? (
+   '<div class="sec"><div style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin-bottom:8px">Spouse / partner</div>'+
+   '<div class="wform">'+hfield('Spouse name','name','First & last','text')+hfield('Date of birth','dob','','date')+hSpouseMoney()+'</div></div>') : '';
+ var kids = (h.kids||[]).map(function(k,i){return kidCard(k,i);}).join('');
+ return '<div class="eyebrow">Household</div>'+
+  '<h1 class="qh">Who are we planning for?</h1>'+
+  '<p class="qsub">This shapes the whole review — a single plan looks different from a family plan. Adding children unlocks college planning and Million Dollar Baby options.</p>'+
+  '<div class="chips" style="margin-bottom:6px">'+seg('single','👤 Just me (single)')+seg('joint','💑 Married / joint')+'</div>'+
+  spouse+
+  '<div class="sec"><div style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin-bottom:8px">Children</div>'+
+   (h.kids&&h.kids.length?kids:'<p class="qsub" style="margin:0 0 10px">No children added yet.</p>')+
+   '<button type="button" class="additem" onclick="addKid()"><b>+</b> Add a child</button>'+
+  '</div>';
+};
+function setHH(t){var h=d().household;h.type=t;scheduleSave();renderStep();}
+function hfield(label,key,ph,type){var v=(d().household.spouse[key]!=null?d().household.spouse[key]:'');return '<div class="wfield"><label>'+esc(label)+'</label><input type="'+type+'" placeholder="'+ph+'" value="'+esc(v)+'" oninput="d().household.spouse[\''+key+'\']=this.value;scheduleSave()"></div>';}
+function hSpouseMoney(){var v=Number(d().household.spouse.incomeMo)||0;return '<div class="wfield"><label>Spouse monthly income (for coverage)</label><input inputmode="numeric" placeholder="$0" value="'+(v?('$'+v.toLocaleString('en-US')):'')+'" oninput="var n=parseInt((this.value||\'\').replace(/[^0-9]/g,\'\'),10)||0;d().household.spouse.incomeMo=n;this.value=n?(\'$\'+n.toLocaleString(\'en-US\')):\'\';scheduleSave()"></div>';}
+function addKid(){d().household.kids.push({name:'',age:'',collegeAge:18,collegeCost:0,saved529:0,monthlyContrib:0});scheduleSave();renderStep();}
+function delKid(i){d().household.kids.splice(i,1);scheduleSave();renderStep();}
+function kidCard(k,i){
+ var t=(k.name||('Child '+(i+1)));
+ return '<div class="macc open" style="margin-bottom:10px"><div class="macc-b" style="display:block;padding-top:4px">'+
+  '<div style="font-weight:800;color:var(--ink);margin:2px 0 8px">🧒 '+esc(t)+'</div>'+
+  '<div class="wform">'+
+   kfield(i,'name','Child name','First name','text')+
+   knum(i,'age','Age now')+
+   knum(i,'collegeAge','College start age')+
+   kmoney(i,'collegeCost','Est. total college cost')+
+   kmoney(i,'saved529','Existing 529 / savings')+
+   kmoney(i,'monthlyContrib','Monthly you can set aside')+
+  '</div>'+
+  '<button type="button" class="additem" onclick="delKid('+i+')" style="color:var(--red);border-color:var(--red)">✕ Remove child</button>'+
+ '</div></div>';}
+function kfield(i,key,label,ph,type){var v=d().household.kids[i][key];return '<div class="wfield"><label>'+esc(label)+'</label><input type="'+type+'" placeholder="'+ph+'" value="'+esc(v==null?'':v)+'" oninput="d().household.kids['+i+'][\''+key+'\']=this.value;scheduleSave()"></div>';}
+function knum(i,key,label){var v=d().household.kids[i][key];return '<div class="wfield"><label>'+esc(label)+'</label><input inputmode="numeric" placeholder="0" value="'+(v==null?'':esc(v))+'" oninput="d().household.kids['+i+'][\''+key+'\']=this.value.replace(/[^0-9]/g,\'\');scheduleSave()"></div>';}
+function kmoney(i,key,label){var v=Number(d().household.kids[i][key])||0;return '<div class="wfield"><label>'+esc(label)+'</label><input inputmode="numeric" placeholder="$0" value="'+(v?('$'+v.toLocaleString('en-US')):'')+'" oninput="var n=parseInt((this.value||\'\').replace(/[^0-9]/g,\'\'),10)||0;d().household.kids['+i+'][\''+key+'\']=n;this.value=n?(\'$\'+n.toLocaleString(\'en-US\')):\'\';scheduleSave()"></div>';}
+
+/* ---- family plan render (shared by advisor step + report) ---- */
+function kidCompareHTML(k){
+ var age=Number(k.age)||0, ca=Number(k.collegeAge)||18, yrs=Math.max(0,ca-age);
+ var saved=Number(k.saved529)||0, mo=Number(k.monthlyContrib)||0;
+ var p529=_fvL(saved,0.06,yrs)+_fvM(mo,0.06,yrs);
+ var mdb=_fvL(saved,0.045,yrs)+_fvM(mo,0.045,yrs);
+ var name=esc(k.name||'this child');
+ var yrsTxt = yrs>0 ? ('in ~'+yrs+' yr'+(yrs===1?'':'s')+' (age '+ca+')') : 'at college age';
+ var col=function(title,val,valLbl,pts,accent){
+   return '<div style="flex:1;min-width:220px;border:1px solid var(--line2);border-radius:14px;padding:14px;background:var(--panel2)">'+
+     '<div style="font-weight:800;color:'+accent+';font-size:13px;margin-bottom:4px">'+title+'</div>'+
+     '<div style="font-size:22px;font-weight:800;color:var(--ink)">'+money(val)+'</div>'+
+     '<div style="font-size:11px;color:var(--ink3);margin-bottom:8px">'+valLbl+'</div>'+
+     pts.map(function(x){return '<div style="font-size:12px;color:var(--ink2);margin:4px 0;display:flex;gap:6px"><span>'+x[0]+'</span><span>'+x[1]+'</span></div>';}).join('')+
+   '</div>';};
+ var c529=col('529 College Plan',p529,'Est. value '+yrsTxt+' (~6%/yr, tax-free for school)',
+   [['✅','Tax-free growth for qualified education'],['✅','Simple, higher market-linked growth potential'],['⚠️','Non-education withdrawals: income tax + 10% penalty on gains'],['⚠️','Counts against financial aid; use limited to school']],'var(--accent)');
+ var cmdb=col('🌟 Million Dollar Baby (child IUL)',mdb,'Est. accessible cash value '+yrsTxt+' (conservative, after policy costs)',
+   [['✅','Locks in '+name+'’s insurability & low rate for life'],['✅','Cash value usable for ANY goal — college, business, first home — no penalty'],['✅','Permanent death benefit; keeps growing past college'],['⚠️','Insurance costs slow early growth; needs ongoing premium']],'var(--gold)');
+ return '<div style="margin:10px 0 4px;font-weight:800;color:var(--ink)">🧒 '+name+(yrs>0?(' — '+yrs+' years to college'):'')+'</div>'+
+   '<div style="display:flex;gap:12px;flex-wrap:wrap">'+c529+cmdb+'</div>';
+}
+function familyCoreHTML(dd,c){var h=dd.household||{};var fp=familyProtection(dd,c);var out='';
+ if(h.type==='joint'){
+   out+='<div class="obs neu" style="padding-top:0"><div class="ic">💑</div><div class="ot"><b>Household protection need:</b> about <b>'+money(fp.total)+'</b> — '+money(c.insurable)+' for '+esc((dd.client.name||'the primary').split(" ")[0])+' plus ~'+money(fp.spouseNeed)+' to replace the spouse’s income. A joint plan keeps both incomes protected.</div></div>';
+ }
+ var kids=(h.kids||[]).filter(function(k){return (k.name||k.age||k.monthlyContrib||k.saved529||k.collegeCost);});
+ if(kids.length){
+   out+='<div style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin:16px 0 4px">College funding — side by side</div>'+
+     '<p class="qsub" style="margin:0 0 6px">Two honest ways to fund each child. The family picks — your job is to show both clearly.</p>'+
+     kids.map(kidCompareHTML).join('')+
+     '<div class="obs neu" style="margin-top:10px"><div class="ic">⚠️</div><div class="ot" style="font-size:12px">Figures are illustration estimates only (assumed growth, not guaranteed). 529 growth is market-dependent; IUL cash value depends on the carrier illustration and underwriting. Run the real illustration to confirm.</div></div>';
+ }
+ return out;
+}
+function familyBlock(dd,c){var core=familyCoreHTML(dd,c);if(!core)return '';return '<div class="sec"><div style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--gold);margin:6px 0 8px">👪 Total Family Plan</div>'+core+'</div>';}
+function familyReport(c,dd){var core=familyCoreHTML(dd,c);if(!core)return '';return '<div class="sec"><h2>👪 Total Family Plan</h2>'+core+'</div>';}
 </script>
 <script defer src="notif.js"></script>
 </body>
