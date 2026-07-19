@@ -393,6 +393,7 @@ function blank(){return {client:{name:'',phone:'',email:''},
   priorities:['Protect Family','Retirement','Emergency Savings','Debt Reduction','Tax Efficiency','College Funding','Legacy Planning','Business Planning','Charitable Giving'],
   health:{tier:'Standard',tobacco:false},
   household:{type:'',spouse:{name:'',dob:'',incomeMo:0},kids:[]},
+  existing:{has:'',policies:[]},
   advisor:''
 };}
 function sum(o){var t=0;for(var k in o)t+=Number(o[k])||0;return t;}
@@ -419,7 +420,7 @@ function calc(d){
 }
 
 /* ===== flow control ===== */
-var STEPS=['welcome','household','import','vision','income','lifestyle','confidence','snapshot','cashflow','gap','priorities','reflection','advisor'];
+var STEPS=['welcome','household','coverage','import','vision','income','lifestyle','confidence','snapshot','cashflow','gap','priorities','reflection','advisor'];
 function startNew(){CUR={id:null,data:blank(),status:'draft'};STEP=0;openFlow();}
 function openPFR(id,toReport){togglePop&&document.querySelectorAll('.pop').forEach(function(x){x.classList.add('hide');});
   api({action:'pfr_get',id:id}).then(function(r){var p=r&&r.pfr;if(!p){toast('Could not load');return;}
@@ -877,6 +878,7 @@ function showSummary(){
    '<div class="sec"><h2>Key Observations &amp; Discussion Topics</h2>'+buildObs(c,dd)+'</div>'+
    buildStrategyReport(c,dd)+
    (hasFamily(dd)?familyReport(c,dd):'')+
+   existingReport(dd)+
    buildDebtPlan(c,dd)+buildBudgetPlan(c,dd)+buildHNW(c,dd)+buildPlaybook(c,dd)+buildInternalNotes(dd)+'<div class="repbtns"><button onclick="backToGallery()">← Builder</button><button onclick="editCurrent()">Edit</button><button onclick="shareEmail()">✉ Share PDF</button><button class="prime" onclick="saveComplete()">✓ Save PFR</button></div>'+
    '</div>';
 }
@@ -916,6 +918,9 @@ function pfrAIContext(dd,c){
   L.push('Top priorities (ranked): '+(dd.priorities||[]).slice(0,4).join(', ')+'.');
   if(dd.lifestyle&&dd.lifestyle.length)L.push('Lifestyle goals: '+dd.lifestyle.join(', ')+'.');
   L.push('Confidence in current plan: '+((FACES[dd.confidence-1]||['','unsure'])[1])+'.');
+  if(dd.existing&&dd.existing.has==='yes'&&dd.existing.policies&&dd.existing.policies.length){
+    L.push('EXISTING life insurance ('+dd.existing.policies.length+' policy/policies): '+dd.existing.policies.map(function(p){return (p.ptype||'policy')+' with '+(p.carrier||'carrier')+' \u2014 death benefit '+money(p.deathBenefit||0)+', cash value '+money(p.cashValue||0)+', premium '+money(p.premiumMo||0)+'/mo'+(p.issueYear?(', issued '+p.issueYear):'');}).join('; ')+'. Consider whether a 1035 exchange into a better-designed policy or annuity fits this client.');
+  }
   if(hasFamily(dd)){var h=dd.household||{};var fp=familyProtection(dd,c);
     if(h.type==='joint'){L.push('MARRIED / JOINT household. Spouse monthly income '+money((h.spouse&&h.spouse.incomeMo)||0)+'. Estimated household protection need '+money(fp.total)+' (client '+money(c.insurable)+' + spouse income replacement '+money(fp.spouseNeed)+').');}
     if(h.kids&&h.kids.length){L.push(h.kids.length+' child(ren). Total estimated college cost '+money(fp.eduNeed)+'. Discuss a family plan: Million Dollar Baby (child IUL) vs 529 for each child, side by side. Child IUL locks in insurability at a young age, grows tax-advantaged cash value usable for ANY purpose with no penalty, and is permanent; a 529 grows tax-free but ONLY for qualified education and penalizes non-education withdrawals. Present both neutrally and let the family choose.');}
@@ -1076,6 +1081,68 @@ function familyCoreHTML(dd,c){var h=dd.household||{};var fp=familyProtection(dd,
 }
 function familyBlock(dd,c){var core=familyCoreHTML(dd,c);if(!core)return '';return '<div class="sec"><div style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--gold);margin:6px 0 8px">👪 Total Family Plan</div>'+core+'</div>';}
 function familyReport(c,dd){var core=familyCoreHTML(dd,c);if(!core)return '';return '<div class="sec"><h2>👪 Total Family Plan</h2>'+core+'</div>';}
+
+/* ===== Existing coverage / 1035 exchange (added 2026-07-17) ===== */
+function verdictColor(v){v=(v||'').toLowerCase();return v==='exchange'?'#c47f17':v==='keep'?'#1a9c52':'#6b7280';}
+function verdictLabel(v){v=(v||'').toLowerCase();return v==='exchange'?'⇄ Consider 1035 exchange':v==='keep'?'✓ Likely keep':'○ Review further';}
+RENDER.coverage=function(){var dd=d();if(!dd.existing)dd.existing={has:'',policies:[]};var e=dd.existing;
+ var seg=function(v,lbl){return '<button type="button" class="chip'+(e.has===v?' on':'')+'" onclick="setExisting(\''+v+'\')">'+lbl+'</button>';};
+ var bodyHTML = e.has==='yes' ? (
+   (e.policies&&e.policies.length?e.policies.map(function(p,i){return policyCard(p,i);}).join(''):'<p class="qsub" style="margin:0 0 10px">Add each policy they currently hold.</p>')+
+   '<button type="button" class="additem" onclick="addPolicy()"><b>+</b> Add a policy</button>') : '';
+ return '<div class="eyebrow">Existing Coverage</div>'+
+  '<h1 class="qh">Do you have any current life insurance policies?</h1>'+
+  '<p class="qsub">Old IUL, whole life, universal, or term policies. Capturing the details lets the AI check whether a 1035 exchange could improve things — and Operations needs these numbers for the forms.</p>'+
+  '<div class="chips" style="margin-bottom:12px">'+seg('yes','✅ Yes, I have coverage')+seg('no','🚫 No current policies')+'</div>'+
+  bodyHTML;
+};
+function setExisting(v){d().existing.has=v;scheduleSave();renderStep();}
+function addPolicy(){d().existing.policies.push({carrier:'',ptype:'',policyNo:'',deathBenefit:0,cashValue:0,premiumMo:0,issueYear:'',aiVerdict:'',aiAssessment:''});scheduleSave();renderStep();}
+function delPolicy(i){d().existing.policies.splice(i,1);scheduleSave();renderStep();}
+function pset(i,k,v){d().existing.policies[i][k]=v;scheduleSave();}
+function pfield(i,key,label,ph,type){var v=d().existing.policies[i][key];return '<div class="wfield"><label>'+esc(label)+'</label><input type="'+type+'" placeholder="'+ph+'" value="'+esc(v==null?'':v)+'" oninput="pset('+i+',\''+key+'\',this.value)"></div>';}
+function pnum(i,key,label,ph){var v=d().existing.policies[i][key];return '<div class="wfield"><label>'+esc(label)+'</label><input inputmode="numeric" placeholder="'+(ph||'0')+'" value="'+(v==null?'':esc(v))+'" oninput="pset('+i+',\''+key+'\',this.value.replace(/[^0-9]/g,\'\'))"></div>';}
+function pmoney(i,key,label){var v=Number(d().existing.policies[i][key])||0;return '<div class="wfield"><label>'+esc(label)+'</label><input inputmode="numeric" placeholder="$0" value="'+(v?('$'+v.toLocaleString('en-US')):'')+'" oninput="var n=parseInt((this.value||\'\').replace(/[^0-9]/g,\'\'),10)||0;d().existing.policies['+i+'][\''+key+'\']=n;this.value=n?(\'$\'+n.toLocaleString(\'en-US\')):\'\';scheduleSave()"></div>';}
+function policyCard(p,i){
+ var types=['IUL','Whole Life','Universal Life','Term','Final Expense','Annuity','Other'];
+ var opts='<option value="">Select type…</option>'+types.map(function(t){return '<option'+(p.ptype===t?' selected':'')+'>'+t+'</option>';}).join('');
+ var badge=p.aiVerdict?'<span class="pill" style="background:'+verdictColor(p.aiVerdict)+';color:#fff;border:none;font-weight:700">'+verdictLabel(p.aiVerdict)+'</span>':'';
+ return '<div class="macc open" style="margin-bottom:10px"><div class="macc-b" style="display:block;padding-top:4px">'+
+  '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin:2px 0 8px"><div style="font-weight:800;color:var(--ink)">📄 '+esc(p.carrier||('Policy '+(i+1)))+'</div>'+badge+'</div>'+
+  '<div class="wform">'+
+    pfield(i,'carrier','Carrier','e.g. Symetra','text')+
+    '<div class="wfield"><label>Policy type</label><select onchange="pset('+i+',\'ptype\',this.value);renderStep()">'+opts+'</select></div>'+
+    pfield(i,'policyNo','Policy number','on the statement','text')+
+    pmoney(i,'deathBenefit','Death benefit')+
+    pmoney(i,'cashValue','Cash value')+
+    pmoney(i,'premiumMo','Monthly premium')+
+    pnum(i,'issueYear','Year issued','YYYY')+
+  '</div>'+
+  '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px">'+
+    '<button type="button" class="aibtn" onclick="eval1035('+i+')">🔍 AI: is this policy good or bad?</button>'+
+    '<button type="button" class="additem" onclick="delPolicy('+i+')" style="color:var(--red);border-color:var(--red)">✕ Remove</button>'+
+  '</div>'+
+  '<div id="p1035_'+i+'" style="margin-top:8px">'+(p.aiAssessment?assessmentHTML(p):'')+'</div>'+
+ '</div></div>';}
+function assessmentHTML(p){return '<div class="aiscript"><h4>🔍 1035 analysis — '+verdictLabel(p.aiVerdict)+'</h4><div class="segtx" style="white-space:pre-wrap">'+esc(p.aiAssessment)+'</div><div class="aitools"><button onclick="copyLive(this)">📋 Copy</button><span class="aitag">Internal agent analysis · replacement &amp; suitability rules apply — verify before recommending</span></div></div>';}
+function eval1035(i){var dd=d();var p=dd.existing.policies[i];if(!p)return;var box=$('p1035_'+i);
+ if(box)box.innerHTML='<div class="aiscript"><div class="segtx" style="color:var(--ink3)">🤖 Claude is analyzing this policy…</div></div>';
+ var c=calc(dd);
+ var ctx='EXISTING POLICY to evaluate:\nCarrier: '+(p.carrier||'?')+'\nType: '+(p.ptype||'?')+'\nDeath benefit: '+money(p.deathBenefit||0)+'\nCash value: '+money(p.cashValue||0)+'\nMonthly premium: '+money(p.premiumMo||0)+(p.issueYear?('\nYear issued: '+p.issueYear):'')+'\n\nCLIENT PFR CONTEXT:\n'+pfrAIContext(dd,c);
+ fetch('https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/ai-api',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'pfr_1035',prompt:ctx})}).then(function(r){return r.json();}).then(function(r){
+   var a=(r&&r.answer)||'';if(!(r&&r.ok&&a)){var b=$('p1035_'+i);if(b)b.innerHTML='<div class="aitag" style="font-size:12px;color:var(--ink3)">Live AI unavailable right now — the policy is still saved for Ops.'+((r&&r.error)?(' ('+esc(r.error)+')'):'')+'</div>';return;}
+   var m=a.match(/VERDICT:\s*(KEEP|REVIEW|EXCHANGE)/i);p.aiVerdict=m?m[1].toLowerCase():'review';
+   p.aiAssessment=a.replace(/VERDICT:\s*(KEEP|REVIEW|EXCHANGE)/i,'').trim();
+   scheduleSave();renderStep();
+ }).catch(function(){var b=$('p1035_'+i);if(b)b.innerHTML='<div class="aitag" style="font-size:12px;color:var(--ink3)">Live AI unavailable right now — the policy is still saved for Ops.</div>';});
+}
+function existingReport(dd){var e=dd.existing;if(!e||e.has!=='yes'||!e.policies||!e.policies.length)return '';
+ var rows=e.policies.filter(function(p){return p&&(p.carrier||p.policyNo||p.deathBenefit||p.cashValue);}).map(function(p){
+   return '<div class="krow" style="margin-bottom:6px">'+kv('Carrier',p.carrier||'—')+kv('Type',p.ptype||'—')+kv('Policy #',p.policyNo||'—')+kv('Death benefit',money(p.deathBenefit||0))+kv('Cash value',money(p.cashValue||0))+kv('Premium',money(p.premiumMo||0)+'/mo')+(p.aiVerdict?kv('1035 view',verdictLabel(p.aiVerdict)):'')+'</div>'+
+     (p.aiAssessment?'<div class="obs neu" style="margin:2px 0 12px"><div class="ic">🔍</div><div class="ot" style="font-size:12px;white-space:pre-wrap">'+esc(p.aiAssessment)+'</div></div>':'');
+ }).join('');
+ if(!rows)return '';
+ return '<div class="sec"><h2>📄 Existing Coverage &amp; 1035 Review</h2><p class="qsub" style="margin:0 0 8px">Captured for Operations — all 1035 forms require policy #, death benefit, and cash value. AI notes are internal decision-support; replacement &amp; suitability rules apply.</p>'+rows+'</div>';}
 </script>
 <script defer src="notif.js"></script>
 </body>
