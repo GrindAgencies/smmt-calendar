@@ -197,6 +197,7 @@ a{color:inherit;text-decoration:none;}.hide{display:none!important;}
       <button id="tab_me" onclick="setTab('me')">My Schedule</button>
       <button id="tab_company" onclick="setTab('company')" style="display:none">Company</button>
       <button id="tab_clients" onclick="setTab('clients')" style="display:none">Clients</button>
+      <button id="tab_ops" onclick="setTab('ops')" style="display:none">Base Ops</button>
       <button id="tab_avail" onclick="setTab('avail')" style="display:none">Profile</button>
     </div>
     <div id="view"><div class="spin">Loading your scheduler…</div></div>
@@ -209,6 +210,7 @@ a{color:inherit;text-decoration:none;}.hide{display:none!important;}
 var TA="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/tracker-api";
 var AT="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/atlas-api";
 var CODE=null,NAME="",TRAINERS=[],TZ="America/Los_Angeles (PT)",MYB=[],MYT=[],TAB='cal',CALWEEK=0;
+var PROFILE=null,OPS_BASE=null;
 var SELDATE=null,SELTIME=null,SELCAT='Field Training',DAYBOOKED=[];
 var CATS=['Field Training','New Agent Orientation','1-on-1 Coaching','Licensing Help','Phone Zone'];
 var DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -255,7 +257,7 @@ function signOut(){try{localStorage.removeItem('tsfg_code');localStorage.removeI
   CODE=CODE.toUpperCase();buildSide();setProfileChip();
   fetch(TA,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'cftavail'})}).then(function(r){return r.json();}).then(function(r){
     var v=r&&r.value;TRAINERS=(v&&Array.isArray(v.cfts))?v.cfts:[];if(v&&v.tz)TZ=v.tz;
-    revealAvailTab();
+    revealAvailTab();loadProfile();
     loadSched(function(){loadMy(function(){loadMyTrainer(function(){render();});});});
   }).catch(function(){TRAINERS=[];render();});
   document.addEventListener('keydown',function(e){if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();openSpot();}if(e.key==='Escape'){closeSpot();$('bkOv').classList.remove('on');}});
@@ -287,8 +289,8 @@ function trainersAt(dstr,time){return TRAINERS.filter(function(c){return availTi
 function trainerAvailToday(c){return availTimesForTrainer(c,todayStr());}
 function nextOpening(c){for(var i=0;i<14;i++){var ds=ymd(addDays(i));var a=availTimesForTrainer(c,ds);if(a.length)return {date:ds,time:a[0]};}return null;}
 function loadDayBooked(dstr,cb){fetch(AT+'?action=atlas_day&date='+encodeURIComponent(dstr)).then(function(r){return r.json();}).then(function(r){DAYBOOKED=(r&&r.bookings)||[];cb&&cb();}).catch(function(){DAYBOOKED=[];cb&&cb();});}
-function setTab(t){TAB=t;['cal','dash','book','train','me','company','clients','avail','xfer'].forEach(function(x){var el=$('tab_'+x);if(el)el.classList.toggle('on',x===t);});render();}
-function render(){if(TAB==='cal')renderCal();else if(TAB==='dash')renderDash();else if(TAB==='book')renderBook();else if(TAB==='train')renderTrainers();else if(TAB==='company')renderCompany();else if(TAB==='clients')renderClients();else if(TAB==='avail')renderAvail();else if(TAB==='xfer')renderTransfers();else renderMe();}
+function setTab(t){TAB=t;['cal','dash','book','train','me','company','clients','ops','avail','xfer'].forEach(function(x){var el=$('tab_'+x);if(el)el.classList.toggle('on',x===t);});render();}
+function render(){if(TAB==='cal')renderCal();else if(TAB==='dash')renderDash();else if(TAB==='book')renderBook();else if(TAB==='train')renderTrainers();else if(TAB==='company')renderCompany();else if(TAB==='clients')renderClients();else if(TAB==='ops')renderOps();else if(TAB==='avail')renderAvail();else if(TAB==='xfer')renderTransfers();else renderMe();}
 function myTrainerProfile(){if(!TRAINERS||!TRAINERS.length)return null;var lname=(NAME||'').trim().toLowerCase();if(!lname)return null;return TRAINERS.filter(function(c){return c.name&&c.name.trim().toLowerCase()===lname;})[0]||null;}
 function myRole(){var me=myTrainerProfile();return me?((me.role||'').toUpperCase()):'';}
 function isEmd(){return myRole()==='EMD';}
@@ -308,6 +310,48 @@ function addClosure(){var d=$('clNew')&&$('clNew').value;if(!d)return toast('Pic
 function removeClosure(d){var arr=(SCHED.closures||[]).filter(function(x){return !(x===d||(x&&x.date===d));});saveSched({closures:arr},'Closure removed');}
 function saveMinNotice(){var v=Math.max(0,Number($('mnHours').value)||0);saveSched({min_notice_hours:v},'Minimum notice saved');}
 function revealAvailTab(){if(myTrainerProfile()){var a=$('tab_avail');if(a)a.style.display='';var cp=$('tab_company');if(cp)cp.style.display='';var cl=$('tab_clients');if(cl)cl.style.display='';}}
+function loadProfile(cb){fetch(PA,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'get_profile',code:CODE,current_name:NAME})}).then(function(r){return r.json();}).then(function(r){PROFILE=(r&&r.profile)||{};var av=$('tab_avail');if(av)av.style.display='';revealOpsTab();cb&&cb();}).catch(function(){PROFILE={};cb&&cb();});}
+function isBaseAdmin(){return PROFILE&&(PROFILE.access_scope==='super'||PROFILE.access_scope==='base_owner');}
+function revealOpsTab(){if(isBaseAdmin()){var o=$('tab_ops');if(o)o.style.display='';}}
+// === Base Ops (Phase: multi-base) — base-scoped roster + make-bookable ===
+function renderOps(){
+  if(!isBaseAdmin()){$('view').innerHTML='<div class="empty">Base operations are for base owners and managers.</div>';return;}
+  $('view').innerHTML='<div class="hero" style="background:linear-gradient(135deg,#c99a2e,#5b6cff)"><h1>Base Ops</h1><p>Your team roster — turn on booking for anyone in your base.</p></div><div id="opsBody"><div class="spin">Loading your base…</div></div>';
+  var body={action:'base_ops',code:CODE};
+  if(PROFILE.access_scope==='super'&&OPS_BASE)body.base=OPS_BASE;
+  fetch(PA,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(function(r){return r.json();}).then(paintOps).catch(function(){var e=$('opsBody');if(e)e.innerHTML='<div class="empty">Could not load base ops.</div>';});
+}
+function opsBtn(label,active,onclick){return '<button onclick="'+onclick+'" style="border:1px solid '+(active?'var(--accent)':'var(--line2)')+';background:'+(active?'var(--accent)':'var(--panel)')+';color:'+(active?'#fff':'var(--ink2)')+';border-radius:10px;padding:7px 13px;font-weight:700;font-size:12.5px;cursor:pointer">'+esc(label)+'</button>';}
+function paintOps(r){
+  var el=$('opsBody');if(!el)return;
+  if(!r||!r.ok){el.innerHTML='<div class="empty">'+esc((r&&r.error)||'Could not load base ops.')+'</div>';return;}
+  var ppl=r.people||[];var h='';
+  if(r.scope==='super'){
+    var bases=r.bases||['STANDARD'];
+    h+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">'+opsBtn('All bases',r.base==='ALL',"OPS_BASE='ALL';renderOps()")+bases.map(function(b){return opsBtn(b,r.base===b,"OPS_BASE='"+esc(b)+"';renderOps()");}).join('')+'</div>';
+  }
+  var nb=ppl.filter(function(p){return p.bookable;}).length;
+  h+='<div class="grid g4" style="margin-bottom:18px">'+tile('People',r.count)+tile('Bookable',nb)+tile('Viewing',esc(r.base))+'</div>';
+  h+='<div style="font-size:12.5px;color:var(--ink3);margin:0 2px 12px">Turn on <b>Bookable</b> to give someone their own calendar link and put them on the booking surface. You can only manage people in your own base'+(r.scope==='super'?' (you have total access across all bases)':'')+'.</div>';
+  h+='<div class="sec">'+(ppl.length?ppl.map(opsRow).join(''):'<div class="empty">No one in this base yet.</div>')+'</div>';
+  el.innerHTML=h;
+}
+function opsRow(p){
+  var col=avColor(p.name);var lvl=p.contract_level||'Associate';
+  var badge='<span style="font-size:10.5px;font-weight:800;padding:2px 7px;border-radius:7px;background:var(--panel2);color:var(--ink2);margin-left:7px">'+esc(lvl)+'</span>';
+  var baseb=p.baseshop?'<span style="font-size:10.5px;color:var(--ink3);margin-left:6px">'+esc(p.baseshop)+'</span>':'';
+  var btn=p.bookable
+    ? '<button onclick="toggleBookable(\''+esc(p.code)+'\',\''+esc(p.name)+'\',false)" style="border:1px solid var(--green);background:var(--green-soft,rgba(52,199,89,.14));color:var(--green);border-radius:10px;padding:7px 13px;font-weight:800;font-size:12.5px;cursor:pointer;white-space:nowrap">Bookable ✓</button>'
+    : '<button onclick="toggleBookable(\''+esc(p.code)+'\',\''+esc(p.name)+'\',true)" style="border:none;background:var(--accent);color:#fff;border-radius:10px;padding:7px 13px;font-weight:700;font-size:12.5px;cursor:pointer;white-space:nowrap">Make bookable</button>';
+  return '<div class="apt"><div class="tav" style="width:40px;height:40px;background:'+col+'">'+initials(p.name)+'</div><div style="min-width:0"><div style="font-weight:700;font-size:14px">'+esc(p.name)+badge+baseb+'</div><div style="font-size:12px;color:var(--ink3)">'+esc(p.code)+(p.email?' · '+esc(p.email):'')+'</div></div><span style="margin-left:auto">'+btn+'</span></div>';
+}
+function toggleBookable(code2,name2,on){
+  fetch(PA,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'enable_bookable',code:CODE,target_code:code2,bookable:on})}).then(function(r){return r.json();}).then(function(r){
+    if(!r||!r.ok){toast((r&&r.error)||'Could not update');return;}
+    toast(on?(name2+' is now bookable'):(name2+' hidden from booking'));
+    fetch(TA,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'cftavail'})}).then(function(x){return x.json();}).then(function(rr){var v=rr&&rr.value;TRAINERS=(v&&Array.isArray(v.cfts))?v.cfts:[];renderOps();}).catch(function(){renderOps();});
+  }).catch(function(){toast('Network error');});
+}
 // === Calendar (week) view — the front door ===
 function weekStartYmd(off){var d=new Date(todayStr()+'T12:00:00Z');d.setUTCDate(d.getUTCDate()-d.getUTCDay()+off*7);return d.toISOString().slice(0,10);}
 function statusColor(s){return s==='confirmed'?'var(--green)':(s==='pending'?'var(--gold)':(s==='canceled'||s==='no_show'||s==='declined'?'var(--red)':'var(--accent)'));}

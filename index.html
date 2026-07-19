@@ -61,6 +61,10 @@ button{font-family:inherit;cursor:pointer;}
 .gmsg{font-size:13px;margin-top:14px;min-height:18px;color:var(--red);font-weight:600;}
 .gmsg.ok{color:var(--green);}
 .ghint{font-size:12px;color:var(--ink-3);margin-top:16px;}
+.gswitch{font-size:12.5px;color:var(--accent);font-weight:700;margin-top:16px;cursor:pointer;display:inline-block;}
+.gswitch:hover{text-decoration:underline;}
+.gfield select{width:100%;padding:13px 15px;border:1px solid var(--line-2);border-radius:13px;background:var(--panel-2);color:var(--ink);font-size:15px;font-weight:500;outline:none;transition:.18s;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238e8e93' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='m6 9 6 6 6-6'/></svg>");background-repeat:no-repeat;background-position:right 14px center;}
+.gfield select:focus{border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-soft);background-color:var(--panel);}
 
 /* ============ APP SHELL ============ */
 #app{display:grid;grid-template-columns:var(--side-w) 1fr;min-height:100vh;transition:grid-template-columns .22s cubic-bezier(.2,.8,.2,1);}
@@ -243,16 +247,45 @@ button{font-family:inherit;cursor:pointer;}
   <div class="gate-orb o1"></div><div class="gate-orb o2"></div>
   <div class="gate-card">
     <img class="gate-logo" src="logo.png" alt="GRIND Agencies" onerror="this.style.display='none'">
-    <h1>Welcome to The Standard</h1>
-    <p>Sign in with your GFI code to open your dashboard.</p>
-    <div class="grow">
-      <div class="gfield"><label>First name</label><input id="gFirst" type="text" autocomplete="given-name" placeholder="John"></div>
-      <div class="gfield"><label>Last name</label><input id="gLast" type="text" autocomplete="family-name" placeholder="Doe"></div>
+    <!-- SIGN IN -->
+    <div id="signinPane">
+      <h1>Welcome to The Standard</h1>
+      <p>Sign in with your GFI code to open your dashboard.</p>
+      <div class="grow">
+        <div class="gfield"><label>First name</label><input id="gFirst" type="text" autocomplete="given-name" placeholder="John"></div>
+        <div class="gfield"><label>Last name</label><input id="gLast" type="text" autocomplete="family-name" placeholder="Doe"></div>
+      </div>
+      <div class="gfield"><label>GFI code</label><input id="gCode" type="text" autocomplete="off" placeholder="e.g. C1991" style="text-transform:uppercase;"></div>
+      <button class="gbtn" id="gBtn">Enter dashboard →</button>
+      <div class="gmsg" id="gMsg"></div>
+      <div class="ghint">Your progress is saved to your GFI code automatically.</div>
+      <span class="gswitch" onclick="setAuthMode('join')">New to the team? Create your account →</span>
     </div>
-    <div class="gfield"><label>GFI code</label><input id="gCode" type="text" autocomplete="off" placeholder="e.g. C1991" style="text-transform:uppercase;"></div>
-    <button class="gbtn" id="gBtn">Enter dashboard →</button>
-    <div class="gmsg" id="gMsg"></div>
-    <div class="ghint">Your progress is saved to your GFI code automatically.</div>
+
+    <!-- JOIN / SIGN UP -->
+    <div id="signupPane" class="hide">
+      <h1>Join the team</h1>
+      <p>Your business partner will give you their code. We'll set up your account and code.</p>
+      <div class="grow">
+        <div class="gfield"><label>First name</label><input id="sFirst" type="text" autocomplete="given-name" placeholder="John"></div>
+        <div class="gfield"><label>Last name</label><input id="sLast" type="text" autocomplete="family-name" placeholder="Doe"></div>
+      </div>
+      <div class="gfield"><label>Email</label><input id="sEmail" type="email" autocomplete="email" placeholder="you@email.com"></div>
+      <div class="gfield"><label>Mobile phone</label><input id="sPhone" type="tel" autocomplete="tel" placeholder="(555) 555-5555"></div>
+      <div class="gfield"><label>Contract level</label>
+        <select id="sLevel">
+          <option value="Associate" selected>Associate</option>
+          <option value="Senior Associate">Senior Associate</option>
+          <option value="MD">Marketing Director (MD)</option>
+          <option value="EMD">Executive Marketing Director (EMD)</option>
+        </select>
+      </div>
+      <div class="gfield"><label>Direct business partner code</label><input id="sUpline" type="text" autocomplete="off" placeholder="e.g. C1991" style="text-transform:uppercase;"></div>
+      <button class="gbtn" id="sBtn">Create my account →</button>
+      <div class="gmsg" id="sMsg"></div>
+      <div class="ghint">This places you under your partner and builds your calendar automatically.</div>
+      <span class="gswitch" onclick="setAuthMode('signin')">← Already have a code? Sign in</span>
+    </div>
   </div>
 </div>
 
@@ -396,6 +429,7 @@ var ICON=I;
 
 var API="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/tracker-api";
 var NBAPI="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/newbiz-api";
+var PA="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/profile-api";
 var BASESHOP_LEADER="Elijah Cox";
 var CODE=null, NAME="", CTX="me", ME=null, SHOP=null, RAW=null, GOALS={personal:{},shop:{}};
 function nbapi(b){return fetch(NBAPI,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();}).catch(function(){return{ok:false};});}
@@ -623,9 +657,36 @@ function doLogin(){
 }
 function signOut(){try{localStorage.removeItem('tsfg_code');localStorage.removeItem('tsfg_name');}catch(e){}location.reload();}
 
+/* ---------- JOIN / SIGN UP ---------- */
+function setAuthMode(m){
+  $('signinPane').classList.toggle('hide',m==='join');
+  $('signupPane').classList.toggle('hide',m!=='join');
+}
+function doSignup(){
+  var msg=$('sMsg');msg.className='gmsg';
+  var first=$('sFirst').value.trim(),last=$('sLast').value.trim();
+  var email=$('sEmail').value.trim(),phone=$('sPhone').value.trim();
+  var level=$('sLevel').value,upline=($('sUpline').value||'').trim().toUpperCase();
+  if(!first||!last){msg.textContent='Enter your first and last name.';return;}
+  if(!upline){msg.textContent='Enter your business partner code.';return;}
+  var btn=$('sBtn');btn.disabled=true;btn.textContent='Creating…';
+  fetch(PA,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'signup',first_name:first,last_name:last,email:email,phone:phone,contract_level:level,upline_code:upline})})
+    .then(function(r){return r.json();}).then(function(r){
+      btn.disabled=false;btn.textContent='Create my account →';
+      if(r&&r.ok){
+        msg.className='gmsg ok';msg.textContent='Welcome, '+r.name+'! Your code is '+r.code+' (under '+r.upline+'). Signing you in…';
+        CODE=r.code;NAME=r.name;
+        try{localStorage.setItem('tsfg_code',CODE);localStorage.setItem('tsfg_name',NAME);}catch(e){}
+        setTimeout(showApp,1400);
+      } else { msg.textContent=(r&&r.error)||'Could not create your account.'; }
+    }).catch(function(){btn.disabled=false;btn.textContent='Create my account →';msg.textContent='Network error — try again.';});
+}
+
 /* ---------- BOOT ---------- */
 $('gBtn').addEventListener('click',doLogin);
 ['gFirst','gLast','gCode'].forEach(function(id){$(id).addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});});
+$('sBtn').addEventListener('click',doSignup);
+['sFirst','sLast','sEmail','sPhone','sUpline'].forEach(function(id){$(id).addEventListener('keydown',function(e){if(e.key==='Enter')doSignup();});});
 (function boot(){
   var c=null,n='';try{c=localStorage.getItem('tsfg_code');n=localStorage.getItem('tsfg_name')||'';}catch(e){}
   if(c){ // validate silently, but reveal fast
