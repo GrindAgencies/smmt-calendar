@@ -438,6 +438,8 @@ function trainerAptRow(b){var col=avColor(b.agent_name||b.agent_code||'');
   var right;
   if(b.status==='pending'){
     right='<div style="margin-left:auto;display:flex;gap:8px"><button class="book" style="width:auto;margin:0;padding:9px 16px;background:var(--green-soft);color:#1a9c52" onclick="doApprove(\''+b.id+'\',\'approve\')">Approve</button><button class="x can" onclick="doApprove(\''+b.id+'\',\'decline\')">Decline</button></div>';
+  } else if((b.status==='booked'||b.status==='confirmed')&&isPastBk(b)){
+    right='<div style="margin-left:auto;display:flex;gap:8px"><button class="book" style="width:auto;margin:0;padding:9px 14px;background:var(--green-soft);color:#1a9c52" onclick="doMark(\''+b.id+'\',\'completed\')">Completed</button><button class="x can" onclick="doMark(\''+b.id+'\',\'no_show\')">No-show</button></div>';
   } else if((b.status==='booked'||b.status==='confirmed')&&(myRole()==='CFT'||isEmd())){
     right='<button class="x" style="margin-left:auto" onclick="openTransfer(\''+b.id+'\',\''+(isEmd()?'manager':'peer')+'\')">Transfer</button>';
   } else {
@@ -446,6 +448,8 @@ function trainerAptRow(b){var col=avColor(b.agent_name||b.agent_code||'');
   return '<div class="apt"><div class="tav" style="width:42px;height:42px;font-size:14px;background:'+col+'">'+initials(b.agent_name||b.agent_code||'')+'</div>'+
    '<div><div style="font-weight:700;font-size:14.5px">'+esc(b.agent_name||b.agent_code||'Agent')+' · '+esc(b.category||'Training')+(b.status==='pending'?' <span style="color:var(--gold);font-weight:800">· needs approval</span>':'')+'</div>'+
    '<div style="font-size:12.5px;color:var(--ink3)">'+prettyDate(b.date)+' · '+esc(b.time)+' PT <span class="conf">· '+esc(b.conf||'')+'</span></div></div>'+right+'</div>';}
+function isPastBk(b){var t=todayStr();if(b.date<t)return true;if(b.date===t)return (t2min(b.time)+(Number(b.duration_minutes)||60))<=nowPTmin();return false;}
+function doMark(id,status){fetch(AT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'atlas_setstatus',id:id,status:status,code:CODE})}).then(function(r){return r.json();}).then(function(r){if(!r||!r.ok){toast((r&&r.error)||'Could not update');return;}toast(status==='completed'?'Marked completed':'Marked no-show');loadMyTrainer(function(){render();});}).catch(function(){toast('Network error');});}
 function doApprove(id,decision){
   fetch(AT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'atlas_approve',id:id,decision:decision,code:CODE})}).then(function(r){return r.json();}).then(function(r){
     if(r&&r.taken){toast(r.error||'You have a conflict at that time.');return;}
@@ -535,8 +539,23 @@ function paintCompany(){
     h+='<div class="sec"><div class="sech"><h2>Scheduler settings (EMD / Ops)</h2></div>'+
       '<div style="padding:16px;border:1px solid var(--line);border-radius:14px;background:var(--panel);margin-bottom:12px"><div style="font-weight:700;font-size:14.5px;margin-bottom:6px">Minimum notice</div><div style="font-size:12.5px;color:var(--ink3);margin-bottom:10px">Clients can’t book within this many hours of now.</div><label style="font-size:13.5px;color:var(--ink2)">Hours: <input id="mnHours" type="number" min="0" max="336" value="'+(Number(SCHED.min_notice_hours)||0)+'" style="width:80px;padding:7px 10px;border:1px solid var(--line2);border-radius:8px;background:var(--panel);color:var(--ink);font-size:13px;margin:0 6px"></label><button style="border:none;padding:9px 16px;border-radius:10px;font-weight:700;font-size:13px;background:var(--accent);color:#fff;cursor:pointer" onclick="saveMinNotice()">Save</button></div>'+
       '<div style="padding:16px;border:1px solid var(--line);border-radius:14px;background:var(--panel)"><div style="font-weight:700;font-size:14.5px;margin-bottom:6px">Company closures</div><div style="font-size:12.5px;color:var(--ink3);margin-bottom:12px">Holidays / company-wide dates when nobody can be booked.</div><div style="display:flex;flex-wrap:wrap;margin-bottom:12px">'+clTags+'</div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input type="date" id="clNew" style="padding:8px 10px;border:1px solid var(--line2);border-radius:8px;background:var(--panel);color:var(--ink);font-size:13px"><button style="border:none;padding:9px 16px;border-radius:10px;font-weight:700;font-size:13px;background:var(--accent);color:#fff;cursor:pointer" onclick="addClosure()">Add closure date</button></div></div></div>';
+    h+='<div class="sec"><div class="sech"><h2>Reminder &amp; message queue</h2></div><div id="msgQueue"><div class="spin">Loading…</div></div></div>';
   }
   $('view').innerHTML=h;
+  if(isEmd())paintMsgQueue();
+}
+function paintMsgQueue(){
+  var el=$('msgQueue');if(!el)return;
+  fetch(AT+'?action=atlas_outbound_queue&code='+encodeURIComponent(CODE)).then(function(r){return r.json();}).then(function(r){
+    var msgs=(r&&r.messages)||[];el=$('msgQueue');if(!el)return;
+    if(!msgs.length){el.innerHTML='<div class="empty">Nothing queued. Reminders and follow-ups appear here as appointments approach.</div>';return;}
+    var byKind={};msgs.forEach(function(m){var k=m.kind+' · '+m.channel;byKind[k]=(byKind[k]||0)+1;});
+    var kindLabel={'confirmation':'Booking confirmations','reminder_24h':'Day-before reminders','reminder_1h':'1-hour reminders','no_show_followup':'No-show follow-ups','reassigned':'Reassignment notices'};
+    var h='<div class="grid g3" style="margin-bottom:12px">'+Object.keys(byKind).sort().map(function(k){var parts=k.split(' · ');return tile((kindLabel[parts[0]]||parts[0])+' ('+parts[1]+')',byKind[k]);}).join('')+'</div>';
+    h+='<div style="font-size:12.5px;color:var(--ink3);margin:0 2px 10px">These '+msgs.length+' messages are <b>queued</b>. Email/SMS start sending automatically once a provider is connected — in-app alerts already deliver.</div>';
+    h+=msgs.slice(0,25).map(function(m){return '<div class="apt"><div><div style="font-weight:700;font-size:13.5px">'+esc(kindLabel[m.kind]||m.kind)+' <span style="color:var(--ink3);font-weight:600">· '+esc(m.channel)+'</span></div><div style="font-size:12px;color:var(--ink3)">'+esc(m.to_email||m.to_phone||m.recipient||'')+' · '+esc(m.conf||'')+'</div></div><span class="conf" style="margin-left:auto">'+esc(m.status)+'</span></div>';}).join('');
+    el.innerHTML=h;
+  }).catch(function(){var e=$('msgQueue');if(e)e.innerHTML='<div class="empty">Could not load the queue.</div>';});
 }
 // === Clients tab (Phase 3d) — a trainer's clients + history, from their own feed ===
 function clientBookings(){return MYT.filter(function(b){return b.source==='public'||b.source==='staff'||b.client_email||b.client_id;});}
@@ -593,6 +612,8 @@ function renderMe(){var t=todayStr();
   var pendCount=myTrain.filter(function(b){return b.status==='pending';}).length;
   var h='<div class="sec"><div class="sech"><h2>Upcoming appointments</h2><a onclick="setTab(\'book\')">Book another →</a></div>'+(up.length?up.map(aptRow).join(''):'<div class="empty">Nothing on the books — tap Book a Trainer to schedule.</div>')+'</div>';
   if(myTrain.length){h+='<div class="sec"><div class="sech"><h2>Sessions you\'re training</h2><span style="font-size:12px;color:var(--ink3)">'+myTrain.length+' upcoming'+(pendCount?' · '+pendCount+' to approve':'')+'</span></div><div style="font-size:12.5px;color:var(--ink3);margin:0 2px 10px">'+(pendCount?'Approve or decline pending requests below.':'Your upcoming sessions.')+'</div>'+myTrain.map(trainerAptRow).join('')+'</div>';}
+  var toReview=MYT.filter(function(b){return (b.status==='booked'||b.status==='confirmed')&&isPastBk(b);});
+  if(toReview.length){h+='<div class="sec"><div class="sech"><h2>Sessions to review</h2><span style="font-size:12px;color:var(--gold);font-weight:700">'+toReview.length+'</span></div><div style="font-size:12.5px;color:var(--ink3);margin:0 2px 10px">These have passed — mark each Completed or No-show. No-shows trigger a follow-up.</div>'+toReview.map(trainerAptRow).join('')+'</div>';}
   h+='<div class="sec"><div class="sech"><h2>This week’s trainings</h2></div>';
   for(var i=0;i<7;i++){var dd=addDays(i);var w=dd.getUTCDay();var ts=trainingsFor(w);if(!ts.length)continue;h+='<div style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin:14px 2px 8px">'+(i===0?'Today':dd.toLocaleDateString('en-US',{weekday:'long',timeZone:'UTC'}))+'</div>'+ts.map(trainingRow).join('');}
   h+='</div>';
