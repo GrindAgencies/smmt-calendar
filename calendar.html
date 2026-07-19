@@ -183,6 +183,7 @@ a{color:inherit;text-decoration:none;}.hide{display:none!important;}
     <button class="menu" onclick="drawer(true)"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
     <div class="gsearch" onclick="openSpot()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input id="gsi" placeholder="Search trainers, appointments, trainings…" onfocus="openSpot()"><kbd>⌘K</kbd></div>
     <button class="qbtn" onclick="quickSchedule()"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Quick Schedule</button>
+    <button id="profileBtn" onclick="openProfile()" title="Your profile" style="display:flex;align-items:center;gap:8px;margin-left:8px;border:1px solid var(--line2);background:var(--panel);border-radius:12px;padding:6px 11px;font-weight:700;font-size:13.5px;color:var(--ink);white-space:nowrap;cursor:pointer"><span id="profileAv" style="width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800"></span><span id="profileName">Profile</span></button>
   </header>
   <div class="content">
     <div class="tabs">
@@ -193,7 +194,7 @@ a{color:inherit;text-decoration:none;}.hide{display:none!important;}
       <button id="tab_me" onclick="setTab('me')">My Schedule</button>
       <button id="tab_company" onclick="setTab('company')" style="display:none">Company</button>
       <button id="tab_clients" onclick="setTab('clients')" style="display:none">Clients</button>
-      <button id="tab_avail" onclick="setTab('avail')" style="display:none">My Availability</button>
+      <button id="tab_avail" onclick="setTab('avail')" style="display:none">Profile</button>
     </div>
     <div id="view"><div class="spin">Loading your scheduler…</div></div>
   </div>
@@ -248,7 +249,7 @@ function signOut(){try{localStorage.removeItem('tsfg_code');localStorage.removeI
 (function(){
   try{CODE=localStorage.getItem('tsfg_code');NAME=localStorage.getItem('tsfg_name')||'';}catch(e){}
   if(!CODE){location.href='index.html';return;}
-  CODE=CODE.toUpperCase();buildSide();
+  CODE=CODE.toUpperCase();buildSide();setProfileChip();
   fetch(TA,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'cftavail'})}).then(function(r){return r.json();}).then(function(r){
     var v=r&&r.value;TRAINERS=(v&&Array.isArray(v.cfts))?v.cfts:[];if(v&&v.tz)TZ=v.tz;
     revealAvailTab();
@@ -359,13 +360,23 @@ function openCalEvent(id){
 }
 var CAL="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/cal-feed";
 var PA="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/profile-api";
-function saveContact(){var me=myTrainerProfile();if(!me)return;var phone=$('pf_phone').value.trim(),email=$('pf_email').value.trim(),cal=$('pf_cal').value.trim();
-  fetch(PA,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'save_contact',code:CODE,phone:phone,email:email,calendly:cal})}).then(function(r){return r.json();}).then(function(r){
+function openProfile(){setTab('avail');}
+function setProfileChip(){var a=$('profileAv'),n=$('profileName');if(a)a.textContent=initials(NAME);if(n)n.textContent=(NAME||'').split(' ')[0]||'Profile';}
+function saveProfile(){
+  var first=($('pf_first')&&$('pf_first').value||'').trim(),last=($('pf_last')&&$('pf_last').value||'').trim();
+  var phone=($('pf_phone')&&$('pf_phone').value||'').trim(),email=($('pf_email')&&$('pf_email').value||'').trim(),cal=($('pf_cal')&&$('pf_cal').value||'').trim();
+  if(!first){toast('First name is required');return;}
+  fetch(PA,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'save_contact',code:CODE,current_name:NAME,first_name:first,last_name:last,phone:phone,email:email,calendly:cal})}).then(function(r){return r.json();}).then(function(r){
     if(!r||!r.ok){toast((r&&r.error)||'Save failed');return;}
-    me.phone=phone;me.email=email;me.calendly=cal;toast('Contact saved');
-    if(email&&!me.google_connected){setTimeout(function(){if(confirm('Connect your Google account now to sync your calendar and send booking emails from '+email+'?'))connectGoogle();},250);}
-    else renderAvail();
+    var nn=(first+' '+last).trim();if(nn&&nn!==NAME){NAME=nn;try{localStorage.setItem('tsfg_name',nn);}catch(e){}}
+    var me=myTrainerProfile();if(me){me.phone=phone;me.email=email;me.calendly=cal;if(nn)me.name=nn;}
+    setProfileChip();toast('Profile saved');
+    if(email&&!(r.profile&&r.profile.google_connected)){setTimeout(function(){if(confirm('Connect your Google account now to sync your calendar and send booking emails from '+email+'?'))connectGoogle();},250);}
+    renderAvail();
   }).catch(function(){toast('Network error');});}
+function uploadPhoto(input){var f=input.files&&input.files[0];if(!f)return;if(f.size>2000000){toast('Image too large — max 2MB');return;}
+  var rd=new FileReader();rd.onload=function(){fetch(PA,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'save_photo',code:CODE,photo:rd.result})}).then(function(r){return r.json();}).then(function(r){if(!r||!r.ok){toast((r&&r.error)||'Upload failed');return;}toast('Photo updated');renderAvail();}).catch(function(){toast('Upload failed');});};rd.readAsDataURL(f);}
+function saveSlots(){var me=myTrainerProfile();if(!me)return;var slots={};DAYS.forEach(function(d){var v=(($('sl_'+d)&&$('sl_'+d).value)||'').split(',').map(function(x){return x.trim();}).filter(Boolean);if(v.length)slots[d]=v;});availPost({slots:slots},'Weekly times saved');}
 function connectGoogle(){alert('Google connection activates once your Workspace OAuth app is live. Your email is saved — the moment that’s connected, your calendar syncs two-way and your booking emails send from your Gmail. (Being set up now.)');renderAvail();}
 var DASHVIEW='month',DASHMONTH=0,DASHDAY=null,COMPANY_EV=[];
 function monthFirst(off){var d=new Date(todayStr()+'T12:00:00Z');d.setUTCDate(1);d.setUTCMonth(d.getUTCMonth()+off);return d;}
@@ -761,8 +772,31 @@ function renderMe(){var t=todayStr();
 }
 // === My Availability tab (trainer self-manage) ===
 function renderAvail(){
+  $('view').innerHTML='<div class="hero" style="background:linear-gradient(135deg,#34c759,#5b6cff)"><h1>Your Profile</h1><p>'+esc(NAME)+'</p></div><div id="profBody"><div class="spin">Loading your profile…</div></div>';
+  fetch(PA,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'get_profile',code:CODE,current_name:NAME})}).then(function(r){return r.json();}).then(function(r){paintProfile((r&&r.profile)||{});}).catch(function(){paintProfile({});});
+}
+function paintProfile(p){
   var me=myTrainerProfile();
-  if(!me){$('view').innerHTML='<div class="empty">You are not registered as a trainer. If this looks wrong, sign out and back in to refresh your profile.</div>';return;}
+  var full=((p.first_name||'')+' '+(p.last_name||'')).trim()||NAME;
+  var av=p.photo?('<img src="'+esc(p.photo)+'" style="width:100%;height:100%;object-fit:cover">'):esc(initials(full));
+  var h='<div class="sec"><div style="display:flex;align-items:center;gap:16px;padding:16px;border:1px solid var(--line);border-radius:14px;background:var(--panel)"><div style="width:74px;height:74px;border-radius:50%;overflow:hidden;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:24px;flex:0 0 auto">'+av+'</div><div style="flex:1;min-width:140px"><div style="font-weight:800;font-size:17px">'+esc(full)+'</div><div style="font-size:12.5px;color:var(--ink3)">'+esc(p.title||(me?roleLabel(me.role):''))+'</div><label style="display:inline-block;margin-top:8px;font-size:12.5px;font-weight:700;color:var(--accent);cursor:pointer">📷 Upload photo<input type="file" accept="image/*" style="display:none" onchange="uploadPhoto(this)"></label></div></div></div>';
+  h+='<div class="sec"><div class="sech"><h2>Personal details</h2></div><div style="padding:16px;border:1px solid var(--line);border-radius:14px;background:var(--panel)">'+
+    '<div style="display:flex;gap:10px;flex-wrap:wrap"><div style="flex:1;min-width:150px"><label style="'+_LST+'">First name</label><input id="pf_first" style="'+_IST+'" value="'+esc(p.first_name||'')+'"></div><div style="flex:1;min-width:150px"><label style="'+_LST+'">Last name</label><input id="pf_last" style="'+_IST+'" value="'+esc(p.last_name||'')+'"></div></div>'+
+    '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px"><div style="flex:1;min-width:150px"><label style="'+_LST+'">Mobile phone <span style="color:var(--ink3);font-weight:400">· your SMS source</span></label><input id="pf_phone" style="'+_IST+'" value="'+esc(p.phone||'')+'" placeholder="(555) 555-1234"></div><div style="flex:1;min-width:150px"><label style="'+_LST+'">Email / Gmail <span style="color:var(--ink3);font-weight:400">· your email source</span></label><input id="pf_email" type="email" style="'+_IST+'" value="'+esc(p.email||'')+'" placeholder="you@gmail.com"></div></div>'+
+    '<button style="border:none;margin-top:12px;padding:10px 18px;border-radius:10px;font-weight:700;font-size:13px;background:var(--accent);color:#fff;cursor:pointer" onclick="saveProfile()">Save details</button></div></div>';
+  h+='<div class="sec"><div class="sech"><h2>Integrations</h2></div><div style="padding:16px;border:1px solid var(--line);border-radius:14px;background:var(--panel)">'+
+    '<div style="'+_FST+'"><label style="'+_LST+'">Calendly link <span style="color:var(--ink3);font-weight:400">· optional, being replaced</span></label><input id="pf_cal" style="'+_IST+'" value="'+esc(p.calendly||'')+'" placeholder="https://calendly.com/you"></div>'+
+    '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:12px 0"><div><div style="font-weight:700;font-size:14px">Google Calendar &amp; Gmail</div><div style="font-size:12px;color:var(--ink3)">Two-way sync + send booking emails from your Gmail.</div></div><button class="calnav" style="border-color:var(--accent);color:'+(p.google_connected?'#1a9c52':'var(--accent)')+'" onclick="connectGoogle()">'+(p.google_connected?'Connected ✓':'Connect')+'</button></div>'+
+    '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><div style="font-weight:700;font-size:14px">Apple Calendar</div><div style="font-size:12px;color:var(--ink3)">Optional read-only busy-time subscription.</div></div><button class="calnav" onclick="toast(\'Apple Calendar ships with the sync release.\')">Later</button></div>'+
+    '<div style="font-size:11.5px;color:var(--ink3);margin-top:10px">Save your details, then Connect — booking emails send from your Gmail and your calendar syncs both ways.</div></div></div>';
+  if(me){
+    var _slug=slugify(me.name);var _link=new URL('book.html?t='+encodeURIComponent(_slug),location.href).href;
+    h+='<div class="sec"><div class="sech"><h2>Your public booking link</h2></div><div style="padding:16px;border:1px solid var(--line);border-radius:14px;background:var(--panel)"><div style="font-size:13px;color:var(--ink2);margin-bottom:10px">Share with clients &amp; recruits — they book you directly, no login.</div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input id="pubLink" readonly value="'+esc(_link)+'" style="flex:1;min-width:200px;padding:10px 12px;border:1px solid var(--line2);border-radius:10px;background:var(--bg);color:var(--ink);font-size:12.5px"><button style="border:none;padding:10px 16px;border-radius:10px;font-weight:700;font-size:13px;background:var(--accent);color:#fff;cursor:pointer" onclick="copyLink()">Copy</button><a href="'+esc(_link)+'" target="_blank" rel="noopener" style="padding:10px 16px;border-radius:10px;font-weight:700;font-size:13px;border:1px solid var(--line2);background:var(--panel);color:var(--accent)">Preview</a></div></div></div>';
+    h+=availabilityHtml(me);
+  } else { h+='<div class="sec"><div class="sech"><h2>Availability</h2></div><div class="empty">You’re not set up to take bookings yet. Ask an admin to enable your calendar and your availability controls appear here.</div></div>'; }
+  $('profBody').innerHTML=h;
+}
+function availabilityHtml(me){
   var role=(me.role||'').toUpperCase();
   var canLock=role==='MD'||role==='EMD';
   var slots=me.slots||{};
@@ -773,7 +807,7 @@ function renderAvail(){
   var bAfter=Number(me.buffer_after)||0;
   var locked=!!me.locked;
 
-  var slotsHtml=DAYS.map(function(d){var lst=(slots[d]||[]).join(', ');return '<div style="display:flex;gap:12px;padding:6px 0;border-bottom:1px solid var(--line);font-size:13px"><span style="min-width:52px;font-weight:700;color:var(--ink2)">'+d+'</span><span style="color:var(--ink)">'+esc(lst||'—')+'</span></div>';}).join('');
+  var slotsHtml=DAYS.map(function(d){var lst=(slots[d]||[]).join(', ');return '<div style="display:flex;gap:10px;align-items:center;padding:5px 0"><span style="min-width:46px;font-weight:700;color:var(--ink2);font-size:13px">'+d+'</span><input id="sl_'+d+'" value="'+esc(lst)+'" placeholder="9:00 AM, 10:00 AM" style="flex:1;'+_IST+';padding:8px 10px;font-size:13px"></div>';}).join('');
 
   var blackoutTags=blackouts.length?blackouts.map(function(d){return '<span style="display:inline-flex;align-items:center;gap:6px;background:var(--gold-soft);color:var(--gold);padding:6px 10px;border-radius:8px;font-size:12.5px;font-weight:600;margin:0 6px 6px 0">'+esc(d)+' <a onclick="removeBlackout(\''+esc(d)+'\')" style="cursor:pointer;color:var(--red);font-weight:800">✕</a></span>';}).join(''):'<span style="color:var(--ink3);font-size:13px">None.</span>';
 
@@ -789,25 +823,12 @@ function renderAvail(){
       '</div></div>';
   }
 
-  var h='<div class="hero" style="background:linear-gradient(135deg,#34c759,#5b6cff)"><h1>Your Availability</h1><p>'+esc(me.name)+' · '+esc(roleLabel(me.role))+' · '+esc((TZ.split(" ")[0]||"PT"))+'</p></div>';
-  var _slug=slugify(me.name);var _link=new URL('book.html?t='+encodeURIComponent(_slug),location.href).href;
-  h+='<div class="sec"><div class="sech"><h2>Your public booking link</h2></div><div style="padding:16px;border:1px solid var(--line);border-radius:14px;background:var(--panel)"><div style="font-size:13px;color:var(--ink2);margin-bottom:10px">Share with clients &amp; recruits — they book you directly, no login. Your open times show automatically.</div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input id="pubLink" readonly value="'+esc(_link)+'" style="flex:1;min-width:200px;padding:10px 12px;border:1px solid var(--line2);border-radius:10px;background:var(--bg);color:var(--ink);font-size:12.5px"><button style="border:none;padding:10px 16px;border-radius:10px;font-weight:700;font-size:13px;background:var(--accent);color:#fff;cursor:pointer" onclick="copyLink()">Copy</button><a href="'+esc(_link)+'" target="_blank" rel="noopener" style="padding:10px 16px;border-radius:10px;font-weight:700;font-size:13px;border:1px solid var(--line2);background:var(--panel);color:var(--accent)">Preview</a></div></div></div>';
-  h+='<div class="sec"><div class="sech"><h2>Contact &amp; Connections</h2></div><div style="padding:16px;border:1px solid var(--line);border-radius:14px;background:var(--panel)">'+
-    '<div style="font-size:12.5px;color:var(--ink3);margin-bottom:12px">Your <b>phone</b> is the sender for your outbound texts. Your connected <b>Gmail</b> sends your booking emails and powers two-way calendar sync.</div>'+
-    '<div style="display:flex;gap:12px;flex-wrap:wrap"><div style="flex:1;min-width:200px"><label style="'+_LST+'">Mobile phone (your SMS source)</label><input id="pf_phone" style="'+_IST+'" value="'+esc(me.phone||'')+'" placeholder="(555) 555-1234"></div>'+
-    '<div style="flex:1;min-width:200px"><label style="'+_LST+'">Email / Gmail (your email source)</label><input id="pf_email" type="email" style="'+_IST+'" value="'+esc(me.email||'')+'" placeholder="you@gmail.com"></div></div>'+
-    '<div style="margin-top:11px"><label style="'+_LST+'">Calendly link (optional — this calendar replaces Calendly)</label><input id="pf_cal" style="'+_IST+'" value="'+esc(me.calendly||'')+'" placeholder="https://calendly.com/you"></div>'+
-    '<button style="border:none;margin-top:13px;padding:10px 18px;border-radius:10px;font-weight:700;font-size:13px;background:var(--accent);color:#fff;cursor:pointer" onclick="saveContact()">Save contact</button>'+
-    '<div style="margin-top:16px;border-top:1px solid var(--line);padding-top:14px">'+
-      '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px"><div><div style="font-weight:700;font-size:14px">Google Calendar &amp; Gmail</div><div style="font-size:12px;color:var(--ink3)">Two-way calendar sync + send booking emails from your Gmail.</div></div><button style="border:1px solid var(--accent);background:'+(me.google_connected?'var(--green-soft)':'var(--panel)')+';color:'+(me.google_connected?'#1a9c52':'var(--accent)')+';padding:9px 16px;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer" onclick="connectGoogle()">'+(me.google_connected?'Connected ✓':'Connect')+'</button></div>'+
-      '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><div style="font-weight:700;font-size:14px">Apple Calendar</div><div style="font-size:12px;color:var(--ink3)">Optional read-only subscription for busy times.</div></div><button style="border:1px solid var(--line2);background:var(--panel);color:var(--ink3);padding:9px 16px;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer" onclick="toast(\'Apple Calendar subscription ships with the sync release.\')">Later</button></div>'+
-    '</div></div></div>';
-  h+='<div class="sec"><div class="sech"><h2>Weekly Slots</h2></div><div style="padding:16px;border:1px solid var(--line);border-radius:14px;background:var(--panel)">'+slotsHtml+'<div style="font-size:11.5px;color:var(--ink3);margin-top:12px">These are your standard weekly times. Contact admin to change them.</div></div></div>';
+  var h='<div class="sec"><div class="sech"><h2>Weekly Availability</h2></div><div style="padding:16px;border:1px solid var(--line);border-radius:14px;background:var(--panel)"><div style="font-size:12.5px;color:var(--ink3);margin-bottom:8px">Set your standard weekly times (comma-separated). These feed your calendar and booking page.</div>'+slotsHtml+'<button style="border:none;margin-top:12px;padding:9px 16px;border-radius:10px;font-weight:700;font-size:13px;background:var(--accent);color:#fff;cursor:pointer" onclick="saveSlots()">Save weekly times</button></div></div>';
   h+='<div class="sec"><div class="sech"><h2>Blackout Dates</h2></div><div style="padding:16px;border:1px solid var(--line);border-radius:14px;background:var(--panel)"><div style="font-size:13px;color:var(--ink2);margin-bottom:10px">Specific days when you cannot take bookings.</div><div style="display:flex;flex-wrap:wrap;margin-bottom:12px">'+blackoutTags+'</div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input type="date" id="newBlackout" style="padding:8px 10px;border:1px solid var(--line2);border-radius:8px;background:var(--panel);color:var(--ink);font-size:13px"><button style="border:none;padding:9px 16px;border-radius:10px;font-weight:700;font-size:13px;background:var(--accent);color:#fff;cursor:pointer" onclick="addBlackout()">Add blackout date</button></div></div></div>';
   h+='<div class="sec"><div class="sech"><h2>Vacations</h2></div><div style="padding:16px;border:1px solid var(--line);border-radius:14px;background:var(--panel)"><div style="font-size:13px;color:var(--ink2);margin-bottom:10px">Date ranges when you\'re away.</div>'+vacationList+'<div style="display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap"><input type="date" id="vacStart" style="padding:8px 10px;border:1px solid var(--line2);border-radius:8px;background:var(--panel);color:var(--ink);font-size:13px"><span style="color:var(--ink3)">to</span><input type="date" id="vacEnd" style="padding:8px 10px;border:1px solid var(--line2);border-radius:8px;background:var(--panel);color:var(--ink);font-size:13px"><button style="border:none;padding:9px 16px;border-radius:10px;font-weight:700;font-size:13px;background:var(--accent);color:#fff;cursor:pointer" onclick="addVacation()">Add vacation</button></div></div></div>';
   h+='<div class="sec"><div class="sech"><h2>Buffer Times</h2></div><div style="padding:16px;border:1px solid var(--line);border-radius:14px;background:var(--panel)"><div style="font-size:13px;color:var(--ink2);margin-bottom:10px">Minutes to leave clear before and after each booking.</div><div style="display:flex;gap:18px;align-items:center;flex-wrap:wrap"><label style="font-size:13.5px;color:var(--ink2)">Before: <input id="bBefore" type="number" min="0" max="120" value="'+bBefore+'" style="width:70px;padding:7px 10px;border:1px solid var(--line2);border-radius:8px;background:var(--panel);color:var(--ink);font-size:13px;margin:0 6px"> min</label><label style="font-size:13.5px;color:var(--ink2)">After: <input id="bAfter" type="number" min="0" max="120" value="'+bAfter+'" style="width:70px;padding:7px 10px;border:1px solid var(--line2);border-radius:8px;background:var(--panel);color:var(--ink);font-size:13px;margin:0 6px"> min</label><button style="border:none;padding:9px 16px;border-radius:10px;font-weight:700;font-size:13px;background:var(--accent);color:#fff;cursor:pointer" onclick="saveBuffers()">Save buffers</button></div></div></div>';
   h+=lockHtml;
-  $('view').innerHTML=h;
+  return h;
 }
 function availPost(payload,successMsg){
   var me=myTrainerProfile();if(!me)return toast('Trainer profile not loaded');
