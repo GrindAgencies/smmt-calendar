@@ -149,8 +149,30 @@ a{color:inherit;text-decoration:none;}.hide{display:none!important;}
 .calev .csub{font-size:11px;color:var(--ink3);margin-top:1px;}
 .calev.caltr{background:var(--gold-soft);border-color:transparent;}
 .cdot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:middle;}
-.calnav{border:1px solid var(--line2);background:var(--panel);border-radius:10px;padding:8px 14px;font-weight:700;font-size:13px;color:var(--ink2);}
+.calnav{border:1px solid var(--line2);background:var(--panel);border-radius:10px;padding:8px 14px;font-weight:700;font-size:13px;color:var(--ink2);cursor:pointer;}
 .calnav:hover{border-color:var(--accent);color:var(--accent);}
+.calx{position:absolute;top:4px;right:5px;font-size:11px;font-weight:800;color:var(--ink3);cursor:pointer;line-height:1;padding:2px 4px;border-radius:5px;}
+.calx:hover{color:#fff;background:var(--red);}
+.mdowrow{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:6px;}
+.mdow{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;color:var(--ink3);text-align:center;}
+.mgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
+.mcell{background:var(--panel);border:1px solid var(--line);border-radius:10px;min-height:98px;padding:6px;cursor:pointer;transition:.12s;overflow:hidden;}
+.mcell:hover{border-color:var(--accent);}
+.mcell.out{background:var(--bg);opacity:.5;}
+.mcell.today{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft);}
+.mnum{font-size:13px;font-weight:800;margin-bottom:4px;}
+.mcell.today .mnum{color:var(--accent);}
+.mchip{font-size:10.5px;background:var(--bg);border-radius:5px;padding:2px 5px;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;font-variant-numeric:tabular-nums;}
+.mchip:hover{background:var(--accent-soft);}
+.mmore{font-size:10px;color:var(--ink3);font-weight:700;}
+.dgrid{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--panel);box-shadow:var(--shadow-sm);}
+.drow{display:flex;border-bottom:1px solid var(--line);min-height:52px;}
+.drow:last-child{border-bottom:none;}
+.dhour{width:66px;flex:0 0 auto;padding:8px 10px;font-size:11px;color:var(--ink3);font-weight:700;border-right:1px solid var(--line);text-align:right;}
+.dslot{flex:1;padding:6px 8px;cursor:pointer;}
+.dslot:hover{background:var(--bg);}
+.dev{background:var(--accent-soft);border-radius:6px;padding:5px 8px;font-size:12px;margin-bottom:4px;cursor:pointer;}
+.dev .dsub{color:var(--ink3);font-size:11px;}
 </style>
 </head>
 <body>
@@ -172,7 +194,6 @@ a{color:inherit;text-decoration:none;}.hide{display:none!important;}
       <button id="tab_company" onclick="setTab('company')" style="display:none">Company</button>
       <button id="tab_clients" onclick="setTab('clients')" style="display:none">Clients</button>
       <button id="tab_avail" onclick="setTab('avail')" style="display:none">My Availability</button>
-      <button id="tab_xfer" onclick="setTab('xfer')" style="display:none">Transfers</button>
     </div>
     <div id="view"><div class="spin">Loading your scheduler…</div></div>
   </div>
@@ -282,8 +303,7 @@ function saveSched(payload,msg){payload.action='atlas_scheduler_config';payload.
 function addClosure(){var d=$('clNew')&&$('clNew').value;if(!d)return toast('Pick a date');var arr=(SCHED.closures||[]).slice();var has=arr.some(function(x){return x===d||(x&&x.date===d);});if(!has)arr.push(d);saveSched({closures:arr},'Closure added');}
 function removeClosure(d){var arr=(SCHED.closures||[]).filter(function(x){return !(x===d||(x&&x.date===d));});saveSched({closures:arr},'Closure removed');}
 function saveMinNotice(){var v=Math.max(0,Number($('mnHours').value)||0);saveSched({min_notice_hours:v},'Minimum notice saved');}
-function revealAvailTab(){if(myTrainerProfile()){var a=$('tab_avail');if(a)a.style.display='';var cp=$('tab_company');if(cp)cp.style.display='';var cl=$('tab_clients');if(cl)cl.style.display='';}
-  if(isEmd()){var xt=$('tab_xfer');if(xt)xt.style.display='';}}
+function revealAvailTab(){if(myTrainerProfile()){var a=$('tab_avail');if(a)a.style.display='';var cp=$('tab_company');if(cp)cp.style.display='';var cl=$('tab_clients');if(cl)cl.style.display='';}}
 // === Calendar (week) view — the front door ===
 function weekStartYmd(off){var d=new Date(todayStr()+'T12:00:00Z');d.setUTCDate(d.getUTCDate()-d.getUTCDay()+off*7);return d.toISOString().slice(0,10);}
 function statusColor(s){return s==='confirmed'?'var(--green)':(s==='pending'?'var(--gold)':(s==='canceled'||s==='no_show'||s==='declined'?'var(--red)':'var(--accent)'));}
@@ -306,7 +326,8 @@ function renderCal(){
     var isToday=ds===todayStr();var evs=calEventsFor(ds);var trs=trainingsFor(wdOf(ds));
     h+='<div class="calday'+(isToday?' today':'')+'"><div class="calhd"><span class="calw">'+wname+'</span><span class="cald">'+dn+'</span></div>';
     if(!evs.length&&!trs.length){h+='<div class="calempty">—</div>';}
-    evs.forEach(function(e){h+='<div class="calev" onclick="openCalEvent(\''+e.id+'\')"><span class="cdot" style="background:'+statusColor(e.status)+'"></span><b>'+esc(e.time)+'</b> '+esc(e.title||'')+'<div class="csub">'+esc(e.sub||'')+(e.role==='trainer'?' · client':'')+(e.status&&e.status!=='booked'&&e.status!=='confirmed'?' · '+esc(e.status):'')+'</div></div>';});
+    evs.forEach(function(e){var canX=(e.status==='booked'||e.status==='confirmed'||e.status==='pending');
+      h+='<div class="calev" style="position:relative"><span onclick="openCalEvent(\''+e.id+'\')" style="display:block;cursor:pointer;padding-right:14px"><span class="cdot" style="background:'+statusColor(e.status)+'"></span><b>'+esc(e.time)+'</b> '+esc(e.title||'')+'<div class="csub">'+esc(e.sub||'')+(e.role==='trainer'?' · client':'')+(e.status&&e.status!=='booked'&&e.status!=='confirmed'?' · '+esc(e.status):'')+'</div></span>'+(canX?'<a class="calx" onclick="quickCancel(\''+e.id+'\')" title="Cancel">✕</a>':'')+'</div>';});
     trs.forEach(function(t){h+='<div class="calev caltr" onclick="window.open(\''+t.z+'\',\'_blank\')"><span class="cdot" style="background:var(--gold)"></span><b>'+fmtHM(t.h,t.m)+'</b> '+esc(t.t)+'<div class="csub">Live training · Join Zoom</div></div>';});
     h+='</div>';
   });
@@ -319,11 +340,11 @@ function openCalEvent(id){
   if(!b){b=MYT.filter(function(x){return x.id===id;})[0];role='trainer';}
   if(!b)return;
   var C="';$('bkOv').classList.remove('on')";var acts='';
-  if(role==='agent'){if(b.status==='booked'||b.status==='confirmed'||b.status==='pending')acts='<button class="x can" onclick="cancelBk(\''+b.id+'\')'+C+'">Cancel</button>';}
+  if(role==='agent'){if(b.status==='booked'||b.status==='confirmed'||b.status==='pending')acts='<button class="x can" onclick="quickCancel(\''+b.id+'\')'+C+'">✕ Cancel</button>';}
   else{
     if(b.status==='pending')acts='<button class="go" style="background:var(--green-soft);color:#1a9c52" onclick="doApprove(\''+b.id+'\',\'approve\')'+C+'">Approve</button><button class="x can" onclick="doApprove(\''+b.id+'\',\'decline\')'+C+'">Decline</button>';
     else if((b.status==='booked'||b.status==='confirmed')&&isPastBk(b))acts='<button class="go" style="background:var(--green-soft);color:#1a9c52" onclick="doMark(\''+b.id+'\',\'completed\')'+C+'">Completed</button><button class="x can" onclick="doMark(\''+b.id+'\',\'no_show\')'+C+'">No-show</button>';
-    else if((b.status==='booked'||b.status==='confirmed')&&(myRole()==='CFT'||isEmd()))acts='<button class="go" onclick="$(\'bkOv\').classList.remove(\'on\');openTransfer(\''+b.id+'\',\''+(isEmd()?'manager':'peer')+'\')">Transfer</button>';
+    else if(b.status==='booked'||b.status==='confirmed'){if(myRole()==='CFT'||isEmd())acts+='<button class="go" onclick="$(\'bkOv\').classList.remove(\'on\');openTransfer(\''+b.id+'\',\''+(isEmd()?'manager':'peer')+'\')">Transfer</button>';acts+='<button class="x can" onclick="quickCancel(\''+b.id+'\')'+C+'">✕ Cancel</button>';}
   }
   var who=role==='trainer'?(b.agent_name||b.agent_code||'Client'):b.trainer_name;
   $('bkDrawer').innerHTML='<h3>'+esc(b.category||'Appointment')+'</h3><p class="dsub">'+prettyDate(b.date)+' · '+esc(b.time)+' PT</p>'+
@@ -333,31 +354,69 @@ function openCalEvent(id){
     (acts?'<div class="dact" style="margin-top:20px">'+acts+'</div>':'<div class="dact" style="margin-top:20px"><button class="go" onclick="$(\'bkOv\').classList.remove(\'on\')">Close</button></div>');
   $('bkOv').classList.add('on');
 }
+var CAL="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/cal-feed";
+var DASHVIEW='month',DASHMONTH=0,DASHDAY=null,COMPANY_EV=[];
+function monthFirst(off){var d=new Date(todayStr()+'T12:00:00Z');d.setUTCDate(1);d.setUTCMonth(d.getUTCMonth()+off);return d;}
+function loadCompanyEvents(from,to,cb){fetch(CAL+'?action=company_events&code='+encodeURIComponent(CODE)+'&from='+from+'&to='+to).then(function(r){return r.json();}).then(function(r){COMPANY_EV=(r&&r.events)||[];cb&&cb();}).catch(function(){COMPANY_EV=[];cb&&cb();});}
+function companyEventsFor(ds){var out=[];
+  COMPANY_EV.forEach(function(b){if(b.date===ds)out.push({key:'b:'+b.id,time:b.time,title:b.trainer_name||'',sub:(b.category||'')+(b.agent_name?(' · '+b.agent_name):''),color:statusColor(b.status),status:b.status});});
+  trainingsFor(wdOf(ds)).forEach(function(tr,i){out.push({key:'tr:'+ds+':'+i,time:fmtHM(tr.h,tr.m),title:tr.t,sub:'Live training',color:'var(--gold)'});});
+  out.sort(function(a,b){return t2min(a.time)-t2min(b.time);});return out;}
 function renderDash(){
-  var t=todayStr();var wd=wdOf(t);
-  var availNow=TRAINERS.filter(function(c){return trainerAvailToday(c).length>0;});
-  var myUp=MYB.filter(function(b){return (b.status==='booked'||b.status==='confirmed'||b.status==='pending')&&b.date>=t;});
-  var todayTrain=trainingsFor(wd);
-  var recTr=recommendTrainers().slice(0,4);
-  var h='<div class="hero"><h1>Book a trainer in 30 seconds.</h1><p>Pick a time, pick a trainer, done. Live availability across every Certified Field Trainer.</p><button class="hbtn" onclick="setTab(\'book\')">Start booking →</button></div>';
-  h+='<div class="grid g4" style="margin-bottom:24px">'+tile('Trainers available today',availNow.length)+tile('Your upcoming',myUp.length)+tile('Live trainings today',todayTrain.length)+tile('Active trainers',TRAINERS.length)+'</div>';
-  var _me=myTrainerProfile();
-  if(_me){
-    var mineToday=MYT.filter(function(b){return b.date===t&&(b.status==='booked'||b.status==='confirmed');});
-    var pendMe=MYT.filter(function(b){return b.status==='pending'&&b.date>=t;});
-    var upMe=MYT.filter(function(b){return (b.status==='booked'||b.status==='confirmed')&&b.date>=t;});
-    h+='<div class="sec"><div class="sech"><h2>Your training day</h2><a onclick="setTab(\'company\')">Company view →</a></div>';
-    h+='<div class="grid g4" style="margin-bottom:10px">'+tile('Sessions today',mineToday.length)+tile('Pending approvals',pendMe.length)+tile('Upcoming you train',upMe.length)+'</div>';
-    if(pendMe.length)h+=pendMe.slice(0,4).map(trainerAptRow).join('');
-    else if(mineToday.length)h+=mineToday.map(trainerAptRow).join('');
-    else h+='<div class="empty">No sessions to train today — enjoy the breathing room.</div>';
-    h+='</div>';
+  if(!DASHDAY)DASHDAY=todayStr();
+  var rangeFrom,rangeTo,head;
+  var toggle='<div style="display:inline-flex;background:var(--panel);border:1px solid var(--line2);border-radius:11px;padding:3px;gap:2px"><button class="calnav" style="border:none;padding:6px 14px;'+(DASHVIEW==='month'?'background:var(--accent);color:#fff':'background:none')+'" onclick="DASHVIEW=\'month\';render()">Month</button><button class="calnav" style="border:none;padding:6px 14px;'+(DASHVIEW==='day'?'background:var(--accent);color:#fff':'background:none')+'" onclick="DASHVIEW=\'day\';render()">Day</button></div>';
+  if(DASHVIEW==='month'){
+    var mf=monthFirst(DASHMONTH);var gs=new Date(mf);gs.setUTCDate(1-mf.getUTCDay());rangeFrom=gs.toISOString().slice(0,10);
+    var ge=new Date(gs);ge.setUTCDate(gs.getUTCDate()+41);rangeTo=ge.toISOString().slice(0,10);
+    var mlabel=mf.toLocaleDateString('en-US',{month:'long',year:'numeric',timeZone:'UTC'});
+    head='<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;flex-wrap:wrap"><h2 style="font-size:20px;font-weight:800;margin:0;letter-spacing:-.02em">'+esc(mlabel)+'</h2><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">'+toggle+'<button class="calnav" onclick="DASHMONTH--;render()">‹</button><button class="calnav" onclick="DASHMONTH=0;DASHDAY=todayStr();render()">Today</button><button class="calnav" onclick="DASHMONTH++;render()">›</button></div></div>';
+  } else {
+    rangeFrom=DASHDAY;rangeTo=DASHDAY;
+    var dl=new Date(DASHDAY+'T12:00:00Z').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',timeZone:'UTC'});
+    head='<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;flex-wrap:wrap"><h2 style="font-size:20px;font-weight:800;margin:0;letter-spacing:-.02em">'+esc(dl)+'</h2><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">'+toggle+'<button class="calnav" onclick="DASHDAY=ymd(new Date(new Date(DASHDAY+\'T12:00:00Z\').getTime()-864e5));render()">‹</button><button class="calnav" onclick="DASHDAY=todayStr();render()">Today</button><button class="calnav" onclick="DASHDAY=ymd(new Date(new Date(DASHDAY+\'T12:00:00Z\').getTime()+864e5));render()">›</button></div></div>';
   }
-  h+='<div class="sec"><div class="sech"><h2>Recommended for you</h2><a onclick="setTab(\'train\')">All trainers</a></div><div class="grid g3">'+(recTr.length?recTr.map(function(o){return trainerCard(o.cft,o.tag);}).join(''):'<div class="empty">No trainer availability configured yet.</div>')+'</div></div>';
-  h+='<div class="sec"><div class="sech"><h2>Your upcoming appointments</h2><a onclick="setTab(\'me\')">My schedule</a></div>'+(myUp.length?myUp.slice(0,4).map(aptRow).join(''):'<div class="empty">No appointments yet — book your first training.</div>')+'</div>';
-  h+='<div class="sec"><div class="sech"><h2>Live trainings today</h2></div>'+(todayTrain.length?todayTrain.map(trainingRow).join(''):'<div class="empty">No scheduled trainings today.</div>')+'</div>';
-  $('view').innerHTML=h;
+  $('view').innerHTML='<div style="font-size:12.5px;color:var(--ink3);margin-bottom:8px">Company calendar — everyone’s bookings + live trainings. Tap a day for the hourly view.</div>'+head+'<div id="dashCal"><div class="spin">Loading company calendar…</div></div>';
+  loadCompanyEvents(rangeFrom,rangeTo,function(){paintDash();});
 }
+function paintDash(){var el=$('dashCal');if(!el)return;
+  if(DASHVIEW==='day'){el.innerHTML=dayHtml(DASHDAY);return;}
+  var mf=monthFirst(DASHMONTH);var mon=mf.getUTCMonth();var gs=new Date(mf);gs.setUTCDate(1-mf.getUTCDay());
+  var h='<div class="mdowrow">'+['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(function(x){return '<div class="mdow">'+x+'</div>';}).join('')+'</div><div class="mgrid">';
+  for(var i=0;i<42;i++){var d=new Date(gs);d.setUTCDate(gs.getUTCDate()+i);var ds=d.toISOString().slice(0,10);
+    var inMonth=d.getUTCMonth()===mon;var isToday=ds===todayStr();var evs=companyEventsFor(ds);
+    var chips=evs.slice(0,3).map(function(e){return '<div class="mchip" style="border-left:3px solid '+e.color+'" onclick="event.stopPropagation();openCompanyEvent(\''+e.key+'\')">'+esc(e.time)+' '+esc(e.title)+'</div>';}).join('');
+    h+='<div class="mcell'+(inMonth?'':' out')+(isToday?' today':'')+'" onclick="DASHDAY=\''+ds+'\';DASHVIEW=\'day\';render()"><div class="mnum">'+d.getUTCDate()+'</div>'+chips+(evs.length>3?'<div class="mmore">+'+(evs.length-3)+' more</div>':'')+'</div>';
+  }
+  el.innerHTML=h+'</div>';
+}
+function dayHtml(ds){var evs=companyEventsFor(ds);var byHour={};evs.forEach(function(e){var hr=Math.floor(t2min(e.time)/60);(byHour[hr]=byHour[hr]||[]).push(e);});
+  var h='<div class="dgrid">';
+  for(var hr=6;hr<=20;hr++){var lab=(hr%12===0?12:hr%12)+(hr<12?' AM':' PM');
+    h+='<div class="drow"><div class="dhour">'+lab+'</div><div class="dslot" onclick="startBookAt(\''+ds+'\')">';
+    (byHour[hr]||[]).forEach(function(e){h+='<div class="dev" style="border-left:3px solid '+e.color+'" onclick="event.stopPropagation();openCompanyEvent(\''+e.key+'\')"><b>'+esc(e.time)+'</b> '+esc(e.title)+'<span class="dsub"> · '+esc(e.sub||'')+'</span></div>';});
+    h+='</div></div>';}
+  return h+'</div><div style="font-size:11.5px;color:var(--ink3);margin-top:10px">Tap an open hour to book internally.</div>';}
+function startBookAt(ds){SELDATE=ds;SELTIME=null;setTab('book');}
+function openCompanyEvent(key){
+  if(key.indexOf('tr:')===0){var p=key.split(':');var tr=trainingsFor(wdOf(p[1]))[+p[2]];if(tr)window.open(tr.z,'_blank');return;}
+  var b=COMPANY_EV.filter(function(x){return x.id===key.slice(2);})[0];if(!b)return;
+  var CX="';$('bkOv').classList.remove('on')";
+  var active=(b.status==='booked'||b.status==='confirmed'||b.status==='pending');
+  var mine=(b.trainer_code||'').toUpperCase()===CODE;
+  var acts='';
+  if((myRole()==='CFT'||isEmd())&&(b.status==='booked'||b.status==='confirmed'))acts+='<button class="go" onclick="$(\'bkOv\').classList.remove(\'on\');openTransfer(\''+b.id+'\',\''+(isEmd()?'manager':'peer')+'\')">Transfer</button>';
+  acts+='<button class="go" onclick="$(\'bkOv\').classList.remove(\'on\');startBookWith(\''+encodeURIComponent(b.trainer_name)+'\')">Book '+esc((b.trainer_name||'').split(' ')[0])+'</button>';
+  if(active&&(isEmd()||mine))acts+='<button class="x can" onclick="quickCancel(\''+b.id+'\')'+CX+'">✕ Cancel</button>';
+  $('bkDrawer').innerHTML='<h3>'+esc(b.category||'Appointment')+'</h3><p class="dsub">'+prettyDate(b.date)+' · '+esc(b.time)+' PT</p>'+
+    '<div class="confrow"><div class="cl">Trainer</div><div class="cv">'+esc(b.trainer_name||'')+'</div></div>'+
+    '<div class="confrow"><div class="cl">With</div><div class="cv">'+esc(b.agent_name||'—')+'</div></div>'+
+    '<div class="confrow"><div class="cl">Status</div><div class="cv">'+esc(b.status)+'</div></div>'+
+    '<div class="dact" style="margin-top:20px;flex-wrap:wrap;gap:8px">'+acts+'</div>';
+  $('bkOv').classList.add('on');
+}
+function quickCancel(id){if(!confirm('Cancel this appointment? The other party will be notified.'))return;
+  fetch(AT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'atlas_setstatus',id:id,status:'canceled',code:CODE})}).then(function(r){return r.json();}).then(function(r){if(!r||!r.ok){toast((r&&r.error)||'Could not cancel');return;}toast('Appointment canceled');loadMy(function(){loadMyTrainer(function(){render();});});}).catch(function(){toast('Network error');});}
 function tile(l,v){return '<div class="tile"><div class="tl">'+l+'</div><div class="tv">'+v+'</div></div>';}
 function recommendTrainers(){
   var out=[];var mineNames=MYB.map(function(b){return b.trainer_name;});
