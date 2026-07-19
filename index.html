@@ -246,6 +246,13 @@ button{font-family:inherit;cursor:pointer;}
 .lb-empty{padding:26px 16px;text-align:center;color:var(--ink-3);font-size:13px;border:1px dashed var(--line-2);border-radius:12px;}
 .lb-skel{height:230px;border-radius:var(--radius);background:linear-gradient(90deg,var(--line) 25%,var(--panel-2) 50%,var(--line) 75%);background-size:200% 100%;animation:sk 1.3s infinite;}
 .you-out{opacity:.95;border-top:1px dashed var(--line-2);margin-top:5px;padding-top:9px;}
+.lb-you{display:flex;flex-direction:column;gap:12px;padding:4px 2px 2px;}
+.lb-you-val{font-size:34px;font-weight:900;letter-spacing:-.03em;font-variant-numeric:tabular-nums;line-height:1;}
+.lb-you-ranks{display:flex;gap:8px;flex-wrap:wrap;}
+.lb-chip{font-size:11.5px;font-weight:800;padding:5px 10px;border-radius:9px;background:var(--panel-2);border:1px solid var(--line);color:var(--ink-2);}
+.lb-chip.top{background:rgba(201,154,46,.14);border-color:rgba(201,154,46,.42);color:var(--gold);}
+.lb-you-leader{font-size:12px;color:var(--ink-3);font-weight:600;}
+.lb-you-leader b{color:var(--ink-2);}
 .foot{text-align:center;color:var(--ink-3);font-size:12px;padding:34px 0 20px;}
 .skl{background:linear-gradient(90deg,var(--line) 25%,var(--panel-2) 50%,var(--line) 75%);background-size:200% 100%;animation:sk 1.3s infinite;border-radius:6px;color:transparent!important;}
 @keyframes sk{to{background-position:-200% 0;}}
@@ -684,6 +691,21 @@ function loadLeaderboard(){
 function renderLeaderboard(r){
   var host=$('lbGrid');if(!host)return;
   var lbl=$('lbCtxLbl');if(lbl)lbl.textContent=(r.scope==='personal'?'Your standing':(r.scope==='baseshop'?('Baseshop · '+r.base):'Whole company'))+' · '+r.month;
+  if(r.scope==='personal'){
+    host.innerHTML=LBMETRICS.map(function(m){
+      var b=(r.boards&&r.boards[m.key])||{value:0,rank_company:0,of_company:0,rank_base:0,of_base:0,leader:null};
+      var head='<div class="lb-head"><span class="lb-ic">'+m.ic+'</span><div><div class="lb-title">'+m.title+'</div><div class="lb-sub">'+m.sub+'</div></div></div>';
+      var val=b.value>0?lbVal(b.value,m.money):'—';
+      var cChip='<span class="lb-chip'+(b.rank_company===1?' top':'')+'">'+(b.rank_company?('#'+b.rank_company+' of '+b.of_company):'Unranked')+' · Company</span>';
+      var bChip='<span class="lb-chip'+(b.rank_base===1?' top':'')+'">'+(b.rank_base?('#'+b.rank_base+' of '+b.of_base):'Unranked')+' · Baseshop</span>';
+      var leader='';
+      if(b.rank_company===1)leader='<div class="lb-you-leader">🏆 <b>You lead the whole company</b> here.</div>';
+      else if(b.leader)leader='<div class="lb-you-leader">Chasing <b>'+lbEsc(b.leader.name)+'</b> · '+lbVal(b.leader.value,m.money)+'</div>';
+      else if(b.value===0)leader='<div class="lb-you-leader">No activity logged yet this month.</div>';
+      return '<div class="card lb-card">'+head+'<div class="lb-you"><div class="lb-you-val">'+val+'</div><div class="lb-you-ranks">'+cChip+bChip+'</div>'+leader+'</div></div>';
+    }).join('');
+    return;
+  }
   var meCode=(CODE||'').toUpperCase();
   host.innerHTML=LBMETRICS.map(function(m){
     var b=(r.boards&&r.boards[m.key])||{top:[],me:{rank:0,value:0},total:0};
