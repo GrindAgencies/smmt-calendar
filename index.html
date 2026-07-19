@@ -253,6 +253,29 @@ button{font-family:inherit;cursor:pointer;}
 .lb-chip.top{background:rgba(201,154,46,.14);border-color:rgba(201,154,46,.42);color:var(--gold);}
 .lb-you-leader{font-size:12px;color:var(--ink-3);font-weight:600;}
 .lb-you-leader b{color:var(--ink-2);}
+/* live + game-like enhancements */
+.lb-live{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--green);background:var(--green-soft);padding:3px 9px;border-radius:8px;vertical-align:middle;}
+.lb-live .dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:lbpulse 1.8s infinite;}
+@keyframes lbpulse{0%{box-shadow:0 0 0 0 rgba(52,199,89,.5);}70%{box-shadow:0 0 0 7px rgba(52,199,89,0);}100%{box-shadow:0 0 0 0 rgba(52,199,89,0);}}
+.lb-synced{font-variant-numeric:tabular-nums;}
+.lb-sheen{position:absolute;top:0;left:-60%;width:45%;height:100%;background:linear-gradient(105deg,transparent,rgba(255,255,255,.42),transparent);transform:skewX(-18deg);animation:lbsheen 4.5s ease-in-out infinite;pointer-events:none;z-index:1;}
+@keyframes lbsheen{0%,100%{left:-60%;}48%,62%{left:135%;}}
+.lb-crown{animation:lbbob 3s ease-in-out infinite;}
+@keyframes lbbob{0%,100%{transform:translateY(0) rotate(-6deg);}50%{transform:translateY(-2px) rotate(6deg);}}
+.lb-hero-name{display:flex;align-items:center;gap:6px;}
+.lb-name{display:flex;align-items:center;gap:6px;}
+.lb-nametext{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;}
+.lb-delta{font-size:9px;font-weight:900;padding:1px 5px;border-radius:6px;flex:0 0 auto;}
+.lb-delta.up{color:var(--green);background:var(--green-soft);}
+.lb-delta.down{color:var(--red);background:var(--red-soft);}
+.lb-delta.new{color:var(--accent);background:var(--accent-soft);}
+.lb-champ-flash{animation:lbflash 1.2s ease-out;}
+@keyframes lbflash{0%{box-shadow:0 0 0 0 rgba(201,154,46,.75),inset 0 0 24px rgba(201,154,46,.10);}100%{box-shadow:0 0 0 18px rgba(201,154,46,0),inset 0 0 24px rgba(201,154,46,.10);}}
+.lb-val.bump{animation:lbbump .55s ease;}
+@keyframes lbbump{0%{transform:scale(1);}40%{transform:scale(1.16);color:var(--green);}100%{transform:scale(1);}}
+.lb-card{transition:transform .2s cubic-bezier(.2,.8,.2,1),box-shadow .2s;}
+.lb-card:hover{transform:translateY(-3px);box-shadow:var(--shadow);}
+@media (prefers-reduced-motion:reduce){.lb-sheen,.lb-crown,.lb-live .dot{animation:none;}}
 .foot{text-align:center;color:var(--ink-3);font-size:12px;padding:34px 0 20px;}
 .skl{background:linear-gradient(90deg,var(--line) 25%,var(--panel-2) 50%,var(--line) 75%);background-size:200% 100%;animation:sk 1.3s infinite;border-radius:6px;color:transparent!important;}
 @keyframes sk{to{background-position:-200% 0;}}
@@ -367,6 +390,15 @@ button{font-family:inherit;cursor:pointer;}
         <div class="quote">${ICON.spark}<span id="heroQuote">Consistency compounds.</span></div>
       </section>
 
+      <!-- LEADERBOARD (dashboard highlight · live) -->
+      <section style="margin:6px 0 8px;">
+        <div class="sec-h" style="align-items:center;">
+          <h2 style="display:flex;align-items:center;gap:11px;">🏆 The Standard Leaderboard <span class="lb-live"><span class="dot"></span>Live</span></h2>
+          <span class="muted"><span id="lbCtxLbl">Loading…</span> · <span class="lb-synced" id="lbSynced"></span></span>
+        </div>
+        <div class="grid" id="lbGrid" style="grid-template-columns:repeat(auto-fill,minmax(300px,1fr));"><div class="lb-skel"></div><div class="lb-skel"></div><div class="lb-skel"></div><div class="lb-skel"></div></div>
+      </section>
+
       <!-- SNAPSHOT -->
       <div class="sec-h"><h2>Today's Snapshot</h2><span class="muted" id="snapCtxLbl">Your numbers</span></div>
       <div class="grid snap" id="snapGrid"></div>
@@ -381,12 +413,6 @@ button{font-family:inherit;cursor:pointer;}
         <a class="qa-card" href="team.html"><div class="ic">${ICON.team}</div><div class="t">My Team</div><div class="d">Coach your people</div></a>
         <a class="qa-card" href="org.html"><div class="ic">${ICON.tree}</div><div class="t">Org Chart</div><div class="d">See the baseshop</div></a>
       </div>
-
-      <!-- LEADERBOARD (replaces Today's Focus) -->
-      <section style="margin-top:30px;">
-        <div class="sec-h"><h2>🏆 The Standard Leaderboard</h2><span class="muted" id="lbCtxLbl">Loading…</span></div>
-        <div class="grid" id="lbGrid" style="grid-template-columns:repeat(auto-fill,minmax(300px,1fr));"><div class="lb-skel"></div><div class="lb-skel"></div><div class="lb-skel"></div><div class="lb-skel"></div></div>
-      </section>
 
       <!-- PERFORMANCE + ACTIVITY -->
       <div class="cols" style="margin-top:24px;">
@@ -667,10 +693,10 @@ function loadData(){
 /* ---------- CONTEXT TOGGLE ---------- */
 function setCtx(c){CTX=c;$('ctxMe').classList.toggle('on',c==='me');$('ctxShop').classList.toggle('on',c==='shop');var o=$('ctxOrg');if(o)o.classList.toggle('on',c==='org');renderSnapshot();renderPerf();loadLeaderboard();}
 
-/* ---------- LEADERBOARD ---------- */
+/* ---------- LEADERBOARD (live, game-like) ---------- */
 var LB="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/leaderboard-api";
 var HUB="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/hub-api";
-var HUBAV={},LBDATA=null;
+var HUBAV={},LBDATA=null,LBPREV={},LBSCOPEPREV=null,LBLAST=0,LBPOLL=null,LBSYNCT=null;
 var LBMETRICS=[
  {key:'recruiter',title:'Top Recruiter',sub:'New partners this month',ic:'🥇',money:false},
  {key:'premium',title:'Top Premium Submitted',sub:'AP submitted this month',ic:'💰',money:true},
@@ -679,46 +705,55 @@ var LBMETRICS=[
 ];
 function lbEsc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
 function lbVal(v,m){return m?money2(v):String(v);}
-function lbAv(code,name,big){var u=HUBAV[(code||'').toUpperCase()];if(u)return '<img src="'+u+'" alt="" style="width:100%;height:100%;object-fit:cover">';return lbEsc(initials(name));}
+function fmtFull(n,money){n=Math.round(Number(n)||0);return money?('$'+n.toLocaleString('en-US')):String(n);}
+function lbAv(code,name){var u=HUBAV[(code||'').toUpperCase()];if(u)return '<img src="'+u+'" alt="" style="width:100%;height:100%;object-fit:cover">';return lbEsc(initials(name));}
 function scopeFromCtx(){return CTX==='me'?'personal':(CTX==='shop'?'baseshop':'hierarchy');}
 function loadAvatars(){fetch(HUB,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'hub_avatars'})}).then(function(r){return r.json();}).then(function(r){var m=(r&&r.avatars)||{};var out={};Object.keys(m).forEach(function(k){out[k.toUpperCase()]=m[k];});HUBAV=out;if(LBDATA)renderLeaderboard(LBDATA);}).catch(function(){});}
 function loadLeaderboard(){
   var scope=scopeFromCtx();var host=$('lbGrid');
+  if(LBSCOPEPREV!==scope){LBPREV={};LBSCOPEPREV=scope;}
   fetch(LB,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'board',code:CODE,scope:scope})})
-    .then(function(r){return r.json();}).then(function(r){if(!r||!r.ok){if(host)host.innerHTML='<div class="lb-empty" style="grid-column:1/-1">Leaderboard unavailable right now.</div>';return;}LBDATA=r;renderLeaderboard(r);})
-    .catch(function(){if(host)host.innerHTML='<div class="lb-empty" style="grid-column:1/-1">Leaderboard unavailable right now.</div>';});
+    .then(function(r){return r.json();}).then(function(r){if(!r||!r.ok){if(host&&!LBDATA)host.innerHTML='<div class="lb-empty" style="grid-column:1/-1">Leaderboard unavailable right now.</div>';return;}LBDATA=r;renderLeaderboard(r);LBLAST=Date.now();paintSynced();})
+    .catch(function(){if(host&&!LBDATA)host.innerHTML='<div class="lb-empty" style="grid-column:1/-1">Leaderboard unavailable right now.</div>';});
 }
+function startLBPoll(){if(LBPOLL)clearInterval(LBPOLL);LBPOLL=setInterval(function(){if(!document.hidden)loadLeaderboard();},30000);if(LBSYNCT)clearInterval(LBSYNCT);LBSYNCT=setInterval(paintSynced,1000);}
+function paintSynced(){var el=$('lbSynced');if(!el)return;if(!LBLAST){el.textContent='';return;}var s=Math.max(0,Math.round((Date.now()-LBLAST)/1000));el.textContent=s<2?'synced just now':('synced '+s+'s ago');}
+function animateVal(el){var to=Number(el.getAttribute('data-to'))||0;var fr=el.getAttribute('data-from');fr=(fr===null||fr==='')?to:Number(fr);var money=el.getAttribute('data-money')==='1';if(fr===to||typeof requestAnimationFrame==='undefined'){el.textContent=fmtFull(to,money);return;}var start=null;function step(ts){if(start===null)start=ts;var p=Math.min(1,(ts-start)/750);var e=1-Math.pow(1-p,3);el.textContent=fmtFull(fr+(to-fr)*e,money);if(p<1)requestAnimationFrame(step);else el.textContent=fmtFull(to,money);}requestAnimationFrame(step);}
+function deltaChip(prev,code,rank){if(!prev)return '';if(!(code in prev))return '<span class="lb-delta new">NEW</span>';var pr=prev[code].rank;if(rank<pr)return '<span class="lb-delta up">▲'+(pr-rank)+'</span>';if(rank>pr)return '<span class="lb-delta down">▼'+(rank-pr)+'</span>';return '';}
+function lbHead(m){return '<div class="lb-head"><span class="lb-ic">'+m.ic+'</span><div><div class="lb-title">'+m.title+'</div><div class="lb-sub">'+m.sub+'</div></div></div>';}
 function renderLeaderboard(r){
-  var host=$('lbGrid');if(!host)return;
+  var host=$('lbGrid');if(!host)return;var meCode=(CODE||'').toUpperCase();
   var lbl=$('lbCtxLbl');if(lbl)lbl.textContent=(r.scope==='personal'?'Your standing':(r.scope==='baseshop'?('Baseshop · '+r.base):'Whole company'))+' · '+r.month;
   if(r.scope==='personal'){
     host.innerHTML=LBMETRICS.map(function(m){
       var b=(r.boards&&r.boards[m.key])||{value:0,rank_company:0,of_company:0,rank_base:0,of_base:0,leader:null};
-      var head='<div class="lb-head"><span class="lb-ic">'+m.ic+'</span><div><div class="lb-title">'+m.title+'</div><div class="lb-sub">'+m.sub+'</div></div></div>';
-      var val=b.value>0?lbVal(b.value,m.money):'—';
+      var prev=LBPREV[m.key];var fr=(prev&&prev.__you!=null)?prev.__you:0;
+      var val=b.value>0?('<span class="lb-you-val" data-to="'+b.value+'" data-from="'+fr+'" data-money="'+(m.money?1:0)+'">'+fmtFull(b.value,m.money)+'</span>'):'<span class="lb-you-val">—</span>';
       var cChip='<span class="lb-chip'+(b.rank_company===1?' top':'')+'">'+(b.rank_company?('#'+b.rank_company+' of '+b.of_company):'Unranked')+' · Company</span>';
       var bChip='<span class="lb-chip'+(b.rank_base===1?' top':'')+'">'+(b.rank_base?('#'+b.rank_base+' of '+b.of_base):'Unranked')+' · Baseshop</span>';
       var leader='';
       if(b.rank_company===1)leader='<div class="lb-you-leader">🏆 <b>You lead the whole company</b> here.</div>';
       else if(b.leader)leader='<div class="lb-you-leader">Chasing <b>'+lbEsc(b.leader.name)+'</b> · '+lbVal(b.leader.value,m.money)+'</div>';
       else if(b.value===0)leader='<div class="lb-you-leader">No activity logged yet this month.</div>';
-      return '<div class="card lb-card">'+head+'<div class="lb-you"><div class="lb-you-val">'+val+'</div><div class="lb-you-ranks">'+cChip+bChip+'</div>'+leader+'</div></div>';
+      return '<div class="card lb-card">'+lbHead(m)+'<div class="lb-you">'+val+'<div class="lb-you-ranks">'+cChip+bChip+'</div>'+leader+'</div></div>';
     }).join('');
+    LBMETRICS.forEach(function(m){var b=(r.boards&&r.boards[m.key])||{value:0};LBPREV[m.key]={__you:b.value};});
+    host.querySelectorAll('.lb-you-val[data-to]').forEach(animateVal);
     return;
   }
-  var meCode=(CODE||'').toUpperCase();
   host.innerHTML=LBMETRICS.map(function(m){
-    var b=(r.boards&&r.boards[m.key])||{top:[],me:{rank:0,value:0},total:0};
-    var top=b.top||[];
-    var head='<div class="lb-head"><span class="lb-ic">'+m.ic+'</span><div><div class="lb-title">'+m.title+'</div><div class="lb-sub">'+m.sub+'</div></div></div>';
-    if(!top.length)return '<div class="card lb-card">'+head+'<div class="lb-empty">No entries yet this month.</div></div>';
-    var max=top[0].value||1;var champ=top[0];var champMe=(champ.code&&champ.code.toUpperCase()===meCode);
-    var hero='<div class="lb-hero"><span class="lb-crown">👑</span><div class="lb-av-hero">'+lbAv(champ.code,champ.name,true)+'</div><div class="lb-hero-meta"><div class="lb-hero-name">'+lbEsc(champ.name)+(champMe?' · You':'')+'</div><div class="lb-hero-base">'+lbEsc(champ.baseshop||'')+'</div></div><div class="lb-hero-val">'+lbVal(champ.value,m.money)+'</div></div>';
-    var rest=top.slice(1).map(function(t){var pct=Math.max(6,Math.round((t.value/max)*100));var meRow=(t.code&&t.code.toUpperCase()===meCode);var badge=t.rank===2?'🥈':t.rank===3?'🥉':t.rank;return '<div class="lb-row'+(meRow?' me':'')+'"><span class="lb-rank">'+badge+'</span><span class="lb-av-sm">'+lbAv(t.code,t.name)+'</span><span class="lb-name">'+lbEsc(t.name)+(meRow?' <b>· You</b>':'')+'</span><span class="lb-bar"><span style="width:'+pct+'%"></span></span><span class="lb-val">'+lbVal(t.value,m.money)+'</span></div>';}).join('');
+    var b=(r.boards&&r.boards[m.key])||{top:[],me:{rank:0,value:0},total:0};var top=b.top||[];var prev=LBPREV[m.key];
+    if(!top.length)return '<div class="card lb-card">'+lbHead(m)+'<div class="lb-empty">No entries yet this month.</div></div>';
+    var max=top[0].value||1;var champ=top[0];var cc=(champ.code||'').toUpperCase();var champMe=(cc===meCode);
+    var cfr=(prev&&prev[cc])?prev[cc].value:0;var flash=(prev&&prev.__champ&&prev.__champ!==cc)?' lb-champ-flash':'';
+    var hero='<div class="lb-hero'+flash+'"><div class="lb-sheen"></div><span class="lb-crown">👑</span><div class="lb-av-hero">'+lbAv(champ.code,champ.name)+'</div><div class="lb-hero-meta"><div class="lb-hero-name"><span class="lb-nametext">'+lbEsc(champ.name)+(champMe?' · You':'')+'</span>'+deltaChip(prev,cc,1)+'</div><div class="lb-hero-base">'+lbEsc(champ.baseshop||'')+' · Leader</div></div><div class="lb-hero-val" data-to="'+champ.value+'" data-from="'+cfr+'" data-money="'+(m.money?1:0)+'">'+fmtFull(champ.value,m.money)+'</div></div>';
+    var rest=top.slice(1).map(function(t){var rank=t.rank;var pct=Math.max(6,Math.round((t.value/max)*100));var code=(t.code||'').toUpperCase();var meRow=(code===meCode);var badge=rank===2?'🥈':rank===3?'🥉':rank;var changed=(prev&&prev[code]&&prev[code].value!==t.value);return '<div class="lb-row'+(meRow?' me':'')+'"><span class="lb-rank">'+badge+'</span><span class="lb-av-sm">'+lbAv(t.code,t.name)+'</span><span class="lb-name"><span class="lb-nametext">'+lbEsc(t.name)+(meRow?' <b>· You</b>':'')+'</span>'+deltaChip(prev,code,rank)+'</span><span class="lb-bar"><span style="width:'+pct+'%"></span></span><span class="lb-val'+(changed?' bump':'')+'">'+lbVal(t.value,m.money)+'</span></div>';}).join('');
     var youRow='';
-    if(b.me&&b.me.rank>5){youRow='<div class="lb-row me you-out"><span class="lb-rank">'+b.me.rank+'</span><span class="lb-av-sm">'+lbAv(CODE,NAME)+'</span><span class="lb-name"><b>You</b></span><span class="lb-bar"><span style="width:'+Math.max(6,Math.round((b.me.value/max)*100))+'%"></span></span><span class="lb-val">'+lbVal(b.me.value,m.money)+'</span></div>';}
-    return '<div class="card lb-card">'+head+hero+'<div class="lb-list">'+rest+youRow+'</div></div>';
+    if(b.me&&b.me.rank>5){youRow='<div class="lb-row me you-out"><span class="lb-rank">'+b.me.rank+'</span><span class="lb-av-sm">'+lbAv(CODE,NAME)+'</span><span class="lb-name"><span class="lb-nametext"><b>You</b></span></span><span class="lb-bar"><span style="width:'+Math.max(6,Math.round((b.me.value/max)*100))+'%"></span></span><span class="lb-val">'+lbVal(b.me.value,m.money)+'</span></div>';}
+    return '<div class="card lb-card">'+lbHead(m)+hero+'<div class="lb-list">'+rest+youRow+'</div></div>';
   }).join('');
+  LBMETRICS.forEach(function(m){var b=(r.boards&&r.boards[m.key])||{top:[]};var mp={};(b.top||[]).forEach(function(t){mp[(t.code||'').toUpperCase()]={rank:t.rank,value:t.value};});if(b.top&&b.top[0])mp.__champ=(b.top[0].code||'').toUpperCase();LBPREV[m.key]=mp;});
+  host.querySelectorAll('.lb-hero-val[data-to]').forEach(animateVal);
 }
 
 /* ---------- AUTH ---------- */
@@ -726,8 +761,9 @@ function showApp(){
   $('gate').classList.add('hide');$('app').classList.remove('hide');
   $('sideName').textContent=NAME||('GFI '+CODE);$('sideSub').textContent=CODE;$('sideAv').textContent=initials(NAME||CODE);
   paintHeaderTime();tickClock();setInterval(tickClock,1000);setInterval(paintHeaderTime,60000);
-  loadData();loadLeaderboard();loadAvatars();
+  loadData();loadLeaderboard();loadAvatars();startLBPoll();
 }
+document.addEventListener('visibilitychange',function(){if(!document.hidden&&CODE)loadLeaderboard();});
 function doLogin(){
   var first=$('gFirst').value.trim(),last=$('gLast').value.trim(),code=($('gCode').value||'').trim().toUpperCase();
   var msg=$('gMsg');msg.className='gmsg';
