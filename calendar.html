@@ -308,9 +308,9 @@ function revealAvailTab(){if(myTrainerProfile()){var a=$('tab_avail');if(a)a.sty
 function weekStartYmd(off){var d=new Date(todayStr()+'T12:00:00Z');d.setUTCDate(d.getUTCDate()-d.getUTCDay()+off*7);return d.toISOString().slice(0,10);}
 function statusColor(s){return s==='confirmed'?'var(--green)':(s==='pending'?'var(--gold)':(s==='canceled'||s==='no_show'||s==='declined'?'var(--red)':'var(--accent)'));}
 function calEventsFor(dstr){
-  var evs=[];
+  var evs=[];var myname=(NAME||'').trim().toLowerCase();
   MYB.forEach(function(b){if(b.date===dstr)evs.push({id:b.id,time:b.time,title:b.trainer_name,sub:b.category,status:b.status,role:'agent'});});
-  MYT.forEach(function(b){if(b.date===dstr&&!MYB.some(function(x){return x.id===b.id;}))evs.push({id:b.id,time:b.time,title:(b.agent_name||b.agent_code||'Client'),sub:b.category,status:b.status,role:'trainer'});});
+  COMPANY_EV.forEach(function(b){if(b.date===dstr&&(b.trainer_name||'').trim().toLowerCase()===myname&&!MYB.some(function(x){return x.id===b.id;}))evs.push({id:b.id,time:b.time,title:(b.agent_name||'Client'),sub:b.category,status:b.status,role:'trainer'});});
   evs.sort(function(a,b){return t2min(a.time)-t2min(b.time);});
   return evs;
 }
@@ -320,7 +320,11 @@ function renderCal(){
   var s0=new Date(ws+'T12:00:00Z'),s6=new Date(days[6]+'T12:00:00Z');
   var label=s0.toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'})+' – '+s6.toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'})+(CALWEEK===0?' · This week':'');
   var h='<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px;flex-wrap:wrap"><h2 style="font-size:19px;font-weight:800;margin:0;letter-spacing:-.02em">'+esc(label)+'</h2><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="calnav" onclick="CALWEEK--;render()">‹ Prev</button><button class="calnav" onclick="CALWEEK=0;render()">Today</button><button class="calnav" onclick="CALWEEK++;render()">Next ›</button><button class="qbtn" style="margin:0" onclick="setTab(\'book\')">+ Book</button></div></div>';
-  h+='<div class="calgrid">';
+  $('view').innerHTML=h+'<div id="calWrap"><div class="spin">Loading your week…</div></div>';
+  loadCompanyEvents(days[0],days[6],function(){paintCalWeek(days);});
+}
+function paintCalWeek(days){
+  var h='<div class="calgrid">';
   days.forEach(function(ds){
     var d=new Date(ds+'T12:00:00Z');var wname=d.toLocaleDateString('en-US',{weekday:'short',timeZone:'UTC'});var dn=d.getUTCDate();
     var isToday=ds===todayStr();var evs=calEventsFor(ds);var trs=trainingsFor(wdOf(ds));
@@ -331,13 +335,12 @@ function renderCal(){
     trs.forEach(function(t){h+='<div class="calev caltr" onclick="window.open(\''+t.z+'\',\'_blank\')"><span class="cdot" style="background:var(--gold)"></span><b>'+fmtHM(t.h,t.m)+'</b> '+esc(t.t)+'<div class="csub">Live training · Join Zoom</div></div>';});
     h+='</div>';
   });
-  h+='</div>';
-  h+='<div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:16px;font-size:11.5px;color:var(--ink3)"><span><span class="cdot" style="background:var(--accent)"></span>Booked</span><span><span class="cdot" style="background:var(--green)"></span>Confirmed</span><span><span class="cdot" style="background:var(--gold)"></span>Pending / training</span><span><span class="cdot" style="background:var(--red)"></span>Canceled / no-show</span></div>';
-  $('view').innerHTML=h;
+  h+='</div><div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:16px;font-size:11.5px;color:var(--ink3)"><span><span class="cdot" style="background:var(--accent)"></span>Booked</span><span><span class="cdot" style="background:var(--green)"></span>Confirmed</span><span><span class="cdot" style="background:var(--gold)"></span>Pending / training</span><span><span class="cdot" style="background:var(--red)"></span>Canceled · completed</span></div>';
+  var el=$('calWrap');if(el)el.innerHTML=h;
 }
 function openCalEvent(id){
   var b=MYB.filter(function(x){return x.id===id;})[0];var role='agent';
-  if(!b){b=MYT.filter(function(x){return x.id===id;})[0];role='trainer';}
+  if(!b){b=(MYT.filter(function(x){return x.id===id;})[0])||(COMPANY_EV.filter(function(x){return x.id===id;})[0]);role='trainer';}
   if(!b)return;
   var C="';$('bkOv').classList.remove('on')";var acts='';
   if(role==='agent'){if(b.status==='booked'||b.status==='confirmed'||b.status==='pending')acts='<button class="x can" onclick="quickCancel(\''+b.id+'\')'+C+'">✕ Cancel</button>';}
@@ -684,7 +687,7 @@ function paintMsgQueue(){
   }).catch(function(){var e=$('msgQueue');if(e)e.innerHTML='<div class="empty">Could not load the queue.</div>';});
 }
 // === Clients tab (Phase 3d) — a trainer's clients + history, from their own feed ===
-function clientBookings(){return MYT.filter(function(b){return b.source==='public'||b.source==='staff'||b.client_email||b.client_id;});}
+function clientBookings(){var myname=(NAME||'').trim().toLowerCase();return COMPANY_EV.filter(function(b){return (b.trainer_name||'').trim().toLowerCase()===myname&&(b.client_email||b.client_id||b.agent_name);});}
 function clientKey(b){return (b.client_email||b.client_phone||b.agent_name||'').toString().toLowerCase();}
 function clientList(q){
   var map={};
@@ -707,9 +710,10 @@ function renderClients(){
   if(!me){$('view').innerHTML='<div class="empty">The client list is for trainers. Sign in with your trainer profile to see it.</div>';return;}
   var h='<div class="sec"><div class="sech"><h2>Your clients</h2><a onclick="setTab(\'book\')">Book for a client →</a></div>';
   h+='<div style="margin-bottom:12px"><input id="cq" oninput="paintClientList()" placeholder="Search clients by name, email, or phone…" style="width:100%;border:1.5px solid var(--line2);border-radius:12px;padding:11px 14px;font-size:14px;background:var(--panel);color:var(--ink);outline:none"></div>';
-  h+='<div style="font-size:12px;color:var(--ink3);margin:0 2px 10px">People who booked you through your public link or were booked on their behalf. History shown is your appointments with them.</div>';
-  h+='<div id="clientList"></div></div>';
-  $('view').innerHTML=h;paintClientList();
+  h+='<div style="font-size:12px;color:var(--ink3);margin:0 2px 10px">Everyone who has booked you — including your imported history. Tap a client for their full appointment record.</div>';
+  h+='<div id="clientList"><div class="spin">Loading your clients…</div></div></div>';
+  $('view').innerHTML=h;
+  loadCompanyEvents(ymd(addDays(-800)),ymd(addDays(400)),function(){paintClientList();});
 }
 function paintClientList(){var q=($('cq')&&$('cq').value)||'';var list=clientList(q);var el=$('clientList');if(!el)return;
   el.innerHTML=list.length?list.map(clientRow).join(''):'<div class="empty">No clients yet — they appear here once someone books you.</div>';}
