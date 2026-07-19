@@ -219,6 +219,33 @@ button{font-family:inherit;cursor:pointer;}
 .res-card .t{font-size:13.5px;font-weight:700;}
 .res-card .d{font-size:11.5px;color:var(--ink-3);}
 
+/* ===== LEADERBOARD ===== */
+.lb-card{padding:18px;overflow:hidden;position:relative;}
+.lb-head{display:flex;align-items:center;gap:11px;margin-bottom:14px;}
+.lb-ic{font-size:21px;width:42px;height:42px;border-radius:12px;background:var(--panel-2);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+.lb-title{font-size:14.5px;font-weight:800;letter-spacing:-.01em;}
+.lb-sub{font-size:11px;color:var(--ink-3);font-weight:600;margin-top:1px;}
+.lb-hero{position:relative;display:flex;align-items:center;gap:12px;padding:13px 14px;border-radius:16px;background:linear-gradient(135deg,rgba(201,154,46,.20),rgba(201,154,46,.05));border:1px solid rgba(201,154,46,.38);margin-bottom:12px;overflow:hidden;}
+.lb-hero::before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 85% -30%,rgba(201,154,46,.28),transparent 62%);pointer-events:none;}
+.lb-crown{position:absolute;top:7px;left:11px;font-size:13px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.25));z-index:1;}
+.lb-av-hero{width:52px;height:52px;border-radius:50%;overflow:hidden;background:linear-gradient(135deg,var(--gold),#e6c874);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;flex:0 0 auto;box-shadow:0 5px 16px rgba(201,154,46,.42);border:2px solid rgba(255,255,255,.55);z-index:1;}
+.lb-hero-meta{flex:1;min-width:0;z-index:1;}
+.lb-hero-name{font-weight:800;font-size:15px;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.lb-hero-base{font-size:10.5px;font-weight:800;color:var(--gold);text-transform:uppercase;letter-spacing:.05em;margin-top:1px;}
+.lb-hero-val{font-size:23px;font-weight:900;letter-spacing:-.03em;font-variant-numeric:tabular-nums;z-index:1;white-space:nowrap;}
+.lb-list{display:flex;flex-direction:column;gap:1px;}
+.lb-row{display:flex;align-items:center;gap:10px;padding:7px 6px;border-radius:10px;transition:background .15s;}
+.lb-row.me{background:var(--accent-soft);}
+.lb-rank{width:16px;text-align:center;font-size:12px;font-weight:800;color:var(--ink-3);font-variant-numeric:tabular-nums;flex:0 0 auto;}
+.lb-av-sm{width:28px;height:28px;border-radius:50%;overflow:hidden;background:linear-gradient(135deg,var(--accent),#8b9bff);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:10px;flex:0 0 auto;}
+.lb-name{flex:1;min-width:0;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.lb-name b{color:var(--accent);}
+.lb-bar{width:60px;height:6px;border-radius:999px;background:var(--line);overflow:hidden;flex:0 0 auto;}
+.lb-bar span{display:block;height:100%;background:linear-gradient(90deg,var(--accent),#8b9bff);border-radius:999px;transition:width .6s cubic-bezier(.2,.8,.2,1);}
+.lb-val{font-size:12.5px;font-weight:800;font-variant-numeric:tabular-nums;min-width:46px;text-align:right;flex:0 0 auto;}
+.lb-empty{padding:26px 16px;text-align:center;color:var(--ink-3);font-size:13px;border:1px dashed var(--line-2);border-radius:12px;}
+.lb-skel{height:230px;border-radius:var(--radius);background:linear-gradient(90deg,var(--line) 25%,var(--panel-2) 50%,var(--line) 75%);background-size:200% 100%;animation:sk 1.3s infinite;}
+.you-out{opacity:.95;border-top:1px dashed var(--line-2);margin-top:5px;padding-top:9px;}
 .foot{text-align:center;color:var(--ink-3);font-size:12px;padding:34px 0 20px;}
 .skl{background:linear-gradient(90deg,var(--line) 25%,var(--panel-2) 50%,var(--line) 75%);background-size:200% 100%;animation:sk 1.3s infinite;border-radius:6px;color:transparent!important;}
 @keyframes sk{to{background-position:-200% 0;}}
@@ -319,7 +346,7 @@ button{font-family:inherit;cursor:pointer;}
       <button class="tb-toggle" onclick="toggleSidebar()" aria-label="Menu">${ICON.menu}</button>
       <div class="tb-search">${ICON.search}<input type="text" placeholder="Search agents, leads, resources…" onkeydown="if(event.key==='Enter')location.href='marketing.html'"></div>
       <div class="tb-spacer"></div>
-      <div class="ctx"><button id="ctxMe" class="on" onclick="setCtx('me')">Me</button><button id="ctxShop" onclick="setCtx('shop')">Baseshop</button></div>
+      <div class="ctx"><button id="ctxMe" class="on" onclick="setCtx('me')">Personal</button><button id="ctxShop" onclick="setCtx('shop')">Baseshop</button><button id="ctxOrg" onclick="setCtx('org')">Hierarchy</button></div>
       <button class="tb-ic" onclick="toggleTheme()" aria-label="Theme" id="themeBtn">${ICON.moon}</button>
       <button class="tb-ic" aria-label="Notifications" onclick="location.href='dashboard.html'">${ICON.bell}<span class="dot"></span></button>
     </div>
@@ -348,25 +375,27 @@ button{font-family:inherit;cursor:pointer;}
         <a class="qa-card" href="org.html"><div class="ic">${ICON.tree}</div><div class="t">Org Chart</div><div class="d">See the baseshop</div></a>
       </div>
 
-      <!-- SCHEDULE + PERFORMANCE -->
-      <div class="cols" style="margin-top:30px;">
-        <div class="panel">
-          <div class="panel-h"><h3>Today's Focus</h3><a href="checklist.html">Open tracker →</a></div>
-          <div id="focusList"></div>
-        </div>
+      <!-- LEADERBOARD (replaces Today's Focus) -->
+      <section style="margin-top:30px;">
+        <div class="sec-h"><h2>🏆 The Standard Leaderboard</h2><span class="muted" id="lbCtxLbl">Loading…</span></div>
+        <div class="grid" id="lbGrid" style="grid-template-columns:repeat(auto-fill,minmax(300px,1fr));"><div class="lb-skel"></div><div class="lb-skel"></div><div class="lb-skel"></div><div class="lb-skel"></div></div>
+      </section>
+
+      <!-- PERFORMANCE + ACTIVITY -->
+      <div class="cols" style="margin-top:24px;">
         <div class="panel">
           <div class="panel-h"><h3>Performance</h3><span class="muted" id="perfCtx" style="font-size:12px;color:var(--ink-3);"></span></div>
           <div class="perf" id="perfBox"></div>
         </div>
-      </div>
-
-      <!-- ACTIVITY + RESOURCES -->
-      <div class="cols" style="margin-top:20px;">
         <div class="panel">
           <div class="panel-h"><h3>Agency Activity</h3><a href="dashboard.html">Full report →</a></div>
           <div id="feedBox"></div>
         </div>
-        <div class="panel">
+      </div>
+
+      <!-- RESOURCES -->
+      <div class="cols" style="margin-top:20px;">
+        <div class="panel" style="grid-column:1/-1;">
           <div class="panel-h"><h3>Helpful Resources</h3><a href="resources.html">All →</a></div>
           <div class="grid res-grid" style="gap:12px;">
             <a class="res-card" href="resources.html"><div class="ic">${ICON.book}</div><div><div class="t">Training Library</div><div class="d">Scripts & videos</div></div></a>
@@ -511,8 +540,8 @@ function goalCard(o){
 function money2(n){n=Number(n)||0;if(n>=1e6)return '$'+(n/1e6).toFixed(2)+'M';if(n>=1e3)return '$'+(Math.round(n/100)/10)+'K';return '$'+Math.round(n);}
 function renderSnapshot(){
   var g=$('snapGrid');if(!g)return;g.innerHTML='';
-  var me=(CTX==='me'); $('snapCtxLbl').textContent=me?'Your numbers':'Whole baseshop';
-  $('perfCtx').textContent=me?'You':'Baseshop';
+  var me=(CTX==='me'); $('snapCtxLbl').textContent=me?'Your numbers':(CTX==='shop'?'Your baseshop':'Whole company');
+  $('perfCtx').textContent=me?'You':(CTX==='shop'?'Baseshop':'Company');
   var src=me?ME:SHOP; if(!src){for(var i=0;i<6;i++){var d=document.createElement('div');d.className='card';d.innerHTML='<div class="stat"><div class="top"><div class="ic skl" style="width:40px;height:40px;"></div></div><div class="num skl">00</div><div class="lbl skl">loading</div></div>';g.appendChild(d);}return;}
   var cards=[
     {ic:I.heart,tone:'g',num:src.families,goalKey:'families',goalLabel:'Families Helped',lbl:'Families Helped · this month'},
@@ -629,14 +658,53 @@ function loadData(){
 }
 
 /* ---------- CONTEXT TOGGLE ---------- */
-function setCtx(c){CTX=c;$('ctxMe').classList.toggle('on',c==='me');$('ctxShop').classList.toggle('on',c==='shop');renderSnapshot();renderPerf();}
+function setCtx(c){CTX=c;$('ctxMe').classList.toggle('on',c==='me');$('ctxShop').classList.toggle('on',c==='shop');var o=$('ctxOrg');if(o)o.classList.toggle('on',c==='org');renderSnapshot();renderPerf();loadLeaderboard();}
+
+/* ---------- LEADERBOARD ---------- */
+var LB="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/leaderboard-api";
+var HUB="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/hub-api";
+var HUBAV={},LBDATA=null;
+var LBMETRICS=[
+ {key:'recruiter',title:'Top Recruiter',sub:'New partners this month',ic:'🥇',money:false},
+ {key:'premium',title:'Top Premium Submitted',sub:'AP submitted this month',ic:'💰',money:true},
+ {key:'trainings',title:'Top Field Trainings',sub:'Booked with trainers',ic:'🏋️',money:false},
+ {key:'commission',title:'Top Commission Earned',sub:'Expected commission',ic:'💵',money:true}
+];
+function lbEsc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+function lbVal(v,m){return m?money2(v):String(v);}
+function lbAv(code,name,big){var u=HUBAV[(code||'').toUpperCase()];if(u)return '<img src="'+u+'" alt="" style="width:100%;height:100%;object-fit:cover">';return lbEsc(initials(name));}
+function scopeFromCtx(){return CTX==='me'?'personal':(CTX==='shop'?'baseshop':'hierarchy');}
+function loadAvatars(){fetch(HUB,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'hub_avatars'})}).then(function(r){return r.json();}).then(function(r){var m=(r&&r.avatars)||{};var out={};Object.keys(m).forEach(function(k){out[k.toUpperCase()]=m[k];});HUBAV=out;if(LBDATA)renderLeaderboard(LBDATA);}).catch(function(){});}
+function loadLeaderboard(){
+  var scope=scopeFromCtx();var host=$('lbGrid');
+  fetch(LB,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'board',code:CODE,scope:scope})})
+    .then(function(r){return r.json();}).then(function(r){if(!r||!r.ok){if(host)host.innerHTML='<div class="lb-empty" style="grid-column:1/-1">Leaderboard unavailable right now.</div>';return;}LBDATA=r;renderLeaderboard(r);})
+    .catch(function(){if(host)host.innerHTML='<div class="lb-empty" style="grid-column:1/-1">Leaderboard unavailable right now.</div>';});
+}
+function renderLeaderboard(r){
+  var host=$('lbGrid');if(!host)return;
+  var lbl=$('lbCtxLbl');if(lbl)lbl.textContent=(r.scope==='personal'?'Your standing':(r.scope==='baseshop'?('Baseshop · '+r.base):'Whole company'))+' · '+r.month;
+  var meCode=(CODE||'').toUpperCase();
+  host.innerHTML=LBMETRICS.map(function(m){
+    var b=(r.boards&&r.boards[m.key])||{top:[],me:{rank:0,value:0},total:0};
+    var top=b.top||[];
+    var head='<div class="lb-head"><span class="lb-ic">'+m.ic+'</span><div><div class="lb-title">'+m.title+'</div><div class="lb-sub">'+m.sub+'</div></div></div>';
+    if(!top.length)return '<div class="card lb-card">'+head+'<div class="lb-empty">No entries yet this month.</div></div>';
+    var max=top[0].value||1;var champ=top[0];var champMe=(champ.code&&champ.code.toUpperCase()===meCode);
+    var hero='<div class="lb-hero"><span class="lb-crown">👑</span><div class="lb-av-hero">'+lbAv(champ.code,champ.name,true)+'</div><div class="lb-hero-meta"><div class="lb-hero-name">'+lbEsc(champ.name)+(champMe?' · You':'')+'</div><div class="lb-hero-base">'+lbEsc(champ.baseshop||'')+'</div></div><div class="lb-hero-val">'+lbVal(champ.value,m.money)+'</div></div>';
+    var rest=top.slice(1).map(function(t){var pct=Math.max(6,Math.round((t.value/max)*100));var meRow=(t.code&&t.code.toUpperCase()===meCode);var badge=t.rank===2?'🥈':t.rank===3?'🥉':t.rank;return '<div class="lb-row'+(meRow?' me':'')+'"><span class="lb-rank">'+badge+'</span><span class="lb-av-sm">'+lbAv(t.code,t.name)+'</span><span class="lb-name">'+lbEsc(t.name)+(meRow?' <b>· You</b>':'')+'</span><span class="lb-bar"><span style="width:'+pct+'%"></span></span><span class="lb-val">'+lbVal(t.value,m.money)+'</span></div>';}).join('');
+    var youRow='';
+    if(b.me&&b.me.rank>5){youRow='<div class="lb-row me you-out"><span class="lb-rank">'+b.me.rank+'</span><span class="lb-av-sm">'+lbAv(CODE,NAME)+'</span><span class="lb-name"><b>You</b></span><span class="lb-bar"><span style="width:'+Math.max(6,Math.round((b.me.value/max)*100))+'%"></span></span><span class="lb-val">'+lbVal(b.me.value,m.money)+'</span></div>';}
+    return '<div class="card lb-card">'+head+hero+'<div class="lb-list">'+rest+youRow+'</div></div>';
+  }).join('');
+}
 
 /* ---------- AUTH ---------- */
 function showApp(){
   $('gate').classList.add('hide');$('app').classList.remove('hide');
   $('sideName').textContent=NAME||('GFI '+CODE);$('sideSub').textContent=CODE;$('sideAv').textContent=initials(NAME||CODE);
   paintHeaderTime();tickClock();setInterval(tickClock,1000);setInterval(paintHeaderTime,60000);
-  loadData();
+  loadData();loadLeaderboard();loadAvatars();
 }
 function doLogin(){
   var first=$('gFirst').value.trim(),last=$('gLast').value.trim(),code=($('gCode').value||'').trim().toUpperCase();
