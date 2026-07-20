@@ -276,6 +276,9 @@ button{font-family:inherit;cursor:pointer;}
 @keyframes lbbump{0%{transform:scale(1);}40%{transform:scale(1.16);color:var(--green);}100%{transform:scale(1);}}
 .lb-card{transition:transform .2s cubic-bezier(.2,.8,.2,1),box-shadow .2s;}
 .lb-card:hover{transform:translateY(-3px);box-shadow:var(--shadow);}
+.lbper{display:inline-flex;background:var(--panel);border:1px solid var(--line-2);border-radius:10px;padding:2px;gap:2px;box-shadow:var(--shadow-sm);}
+.lbper button{border:none;background:none;padding:5px 12px;border-radius:8px;font-size:12px;font-weight:800;color:var(--ink-2);cursor:pointer;font-family:inherit;transition:.15s;}
+.lbper button.on{background:var(--accent);color:#fff;}
 .lb-cc{display:inline-flex;align-items:center;justify-content:center;width:19px;height:19px;border-radius:50%;font-size:11px;line-height:1;flex:0 0 auto;box-shadow:0 1px 3px rgba(0,0,0,.28);border:1.5px solid rgba(255,255,255,.75);}
 .lb-hero .lb-cc{width:22px;height:22px;font-size:12px;}
 @media (prefers-reduced-motion:reduce){.lb-sheen,.lb-crown,.lb-live .dot{animation:none;}}
@@ -397,7 +400,10 @@ button{font-family:inherit;cursor:pointer;}
       <section style="margin:6px 0 8px;">
         <div class="sec-h" style="align-items:center;">
           <h2 style="display:flex;align-items:center;gap:11px;">🏆 The Standard Leaderboard <span class="lb-live"><span class="dot"></span>Live</span></h2>
-          <span class="muted"><span id="lbCtxLbl">Loading…</span> · <span class="lb-synced" id="lbSynced"></span></span>
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <div class="lbper"><button data-p="week" onclick="setPeriod('week')">Week</button><button data-p="month" class="on" onclick="setPeriod('month')">Month</button><button data-p="year" onclick="setPeriod('year')">Year</button></div>
+            <span class="muted"><span id="lbCtxLbl">Loading…</span> · <span class="lb-synced" id="lbSynced"></span></span>
+          </div>
         </div>
         <div class="grid" id="lbGrid" style="grid-template-columns:repeat(auto-fill,minmax(300px,1fr));"><div class="lb-skel"></div><div class="lb-skel"></div><div class="lb-skel"></div><div class="lb-skel"></div></div>
       </section>
@@ -699,7 +705,8 @@ function setCtx(c){CTX=c;$('ctxMe').classList.toggle('on',c==='me');$('ctxShop')
 /* ---------- LEADERBOARD (live, game-like) ---------- */
 var LB="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/leaderboard-api";
 var HUB="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/hub-api";
-var HUBAV={},LBDATA=null,LBPREV={},LBSCOPEPREV=null,LBLAST=0,LBPOLL=null,LBSYNCT=null,LBCHAMPSEEN={};
+var HUBAV={},LBDATA=null,LBPREV={},LBSCOPEPREV=null,LBLAST=0,LBPOLL=null,LBSYNCT=null,LBCHAMPSEEN={},LBPERIOD='month';
+function setPeriod(p){LBPERIOD=p;LBPREV={};LBCHAMPSEEN={};var bs=document.querySelectorAll('.lbper button');for(var i=0;i<bs.length;i++)bs[i].classList.toggle('on',bs[i].getAttribute('data-p')===p);loadLeaderboard();}
 var CCTIER={bronze:'#c07f3a',silver:'#aab0bd',gold:'#e6c25a',platinum:'#a9c0e0',rank:'#7c8bff'};
 function miniEmb(emb){if(!emb||!emb.icon)return '';var bg=CCTIER[emb.tier]||'#e6c25a';return '<span class="lb-cc" style="background:radial-gradient(circle at 38% 28%,rgba(255,255,255,.75),'+bg+')" title="Active emblem">'+emb.icon+'</span>';}
 function fireConfetti(){
@@ -727,7 +734,7 @@ function loadAvatars(){fetch(HUB,{method:'POST',headers:{'Content-Type':'applica
 function loadLeaderboard(){
   var scope=scopeFromCtx();var host=$('lbGrid');
   if(LBSCOPEPREV!==scope){LBPREV={};LBSCOPEPREV=scope;LBCHAMPSEEN={};}
-  fetch(LB,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'board',code:CODE,scope:scope})})
+  fetch(LB,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'board',code:CODE,scope:scope,period:LBPERIOD})})
     .then(function(r){return r.json();}).then(function(r){if(!r||!r.ok){if(host&&!LBDATA)host.innerHTML='<div class="lb-empty" style="grid-column:1/-1">Leaderboard unavailable right now.</div>';return;}LBDATA=r;renderLeaderboard(r);LBLAST=Date.now();paintSynced();})
     .catch(function(){if(host&&!LBDATA)host.innerHTML='<div class="lb-empty" style="grid-column:1/-1">Leaderboard unavailable right now.</div>';});
 }
