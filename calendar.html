@@ -298,6 +298,8 @@ function availTimesForTrainer(cft,dstr){
   var key=DAYS[wdOf(dstr)];var slots=(cft.slots&&cft.slots[key])?cft.slots[key]:[];
   var taken=DAYBOOKED.filter(function(b){return b.trainer_name===cft.name;}).map(function(b){return b.time;});
   var out=slots.filter(function(t){return taken.indexOf(t)<0;});
+  var busy=(cft.busy||[]).filter(function(b){return b.date===dstr;});
+  if(busy.length)out=out.filter(function(t){var tm=t2min(t);return !busy.some(function(b){return (Number(b.s)||0) < tm+60 && (Number(b.e)||1440) > tm;});});
   var cut=schedCutoff();
   return out.filter(function(t){if(dstr>cut.date)return true;if(dstr<cut.date)return false;return t2min(t)>=cut.minutes;});
 }
@@ -436,6 +438,7 @@ function openCalEvent(id){
 var CAL="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/cal-feed";
 var PA="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/profile-api";
 var EM="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/emblem-api";
+var CS="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/cal-sync";
 var PROFSUB='profile',EMBDATA=null,PROFILE_P=null;
 function openProfile(){setTab('avail');}
 function setProfileChip(){var a=$('profileAv'),n=$('profileName');if(a)a.textContent=initials(NAME);if(n)n.textContent=(NAME||'').split(' ')[0]||'Profile';}
@@ -473,7 +476,30 @@ function saveSlots(){var me=myTrainerProfile();if(!me)return;var slots={};var ba
     var arr=[];for(var t=st;t<en;t+=30)arr.push(minsToCanon(t));slots[d]=arr;});
   if(bad)toast('Some days had end before start — those were left off.');
   availPost({slots:slots},'Availability saved');}
-function connectGoogle(){alert('Google connection activates once your Workspace OAuth app is live. Your email is saved — the moment that’s connected, your calendar syncs two-way and your booking emails send from your Gmail. (Being set up now.)');renderAvail();}
+function connectGoogle(){openCalSync();}
+function loadCalSyncStatus(){var el=$('calSyncStatus');if(!el)return;fetch(CS,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'get_feeds',code:CODE})}).then(function(r){return r.json();}).then(function(r){el=$('calSyncStatus');if(!el)return;if(!r||!r.ok){el.textContent='';return;}if(!(r.google_ics||r.apple_ics)){el.innerHTML='⚪ Not connected — set up sync to block your outside appointments.';el.style.color='var(--ink3)';return;}var when=r.last_synced?(' · last synced '+esc(new Date(r.last_synced).toLocaleDateString())):'';el.innerHTML='🟢 Connected — '+r.busy_count+' busy block'+(r.busy_count===1?'':'s')+' imported'+when;el.style.color='var(--green,#1a9c52)';}).catch(function(){});}
+function openCalSync(){
+  fetch(CS,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'get_feeds',code:CODE})}).then(function(r){return r.json();}).then(function(r){r=r||{};
+    $('bkDrawer').innerHTML='<h3>Calendar Sync</h3><p class="dsub">Import your outside appointments so no one double-books you. Read-only — we never change your calendar.</p>'
+      +'<div style="padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--panel);margin-bottom:12px"><label style="'+_LST+'">Google Calendar — secret iCal address</label><input id="cs_google" style="'+_IST+'" value="'+esc(r.google_ics||'')+'" placeholder="https://calendar.google.com/calendar/ical/…/basic.ics"><div style="font-size:11.5px;color:var(--ink3);margin-top:7px;line-height:1.4">Google Calendar → <b>Settings</b> → click your calendar → <b>Integrate calendar</b> → copy the <b>Secret address in iCal format</b>. This already includes your Calendly events.</div></div>'
+      +'<div style="padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--panel);margin-bottom:12px"><label style="'+_LST+'">Apple Calendar — public link (optional)</label><input id="cs_apple" style="'+_IST+'" value="'+esc(r.apple_ics||'')+'" placeholder="webcal://… or https://…ics"><div style="font-size:11.5px;color:var(--ink3);margin-top:7px;line-height:1.4">On Mac: right-click the calendar → <b>Share Calendar</b> → tick <b>Public Calendar</b> → copy the link.</div></div>'
+      +'<div id="cs_msg" style="font-size:12.5px;font-weight:700;color:var(--ink3);min-height:16px"></div>'
+      +'<div class="dact" style="margin-top:12px;gap:8px"><button class="go" id="cs_save" onclick="saveCalSync()">Save &amp; sync</button><button class="x can" onclick="$(\'bkOv\').classList.remove(\'on\')">Close</button></div>';
+    $('bkOv').classList.add('on');
+  }).catch(function(){toast('Could not open sync setup');});
+}
+function saveCalSync(){
+  var g=($('cs_google').value||'').trim(),a=($('cs_apple').value||'').trim();var msg=$('cs_msg'),btn=$('cs_save');
+  msg.style.color='var(--ink3)';msg.textContent='Syncing your calendar…';if(btn)btn.disabled=true;
+  fetch(CS,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'save_feeds',code:CODE,google_ics:g,apple_ics:a})}).then(function(r){return r.json();}).then(function(r){
+    if(btn)btn.disabled=false;
+    if(!r||!r.ok){msg.style.color='var(--red)';msg.textContent='Could not save — check the links and try again.';return;}
+    var errSrc=(r.sources||[]).filter(function(s){return !s.ok;});
+    if(errSrc.length){msg.style.color='var(--gold)';msg.textContent='Saved, but a link didn’t load ('+esc(errSrc[0].err||'error')+'). Make sure it’s the iCal/ICS URL.';}
+    else{msg.style.color='var(--green,#1a9c52)';msg.textContent='✓ Synced — '+r.busy_count+' busy block'+(r.busy_count===1?'':'s')+' imported. Those times are now blocked.';}
+    fetch(TA,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'cftavail'})}).then(function(x){return x.json();}).then(function(rr){var v=rr&&rr.value;TRAINERS=(v&&Array.isArray(v.cfts))?v.cfts:[];loadCalSyncStatus();});
+  }).catch(function(){if(btn)btn.disabled=false;msg.style.color='var(--red)';msg.textContent='Network error — try again.';});
+}
 var DASHVIEW='month',DASHMONTH=0,DASHDAY=null,COMPANY_EV=[];
 function monthFirst(off){var d=new Date(todayStr()+'T12:00:00Z');d.setUTCDate(1);d.setUTCMonth(d.getUTCMonth()+off);return d;}
 function loadCompanyEvents(from,to,cb){fetch(CAL+'?action=company_events&code='+encodeURIComponent(CODE)+'&from='+from+'&to='+to).then(function(r){return r.json();}).then(function(r){COMPANY_EV=(r&&r.events)||[];cb&&cb();}).catch(function(){COMPANY_EV=[];cb&&cb();});}
@@ -951,17 +977,20 @@ function paintProfile(p){
     '<div style="display:flex;gap:10px;flex-wrap:wrap"><div style="flex:1;min-width:150px"><label style="'+_LST+'">First name</label><input id="pf_first" style="'+_IST+'" value="'+esc(p.first_name||'')+'"></div><div style="flex:1;min-width:150px"><label style="'+_LST+'">Last name</label><input id="pf_last" style="'+_IST+'" value="'+esc(p.last_name||'')+'"></div></div>'+
     '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px"><div style="flex:1;min-width:150px"><label style="'+_LST+'">Mobile phone <span style="color:var(--ink3);font-weight:400">· your SMS source</span></label><input id="pf_phone" style="'+_IST+'" value="'+esc(p.phone||'')+'" placeholder="(555) 555-1234"></div><div style="flex:1;min-width:150px"><label style="'+_LST+'">Email / Gmail <span style="color:var(--ink3);font-weight:400">· your email source</span></label><input id="pf_email" type="email" style="'+_IST+'" value="'+esc(p.email||'')+'" placeholder="you@gmail.com"></div></div>'+
     '<button style="border:none;margin-top:12px;padding:10px 18px;border-radius:10px;font-weight:700;font-size:13px;background:var(--accent);color:#fff;cursor:pointer" onclick="saveProfile()">Save details</button></div></div>';
-  h+='<div class="sec"><div class="sech"><h2>Integrations</h2></div><div style="padding:16px;border:1px solid var(--line);border-radius:14px;background:var(--panel)">'+
-    '<div style="'+_FST+'"><label style="'+_LST+'">Calendly link <span style="color:var(--ink3);font-weight:400">· optional, being replaced</span></label><input id="pf_cal" style="'+_IST+'" value="'+esc(p.calendly||'')+'" placeholder="https://calendly.com/you"></div>'+
-    '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:12px 0"><div><div style="font-weight:700;font-size:14px">Google Calendar &amp; Gmail</div><div style="font-size:12px;color:var(--ink3)">Two-way sync + send booking emails from your Gmail.</div></div><button class="calnav" style="border-color:var(--accent);color:'+(p.google_connected?'#1a9c52':'var(--accent)')+'" onclick="connectGoogle()">'+(p.google_connected?'Connected ✓':'Connect')+'</button></div>'+
-    '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><div style="font-weight:700;font-size:14px">Apple Calendar</div><div style="font-size:12px;color:var(--ink3)">Optional read-only busy-time subscription.</div></div><button class="calnav" onclick="toast(\'Apple Calendar ships with the sync release.\')">Later</button></div>'+
-    '<div style="font-size:11.5px;color:var(--ink3);margin-top:10px">Save your details, then Connect — booking emails send from your Gmail and your calendar syncs both ways.</div></div></div>';
+  h+='<div class="sec"><div class="sech"><h2>Calendar Sync</h2></div><div style="padding:16px;border:1px solid var(--line);border-radius:14px;background:var(--panel)">'+
+    '<div style="font-size:13px;color:var(--ink2);margin-bottom:12px">Connect your Google &amp; Apple calendars so your existing appointments — <b>including anything still in Calendly</b> — automatically block those times. No more double-bookings.</div>'+
+    '<div id="calSyncStatus" style="font-size:12.5px;font-weight:700;color:var(--ink3);margin-bottom:12px">Checking sync status…</div>'+
+    '<button style="border:none;padding:11px 18px;border-radius:11px;font-weight:800;font-size:13.5px;background:var(--accent);color:#fff;cursor:pointer" onclick="openCalSync()">🔗 Set up calendar sync</button>'+
+    '<div style="font-size:11.5px;color:var(--ink3);margin-top:10px">Full two-way Google sync + sending booking emails from your Gmail turns on once the Workspace connection is finished — this busy-blocking works today.</div>'+
+    '<div style="'+_FST+';margin-top:14px"><label style="'+_LST+'">Calendly link <span style="color:var(--ink3);font-weight:400">· optional, being replaced</span></label><input id="pf_cal" style="'+_IST+'" value="'+esc(p.calendly||'')+'" placeholder="https://calendly.com/you"></div>'+
+    '</div></div>';
   if(me){
     var _slug=slugify(me.name);var _link=new URL('book.html?t='+encodeURIComponent(_slug),location.href).href;
     h+='<div class="sec"><div class="sech"><h2>Your public booking link</h2></div><div style="padding:16px;border:1px solid var(--line);border-radius:14px;background:var(--panel)"><div style="font-size:13px;color:var(--ink2);margin-bottom:10px">Share with clients &amp; recruits — they book you directly, no login.</div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input id="pubLink" readonly value="'+esc(_link)+'" style="flex:1;min-width:200px;padding:10px 12px;border:1px solid var(--line2);border-radius:10px;background:var(--bg);color:var(--ink);font-size:12.5px"><button style="border:none;padding:10px 16px;border-radius:10px;font-weight:700;font-size:13px;background:var(--accent);color:#fff;cursor:pointer" onclick="copyLink()">Copy</button><a href="'+esc(_link)+'" target="_blank" rel="noopener" style="padding:10px 16px;border-radius:10px;font-weight:700;font-size:13px;border:1px solid var(--line2);background:var(--panel);color:var(--accent)">Preview</a></div></div></div>';
     h+=availabilityHtml(me);
   } else { h+='<div class="sec"><div class="sech"><h2>Availability</h2></div><div class="empty">You’re not set up to take bookings yet. Ask an admin to enable your calendar and your availability controls appear here.</div></div>'; }
   $('profBody').innerHTML=h;
+  loadCalSyncStatus();
 }
 function availabilityHtml(me){
   var role=(me.role||'').toUpperCase();
