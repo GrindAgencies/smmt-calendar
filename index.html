@@ -87,7 +87,8 @@ button{font-family:inherit;cursor:pointer;}
 #app.collapsed .side-link .lbl{opacity:0;width:0;}
 #app.collapsed .side-link{justify-content:center;}
 .side-foot{margin-top:auto;display:flex;flex-direction:column;gap:4px;padding-top:10px;border-top:1px solid var(--line);}
-.side-user{display:flex;align-items:center;gap:11px;padding:8px 10px;border-radius:12px;}
+.side-user{display:flex;align-items:center;gap:11px;padding:8px 10px;border-radius:12px;color:inherit;transition:background .15s;}
+.side-user:hover{background:var(--panel-2);}
 .avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#8b9bff);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;flex:0 0 auto;}
 .side-user .su-meta{overflow:hidden;line-height:1.2;}
 .side-user .su-name{font-size:13px;font-weight:700;white-space:nowrap;}
@@ -275,6 +276,8 @@ button{font-family:inherit;cursor:pointer;}
 @keyframes lbbump{0%{transform:scale(1);}40%{transform:scale(1.16);color:var(--green);}100%{transform:scale(1);}}
 .lb-card{transition:transform .2s cubic-bezier(.2,.8,.2,1),box-shadow .2s;}
 .lb-card:hover{transform:translateY(-3px);box-shadow:var(--shadow);}
+.lb-cc{display:inline-flex;align-items:center;justify-content:center;width:19px;height:19px;border-radius:50%;font-size:11px;line-height:1;flex:0 0 auto;box-shadow:0 1px 3px rgba(0,0,0,.28);border:1.5px solid rgba(255,255,255,.75);}
+.lb-hero .lb-cc{width:22px;height:22px;font-size:12px;}
 @media (prefers-reduced-motion:reduce){.lb-sheen,.lb-crown,.lb-live .dot{animation:none;}}
 .foot{text-align:center;color:var(--ink-3);font-size:12px;padding:34px 0 20px;}
 .skl{background:linear-gradient(90deg,var(--line) 25%,var(--panel-2) 50%,var(--line) 75%);background-size:200% 100%;animation:sk 1.3s infinite;border-radius:6px;color:transparent!important;}
@@ -365,7 +368,7 @@ button{font-family:inherit;cursor:pointer;}
     <div class="side-sec">Leadership</div>
     <a class="side-link" href="dashboard.html">${ICON.chart}<span class="lbl">Ops Dashboard</span></a>
     <div class="side-foot">
-      <div class="side-user"><div class="avatar" id="sideAv">–</div><div class="su-meta"><div class="su-name" id="sideName">Agent</div><div class="su-sub" id="sideSub">GFI</div></div></div>
+      <a class="side-user" href="calendar.html?tab=avail" title="Profile &amp; settings" style="text-decoration:none;cursor:pointer"><div class="avatar" id="sideAv">–</div><div class="su-meta"><div class="su-name" id="sideName">Agent</div><div class="su-sub" id="sideSub">GFI</div></div><span style="margin-left:auto;color:var(--ink-3);font-size:15px" aria-hidden="true">⚙︎</span></a>
       <a class="side-link" href="#" onclick="signOut();return false;">${ICON.logout}<span class="lbl">Sign out</span></a>
     </div>
   </aside>
@@ -696,7 +699,19 @@ function setCtx(c){CTX=c;$('ctxMe').classList.toggle('on',c==='me');$('ctxShop')
 /* ---------- LEADERBOARD (live, game-like) ---------- */
 var LB="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/leaderboard-api";
 var HUB="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/hub-api";
-var HUBAV={},LBDATA=null,LBPREV={},LBSCOPEPREV=null,LBLAST=0,LBPOLL=null,LBSYNCT=null;
+var HUBAV={},LBDATA=null,LBPREV={},LBSCOPEPREV=null,LBLAST=0,LBPOLL=null,LBSYNCT=null,LBCHAMPSEEN={};
+var CCTIER={bronze:'#c07f3a',silver:'#aab0bd',gold:'#e6c25a',platinum:'#a9c0e0',rank:'#7c8bff'};
+function miniEmb(emb){if(!emb||!emb.icon)return '';var bg=CCTIER[emb.tier]||'#e6c25a';return '<span class="lb-cc" style="background:radial-gradient(circle at 38% 28%,rgba(255,255,255,.75),'+bg+')" title="Active emblem">'+emb.icon+'</span>';}
+function fireConfetti(){
+  if(window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches)return;
+  var c=document.getElementById('confettiC');
+  if(!c){c=document.createElement('canvas');c.id='confettiC';c.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:2000';document.body.appendChild(c);}
+  var ctx=c.getContext('2d');c.width=window.innerWidth;c.height=window.innerHeight;
+  var cols=['#5b6cff','#34c759','#ff9f0a','#ff3b30','#c99a2e','#8b9bff','#af52de'];var P=[];
+  for(var i=0;i<150;i++)P.push({x:Math.random()*c.width,y:-20-Math.random()*c.height*.4,r:4+Math.random()*6,vx:(Math.random()-.5)*4,vy:2+Math.random()*4.5,col:cols[Math.floor(Math.random()*cols.length)],rot:Math.random()*6.28,vr:(Math.random()-.5)*.4});
+  var t0=Date.now();
+  (function fr(){var el=Date.now()-t0;ctx.clearRect(0,0,c.width,c.height);for(var i=0;i<P.length;i++){var p=P[i];p.x+=p.vx;p.y+=p.vy;p.vy+=.06;p.rot+=p.vr;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.rot);ctx.globalAlpha=Math.max(0,1-el/2900);ctx.fillStyle=p.col;ctx.fillRect(-p.r/2,-p.r/2,p.r,p.r*.62);ctx.restore();}if(el<2900)requestAnimationFrame(fr);else ctx.clearRect(0,0,c.width,c.height);})();
+}
 var LBMETRICS=[
  {key:'recruiter',title:'Top Recruiter',sub:'New partners this month',ic:'🥇',money:false},
  {key:'premium',title:'Top Premium Submitted',sub:'AP submitted this month',ic:'💰',money:true},
@@ -711,7 +726,7 @@ function scopeFromCtx(){return CTX==='me'?'personal':(CTX==='shop'?'baseshop':'h
 function loadAvatars(){fetch(HUB,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'hub_avatars'})}).then(function(r){return r.json();}).then(function(r){var m=(r&&r.avatars)||{};var out={};Object.keys(m).forEach(function(k){out[k.toUpperCase()]=m[k];});HUBAV=out;if(LBDATA)renderLeaderboard(LBDATA);}).catch(function(){});}
 function loadLeaderboard(){
   var scope=scopeFromCtx();var host=$('lbGrid');
-  if(LBSCOPEPREV!==scope){LBPREV={};LBSCOPEPREV=scope;}
+  if(LBSCOPEPREV!==scope){LBPREV={};LBSCOPEPREV=scope;LBCHAMPSEEN={};}
   fetch(LB,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'board',code:CODE,scope:scope})})
     .then(function(r){return r.json();}).then(function(r){if(!r||!r.ok){if(host&&!LBDATA)host.innerHTML='<div class="lb-empty" style="grid-column:1/-1">Leaderboard unavailable right now.</div>';return;}LBDATA=r;renderLeaderboard(r);LBLAST=Date.now();paintSynced();})
     .catch(function(){if(host&&!LBDATA)host.innerHTML='<div class="lb-empty" style="grid-column:1/-1">Leaderboard unavailable right now.</div>';});
@@ -746,14 +761,17 @@ function renderLeaderboard(r){
     if(!top.length)return '<div class="card lb-card">'+lbHead(m)+'<div class="lb-empty">No entries yet this month.</div></div>';
     var max=top[0].value||1;var champ=top[0];var cc=(champ.code||'').toUpperCase();var champMe=(cc===meCode);
     var cfr=(prev&&prev[cc])?prev[cc].value:0;var flash=(prev&&prev.__champ&&prev.__champ!==cc)?' lb-champ-flash':'';
-    var hero='<div class="lb-hero'+flash+'"><div class="lb-sheen"></div><span class="lb-crown">👑</span><div class="lb-av-hero">'+lbAv(champ.code,champ.name)+'</div><div class="lb-hero-meta"><div class="lb-hero-name"><span class="lb-nametext">'+lbEsc(champ.name)+(champMe?' · You':'')+'</span>'+deltaChip(prev,cc,1)+'</div><div class="lb-hero-base">'+lbEsc(champ.baseshop||'')+' · Leader</div></div><div class="lb-hero-val" data-to="'+champ.value+'" data-from="'+cfr+'" data-money="'+(m.money?1:0)+'">'+fmtFull(champ.value,m.money)+'</div></div>';
-    var rest=top.slice(1).map(function(t){var rank=t.rank;var pct=Math.max(6,Math.round((t.value/max)*100));var code=(t.code||'').toUpperCase();var meRow=(code===meCode);var badge=rank===2?'🥈':rank===3?'🥉':rank;var changed=(prev&&prev[code]&&prev[code].value!==t.value);return '<div class="lb-row'+(meRow?' me':'')+'"><span class="lb-rank">'+badge+'</span><span class="lb-av-sm">'+lbAv(t.code,t.name)+'</span><span class="lb-name"><span class="lb-nametext">'+lbEsc(t.name)+(meRow?' <b>· You</b>':'')+'</span>'+deltaChip(prev,code,rank)+'</span><span class="lb-bar"><span style="width:'+pct+'%"></span></span><span class="lb-val'+(changed?' bump':'')+'">'+lbVal(t.value,m.money)+'</span></div>';}).join('');
+    var hero='<div class="lb-hero'+flash+'"><div class="lb-sheen"></div><span class="lb-crown">👑</span><div class="lb-av-hero">'+lbAv(champ.code,champ.name)+'</div><div class="lb-hero-meta"><div class="lb-hero-name"><span class="lb-nametext">'+lbEsc(champ.name)+(champMe?' · You':'')+'</span>'+miniEmb(champ.emb)+deltaChip(prev,cc,1)+'</div><div class="lb-hero-base">'+lbEsc(champ.baseshop||'')+' · Leader</div></div><div class="lb-hero-val" data-to="'+champ.value+'" data-from="'+cfr+'" data-money="'+(m.money?1:0)+'">'+fmtFull(champ.value,m.money)+'</div></div>';
+    var rest=top.slice(1).map(function(t){var rank=t.rank;var pct=Math.max(6,Math.round((t.value/max)*100));var code=(t.code||'').toUpperCase();var meRow=(code===meCode);var badge=rank===2?'🥈':rank===3?'🥉':rank;var changed=(prev&&prev[code]&&prev[code].value!==t.value);return '<div class="lb-row'+(meRow?' me':'')+'"><span class="lb-rank">'+badge+'</span><span class="lb-av-sm">'+lbAv(t.code,t.name)+'</span><span class="lb-name"><span class="lb-nametext">'+lbEsc(t.name)+(meRow?' <b>· You</b>':'')+'</span>'+miniEmb(t.emb)+deltaChip(prev,code,rank)+'</span><span class="lb-bar"><span style="width:'+pct+'%"></span></span><span class="lb-val'+(changed?' bump':'')+'">'+lbVal(t.value,m.money)+'</span></div>';}).join('');
     var youRow='';
     if(b.me&&b.me.rank>5){youRow='<div class="lb-row me you-out"><span class="lb-rank">'+b.me.rank+'</span><span class="lb-av-sm">'+lbAv(CODE,NAME)+'</span><span class="lb-name"><span class="lb-nametext"><b>You</b></span></span><span class="lb-bar"><span style="width:'+Math.max(6,Math.round((b.me.value/max)*100))+'%"></span></span><span class="lb-val">'+lbVal(b.me.value,m.money)+'</span></div>';}
     return '<div class="card lb-card">'+lbHead(m)+hero+'<div class="lb-list">'+rest+youRow+'</div></div>';
   }).join('');
   LBMETRICS.forEach(function(m){var b=(r.boards&&r.boards[m.key])||{top:[]};var mp={};(b.top||[]).forEach(function(t){mp[(t.code||'').toUpperCase()]={rank:t.rank,value:t.value};});if(b.top&&b.top[0])mp.__champ=(b.top[0].code||'').toUpperCase();LBPREV[m.key]=mp;});
   host.querySelectorAll('.lb-hero-val[data-to]').forEach(animateVal);
+  var seen={},newWin=false;
+  LBMETRICS.forEach(function(m){var b=(r.boards&&r.boards[m.key])||{top:[]};var t=b.top&&b.top[0];if(t&&(t.code||'').toUpperCase()===meCode){seen[m.key]=true;if(!LBCHAMPSEEN[m.key])newWin=true;}});
+  LBCHAMPSEEN=seen;if(newWin)fireConfetti();
 }
 
 /* ---------- AUTH ---------- */

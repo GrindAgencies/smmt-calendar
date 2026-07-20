@@ -97,10 +97,14 @@ a{color:inherit;text-decoration:none;}.hide{display:none!important;}
 .emb-badge{position:relative;line-height:0;}
 .emb-badge.active::after{content:"";position:absolute;inset:-5px;border-radius:50%;border:2px solid var(--gold);box-shadow:0 0 14px rgba(201,154,46,.5);animation:embglow 2.2s ease-in-out infinite;}
 @keyframes embglow{0%,100%{opacity:.6;}50%{opacity:1;}}
+.emb-badge svg{transition:transform .2s;}
+.emb-cell:hover .emb-badge svg{transform:scale(1.07) rotate(-2deg);}
+.emb-badge.active svg{animation:embbob 3.2s ease-in-out infinite;}
+@keyframes embbob{0%,100%{transform:translateY(0);}50%{transform:translateY(-3px);}}
 .emb-name{font-size:12px;font-weight:800;line-height:1.15;}
 .emb-desc{font-size:10.5px;color:var(--ink3);font-weight:600;line-height:1.2;}
 .emb-cell.earned .emb-desc{color:var(--accent);}
-@media (prefers-reduced-motion:reduce){.emb-badge.active::after{animation:none;}}
+@media (prefers-reduced-motion:reduce){.emb-badge.active::after,.emb-badge.active svg{animation:none;}.emb-cell:hover .emb-badge svg{transform:none;}}
 .catrow{display:flex;gap:9px;flex-wrap:wrap;}
 .cat{border:1px solid var(--line2);background:var(--panel);border-radius:12px;padding:10px 15px;font-weight:600;font-size:13.5px;color:var(--ink2);}
 .cat.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);}
@@ -268,10 +272,11 @@ function signOut(){try{localStorage.removeItem('tsfg_code');localStorage.removeI
   try{CODE=localStorage.getItem('tsfg_code');NAME=localStorage.getItem('tsfg_name')||'';}catch(e){}
   if(!CODE){location.href='index.html';return;}
   CODE=CODE.toUpperCase();buildSide();setProfileChip();
+  var _urlTab=(function(){try{return new URLSearchParams(location.search).get('tab');}catch(e){return null;}})();
   fetch(TA,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'cftavail'})}).then(function(r){return r.json();}).then(function(r){
     var v=r&&r.value;TRAINERS=(v&&Array.isArray(v.cfts))?v.cfts:[];if(v&&v.tz)TZ=v.tz;
     revealAvailTab();loadProfile();
-    loadSched(function(){loadMy(function(){loadMyTrainer(function(){render();});});});
+    loadSched(function(){loadMy(function(){loadMyTrainer(function(){render();if(_urlTab)setTab(_urlTab);});});});
   }).catch(function(){TRAINERS=[];render();});
   document.addEventListener('keydown',function(e){if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();openSpot();}if(e.key==='Escape'){closeSpot();$('bkOv').classList.remove('on');}});
 })();
@@ -865,28 +870,33 @@ function loadEmblems(cb){fetch(EM,{method:'POST',headers:{'Content-Type':'applic
 var TIERMETAL={bronze:{a:'#e8a869',b:'#a15e28',rim:'#7a4718',ring:'#5e3712'},silver:{a:'#f2f4f8',b:'#9aa1b2',rim:'#767d90',ring:'#565b6b'},gold:{a:'#f7dc78',b:'#c99a2e',rim:'#a67c1e',ring:'#7d5c15'},platinum:{a:'#eaf4ff',b:'#9fb6da',rim:'#7f97bd',ring:'#5f7196'},rank:{a:'#b9c2ff',b:'#5b6cff',rim:'#4f46e5',ring:'#3a34ad'}};
 function starburst(rIn,rOut,pts){var p='';for(var i=0;i<pts*2;i++){var ang=Math.PI*i/pts-Math.PI/2;var r=(i%2===0)?rOut:rIn;p+=(i===0?'M':'L')+(Math.cos(ang)*r).toFixed(1)+' '+(Math.sin(ang)*r).toFixed(1);}return p+'Z';}
 function embEsc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
-function emblemBadge(e,earned,size){
+function starPath(cx,cy,ro,ri,pts,rot){var p='';for(var i=0;i<pts*2;i++){var a=Math.PI*i/pts-Math.PI/2+(rot||0);var r=(i%2===0)?ro:ri;p+=(i===0?'M':'L')+(cx+Math.cos(a)*r).toFixed(1)+' '+(cy+Math.sin(a)*r).toFixed(1);}return p+'Z';}
+function emblemBadge(e,earned,size,mono){
   size=size||90;var uid=(e.id||'x')+Math.floor(Math.random()*1e6);var m=TIERMETAL[e.tier]||TIERMETAL.gold;
   var A=earned?m.a:'#d2d2d8',B=earned?m.b:'#9a9aa2',RIM=earned?m.rim:'#7d7d86',RING=earned?m.ring:'#5f5f67';
   var tierN=({bronze:1,silver:2,gold:3,platinum:4,rank:3})[e.tier]||3;
-  var pips='';for(var i=0;i<tierN;i++){var px=50+(i-(tierN-1)/2)*10;pips+='<circle cx="'+px.toFixed(1)+'" cy="88" r="2.5" fill="'+RIM+'"/>';}
-  var lock=earned?'':'<circle cx="74" cy="72" r="11" fill="#2e2e34"/><text x="74" y="76.5" font-size="12" text-anchor="middle">🔒</text>';
-  return '<svg viewBox="0 0 100 100" width="'+size+'" height="'+size+'" style="display:block;filter:'+(earned?'drop-shadow(0 4px 10px rgba(0,0,0,.20))':'grayscale(.85)')+';opacity:'+(earned?1:.55)+'">'
-    +'<defs><radialGradient id="mg'+uid+'" cx="45%" cy="32%" r="72%"><stop offset="0" stop-color="'+A+'"/><stop offset="1" stop-color="'+B+'"/></radialGradient></defs>'
-    +'<g transform="translate(50,48)"><path d="'+starburst(30,45,16)+'" fill="'+RING+'"/></g>'
-    +'<circle cx="50" cy="48" r="37" fill="'+RIM+'"/>'
-    +'<circle cx="50" cy="48" r="34" fill="url(#mg'+uid+')" stroke="'+RIM+'" stroke-width="1.2"/>'
-    +'<circle cx="50" cy="48" r="25.5" fill="rgba(0,0,0,.13)"/>'
-    +'<ellipse cx="42" cy="34" rx="20" ry="11" fill="rgba(255,255,255,.32)"/>'
-    +'<text x="50" y="59" font-size="29" text-anchor="middle">'+(e.icon||'★')+'</text>'
-    +pips+lock+'</svg>';
+  var deco;
+  if(mono){deco='<circle cx="50" cy="82" r="9.5" fill="rgba(0,0,0,.55)"/><text x="50" y="85.6" font-size="8.5" font-weight="800" fill="#fff" text-anchor="middle" font-family="Inter,-apple-system,sans-serif">'+embEsc(mono)+'</text>';}
+  else{deco='';for(var i=0;i<tierN;i++){var sx=50+(i-(tierN-1)/2)*8.5;deco+='<path d="'+starPath(sx,82,3.2,1.35,5)+'" fill="'+(earned?'#fff':'#c9c9d0')+'" opacity=".95"/>';}}
+  var lock=earned?'':'<circle cx="75" cy="60" r="11" fill="#2e2e34"/><text x="75" y="64.5" font-size="12" text-anchor="middle">🔒</text>';
+  var sparkle=(earned&&(e.tier==='platinum'||e.tier==='gold'))?'<text x="70" y="24" font-size="12">✨</text>':'';
+  return '<svg viewBox="0 0 100 100" width="'+size+'" height="'+size+'" style="display:block;filter:'+(earned?'drop-shadow(0 4px 11px rgba(0,0,0,.24))':'grayscale(.85)')+';opacity:'+(earned?1:.55)+'">'
+    +'<defs><radialGradient id="mg'+uid+'" cx="44%" cy="30%" r="72%"><stop offset="0" stop-color="'+A+'"/><stop offset="1" stop-color="'+B+'"/></radialGradient></defs>'
+    +'<g transform="translate(50,42)"><path d="'+starPath(0,0,44,20,12)+'" fill="'+RING+'"/><path d="'+starPath(0,0,40,23,12,0.26)+'" fill="'+RIM+'" opacity=".55"/></g>'
+    +'<path d="M33 66 L67 66 L67 91 L50 83 L33 91 Z" fill="'+B+'"/><path d="M33 66 L67 66 L67 71 L33 71 Z" fill="'+RIM+'"/>'
+    +'<circle cx="50" cy="42" r="31" fill="'+RIM+'"/>'
+    +'<circle cx="50" cy="42" r="28" fill="url(#mg'+uid+')" stroke="'+RIM+'" stroke-width="1.2"/>'
+    +'<circle cx="50" cy="42" r="20.5" fill="rgba(0,0,0,.13)"/>'
+    +'<ellipse cx="43" cy="31" rx="17" ry="9" fill="rgba(255,255,255,.34)"/>'
+    +'<text x="50" y="51" font-size="25" text-anchor="middle">'+(e.icon||'★')+'</text>'
+    +deco+sparkle+lock+'</svg>';
 }
 function paintEmblems(r){
   var host=$('profBody');if(!host)return;if(!r||!r.catalog){host.innerHTML='<div class="empty">Trophy case unavailable right now.</div>';return;}
   var cat=r.catalog;var selected=r.selected||[];var active=selected[0]||null;
   var activeE=active?cat.filter(function(e){return e.id===active;})[0]:null;
   var head='<div class="sec"><div style="display:flex;align-items:center;gap:18px;padding:18px;border:1px solid var(--line);border-radius:16px;background:linear-gradient(135deg,var(--panel),var(--panel2))">'
-    +(activeE?('<div class="emb-badge active" style="flex:0 0 auto">'+emblemBadge(activeE,true,86)+'</div>'):'<div style="width:86px;height:86px;border-radius:50%;border:2px dashed var(--line2);display:flex;align-items:center;justify-content:center;color:var(--ink3);font-size:26px;flex:0 0 auto">🏆</div>')
+    +(activeE?('<div class="emb-badge active" style="flex:0 0 auto">'+emblemBadge(activeE,true,86,initials((r&&r.name)||NAME))+'</div>'):'<div style="width:86px;height:86px;border-radius:50%;border:2px dashed var(--line2);display:flex;align-items:center;justify-content:center;color:var(--ink3);font-size:26px;flex:0 0 auto">🏆</div>')
     +'<div style="min-width:0"><div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--ink3)">Active Emblem</div><div style="font-weight:800;font-size:17px;margin-top:2px">'+embEsc(activeE?activeE.name:'None selected')+'</div><div style="font-size:12.5px;color:var(--ink3)">'+embEsc(activeE?activeE.desc:'Tap an unlocked emblem below to set your calling card.')+'</div><div style="font-size:12.5px;color:var(--accent);font-weight:800;margin-top:6px">'+r.earned_count+' of '+r.total+' unlocked</div></div></div></div>';
   var cats=[];cat.forEach(function(e){if(cats.indexOf(e.cat)<0)cats.push(e.cat);});
   var grid=cats.map(function(c){
@@ -925,7 +935,7 @@ function paintProfile(p){
   var full=((p.first_name||'')+' '+(p.last_name||'')).trim()||NAME;
   var av=p.photo?('<img src="'+esc(p.photo)+'" style="width:100%;height:100%;object-fit:cover">'):esc(initials(full));
   var actBadge='';
-  if(EMBDATA&&EMBDATA.selected&&EMBDATA.selected.length&&EMBDATA.catalog){var _ae=EMBDATA.catalog.filter(function(x){return x.id===EMBDATA.selected[0];})[0];if(_ae)actBadge='<div title="'+esc(_ae.name)+' — your active emblem" style="flex:0 0 auto;cursor:pointer" onclick="setProfSub(\'emblems\')">'+emblemBadge(_ae,true,58)+'</div>';}
+  if(EMBDATA&&EMBDATA.selected&&EMBDATA.selected.length&&EMBDATA.catalog){var _ae=EMBDATA.catalog.filter(function(x){return x.id===EMBDATA.selected[0];})[0];if(_ae)actBadge='<div title="'+esc(_ae.name)+' — your active emblem" style="flex:0 0 auto;cursor:pointer" onclick="setProfSub(\'emblems\')">'+emblemBadge(_ae,true,58,initials(full))+'</div>';}
   var h='<div class="sec"><div style="display:flex;align-items:center;gap:16px;padding:16px;border:1px solid var(--line);border-radius:14px;background:var(--panel)"><div style="width:74px;height:74px;border-radius:50%;overflow:hidden;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:24px;flex:0 0 auto">'+av+'</div><div style="flex:1;min-width:140px"><div style="font-weight:800;font-size:17px">'+esc(full)+'</div><div style="font-size:12.5px;color:var(--ink3)">'+esc(p.title||(me?roleLabel(me.role):''))+'</div><label style="display:inline-block;margin-top:8px;font-size:12.5px;font-weight:700;color:var(--accent);cursor:pointer">📷 Upload photo<input type="file" accept="image/*" style="display:none" onchange="uploadPhoto(this)"></label></div>'+actBadge+'</div></div>';
   h+='<div class="sec"><div class="sech"><h2>Personal details</h2></div><div style="padding:16px;border:1px solid var(--line);border-radius:14px;background:var(--panel)">'+
     '<div style="display:flex;gap:10px;flex-wrap:wrap"><div style="flex:1;min-width:150px"><label style="'+_LST+'">First name</label><input id="pf_first" style="'+_IST+'" value="'+esc(p.first_name||'')+'"></div><div style="flex:1;min-width:150px"><label style="'+_LST+'">Last name</label><input id="pf_last" style="'+_IST+'" value="'+esc(p.last_name||'')+'"></div></div>'+
