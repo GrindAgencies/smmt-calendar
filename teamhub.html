@@ -87,6 +87,7 @@ body.drawer .scrim{display:block;}
 .mhead{display:flex;align-items:baseline;gap:8px;}
 .mhead .mn{font-weight:800;font-size:13.5px;cursor:pointer;}
 .mhead .mc{font-size:10.5px;font-weight:700;color:var(--accent);background:var(--accent-soft);padding:1px 6px;border-radius:6px;}
+.mn-emb{display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;border-radius:50%;font-size:10px;line-height:1;vertical-align:middle;box-shadow:0 1px 2px rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.6);}
 .mhead .mt{font-size:11px;color:var(--ink3);}
 .mtext{font-size:14px;line-height:1.5;color:var(--ink);white-space:pre-wrap;word-break:break-word;}
 .mtext .men{color:var(--accent);font-weight:700;background:var(--accent-soft);border-radius:5px;padding:0 3px;}
@@ -238,7 +239,11 @@ body.drawer .scrim{display:block;}
 <script>
 var HUB="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/hub-api";
 var ACC={mod:false,role:'agent',licensed:false},MODTOKEN='';
-var AVATARS={};
+var AVATARS={},EMB={};
+var EMBAPI="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/emblem-api";
+var EMBTIER={bronze:'#c07f3a',silver:'#aab0bd',gold:'#e6c25a',platinum:'#a9c0e0',rank:'#7c8bff'};
+function miniEmb(code){var e=EMB[(code||'').toUpperCase()];if(!e||!e.icon)return '';var bg=EMBTIER[e.tier]||'#e6c25a';return '<span class="mn-emb" style="background:radial-gradient(circle at 38% 28%,rgba(255,255,255,.75),'+bg+')" title="Active emblem">'+e.icon+'</span>';}
+function loadEmblems(){fetch(EMBAPI,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'all_active'})}).then(function(r){return r.json();}).then(function(r){if(r&&r.emblems){var o={};Object.keys(r.emblems).forEach(function(k){o[k.toUpperCase()]=r.emblems[k];});EMB=o;if(typeof renderMsgs==='function')renderMsgs(false);}}).catch(function(){});}
 var BOT={ai:"<svg viewBox='0 0 40 40' style='width:100%;height:100%;border-radius:50%'><circle cx='20' cy='20' r='20' fill='#f7d94a'/><path d='M0 29 q20 9 40 0 v11 h-40 z' fill='#4a76b8'/><path d='M17 40 v-9 h6 v9' fill='#3a5f9e'/><path d='M18 5 q4 -4 4 1 q0 3 -3 2' stroke='#5a4a2a' stroke-width='1.5' fill='none' stroke-linecap='round'/><rect x='3' y='15.5' width='34' height='4' fill='#3b3b3b'/><circle cx='13.5' cy='17.5' r='6' fill='#d7dbe0' stroke='#3b3b3b' stroke-width='2'/><circle cx='26.5' cy='17.5' r='6' fill='#d7dbe0' stroke='#3b3b3b' stroke-width='2'/><circle cx='13.5' cy='17.5' r='3' fill='#fff'/><circle cx='26.5' cy='17.5' r='3' fill='#fff'/><circle cx='13.8' cy='17.5' r='1.7' fill='#2f8f4e'/><circle cx='26.8' cy='17.5' r='1.7' fill='#4b3a26'/><path d='M14 25 q6 5 12 0 z' fill='#7a3b2a'/></svg>",recognition:"<svg viewBox='0 0 40 40' style='width:100%;height:100%;border-radius:50%'><circle cx='20' cy='20' r='20' fill='#f7d94a'/><path d='M0 29 q20 9 40 0 v11 h-40 z' fill='#4a76b8'/><path d='M17 40 v-9 h6 v9' fill='#3a5f9e'/><path d='M13 5 l1.5 -4 M20 4 l0 -4.5 M27 5 l-1.5 -4' stroke='#5a4a2a' stroke-width='1.4' stroke-linecap='round'/><rect x='3' y='15.5' width='34' height='4' fill='#3b3b3b'/><circle cx='13.5' cy='17.5' r='6' fill='#d7dbe0' stroke='#3b3b3b' stroke-width='2'/><circle cx='26.5' cy='17.5' r='6' fill='#d7dbe0' stroke='#3b3b3b' stroke-width='2'/><circle cx='13.5' cy='17.5' r='3' fill='#fff'/><circle cx='26.5' cy='17.5' r='3' fill='#fff'/><circle cx='13.8' cy='17.5' r='1.6' fill='#4b3a26'/><circle cx='26.8' cy='17.5' r='1.6' fill='#4b3a26'/><path d='M14 26 q6 3.5 12 0' stroke='#6b5836' stroke-width='1.7' fill='none' stroke-linecap='round'/></svg>",announce:"<svg viewBox='0 0 40 40' style='width:100%;height:100%;border-radius:50%'><circle cx='20' cy='20' r='20' fill='#f7d94a'/><path d='M0 29 q20 9 40 0 v11 h-40 z' fill='#4a76b8'/><path d='M17 40 v-9 h6 v9' fill='#3a5f9e'/><path d='M11 6 q9 -5 18 0' stroke='#5a4a2a' stroke-width='2' fill='none' stroke-linecap='round'/><rect x='3' y='16' width='34' height='4' fill='#3b3b3b'/><circle cx='20' cy='18' r='7.5' fill='#d7dbe0' stroke='#3b3b3b' stroke-width='2.2'/><circle cx='20' cy='18' r='3.6' fill='#fff'/><circle cx='20.4' cy='18' r='1.9' fill='#4b3a26'/><path d='M15 27 h10' stroke='#6b5836' stroke-width='1.7' fill='none' stroke-linecap='round'/></svg>"};
 function avatarInner(code,name,kind){if(kind==='coach'||code==='KYLE')return '🐕';if(kind==='ai')return BOT.ai;if(kind==='recognition')return BOT.recognition;if(kind==='announce')return BOT.announce;if(AVATARS[code])return '<img src="'+AVATARS[code]+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';return initials(name);}
 var TA="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/tracker-api";
@@ -333,7 +338,7 @@ function renderMsgs(scroll){
     var cont=prev&&prev.author_code===m.author_code&&m.kind==='text'&&prev.kind==='text'&&(new Date(m.created_at)-new Date(prev.created_at)<360000);
     prev=m;
     var av='<div class="mav" onclick="openProfile(\''+m.author_code+'\')">'+avatarInner(m.author_code,m.author_name,m.kind)+'</div>';
-    var isBot=(m.kind==='ai'||m.kind==='recognition'||m.kind==='announce'||m.kind==='coach');var pname=isBot?(m.kind==='ai'?'Bob':(m.kind==='recognition'?'Kevin':(m.kind==='coach'?'Kyle':'Stuart'))):(m.author_name||'—');var tag=isBot?'<span class="mc" style="background:var(--gold-soft);color:var(--gold)">BOT</span>':'<span class="mc">'+esc(m.author_code||'')+'</span>';var head=cont?'':'<div class="mhead"><span class="mn" onclick="openProfile(\''+m.author_code+'\')">'+esc(pname)+'</span>'+tag+'<span class="mt">'+tstr(m.created_at)+(m.edited?' · edited':'')+'</span></div>';
+    var isBot=(m.kind==='ai'||m.kind==='recognition'||m.kind==='announce'||m.kind==='coach');var pname=isBot?(m.kind==='ai'?'Bob':(m.kind==='recognition'?'Kevin':(m.kind==='coach'?'Kyle':'Stuart'))):(m.author_name||'—');var tag=isBot?'<span class="mc" style="background:var(--gold-soft);color:var(--gold)">BOT</span>':'<span class="mc">'+esc(m.author_code||'')+'</span>';var head=cont?'':'<div class="mhead"><span class="mn" onclick="openProfile(\''+m.author_code+'\')">'+esc(pname)+'</span>'+(isBot?'':miniEmb(m.author_code))+tag+'<span class="mt">'+tstr(m.created_at)+(m.edited?' · edited':'')+'</span></div>';
     var inner;
     if(m.deleted){inner='<div class="mtext del">message deleted</div>';}
     else if(m.kind==='recognition'){inner='<div class="rcard"><div class="rt">🎉 Kevin · Recognition</div><div class="rb">'+linkify(m.body)+'</div></div>';}
@@ -466,7 +471,7 @@ function heartbeat(){var st=(Date.now()-lastActivity>600000)?'away':'active';if(
   if(!CODE){location.href='index.html';return;}
   MEMBERS[CODE]=NAME;
   h({action:'hub_access',code:CODE}).then(function(r){if(r&&r.access){ACC=r.access;if(ACC.mod)$('modBtn').textContent='🛡️';}});
-  loadChannels();renderHead();loadMsgs(true);heartbeat();loadAvatars();loadRoster();
+  loadChannels();renderHead();loadMsgs(true);heartbeat();loadAvatars();loadEmblems();loadRoster();
   // roster for DMs + mentions
   fetch(TA,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'team',leader:BASESHOP_LEADER})}).then(function(r){return r.json();}).then(function(d){(d&&d.agents||[]).forEach(function(a){var nm=((a.first_name||'')+' '+(a.last_name||'')).trim();if(a.code&&nm)MEMBERS[a.code]=nm;});renderRooms();});
   POLL=setInterval(function(){loadMsgs(false);},4000);
