@@ -88,6 +88,19 @@ a{color:inherit;text-decoration:none;}.hide{display:none!important;}
 .tchip .cnt{font-size:11px;color:var(--ink3);margin-left:6px;font-weight:600;}
 .tchip.on .cnt{color:rgba(255,255,255,.8);}
 .empty{color:var(--ink3);font-size:14px;padding:18px;text-align:center;border:1px dashed var(--line2);border-radius:14px;}
+.psub{border:none;background:none;padding:8px 15px;border-radius:9px;font-size:13px;font-weight:700;color:var(--ink2);font-family:inherit;cursor:pointer;transition:.15s;}
+.psub.on{background:var(--accent);color:#fff;}
+.emb-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(116px,1fr));gap:12px;}
+.emb-cell{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding:12px 8px;border:1px solid var(--line);border-radius:16px;background:var(--panel);transition:transform .18s,box-shadow .18s,border-color .18s;cursor:pointer;}
+.emb-cell:hover{transform:translateY(-3px);box-shadow:0 8px 22px rgba(0,0,0,.10);border-color:var(--line2);}
+.emb-cell:not(.earned){background:var(--panel2);}
+.emb-badge{position:relative;line-height:0;}
+.emb-badge.active::after{content:"";position:absolute;inset:-5px;border-radius:50%;border:2px solid var(--gold);box-shadow:0 0 14px rgba(201,154,46,.5);animation:embglow 2.2s ease-in-out infinite;}
+@keyframes embglow{0%,100%{opacity:.6;}50%{opacity:1;}}
+.emb-name{font-size:12px;font-weight:800;line-height:1.15;}
+.emb-desc{font-size:10.5px;color:var(--ink3);font-weight:600;line-height:1.2;}
+.emb-cell.earned .emb-desc{color:var(--accent);}
+@media (prefers-reduced-motion:reduce){.emb-badge.active::after{animation:none;}}
 .catrow{display:flex;gap:9px;flex-wrap:wrap;}
 .cat{border:1px solid var(--line2);background:var(--panel);border-radius:12px;padding:10px 15px;font-weight:600;font-size:13.5px;color:var(--ink2);}
 .cat.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);}
@@ -417,6 +430,8 @@ function openCalEvent(id){
 }
 var CAL="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/cal-feed";
 var PA="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/profile-api";
+var EM="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/emblem-api";
+var PROFSUB='profile',EMBDATA=null,PROFILE_P=null;
 function openProfile(){setTab('avail');}
 function setProfileChip(){var a=$('profileAv'),n=$('profileName');if(a)a.textContent=initials(NAME);if(n)n.textContent=(NAME||'').split(' ')[0]||'Profile';}
 function saveProfile(){
@@ -838,14 +853,80 @@ function renderMe(){var t=todayStr();
 }
 // === My Availability tab (trainer self-manage) ===
 function renderAvail(){
-  $('view').innerHTML='<div class="hero" style="background:linear-gradient(135deg,#34c759,#5b6cff)"><h1>Your Profile</h1><p>'+esc(NAME)+'</p></div><div id="profBody"><div class="spin">Loading your profile…</div></div>';
-  fetch(PA,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'get_profile',code:CODE,current_name:NAME})}).then(function(r){return r.json();}).then(function(r){paintProfile((r&&r.profile)||{});}).catch(function(){paintProfile({});});
+  $('view').innerHTML='<div class="hero" style="background:linear-gradient(135deg,#34c759,#5b6cff)"><h1>Your Profile</h1><p>'+esc(NAME)+'</p></div>'
+    +'<div style="display:inline-flex;background:var(--panel);border:1px solid var(--line2);border-radius:11px;padding:3px;gap:2px;margin:0 0 16px"><button id="psub_profile" class="psub on" onclick="setProfSub(\'profile\')">Profile</button><button id="psub_emblems" class="psub" onclick="setProfSub(\'emblems\')">🏆 Emblems</button></div>'
+    +'<div id="profBody"><div class="spin">Loading your profile…</div></div>';
+  PROFSUB='profile';
+  fetch(PA,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'get_profile',code:CODE,current_name:NAME})}).then(function(r){return r.json();}).then(function(r){PROFILE_P=(r&&r.profile)||{};if(PROFSUB==='profile')paintProfile(PROFILE_P);}).catch(function(){PROFILE_P={};if(PROFSUB==='profile')paintProfile(PROFILE_P);});
+  loadEmblems(function(){if(PROFSUB==='profile'&&PROFILE_P)paintProfile(PROFILE_P);});
+}
+function setProfSub(s){PROFSUB=s;var a=$('psub_profile'),b=$('psub_emblems');if(a)a.classList.toggle('on',s==='profile');if(b)b.classList.toggle('on',s==='emblems');if(s==='emblems'){if(EMBDATA)paintEmblems(EMBDATA);else{var pb=$('profBody');if(pb)pb.innerHTML='<div class="spin">Loading your trophy case…</div>';loadEmblems(function(){paintEmblems(EMBDATA);});}}else{paintProfile(PROFILE_P||{});}}
+function loadEmblems(cb){fetch(EM,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'get',code:CODE})}).then(function(r){return r.json();}).then(function(r){if(r&&r.ok)EMBDATA=r;cb&&cb();}).catch(function(){cb&&cb();});}
+var TIERMETAL={bronze:{a:'#e8a869',b:'#a15e28',rim:'#7a4718',ring:'#5e3712'},silver:{a:'#f2f4f8',b:'#9aa1b2',rim:'#767d90',ring:'#565b6b'},gold:{a:'#f7dc78',b:'#c99a2e',rim:'#a67c1e',ring:'#7d5c15'},platinum:{a:'#eaf4ff',b:'#9fb6da',rim:'#7f97bd',ring:'#5f7196'},rank:{a:'#b9c2ff',b:'#5b6cff',rim:'#4f46e5',ring:'#3a34ad'}};
+function starburst(rIn,rOut,pts){var p='';for(var i=0;i<pts*2;i++){var ang=Math.PI*i/pts-Math.PI/2;var r=(i%2===0)?rOut:rIn;p+=(i===0?'M':'L')+(Math.cos(ang)*r).toFixed(1)+' '+(Math.sin(ang)*r).toFixed(1);}return p+'Z';}
+function embEsc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+function emblemBadge(e,earned,size){
+  size=size||90;var uid=(e.id||'x')+Math.floor(Math.random()*1e6);var m=TIERMETAL[e.tier]||TIERMETAL.gold;
+  var A=earned?m.a:'#d2d2d8',B=earned?m.b:'#9a9aa2',RIM=earned?m.rim:'#7d7d86',RING=earned?m.ring:'#5f5f67';
+  var tierN=({bronze:1,silver:2,gold:3,platinum:4,rank:3})[e.tier]||3;
+  var pips='';for(var i=0;i<tierN;i++){var px=50+(i-(tierN-1)/2)*10;pips+='<circle cx="'+px.toFixed(1)+'" cy="88" r="2.5" fill="'+RIM+'"/>';}
+  var lock=earned?'':'<circle cx="74" cy="72" r="11" fill="#2e2e34"/><text x="74" y="76.5" font-size="12" text-anchor="middle">🔒</text>';
+  return '<svg viewBox="0 0 100 100" width="'+size+'" height="'+size+'" style="display:block;filter:'+(earned?'drop-shadow(0 4px 10px rgba(0,0,0,.20))':'grayscale(.85)')+';opacity:'+(earned?1:.55)+'">'
+    +'<defs><radialGradient id="mg'+uid+'" cx="45%" cy="32%" r="72%"><stop offset="0" stop-color="'+A+'"/><stop offset="1" stop-color="'+B+'"/></radialGradient></defs>'
+    +'<g transform="translate(50,48)"><path d="'+starburst(30,45,16)+'" fill="'+RING+'"/></g>'
+    +'<circle cx="50" cy="48" r="37" fill="'+RIM+'"/>'
+    +'<circle cx="50" cy="48" r="34" fill="url(#mg'+uid+')" stroke="'+RIM+'" stroke-width="1.2"/>'
+    +'<circle cx="50" cy="48" r="25.5" fill="rgba(0,0,0,.13)"/>'
+    +'<ellipse cx="42" cy="34" rx="20" ry="11" fill="rgba(255,255,255,.32)"/>'
+    +'<text x="50" y="59" font-size="29" text-anchor="middle">'+(e.icon||'★')+'</text>'
+    +pips+lock+'</svg>';
+}
+function paintEmblems(r){
+  var host=$('profBody');if(!host)return;if(!r||!r.catalog){host.innerHTML='<div class="empty">Trophy case unavailable right now.</div>';return;}
+  var cat=r.catalog;var selected=r.selected||[];var active=selected[0]||null;
+  var activeE=active?cat.filter(function(e){return e.id===active;})[0]:null;
+  var head='<div class="sec"><div style="display:flex;align-items:center;gap:18px;padding:18px;border:1px solid var(--line);border-radius:16px;background:linear-gradient(135deg,var(--panel),var(--panel2))">'
+    +(activeE?('<div class="emb-badge active" style="flex:0 0 auto">'+emblemBadge(activeE,true,86)+'</div>'):'<div style="width:86px;height:86px;border-radius:50%;border:2px dashed var(--line2);display:flex;align-items:center;justify-content:center;color:var(--ink3);font-size:26px;flex:0 0 auto">🏆</div>')
+    +'<div style="min-width:0"><div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--ink3)">Active Emblem</div><div style="font-weight:800;font-size:17px;margin-top:2px">'+embEsc(activeE?activeE.name:'None selected')+'</div><div style="font-size:12.5px;color:var(--ink3)">'+embEsc(activeE?activeE.desc:'Tap an unlocked emblem below to set your calling card.')+'</div><div style="font-size:12.5px;color:var(--accent);font-weight:800;margin-top:6px">'+r.earned_count+' of '+r.total+' unlocked</div></div></div></div>';
+  var cats=[];cat.forEach(function(e){if(cats.indexOf(e.cat)<0)cats.push(e.cat);});
+  var grid=cats.map(function(c){
+    var earnedN=cat.filter(function(e){return e.cat===c&&e.earned;}).length;var totN=cat.filter(function(e){return e.cat===c;}).length;
+    var items=cat.filter(function(e){return e.cat===c;}).map(function(e){
+      var isActive=(active===e.id);
+      var sub=e.earned?(isActive?'★ Active':'Unlocked'):'🔒 Locked';
+      return '<div class="emb-cell'+(e.earned?' earned':'')+'" onclick="openEmblemDetail(\''+e.id+'\')"><div class="emb-badge'+(isActive?' active':'')+'">'+emblemBadge(e,e.earned,72)+'</div><div class="emb-name">'+embEsc(e.name)+'</div><div class="emb-desc">'+sub+'</div></div>';
+    }).join('');
+    return '<div class="sec"><div class="sech"><h2>'+embEsc(c)+'</h2><span style="font-size:12px;color:var(--ink3);font-weight:700">'+earnedN+'/'+totN+'</span></div><div class="emb-grid">'+items+'</div></div>';
+  }).join('');
+  host.innerHTML=head+grid;
+}
+function setActiveEmblem(id){
+  var cur=(EMBDATA&&EMBDATA.selected)?EMBDATA.selected.slice():[];
+  var ids=(cur[0]===id)?[]:[id];
+  fetch(EM,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'select',code:CODE,ids:ids})}).then(function(r){return r.json();}).then(function(r){if(!r||!r.ok){toast('Could not update');return;}if(EMBDATA)EMBDATA.selected=r.selected||[];toast(ids.length?'Active emblem set 🏆':'Active emblem cleared');paintEmblems(EMBDATA);}).catch(function(){toast('Network error');});
+}
+function money2c(n){n=Number(n)||0;if(n>=1e6)return '$'+(n/1e6).toFixed(2)+'M';if(n>=1e3)return '$'+(Math.round(n/100)/10)+'K';return '$'+Math.round(n);}
+function embProgress(id,s){s=s||{};var M={cash_100k:[s.cashflow,100000,'m'],cash_250k:[s.cashflow,250000,'m'],cash_500k:[s.cashflow,500000,'m'],cash_1m:[s.cashflow,1000000,'m'],team_10:[s.team_active,10],team_25:[s.team_active,25],team_50:[s.team_active,50],team_100:[s.team_active,100],md_1:[s.team_mds,1],md_3:[s.team_mds,3],md_5:[s.team_mds,5],champ_1:[s.champ,1],champ_5:[s.champ,5],champ_10:[s.champ,10],tenure_3mo:[s.tenure_days,90,'d'],tenure_6mo:[s.tenure_days,182,'d'],tenure_1yr:[s.tenure_days,365,'d'],tenure_2yr:[s.tenure_days,730,'d'],tenure_3yr:[s.tenure_days,1095,'d'],tenure_5yr:[s.tenure_days,1825,'d']};var x=M[id];if(!x)return null;return {cur:Number(x[0])||0,tgt:x[1],money:x[2]==='m',days:x[2]==='d'};}
+function openEmblemDetail(id){
+  if(!EMBDATA||!EMBDATA.catalog)return;var e=EMBDATA.catalog.filter(function(x){return x.id===id;})[0];if(!e)return;
+  var pr=embProgress(id,EMBDATA.stats);var bar='';
+  if(pr){var pct=Math.max(0,Math.min(100,Math.round((pr.cur/pr.tgt)*100)));
+    var cT=pr.money?money2c(pr.cur):(pr.days?(pr.cur+'d'):pr.cur),tT=pr.money?money2c(pr.tgt):(pr.days?(pr.tgt+'d'):pr.tgt);
+    bar='<div style="margin-top:14px"><div style="display:flex;justify-content:space-between;font-size:12px;font-weight:800;color:var(--ink2);margin-bottom:5px"><span>'+cT+'</span><span>'+tT+'</span></div><div style="height:9px;border-radius:999px;background:var(--line);overflow:hidden"><span style="display:block;height:100%;width:'+pct+'%;background:'+(e.earned?'linear-gradient(90deg,var(--gold),#e6c874)':'linear-gradient(90deg,var(--accent),#8b9bff)')+';border-radius:999px"></span></div><div style="font-size:12px;font-weight:800;margin-top:6px;color:'+(e.earned?'var(--green)':'var(--ink3)')+'">'+(e.earned?'✓ Unlocked':(pct+'% there'))+'</div></div>';}
+  else bar='<div style="font-size:12px;font-weight:800;margin-top:12px;color:'+(e.earned?'var(--green)':'var(--ink3)')+'">'+(e.earned?'✓ Unlocked':'🔒 Not yet earned')+'</div>';
+  $('bkDrawer').innerHTML='<div style="text-align:center;line-height:0">'+emblemBadge(e,e.earned,124)+'</div>'
+    +'<h3 style="text-align:center;margin:14px 0 2px">'+embEsc(e.name)+'</h3><p class="dsub" style="text-align:center">'+embEsc(e.cat)+' · Emblem</p>'
+    +'<div style="padding:15px;border:1px solid var(--line);border-radius:12px;background:var(--panel);margin-top:8px"><div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3)">How to earn</div><div style="font-size:14px;font-weight:600;margin-top:4px">'+embEsc(e.desc)+'</div>'+bar+'</div>'
+    +'<div class="dact" style="margin-top:18px">'+(e.earned?'<button class="go" onclick="setActiveEmblem(\''+e.id+'\');$(\'bkOv\').classList.remove(\'on\')">'+((EMBDATA.selected||[])[0]===e.id?'Remove as active':'Set as active')+'</button>':'<button class="go" style="background:var(--panel2);color:var(--ink2)" onclick="$(\'bkOv\').classList.remove(\'on\')">Close</button>')+'</div>';
+  $('bkOv').classList.add('on');
 }
 function paintProfile(p){
   var me=myTrainerProfile();
   var full=((p.first_name||'')+' '+(p.last_name||'')).trim()||NAME;
   var av=p.photo?('<img src="'+esc(p.photo)+'" style="width:100%;height:100%;object-fit:cover">'):esc(initials(full));
-  var h='<div class="sec"><div style="display:flex;align-items:center;gap:16px;padding:16px;border:1px solid var(--line);border-radius:14px;background:var(--panel)"><div style="width:74px;height:74px;border-radius:50%;overflow:hidden;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:24px;flex:0 0 auto">'+av+'</div><div style="flex:1;min-width:140px"><div style="font-weight:800;font-size:17px">'+esc(full)+'</div><div style="font-size:12.5px;color:var(--ink3)">'+esc(p.title||(me?roleLabel(me.role):''))+'</div><label style="display:inline-block;margin-top:8px;font-size:12.5px;font-weight:700;color:var(--accent);cursor:pointer">📷 Upload photo<input type="file" accept="image/*" style="display:none" onchange="uploadPhoto(this)"></label></div></div></div>';
+  var actBadge='';
+  if(EMBDATA&&EMBDATA.selected&&EMBDATA.selected.length&&EMBDATA.catalog){var _ae=EMBDATA.catalog.filter(function(x){return x.id===EMBDATA.selected[0];})[0];if(_ae)actBadge='<div title="'+esc(_ae.name)+' — your active emblem" style="flex:0 0 auto;cursor:pointer" onclick="setProfSub(\'emblems\')">'+emblemBadge(_ae,true,58)+'</div>';}
+  var h='<div class="sec"><div style="display:flex;align-items:center;gap:16px;padding:16px;border:1px solid var(--line);border-radius:14px;background:var(--panel)"><div style="width:74px;height:74px;border-radius:50%;overflow:hidden;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:24px;flex:0 0 auto">'+av+'</div><div style="flex:1;min-width:140px"><div style="font-weight:800;font-size:17px">'+esc(full)+'</div><div style="font-size:12.5px;color:var(--ink3)">'+esc(p.title||(me?roleLabel(me.role):''))+'</div><label style="display:inline-block;margin-top:8px;font-size:12.5px;font-weight:700;color:var(--accent);cursor:pointer">📷 Upload photo<input type="file" accept="image/*" style="display:none" onchange="uploadPhoto(this)"></label></div>'+actBadge+'</div></div>';
   h+='<div class="sec"><div class="sech"><h2>Personal details</h2></div><div style="padding:16px;border:1px solid var(--line);border-radius:14px;background:var(--panel)">'+
     '<div style="display:flex;gap:10px;flex-wrap:wrap"><div style="flex:1;min-width:150px"><label style="'+_LST+'">First name</label><input id="pf_first" style="'+_IST+'" value="'+esc(p.first_name||'')+'"></div><div style="flex:1;min-width:150px"><label style="'+_LST+'">Last name</label><input id="pf_last" style="'+_IST+'" value="'+esc(p.last_name||'')+'"></div></div>'+
     '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px"><div style="flex:1;min-width:150px"><label style="'+_LST+'">Mobile phone <span style="color:var(--ink3);font-weight:400">· your SMS source</span></label><input id="pf_phone" style="'+_IST+'" value="'+esc(p.phone||'')+'" placeholder="(555) 555-1234"></div><div style="flex:1;min-width:150px"><label style="'+_LST+'">Email / Gmail <span style="color:var(--ink3);font-weight:400">· your email source</span></label><input id="pf_email" type="email" style="'+_IST+'" value="'+esc(p.email||'')+'" placeholder="you@gmail.com"></div></div>'+
