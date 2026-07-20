@@ -456,12 +456,22 @@ function uploadPhoto(input){var f=input.files&&input.files[0];if(!f)return;if(f.
 function pad2(n){return (n<10?'0':'')+n;}
 function hourToCanon(hh){var ap=hh>=12?'PM':'AM';var h12=hh%12;if(h12===0)h12=12;return h12+':00 '+ap;}
 function canonToHour(t){var m=/(\d+):\d+\s*(AM|PM)/i.exec(t||'');if(!m)return -1;var h=(+m[1])%12;if(/PM/i.test(m[2]))h+=12;return h;}
+function minsToCanon(t){var h=Math.floor(t/60),mm=t%60;var ap=h>=12?'PM':'AM';var hh=h%12;if(hh===0)hh=12;return hh+':'+(mm<10?'0'+mm:mm)+' '+ap;}
+function timeOpts(fromMin,toMin,selMin){var o='';for(var t=fromMin;t<=toMin;t+=30){o+='<option value="'+t+'"'+(t===selMin?' selected':'')+'>'+minsToCanon(t)+'</option>';}return o;}
+function avRowToggle(sel){var row=sel.parentNode;while(row&&(!row.className||row.className.indexOf('avrow')<0))row=row.parentNode;if(!row)return;var on=sel.value==='1';[].forEach.call(row.querySelectorAll('select[data-k="start"],select[data-k="end"]'),function(s){s.disabled=!on;});}
 function viewerTz(){try{return Intl.DateTimeFormat().resolvedOptions().timeZone||'America/Los_Angeles';}catch(e){return 'America/Los_Angeles';}}
 function offsetVsPT(){try{var n=new Date();var pt=new Date(n.toLocaleString('en-US',{timeZone:'America/Los_Angeles'}));var loc=new Date(n.toLocaleString('en-US',{timeZone:viewerTz()}));return Math.round((loc-pt)/3600000);}catch(e){return 0;}}
 function ptToLocalLabel(hh){var off=offsetVsPT();var lh=((hh+off)%24+24)%24;return pad2(lh)+':00';}
-function saveSlots(){var me=myTrainerProfile();if(!me)return;var slots={};
-  [].forEach.call(document.querySelectorAll('.hchip.on'),function(el){var d=el.getAttribute('data-day'),t=el.getAttribute('data-t');(slots[d]=slots[d]||[]).push(t);});
-  Object.keys(slots).forEach(function(d){slots[d].sort(function(a,b){return t2min(a)-t2min(b);});});
+function saveSlots(){var me=myTrainerProfile();if(!me)return;var slots={};var bad=false;
+  [].forEach.call(document.querySelectorAll('.avrow'),function(row){
+    var d=row.getAttribute('data-day');
+    var on=row.querySelector('select[data-k="on"]').value==='1';
+    if(!on){slots[d]=[];return;}
+    var st=+row.querySelector('select[data-k="start"]').value;
+    var en=+row.querySelector('select[data-k="end"]').value;
+    if(en<=st){bad=true;slots[d]=[];return;}
+    var arr=[];for(var t=st;t<en;t+=30)arr.push(minsToCanon(t));slots[d]=arr;});
+  if(bad)toast('Some days had end before start — those were left off.');
   availPost({slots:slots},'Availability saved');}
 function connectGoogle(){alert('Google connection activates once your Workspace OAuth app is live. Your email is saved — the moment that’s connected, your calendar syncs two-way and your booking emails send from your Gmail. (Being set up now.)');renderAvail();}
 var DASHVIEW='month',DASHMONTH=0,DASHDAY=null,COMPANY_EV=[];
@@ -964,10 +974,18 @@ function availabilityHtml(me){
   var bAfter=Number(me.buffer_after)||0;
   var locked=!!me.locked;
 
-  var HRS=[];for(var _h=6;_h<=21;_h++)HRS.push(_h);
-  var slotsHtml=DAYS.map(function(d){var sel=slots[d]||[];
-    var chips=HRS.map(function(hh){var canon=hourToCanon(hh);var on=sel.indexOf(canon)>=0;return '<button type="button" class="hchip'+(on?' on':'')+'" data-day="'+d+'" data-t="'+esc(canon)+'" onclick="this.classList.toggle(\'on\')">'+pad2(hh)+':00</button>';}).join('');
-    return '<div style="margin-bottom:11px"><div style="font-weight:700;font-size:13px;color:var(--ink2);margin-bottom:6px">'+d+'</div><div style="display:flex;flex-wrap:wrap;gap:6px">'+chips+'</div></div>';}).join('');
+  var _SELST="padding:8px 10px;border:1px solid var(--line2);border-radius:9px;background:var(--panel);color:var(--ink);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer";
+  var slotsHtml=DAYS.map(function(d){var sel=slots[d]||[];var on=sel.length>0;
+    var mins=sel.map(function(x){return t2min(x);});
+    var startMin=on&&mins.length?Math.min.apply(null,mins):540;
+    var endMin=on&&mins.length?(Math.max.apply(null,mins)+30):1020;
+    return '<div class="avrow" data-day="'+d+'" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:9px 0;border-bottom:1px solid var(--line)">'
+      +'<div style="width:42px;font-weight:800;font-size:13px">'+d+'</div>'
+      +'<select class="avsel" data-k="on" onchange="avRowToggle(this)" style="'+_SELST+'"><option value="1"'+(on?' selected':'')+'>Available</option><option value="0"'+(on?'':' selected')+'>Off</option></select>'
+      +'<select class="avsel" data-k="start" style="'+_SELST+'"'+(on?'':' disabled')+'>'+timeOpts(360,1230,startMin)+'</select>'
+      +'<span style="color:var(--ink3);font-size:12.5px">to</span>'
+      +'<select class="avsel" data-k="end" style="'+_SELST+'"'+(on?'':' disabled')+'>'+timeOpts(390,1260,endMin)+'</select>'
+      +'</div>';}).join('');
 
   var blackoutTags=blackouts.length?blackouts.map(function(d){return '<span style="display:inline-flex;align-items:center;gap:6px;background:var(--gold-soft);color:var(--gold);padding:6px 10px;border-radius:8px;font-size:12.5px;font-weight:600;margin:0 6px 6px 0">'+esc(d)+' <a onclick="removeBlackout(\''+esc(d)+'\')" style="cursor:pointer;color:var(--red);font-weight:800">✕</a></span>';}).join(''):'<span style="color:var(--ink3);font-size:13px">None.</span>';
 
@@ -984,7 +1002,7 @@ function availabilityHtml(me){
   }
 
   var _off=offsetVsPT();var _tzn=(_off===0)?'You’re on Pacific Time.':('You’re in '+esc(viewerTz().split("/").pop().replace(/_/g,' '))+' ('+(_off>0?'+':'')+_off+'h vs Pacific) — e.g. 09:00 PT = '+ptToLocalLabel(9)+' your time.');
-  var h='<div class="sec"><div class="sech"><h2>Weekly Availability</h2></div><div style="padding:16px;border:1px solid var(--line);border-radius:14px;background:var(--panel)"><div style="font-size:12.5px;color:var(--ink3);margin-bottom:4px">Tap the hours you’re available (24-hour, <b>Pacific Time</b>). No typing — just tap.</div><div style="font-size:11.5px;color:var(--accent);font-weight:600;margin-bottom:12px">'+_tzn+'</div>'+slotsHtml+'<button style="border:none;margin-top:8px;padding:9px 16px;border-radius:10px;font-weight:700;font-size:13px;background:var(--accent);color:#fff;cursor:pointer" onclick="saveSlots()">Save availability</button></div></div>';
+  var h='<div class="sec"><div class="sech"><h2>Weekly Availability</h2></div><div style="padding:16px;border:1px solid var(--line);border-radius:14px;background:var(--panel)"><div style="font-size:12.5px;color:var(--ink3);margin-bottom:4px">Set your available window for each day (<b>Pacific Time</b>). Pick a start and end — half-hour slots are supported. Choose <b>Off</b> for days you don’t take bookings.</div><div style="font-size:11.5px;color:var(--accent);font-weight:600;margin-bottom:12px">'+_tzn+'</div>'+slotsHtml+'<button style="border:none;margin-top:8px;padding:9px 16px;border-radius:10px;font-weight:700;font-size:13px;background:var(--accent);color:#fff;cursor:pointer" onclick="saveSlots()">Save availability</button></div></div>';
   h+='<div class="sec"><div class="sech"><h2>Blackout Dates</h2></div><div style="padding:16px;border:1px solid var(--line);border-radius:14px;background:var(--panel)"><div style="font-size:13px;color:var(--ink2);margin-bottom:10px">Specific days when you cannot take bookings.</div><div style="display:flex;flex-wrap:wrap;margin-bottom:12px">'+blackoutTags+'</div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input type="date" id="newBlackout" style="padding:8px 10px;border:1px solid var(--line2);border-radius:8px;background:var(--panel);color:var(--ink);font-size:13px"><button style="border:none;padding:9px 16px;border-radius:10px;font-weight:700;font-size:13px;background:var(--accent);color:#fff;cursor:pointer" onclick="addBlackout()">Add blackout date</button></div></div></div>';
   h+='<div class="sec"><div class="sech"><h2>Vacations</h2></div><div style="padding:16px;border:1px solid var(--line);border-radius:14px;background:var(--panel)"><div style="font-size:13px;color:var(--ink2);margin-bottom:10px">Date ranges when you\'re away.</div>'+vacationList+'<div style="display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap"><input type="date" id="vacStart" style="padding:8px 10px;border:1px solid var(--line2);border-radius:8px;background:var(--panel);color:var(--ink);font-size:13px"><span style="color:var(--ink3)">to</span><input type="date" id="vacEnd" style="padding:8px 10px;border:1px solid var(--line2);border-radius:8px;background:var(--panel);color:var(--ink);font-size:13px"><button style="border:none;padding:9px 16px;border-radius:10px;font-weight:700;font-size:13px;background:var(--accent);color:#fff;cursor:pointer" onclick="addVacation()">Add vacation</button></div></div></div>';
   h+='<div class="sec"><div class="sech"><h2>Buffer Times</h2></div><div style="padding:16px;border:1px solid var(--line);border-radius:14px;background:var(--panel)"><div style="font-size:13px;color:var(--ink2);margin-bottom:10px">Minutes to leave clear before and after each booking.</div><div style="display:flex;gap:18px;align-items:center;flex-wrap:wrap"><label style="font-size:13.5px;color:var(--ink2)">Before: <input id="bBefore" type="number" min="0" max="120" value="'+bBefore+'" style="width:70px;padding:7px 10px;border:1px solid var(--line2);border-radius:8px;background:var(--panel);color:var(--ink);font-size:13px;margin:0 6px"> min</label><label style="font-size:13.5px;color:var(--ink2)">After: <input id="bAfter" type="number" min="0" max="120" value="'+bAfter+'" style="width:70px;padding:7px 10px;border:1px solid var(--line2);border-radius:8px;background:var(--panel);color:var(--ink);font-size:13px;margin:0 6px"> min</label><button style="border:none;padding:9px 16px;border-radius:10px;font-weight:700;font-size:13px;background:var(--accent);color:#fff;cursor:pointer" onclick="saveBuffers()">Save buffers</button></div></div></div>';
