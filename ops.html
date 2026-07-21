@@ -38,6 +38,15 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);-web
 .sp{margin-left:auto}
 .iconbtn{width:36px;height:36px;border-radius:10px;border:1px solid var(--line2);background:var(--panel);color:var(--ink2);cursor:pointer;font-size:15px}
 .signout{border:1px solid var(--line2);background:var(--panel);color:var(--ink2);font-weight:700;font-size:13px;padding:8px 13px;border-radius:10px;cursor:pointer}
+.bell{position:relative}
+.bell .badge{position:absolute;top:-5px;right:-5px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:var(--red);color:#fff;font-size:10.5px;font-weight:800;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px var(--bg)}
+.bell.ring{animation:bellring .6s ease}
+@keyframes bellring{0%,100%{transform:rotate(0)}20%{transform:rotate(-16deg)}40%{transform:rotate(13deg)}60%{transform:rotate(-8deg)}80%{transform:rotate(4deg)}}
+.ntf{border:1px solid var(--line);border-radius:12px;padding:13px 14px;margin-bottom:10px;background:var(--panel2)}
+.ntf.new{border-color:var(--gold-dp);background:var(--goldsoft)}
+.ntf .nt{font-weight:800;font-size:14px}
+.ntf .nm{font-size:12.5px;color:var(--ink3);margin-top:4px;display:flex;gap:10px;flex-wrap:wrap}
+.ntf a.zoom{display:inline-block;margin-top:9px;font-size:12.5px;font-weight:800;color:#fff;background:var(--accent);padding:7px 13px;border-radius:9px;text-decoration:none}
 .wrap{max-width:1180px;margin:0 auto;padding:20px 22px 90px}
 .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px}
 .stat{border:1px solid var(--line);border-radius:14px;padding:15px;background:linear-gradient(135deg,var(--goldsoft),var(--panel));box-shadow:var(--shadow-sm)}
@@ -126,6 +135,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);-web
     <div><h1>Operations Tracker</h1><div class="who" id="whoLbl"></div></div>
     <span id="roleChip"></span>
     <span class="sp"></span>
+    <button class="iconbtn bell hide" id="bellBtn" onclick="openNotif()" title="Booking notifications">🔔<span class="badge hide" id="bellBadge">0</span></button>
     <button class="iconbtn" onclick="toggleTheme()" title="Theme">◐</button>
     <button class="signout" onclick="signOut()">Sign out</button>
   </div>
@@ -189,7 +199,46 @@ function showApp(){
     '<a class="tile" href="index.html"><div class="ti">🏆</div><div class="tt">Leaderboard</div><div class="td">Company standings</div></a>'+
     '<a class="tile" href="calendar.html"><div class="ti">🗓️</div><div class="tt">Scheduler</div><div class="td">Bookings & availability</div></a>'+
     '</div>'):'';
-  loadOverview();loadTracker();
+  loadOverview();loadTracker();setupNotif();
+}
+function prettyDate(d){if(!d)return '';var p=String(d).split('-');if(p.length<3)return d;var dt=new Date(Date.UTC(+p[0],+p[1]-1,+p[2]));return dt.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',timeZone:'UTC'});}
+
+/* ---- notifications: Operations bookings (bell) ---- */
+var NOTIF={list:[],notified:{}};
+function notifSeenKey(){return 'ops_notif_seen_'+(OPS?OPS.code:'x');}
+function notifSeen(){try{return localStorage.getItem(notifSeenKey())||'';}catch(e){return '';}}
+function setupNotif(){
+  var bell=$('bellBtn');
+  if(!canEdit()){if(bell)bell.classList.add('hide');return;}
+  if(bell)bell.classList.remove('hide');
+  try{if(window.Notification&&Notification.permission==='default')Notification.requestPermission();}catch(e){}
+  loadNotif();
+  if(window._ntfTimer)clearInterval(window._ntfTimer);
+  window._ntfTimer=setInterval(function(){if(!document.hidden)loadNotif();},60000);
+}
+function loadNotif(){
+  api(auth({action:'ops_bookings',code:OPS.code})).then(function(r){
+    if(!r||!r.ok)return;NOTIF.list=r.bookings||[];var seen=notifSeen();
+    var fresh=NOTIF.list.filter(function(b){return b.created_at&&(!seen||b.created_at>seen);});
+    var badge=$('bellBadge');if(!badge)return;
+    if(fresh.length){badge.textContent=fresh.length>9?'9+':String(fresh.length);badge.classList.remove('hide');var bl=$('bellBtn');if(bl){bl.classList.remove('ring');void bl.offsetWidth;bl.classList.add('ring');}}
+    else badge.classList.add('hide');
+    fresh.forEach(function(b){if(NOTIF.notified[b.id])return;NOTIF.notified[b.id]=1;
+      try{if(window.Notification&&Notification.permission==='granted')new Notification('New Operations booking',{body:(b.agent||'Someone')+' booked you — '+prettyDate(b.date)+' '+(b.time||'')+' PT'});}catch(e){}
+    });
+  }).catch(function(){});
+}
+function openNotif(){
+  var list=NOTIF.list;var seen=notifSeen();
+  var h='<div class="dhd"><div><h3>Booking notifications</h3><div class="sub">People who booked you for a Zoom</div></div><button class="x" onclick="closeDrawer()">✕</button></div><div class="dbody">';
+  if(!list.length)h+='<div class="empty">No bookings yet. When an agent books you from the Scheduler → Base Ops, it shows up here.</div>';
+  else h+=list.map(function(b){var isNew=b.created_at&&(!seen||b.created_at>seen);
+    return '<div class="ntf'+(isNew?' new':'')+'"><div class="nt">'+(isNew?'🔵 ':'')+esc(b.agent||'Someone')+' booked you</div><div class="nm"><span>📅 '+esc(prettyDate(b.date))+' · '+esc(b.time||'')+' PT</span><span>'+esc(b.category||'Operations')+'</span>'+(b.conf?('<span>'+esc(b.conf)+'</span>'):'')+'</div>'+(b.notes?('<div class="nm">“'+esc(b.notes)+'”</div>'):'')+(b.meeting_link?('<a class="zoom" href="'+esc(b.meeting_link)+'" target="_blank" rel="noopener">Join Zoom →</a>'):'')+'</div>';
+  }).join('');
+  h+='</div>';$('drawer').innerHTML=h;$('ov').classList.add('on');
+  var newest=list.reduce(function(m,b){return (b.created_at&&b.created_at>m)?b.created_at:m;},seen);
+  try{localStorage.setItem(notifSeenKey(),newest||new Date().toISOString());}catch(e){}
+  var badge=$('bellBadge');if(badge)badge.classList.add('hide');
 }
 
 /* ---- overview ---- */
