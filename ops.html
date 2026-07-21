@@ -57,7 +57,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);-web
 .addbtn{border:none;background:var(--accent);color:#fff;font-weight:800;font-size:13px;padding:10px 15px;border-radius:11px;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px}
 .resetcols{border:1px solid var(--line2);background:var(--panel);color:var(--ink3);font-weight:700;font-size:12px;padding:9px 12px;border-radius:10px;cursor:pointer;font-family:inherit}
 .tablewrap{border:1px solid var(--line);border-radius:15px;overflow:auto;max-height:72vh;background:var(--panel);box-shadow:var(--shadow-sm)}
-.ptable{width:100%;border-collapse:collapse;font-size:13px}
+.ptable{width:100%;border-collapse:collapse;font-size:13px;min-width:960px;table-layout:auto}
 .ptable th{position:sticky;top:0;background:var(--panel2);color:var(--gold-br);text-align:left;font-size:10px;letter-spacing:.05em;text-transform:uppercase;padding:9px 12px;border-bottom:1px solid var(--line);white-space:nowrap;z-index:1;user-select:none}
 .ptable th.dragover{background:var(--goldsoft);box-shadow:inset 3px 0 0 var(--gold)}
 .thin{display:flex;align-items:center;gap:6px}
@@ -67,17 +67,19 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);-web
 .thlbl:hover{color:var(--ink)}
 .sarrow{opacity:.4;font-size:9px}
 .sarrow.on{opacity:1;color:var(--gold)}
-.ptable td{padding:8px 12px;border-bottom:1px solid var(--line);vertical-align:middle;white-space:nowrap}
+.ptable td{padding:9px 15px;border-bottom:1px solid var(--line);vertical-align:middle;white-space:nowrap}
+.ptable td,.ptable th{max-width:280px}
 .ptable tr:hover td{background:var(--panel2)}
 .namebtn{background:none;border:none;font-family:inherit;font-weight:800;font-size:13.5px;color:var(--accent);cursor:pointer;padding:0;text-align:left;letter-spacing:-.01em}
 .namebtn:hover{text-decoration:underline}
-.sub{font-size:11px;color:var(--ink3);font-weight:600}
+.sub{font-size:11px;color:var(--ink3);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.thin{flex-wrap:nowrap}
 .pill{display:inline-block;font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:7px;white-space:nowrap}
 .pill.lic{background:rgba(26,156,82,.14);color:var(--green)}
 .pill.exam{background:rgba(183,121,31,.16);color:var(--amber)}
 .pill.pre{background:rgba(91,108,255,.13);color:var(--accent)}
 .pill.none{background:var(--panel2);color:var(--ink3);border:1px solid var(--line2)}
-.cellin{width:100%;min-width:74px;border:1px solid transparent;border-radius:7px;padding:5px 7px;font-size:12.5px;background:transparent;color:var(--ink);outline:none;font-family:inherit}
+.cellin{width:100%;min-width:100px;border:1px solid transparent;border-radius:7px;padding:6px 8px;font-size:12.5px;background:transparent;color:var(--ink);outline:none;font-family:inherit}
 .cellin:hover{border-color:var(--line2);background:var(--panel)}
 .cellin:focus{border-color:var(--gold);background:var(--panel)}
 .cellin.saved{border-color:var(--green);background:rgba(26,156,82,.08)}
@@ -183,6 +185,7 @@ var OD="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/ops-directory";
 var OPS=null,ROWS=[],TAB="licensing",CUR=null,SORT={licensing:{k:'name',dir:1},newbiz:{k:'name',dir:1},faststart:{k:'name',dir:1}},DRAGK=null,CUSTOMCOLS=[];
 var LICTYPES=['Life','Health','Life & Health','Life & Annuity','Property & Casualty','Series 6/63','Other'];
 var LICSTATUS=['Not Started','Pre-Licensing','Exam Passed','Licensed'];
+function setLicStatuses(a){if(!a||!a.length)return;LICSTATUS.length=0;a.forEach(function(s){LICSTATUS.push(s);});}
 var STATES=["Alabama","Alaska","Arizona","Arkansas","California","Colorado","Connecticut","Delaware","Florida","Georgia","Hawaii","Idaho","Illinois","Indiana","Iowa","Kansas","Kentucky","Louisiana","Maine","Maryland","Massachusetts","Michigan","Minnesota","Mississippi","Missouri","Montana","Nebraska","Nevada","New Hampshire","New Jersey","New Mexico","New York","North Carolina","North Dakota","Ohio","Oklahoma","Oregon","Pennsylvania","Rhode Island","South Carolina","South Dakota","Tennessee","Texas","Utah","Vermont","Virginia","Washington","West Virginia","Wisconsin","Wyoming"];
 function $(id){return document.getElementById(id);}
 function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
@@ -293,7 +296,7 @@ function resetCols(){try{localStorage.removeItem(colOrderKey(TAB));}catch(e){}to
 function loadTracker(){
   api(auth({action:'tracker'})).then(function(r){
     if(!r||!r.ok){$('tableHost').innerHTML='<div class="empty">Could not load the tracker.</div>';return;}
-    ROWS=r.rows||[];CUSTOMCOLS=r.custom_columns||[];renderReqBanner(r.pending_requests||0);renderTab();
+    ROWS=r.rows||[];CUSTOMCOLS=r.custom_columns||[];setLicStatuses(r.license_statuses);renderReqBanner(r.pending_requests||0);renderTab();
   }).catch(function(){$('tableHost').innerHTML='<div class="empty">Could not load the tracker.</div>';});
 }
 function renderReqBanner(n){var host=$('reqBanner');if(!host)return;host.innerHTML=(canEdit()&&n>0)?('<div class="reqbanner">✏️ '+n+' edit request'+(n===1?'':'s')+' from leaders awaiting review<button onclick="openRequests()">Review requests</button></div>'):'';}
@@ -356,6 +359,7 @@ function openAddMenu(){
   $('drawer').innerHTML='<div class="dhd"><div><h3>Add to tracker</h3><div class="sub">Current view: '+esc(TAB)+'</div></div><button class="x" onclick="closeDrawer()">✕</button></div><div class="dbody">'+
     '<button class="dbtn" style="width:100%;margin-bottom:10px" onclick="openAddAgent()">＋ Add a ROW — full agent profile</button>'+
     '<button class="dbtn blue" style="width:100%;margin-bottom:10px" onclick="openAddColumn()">＋ Add a COLUMN — custom field</button>'+
+    '<button class="dbtn ghost" style="width:100%;margin-bottom:10px" onclick="openManageStatuses()">⚙ Manage license statuses</button>'+
     '<button class="dbtn ghost" style="width:100%" onclick="resetCols();closeDrawer()">⇄ Reset column order</button>'+
     '<div class="sub" style="margin-top:14px">A custom column adds a field you can fill in per agent on the <b>'+esc(TAB)+'</b> view — for anything extra you want to track.</div></div>';
   $('ov').classList.add('on');
@@ -364,23 +368,41 @@ function openAddColumn(){
   var label=prompt('Name the new column (e.g. Carrier appointments, Background check, E&O):');if(label===null)return;label=(label||'').trim();if(!label){toast('Enter a column name');return;}
   api(auth({action:'add_column',label:label,tab:TAB})).then(function(r){if(!r||!r.ok){toast((r&&r.error)||'Could not add column');return;}CUSTOMCOLS=r.columns||CUSTOMCOLS;toast('Column “'+label+'” added ✓');closeDrawer();renderTab();});
 }
+var LSDRAFT=[];
+function openManageStatuses(){
+  LSDRAFT=LICSTATUS.slice();
+  $('drawer').innerHTML='<div class="dhd"><div><h3>License statuses</h3><div class="sub">Operations controls the Progress options</div></div><button class="x" onclick="closeDrawer()">✕</button></div><div class="dbody">'+
+    '<div id="lsList">'+lsListHtml()+'</div>'+
+    '<div class="frow" style="margin-top:8px;align-items:flex-end"><div class="fg" style="flex:1;margin:0"><label>New status</label><input id="ls_new" placeholder="e.g. Fingerprinting, Background check"></div><button class="dbtn" onclick="lsAdd()">Add</button></div>'+
+    '<div style="display:flex;gap:10px;margin-top:16px"><button class="dbtn" onclick="lsSave()">Save statuses</button><button class="dbtn ghost" onclick="closeDrawer()">Cancel</button></div>'+
+    '<div class="sub" style="margin-top:12px">These are the options in the <b>Progress</b> dropdown. Agents keep their current value even if you rename or remove a status.</div></div>';
+  $('ov').classList.add('on');
+}
+function lsListHtml(){return LSDRAFT.length?LSDRAFT.map(function(s,i){return '<div class="note" style="display:flex;align-items:center;gap:8px;margin-bottom:7px"><input class="cellin" style="flex:1;min-width:0" value="'+esc(s)+'" oninput="LSDRAFT['+i+']=this.value"><span onclick="lsDel('+i+')" title="Remove" style="cursor:pointer;color:var(--red);font-weight:800;font-size:16px">✕</span></div>';}).join(''):'<div class="sub">No statuses yet — add one below.</div>';}
+function lsAdd(){var v=($('ls_new').value||'').trim();if(!v)return;LSDRAFT.push(v);$('ls_new').value='';$('lsList').innerHTML=lsListHtml();}
+function lsDel(i){LSDRAFT.splice(i,1);$('lsList').innerHTML=lsListHtml();}
+function lsSave(){var arr=LSDRAFT.map(function(s){return (s||'').trim();}).filter(Boolean);if(!arr.length){toast('Keep at least one status');return;}
+  api(auth({action:'save_license_statuses',statuses:arr})).then(function(r){if(!r||!r.ok){toast((r&&r.error)||'Could not save');return;}setLicStatuses(r.license_statuses||arr);toast('License statuses saved ✓');closeDrawer();renderTab();});
+}
 function openAddAgent(){
   $('drawer').innerHTML='<div class="dhd"><div><h3>New agent profile</h3><div class="sub">A GFI code is generated automatically</div></div><button class="x" onclick="closeDrawer()">✕</button></div><div class="dbody">'+
-    '<div class="dsec"><h4>👤 Identity</h4><div class="frow"><div class="fg"><label>First name *</label><input id="na_first"></div><div class="fg"><label>Last name</label><input id="na_last"></div></div>'+
-    '<div class="frow"><div class="fg"><label>Mobile phone</label><input id="na_phone"></div><div class="fg"><label>Email</label><input id="na_email" type="email"></div></div>'+
-    '<div class="frow"><div class="fg"><label>Baseshop</label><input id="na_base" list="dl_base"></div><div class="fg"><label>Contract level</label><select id="na_level"><option>Associate</option><option>Senior Associate</option><option>MD</option><option>EMD</option></select></div></div>'+
-    '<div class="fg"><label>Direct recruiter — GFI code</label><input id="na_direct" placeholder="e.g. C1991" style="text-transform:uppercase"></div></div>'+
-    '<div class="dsec"><h4>🎫 Licensing</h4><div class="frow"><div class="fg"><label>State of record</label><input id="na_state" list="dl_state"></div><div class="fg"><label>ICA date</label><input id="na_ica" type="date"></div></div>'+
+    '<div class="dsec"><h4>👤 Identity <span style="color:var(--ink3);font-weight:700;text-transform:none;letter-spacing:0">· * required</span></h4><div class="frow"><div class="fg"><label>First name *</label><input id="na_first"></div><div class="fg"><label>Last name *</label><input id="na_last"></div></div>'+
+    '<div class="frow"><div class="fg"><label>Mobile phone *</label><input id="na_phone"></div><div class="fg"><label>Email *</label><input id="na_email" type="email"></div></div>'+
+    '<div class="frow"><div class="fg"><label>Baseshop *</label><input id="na_base" list="dl_base"></div><div class="fg"><label>Contract level *</label><select id="na_level"><option>Associate</option><option>Senior Associate</option><option>MD</option><option>EMD</option></select></div></div>'+
+    '<div class="fg"><label>Direct recruiter — GFI code *</label><input id="na_direct" placeholder="e.g. C1991" style="text-transform:uppercase"></div></div>'+
+    '<div class="dsec"><h4>🎫 Licensing</h4><div class="frow"><div class="fg"><label>State of record *</label><input id="na_state" list="dl_state"></div><div class="fg"><label>ICA date</label><input id="na_ica" type="date"></div></div>'+
     '<div class="frow"><div class="fg"><label>License type</label><input id="na_ltype" list="dl_license_type"></div><div class="fg"><label>Progress / status</label><select id="na_lstat">'+LICSTATUS.map(function(o){return '<option>'+esc(o)+'</option>';}).join('')+'</select></div></div></div>'+
     '<div id="na_msg" style="color:var(--red);font-size:12.5px;font-weight:700;min-height:16px"></div>'+
     '<div style="display:flex;gap:10px"><button class="dbtn" id="na_btn" onclick="doAddAgent()">Create agent</button><button class="dbtn ghost" onclick="closeDrawer()">Cancel</button></div></div>';
   $('ov').classList.add('on');setTimeout(function(){var f=$('na_first');if(f)f.focus();},80);
 }
 function doAddAgent(){
-  var first=($('na_first').value||'').trim();var msg=$('na_msg');
-  if(!first){msg.textContent='Enter at least a first name.';return;}
+  var g=function(id){return ($(id).value||'').trim();};var msg=$('na_msg');
+  var req=[['na_first','First name'],['na_last','Last name'],['na_phone','Phone'],['na_email','Email'],['na_base','Baseshop'],['na_state','State'],['na_direct','Direct recruiter']];
+  var miss=req.filter(function(f){return !g(f[0]);}).map(function(f){return f[1];});
+  if(miss.length){msg.textContent='Required: '+miss.join(', ');return;}
   var btn=$('na_btn');btn.disabled=true;btn.textContent='Creating…';
-  api(auth({action:'add_agent',first_name:first,last_name:($('na_last').value||'').trim(),phone:($('na_phone').value||'').trim(),email:($('na_email').value||'').trim(),baseshop:($('na_base').value||'').trim(),contract_level:$('na_level').value,direct_to:($('na_direct').value||'').trim().toUpperCase(),state:($('na_state').value||'').trim(),ica_date:($('na_ica').value||'').trim(),license_type:($('na_ltype').value||'').trim(),license_status:$('na_lstat').value})).then(function(r){
+  api(auth({action:'add_agent',first_name:g('na_first'),last_name:g('na_last'),phone:g('na_phone'),email:g('na_email'),baseshop:g('na_base'),contract_level:$('na_level').value,direct_to:g('na_direct').toUpperCase(),state:g('na_state'),ica_date:g('na_ica'),license_type:g('na_ltype'),license_status:$('na_lstat').value})).then(function(r){
     btn.disabled=false;btn.textContent='Create agent';
     if(!r||!r.ok){msg.textContent=(r&&r.error)||'Could not add.';return;}
     toast('Added '+(r.name||'agent')+' · '+r.code);closeDrawer();loadTracker();
@@ -406,7 +428,7 @@ function paintAgent(r){
   h+='<div class="dsec"><h4>🚀 Fast Start</h4><div style="font-size:13px;color:var(--ink2);display:flex;gap:16px;flex-wrap:wrap"><span>Pathway: <b>'+esc(a.pathway||'—')+'</b></span><span>Onboarding: <b>'+pct+'%</b></span><span>Steps: <b>'+(a.steps_done||0)+'</b></span></div><div style="margin-top:10px;display:flex;gap:14px;font-size:12.5px;font-weight:700"><span>'+(m.licensed?'✅':'⬜')+' Licensed</span><span>'+(m.first_sale?'✅':'⬜')+' First sale</span><span>'+(m.first_recruit?'✅':'⬜')+' First recruit</span></div></div>';
   var pols=r.policies||[];
   h+='<div class="dsec"><h4>💰 New Business ('+pols.length+')</h4>'+(pols.length?pols.map(function(p){return '<div class="polrow"><div class="pt">'+esc(p.client_name||'—')+' · '+money(p.annual_premium)+'</div><div class="pm"><span>'+esc(((p.carrier||'')+(p.product?(' · '+p.product):''))||'—')+'</span><span>'+esc(p.status||'')+'</span><span>'+esc(p.submitted_date||'')+'</span></div></div>';}).join(''):'<div class="sub">No policies submitted yet.</div>')+'</div>';
-  if(canEdit())h+='<div style="display:flex;gap:10px"><button class="dbtn" onclick="saveAgent(\''+esc(a.code)+'\')">Save field changes</button><button class="dbtn ghost" onclick="closeDrawer()">Close</button></div>';
+  if(canEdit())h+='<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><button class="dbtn" onclick="saveAgent(\''+esc(a.code)+'\')">Save field changes</button><button class="dbtn ghost" onclick="closeDrawer()">Close</button><button class="dbtn" style="background:var(--red);margin-left:auto" onclick="deleteAgent(\''+esc(a.code)+'\')">🗑 Delete agent</button></div>';
   else h+='<div><button class="dbtn blue" onclick="requestEdit(\''+esc(a.code)+'\')">✏️ Request a field edit</button></div>';
   // NOTES LOG
   h+='<div class="dsec" style="margin-top:26px"><h4>📝 Notes <span style="color:var(--ink3);font-weight:700;text-transform:none;letter-spacing:0">· timestamped log</span></h4>';
@@ -438,6 +460,11 @@ function val(id){var e=$(id);return e?(e.value||'').trim():undefined;}
 function saveAgent(code){
   var b=auth({action:'agent_update',code:code,first_name:val('e_first'),last_name:val('e_last'),phone:val('e_phone'),email:val('e_email'),baseshop:val('e_base'),state:val('e_state'),ica_date:val('e_ica'),license_type:val('e_ltype'),license_number:val('e_lnum'),license_status:val('e_lstat')});
   api(b).then(function(r){if(!r||!r.ok){toast((r&&r.error)||'Save failed');return;}toast('Saved ✓');closeDrawer();loadTracker();});
+}
+function deleteAgent(code){
+  var nm=(CUR&&CUR.agent)?CUR.agent.name:code;
+  if(!confirm('Permanently delete '+nm+' ('+code+')?\n\nUse this for agents who quit or were created in error — it removes them from the tracker.'))return;
+  api(auth({action:'delete_agent',code:code})).then(function(r){if(!r||!r.ok){toast((r&&r.error)||'Could not delete');return;}toast('Deleted '+(r.name||nm));closeDrawer();loadTracker();});
 }
 function addNote(code){
   var ta=$('noteInput');var text=(ta.value||'').trim();if(!text){toast('Write a note first');return;}
