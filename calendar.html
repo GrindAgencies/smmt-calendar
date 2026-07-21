@@ -211,9 +211,6 @@ a{color:inherit;text-decoration:none;}.hide{display:none!important;}
       <button id="tab_book" onclick="setTab('book')">Book a Trainer</button>
       <button id="tab_ops" onclick="setTab('ops')" style="display:none">Base Ops</button>
       <button id="tab_cal" onclick="setTab('cal')">Calendar</button>
-      <button id="tab_dash" onclick="setTab('dash')">Dashboard</button>
-      <button id="tab_train" onclick="setTab('train')">Trainers</button>
-      <button id="tab_company" onclick="setTab('company')" style="display:none">Company</button>
       <button id="tab_clients" onclick="setTab('clients')" style="display:none">Clients</button>
       <button id="tab_avail" onclick="setTab('avail')" style="display:none">My Availability</button>
     </div>
@@ -429,27 +426,26 @@ function calEventsFor(dstr){
   return evs;
 }
 function renderCal(){
-  var ws=weekStartYmd(CALWEEK);
-  var days=[];for(var i=0;i<7;i++){var d=new Date(ws+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+i);days.push(d.toISOString().slice(0,10));}
-  var s0=new Date(ws+'T12:00:00Z'),s6=new Date(days[6]+'T12:00:00Z');
-  var label=s0.toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'})+' – '+s6.toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'})+(CALWEEK===0?' · This week':'');
-  var h='<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px;flex-wrap:wrap"><h2 style="font-size:19px;font-weight:800;margin:0;letter-spacing:-.02em">'+esc(label)+'</h2><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="calnav" onclick="CALWEEK--;render()">‹ Prev</button><button class="calnav" onclick="CALWEEK=0;render()">Today</button><button class="calnav" onclick="CALWEEK++;render()">Next ›</button><button class="qbtn" style="margin:0" onclick="setTab(\'book\')">+ Book</button></div></div>';
-  $('view').innerHTML=h+'<div id="calWrap"><div class="spin">Loading your week…</div></div>';
-  loadCompanyEvents(days[0],days[6],function(){paintCalWeek(days);});
+  var start=new Date(todayStr()+'T12:00:00Z');start.setUTCDate(start.getUTCDate()+CALWEEK*3);
+  var days=[];for(var i=0;i<3;i++){var d=new Date(start.getTime());d.setUTCDate(d.getUTCDate()+i);days.push(d.toISOString().slice(0,10));}
+  var s0=new Date(days[0]+'T12:00:00Z'),s2=new Date(days[2]+'T12:00:00Z');
+  var label=s0.toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'})+' – '+s2.toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'})+(CALWEEK===0?' · Next 3 days':'');
+  var h='<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px;flex-wrap:wrap"><div><h2 style="font-size:19px;font-weight:800;margin:0;letter-spacing:-.02em">Your calendar</h2><div style="font-size:12.5px;color:var(--ink3);margin-top:2px">'+esc(label)+' · your appointments only</div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="calnav" onclick="CALWEEK--;render()">‹ Prev</button><button class="calnav" onclick="CALWEEK=0;render()">Today</button><button class="calnav" onclick="CALWEEK++;render()">Next ›</button><button class="qbtn" style="margin:0" onclick="setTab(\'book\')">+ Book</button></div></div>';
+  $('view').innerHTML=h+'<div id="calWrap"><div class="spin">Loading your calendar…</div></div>';
+  loadCompanyEvents(days[0],days[2],function(){paintCalWeek(days);});
 }
 function paintCalWeek(days){
-  var h='<div class="calgrid">';
+  var h='<div class="calgrid" style="grid-template-columns:repeat('+days.length+',minmax(0,1fr))">';
   days.forEach(function(ds){
     var d=new Date(ds+'T12:00:00Z');var wname=d.toLocaleDateString('en-US',{weekday:'short',timeZone:'UTC'});var dn=d.getUTCDate();
-    var isToday=ds===todayStr();var evs=calEventsFor(ds);var trs=trainingsFor(wdOf(ds));
-    h+='<div class="calday'+(isToday?' today':'')+'"><div class="calhd"><span class="calw">'+wname+'</span><span class="cald">'+dn+'</span></div>';
-    if(!evs.length&&!trs.length){h+='<div class="calempty">—</div>';}
+    var isToday=ds===todayStr();var evs=calEventsFor(ds);
+    h+='<div class="calday'+(isToday?' today':'')+'"><div class="calhd"><span class="calw">'+(isToday?'Today':wname)+'</span><span class="cald">'+dn+'</span></div>';
+    if(!evs.length){h+='<div class="calempty">Nothing scheduled</div>';}
     evs.forEach(function(e){var canX=(e.status==='booked'||e.status==='confirmed'||e.status==='pending');
       h+='<div class="calev" style="position:relative"><span onclick="openCalEvent(\''+e.id+'\')" style="display:block;cursor:pointer;padding-right:14px"><span class="cdot" style="background:'+statusColor(e.status)+'"></span><b>'+esc(e.time)+'</b> '+esc(e.title||'')+'<div class="csub">'+esc(e.sub||'')+(e.role==='trainer'?' · client':'')+(e.status&&e.status!=='booked'&&e.status!=='confirmed'?' · '+esc(e.status):'')+'</div></span>'+(canX?'<a class="calx" onclick="quickCancel(\''+e.id+'\')" title="Cancel">✕</a>':'')+'</div>';});
-    trs.forEach(function(t){h+='<div class="calev caltr" onclick="window.open(\''+t.z+'\',\'_blank\')"><span class="cdot" style="background:var(--gold)"></span><b>'+fmtHM(t.h,t.m)+'</b> '+esc(t.t)+'<div class="csub">Live training · Join Zoom</div></div>';});
     h+='</div>';
   });
-  h+='</div><div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:16px;font-size:11.5px;color:var(--ink3)"><span><span class="cdot" style="background:var(--accent)"></span>Booked</span><span><span class="cdot" style="background:var(--green)"></span>Confirmed</span><span><span class="cdot" style="background:var(--gold)"></span>Pending / training</span><span><span class="cdot" style="background:var(--red)"></span>Canceled · completed</span></div>';
+  h+='</div><div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:16px;font-size:11.5px;color:var(--ink3)"><span><span class="cdot" style="background:var(--accent)"></span>Booked</span><span><span class="cdot" style="background:var(--green)"></span>Confirmed</span><span><span class="cdot" style="background:var(--gold)"></span>Pending</span><span><span class="cdot" style="background:var(--red)"></span>Canceled · completed</span></div>';
   var el=$('calWrap');if(el)el.innerHTML=h;
 }
 function openCalEvent(id){
