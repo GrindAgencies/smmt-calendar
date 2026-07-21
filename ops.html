@@ -58,18 +58,21 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);-web
 .resetcols{border:1px solid var(--line2);background:var(--panel);color:var(--ink3);font-weight:700;font-size:12px;padding:9px 12px;border-radius:10px;cursor:pointer;font-family:inherit}
 .tablewrap{border:1px solid var(--line);border-radius:15px;overflow:auto;max-height:72vh;background:var(--panel);box-shadow:var(--shadow-sm)}
 .ptable{width:100%;border-collapse:collapse;font-size:13px;min-width:960px;table-layout:auto}
-.ptable th{position:sticky;top:0;background:var(--panel2);color:var(--gold-br);text-align:left;font-size:10px;letter-spacing:.05em;text-transform:uppercase;padding:9px 12px;border-bottom:1px solid var(--line);white-space:nowrap;z-index:1;user-select:none}
+.ptable th{position:sticky;top:0;background:var(--panel2);color:var(--gold-br);text-align:left;font-size:10px;letter-spacing:.07em;text-transform:uppercase;padding:12px 18px;border-bottom:1.5px solid var(--line2);white-space:nowrap;z-index:1;user-select:none}
 .ptable th.dragover{background:var(--goldsoft);box-shadow:inset 3px 0 0 var(--gold)}
-.thin{display:flex;align-items:center;gap:6px}
+.thin{display:flex;align-items:center;gap:7px}
+.thin.r{justify-content:flex-end}
 .grip{cursor:grab;color:var(--ink3);font-size:12px;opacity:.6;letter-spacing:-2px}
 .grip:active{cursor:grabbing}
 .thlbl{cursor:pointer;display:inline-flex;align-items:center;gap:4px}
 .thlbl:hover{color:var(--ink)}
 .sarrow{opacity:.4;font-size:9px}
 .sarrow.on{opacity:1;color:var(--gold)}
-.ptable td{padding:9px 15px;border-bottom:1px solid var(--line);vertical-align:middle;white-space:nowrap}
-.ptable td,.ptable th{max-width:280px}
-.ptable tr:hover td{background:var(--panel2)}
+.ptable td{padding:11px 18px;border-bottom:1px solid var(--line);vertical-align:middle;white-space:nowrap;line-height:1.4}
+.ptable td,.ptable th{max-width:300px;border-right:1px solid var(--line)}
+.ptable td:last-child,.ptable th:last-child{border-right:none}
+.ptable tbody tr:nth-child(even) td{background:color-mix(in srgb,var(--panel2) 55%,transparent)}
+.ptable tbody tr:hover td{background:var(--panel2)}
 .namebtn{background:none;border:none;font-family:inherit;font-weight:800;font-size:13.5px;color:var(--accent);cursor:pointer;padding:0;text-align:left;letter-spacing:-.01em}
 .namebtn:hover{text-decoration:underline}
 .sub{font-size:11px;color:var(--ink3);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -321,7 +324,7 @@ function renderTab(){
   var head=cols.map(function(col){
     var ar=(s.k===col.k)?('<span class="sarrow on">'+(s.dir>0?'▲':'▼')+'</span>'):'<span class="sarrow">↕</span>';
     var del=(col.delcol&&canEdit())?'<span onclick="deleteCol(\''+col.delcol+'\')" title="Delete column" style="cursor:pointer;color:var(--red);font-weight:800;margin-left:2px">×</span>':'';
-    return '<th data-key="'+col.k+'" ondragover="thOver(event)" ondragleave="thLeave(event)" ondrop="thDrop(event,\''+col.k+'\')"><div class="thin"><span class="grip" draggable="true" ondragstart="thDrag(event,\''+col.k+'\')" title="Drag to reorder">⋮⋮</span><span class="thlbl" onclick="clickSort(\''+col.k+'\')">'+esc(col.l)+ar+'</span>'+del+'</div></th>';
+    return '<th data-key="'+col.k+'" ondragover="thOver(event)" ondragleave="thLeave(event)" ondrop="thDrop(event,\''+col.k+'\')"><div class="thin'+(col.num?' r':'')+'"><span class="grip" draggable="true" ondragstart="thDrag(event,\''+col.k+'\')" title="Drag to reorder">⋮⋮</span><span class="thlbl" onclick="clickSort(\''+col.k+'\')">'+esc(col.l)+ar+'</span>'+del+'</div></th>';
   }).join('');
   var body=rows.length?rows.map(function(r){return '<tr>'+cols.map(function(col){return '<td'+(col.num?' style="text-align:right"':'')+'>'+cellFor(col,r)+'</td>';}).join('')+'</tr>';}).join(''):'<tr><td colspan="'+cols.length+'" class="empty">No matches.</td></tr>';
   $('tableHost').innerHTML='<table class="ptable"><thead><tr>'+head+'</tr></thead><tbody>'+body+'</tbody></table>';
