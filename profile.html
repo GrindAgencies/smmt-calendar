@@ -95,6 +95,7 @@ input.in[readonly]{background:var(--panel2);color:var(--ink2)}
 var PA="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/profile-api";
 var EM="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/emblem-api";
 var CS="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/cal-sync";
+var CALS="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/calendly-sync";
 var TA="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/atlas-api";
 var CODE="",NAME="",PROFILE_P={},EMBDATA=null,PROFSUB='profile',WELCOME=false;
 function $(id){return document.getElementById(id);}
@@ -153,30 +154,49 @@ function paintProfile(p){
     +'<div class="row"><div class="fld"><label class="lbl">ICA — Independent Contractor Agreement <span class="hint">· signed status / #</span></label><input id="pf_ica" class="in" value="'+esc(p.ica||'')+'" placeholder="Signed / agreement #"></div><div class="fld"><label class="lbl">ICA date <span class="hint">· contract date</span></label><input id="pf_icadate" type="date" class="in" value="'+esc(p.ica_date||'')+'"></div></div>'
     +'<button class="btn" style="margin-top:14px" onclick="saveProfile()">Save details</button></div></div>';
 
-  h+='<div class="sec"><div class="sech"><h2>Calendar Sync</h2></div><div class="card">'
-    +'<div style="font-size:13px;color:var(--ink2);margin-bottom:12px">Connect your Google &amp; Apple calendars so your existing appointments — <b>including anything still in Calendly</b> — automatically block those times. No more double-bookings.</div>'
-    +'<div id="calSyncStatus" style="font-size:12.5px;font-weight:700;color:var(--ink3);margin-bottom:12px">Checking sync status…</div>'
-    +'<button class="btn" onclick="openCalSync()">🔗 Set up calendar sync</button>'
-    +'<div style="font-size:11.5px;color:var(--ink3);margin-top:10px">Full two-way Google sync + booking emails from your Gmail turn on once the Workspace connection is finished — this busy-blocking works today.</div>'
-    +'<div class="fld" style="margin-top:14px"><label class="lbl">Calendly link <span class="hint">· optional, being replaced</span></label><input id="pf_cal" class="in" value="'+esc(p.calendly||'')+'" placeholder="https://calendly.com/you"></div>'
+  h+='<div class="sec"><div class="sech"><h2>Calendly Booking</h2></div><div class="card">'
+    +'<div style="font-size:13px;color:var(--ink2);margin-bottom:12px">Connect your Calendly account so your <b>public booking link</b> and all your bookings sync live into the platform.'+(p.is_trainer?' <b style="color:var(--gold)">Required for Certified Field Trainers.</b>':'')+'</div>'
+    +'<div id="calendlyStatus" style="font-size:13px;font-weight:700;color:var(--ink3);margin-bottom:12px">Checking Calendly…</div>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" onclick="connectCalendly()">🔗 Connect / update Calendly</button><button class="btn ghost" onclick="calendlySyncNow()">↻ Sync now</button></div>'
+    +'<div style="font-size:11.5px;color:var(--ink3);margin-top:10px;line-height:1.5">Get your token in Calendly → <b>Integrations → API &amp; webhooks → Personal access tokens → Create</b>. Your token is stored securely on the server and never shown again.</div>'
     +'</div></div>';
 
   if(p.is_trainer){
     h+='<div class="sec"><div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap"><div><div style="font-weight:800;font-size:14px">Manage your booking availability</div><div style="font-size:12.5px;color:var(--ink3)">Weekly hours, blackouts & vacations live in the Scheduler.</div></div><a class="btn ghost" style="text-decoration:none" href="calendar.html?tab=avail">Open My Availability →</a></div></div>';
   }
   $('profBody').innerHTML=h+'<datalist id="statelist">'+US_STATES.map(function(s){return '<option value="'+s+'">';}).join('')+'</datalist>';
-  loadCalSyncStatus();
+  loadCalendlyStatus();
 }
+function loadCalendlyStatus(){
+  var el=$('calendlyStatus');if(!el)return;
+  fetch(CALS,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'status',code:CODE})}).then(function(r){return r.json();}).then(function(r){el=$('calendlyStatus');if(!el)return;
+    if(!r||!r.ok||!r.connected){el.innerHTML='⚪ Not connected — connect Calendly to publish your booking link.';el.style.color='var(--ink3)';return;}
+    var when=r.synced_at?(' · synced '+esc(new Date(r.synced_at).toLocaleString())):'';
+    el.innerHTML='🟢 Connected as '+esc(r.cal_name||r.cal_email||'Calendly')+' — '+r.events+' booking'+(r.events===1?'':'s')+when+(r.scheduling_url?('<div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><a href="'+esc(r.scheduling_url)+'" target="_blank" rel="noopener" style="color:var(--accent);font-weight:800">'+esc(r.scheduling_url)+'</a><button class="btn ghost" style="padding:4px 10px;font-size:12px" onclick="copyCalLink(\''+esc(r.scheduling_url)+'\')">Copy link</button></div>'):'');
+    el.style.color='var(--green)';
+  }).catch(function(){});
+}
+function connectCalendly(){
+  var t=prompt('Paste your Calendly Personal Access Token\n(Calendly → Integrations → API & webhooks → Personal access tokens → Create):');
+  if(t===null)return;t=(t||'').trim();if(!t){toast('Paste your token');return;}
+  var el=$('calendlyStatus');if(el){el.textContent='Validating with Calendly…';el.style.color='var(--ink3)';}
+  fetch(CALS,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'save_token',code:CODE,token:t})}).then(function(r){return r.json();}).then(function(r){
+    if(!r||!r.ok){toast((r&&r.error)||'Could not connect');loadCalendlyStatus();return;}
+    PROFILE_P.calendly=r.scheduling_url||PROFILE_P.calendly;toast('Calendly connected ✓ — '+(r.synced||0)+' bookings synced');loadCalendlyStatus();
+  }).catch(function(){toast('Network error');loadCalendlyStatus();});
+}
+function calendlySyncNow(){var el=$('calendlyStatus');if(el)el.textContent='Syncing…';fetch(CALS,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'sync',code:CODE})}).then(function(r){return r.json();}).then(function(r){if(!r||!r.ok){toast((r&&r.error)||'Connect Calendly first');}else toast('Synced '+(r.count||0)+' bookings');loadCalendlyStatus();}).catch(function(){toast('Network error');});}
+function copyCalLink(u){try{navigator.clipboard.writeText(u);toast('Link copied');}catch(e){toast(u);}}
 var US_STATES=["Alabama","Alaska","Arizona","Arkansas","California","Colorado","Connecticut","Delaware","Florida","Georgia","Hawaii","Idaho","Illinois","Indiana","Iowa","Kansas","Kentucky","Louisiana","Maine","Maryland","Massachusetts","Michigan","Minnesota","Mississippi","Missouri","Montana","Nebraska","Nevada","New Hampshire","New Jersey","New Mexico","New York","North Carolina","North Dakota","Ohio","Oklahoma","Oregon","Pennsylvania","Rhode Island","South Carolina","South Dakota","Tennessee","Texas","Utah","Vermont","Virginia","Washington","West Virginia","Wisconsin","Wyoming"];
 function val(id){var e=$(id);return e?(e.value||'').trim():'';}
 function saveProfile(){
   var first=val('pf_first'),last=val('pf_last');
   if(!first){toast('First name is required');return;}
-  var body={action:'save_contact',code:CODE,current_name:NAME,first_name:first,last_name:last,phone:val('pf_phone'),email:val('pf_email'),calendly:val('pf_cal'),state:val('pf_state'),direct_to:val('pf_direct').toUpperCase(),ica:val('pf_ica'),ica_date:val('pf_icadate')};
+  var body={action:'save_contact',code:CODE,current_name:NAME,first_name:first,last_name:last,phone:val('pf_phone'),email:val('pf_email'),state:val('pf_state'),direct_to:val('pf_direct').toUpperCase(),ica:val('pf_ica'),ica_date:val('pf_icadate')};
   fetch(PA,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(function(r){return r.json();}).then(function(r){
     if(!r||!r.ok){toast((r&&r.error)||'Save failed');return;}
     var nn=(first+' '+last).trim();if(nn&&nn!==NAME){NAME=nn;try{localStorage.setItem('tsfg_name',nn);}catch(e){}}
-    PROFILE_P.first_name=first;PROFILE_P.last_name=last;PROFILE_P.phone=val('pf_phone');PROFILE_P.email=val('pf_email');PROFILE_P.calendly=val('pf_cal');PROFILE_P.state=val('pf_state');PROFILE_P.direct_to=val('pf_direct').toUpperCase();PROFILE_P.direct_to_name=r.direct_to_name||PROFILE_P.direct_to_name;PROFILE_P.ica=val('pf_ica');PROFILE_P.ica_date=val('pf_icadate');PROFILE_P.profile_complete=r.profile_complete;
+    PROFILE_P.first_name=first;PROFILE_P.last_name=last;PROFILE_P.phone=val('pf_phone');PROFILE_P.email=val('pf_email');PROFILE_P.state=val('pf_state');PROFILE_P.direct_to=val('pf_direct').toUpperCase();PROFILE_P.direct_to_name=r.direct_to_name||PROFILE_P.direct_to_name;PROFILE_P.ica=val('pf_ica');PROFILE_P.ica_date=val('pf_icadate');PROFILE_P.profile_complete=r.profile_complete;
     WELCOME=false;renderShell();paintProfile(PROFILE_P);
     toast(r.profile_complete?'Profile saved ✓ — Operations updated':'Saved — a few fields still needed');
   }).catch(function(){toast('Network error');});
