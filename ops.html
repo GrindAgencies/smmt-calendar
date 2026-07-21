@@ -368,8 +368,19 @@ function resolveReq(id,status){
 }
 
 $('ov').addEventListener('click',function(e){if(e.target===this)closeDrawer();});
-(function(){try{var s=sessionStorage.getItem('tsfg_ops');if(s){OPS=JSON.parse(s);if(OPS&&OPS.code){showApp();return;}}}catch(e){}
-  try{var q=new URLSearchParams(location.search);var qc=q.get('code'),qn=q.get('name');if(qc)$('gCode').value=qc;if(qn)$('gName').value=qn;if(qc&&qn)doLogin();}catch(e){}})();
+(function(){
+  try{var s=sessionStorage.getItem('tsfg_ops');if(s){OPS=JSON.parse(s);if(OPS&&OPS.code){showApp();return;}}}catch(e){}
+  var qc='',qn='';
+  try{var q=new URLSearchParams(location.search);qc=q.get('code')||'';qn=q.get('name')||'';}catch(e){}
+  // fall back to the broker session so MDs/EMDs auto-view without re-logging in
+  if(!qc){try{qc=localStorage.getItem('tsfg_code')||'';qn=localStorage.getItem('tsfg_name')||'';}catch(e){}}
+  if(qc)$('gCode').value=qc;if(qn)$('gName').value=qn;
+  if(qc&&qn){ // silent auto-login attempt; stay on the gate (pre-filled) if it fails
+    api({action:'ops_login',code:qc,name:qn}).then(function(r){
+      if(r&&r.ok){OPS={code:r.ops.code,name:r.ops.name,title:r.ops.title,role:r.role,can_edit:r.can_edit,baseshops:r.ops.baseshops||[]};try{sessionStorage.setItem('tsfg_ops',JSON.stringify(OPS));}catch(e){}showApp();}
+    }).catch(function(){});
+  }
+})();
 </script>
 </body>
 </html>
