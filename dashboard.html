@@ -125,6 +125,20 @@
   .sheet code{display:block;background:#fbfbfd;border:1px solid var(--line);border-radius:10px;padding:12px;color:var(--gold-bright);font-size:12px;word-break:break-all;margin-bottom:8px;}
   .sheet button{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#1d1d1f;background:linear-gradient(90deg,var(--gold-bright),var(--gold));border:none;border-radius:999px;padding:9px 16px;cursor:pointer;}
   .empty{text-align:center;color:var(--muted);padding:30px;font-style:italic;}
+  .lbhead{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;}
+  .lbh-title{grid-column:1/-1;font-size:17px;font-weight:800;color:#1d1d1f;display:flex;align-items:center;gap:9px;margin:0 0 2px;}
+  .lbh-card{border:1px solid var(--gold-deep);border-radius:14px;padding:14px 16px;background:linear-gradient(135deg,rgba(212,175,55,.12),#fbfbfd);}
+  .lbh-card .t{font-size:10.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);}
+  .lbh-card .champ{font-size:15.5px;font-weight:800;color:#1d1d1f;margin-top:7px;}
+  .lbh-card .val{font-size:13px;font-weight:800;color:var(--gold-bright);margin-top:3px;}
+  .lbh-card .sub{font-size:11px;color:var(--muted);margin-top:5px;}
+  .otab{font-size:12px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--gold);background:#f2f2f5;border:1px solid var(--gold-deep);border-radius:999px;padding:9px 18px;cursor:pointer;}
+  .otab.on{background:var(--gold);color:#fff;}
+  .ptable{width:100%;border-collapse:collapse;font-size:13px;}
+  .ptable th{background:#fbfbfd;color:var(--gold);text-align:left;font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;padding:10px 12px;border-bottom:1px solid var(--line);}
+  .ptable td{padding:10px 12px;border-bottom:1px solid var(--line);color:#1d1d1f;vertical-align:top;}
+  .ptable tr:hover td{background:#fbfbfd;}
+  .pmiss{color:#c0392b;font-weight:800;}.pok{color:#1a9c52;font-weight:800;}
   .foot{text-align:center;color:var(--muted);font-size:12px;margin-top:24px;}
 </style>
 <style id="ga-shell">
@@ -247,6 +261,12 @@ input,textarea,select{border-radius:12px;}
   </div>
 
   <div id="board">
+    <div class="lbhead" id="lbHead" style="margin-bottom:20px"></div>
+    <div class="opstabs" style="display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap">
+      <button id="ot_onb" onclick="opsView('onb')" class="otab on">Onboarding</button>
+      <button id="ot_prof" onclick="opsView('prof')" class="otab">Profiles</button>
+    </div>
+    <div id="view_onboarding">
     <div class="stats">
       <div class="stat"><div class="n" id="sAgents">0</div><div class="l">Agents</div></div>
       <div class="stat"><div class="n" id="sAvg">0%</div><div class="l">Avg Progress</div></div>
@@ -307,6 +327,8 @@ input,textarea,select{border-radius:12px;}
       <code id="formula"></code>
       <button onclick="copyFormula()">Copy formula</button>
     </div>
+    </div><!-- /view_onboarding -->
+    <div id="view_profiles" style="display:none"><div class="empty">Loading profiles…</div></div>
     <div class="foot">The Standard Financial Group · Onboarding Dashboard · Data live from the agent tracker</div>
   </div>
 </div>
@@ -331,7 +353,7 @@ input,textarea,select{border-radius:12px;}
         if(!res||!res.ok){el('err').textContent="Incorrect passcode.";return;}
         token=t; try{sessionStorage.setItem('tsfg_admin',t);}catch(e){}
         el('gate').style.display='none'; el('board').style.display='block';
-        setFormula(); render(res.agents);
+        setFormula(); render(res.agents); renderDashLeaderboard(); PROFLOADED=false;
       }).catch(function(){el('err').textContent="Network issue — try again.";});
   }
   function refresh(){
@@ -340,6 +362,49 @@ input,textarea,select{border-radius:12px;}
       .then(function(r){return r.json();}).then(function(res){if(res&&res.ok)render(res.agents);});
   }
   function signout(){try{sessionStorage.removeItem('tsfg_admin');}catch(e){}token=null;el('board').style.display='none';el('gate').style.display='block';el('pass').value="";el('err').textContent="";}
+
+  /* ---- Ops views: Onboarding | Profiles ---- */
+  var PROFLOADED=false;
+  function opsView(v){
+    var onb=el('view_onboarding'),prof=el('view_profiles');
+    el('ot_onb').classList.toggle('on',v==='onb');el('ot_prof').classList.toggle('on',v==='prof');
+    if(onb)onb.style.display=v==='onb'?'':'none';
+    if(prof)prof.style.display=v==='prof'?'':'none';
+    if(v==='prof'&&!PROFLOADED)renderProfiles();
+  }
+  var LBAPI="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/leaderboard-api";
+  var OPSDIR="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/ops-directory";
+  var DLB_METRICS=[['recruiter','Business Partners','🤝',false],['premium','Premium Submitted','💰',true],['net_licenses','Net Licenses','🎫',false],['trainings','Field Trainings Ran','🏋️',false]];
+  function money2(n){n=Number(n)||0;if(n>=1e6)return '$'+(n/1e6).toFixed(2)+'M';if(n>=1e3)return '$'+(Math.round(n/100)/10)+'K';return '$'+Math.round(n);}
+  function renderDashLeaderboard(){
+    var host=el('lbHead');if(!host)return;
+    fetch(LBAPI,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'board',code:'',scope:'hierarchy',period:'month'})})
+      .then(function(r){return r.json();}).then(function(r){
+        if(!r||!r.ok){host.innerHTML='';return;}
+        var cards=DLB_METRICS.map(function(m){
+          var b=(r.boards&&r.boards[m[0]])||{top:[]};var t=(b.top&&b.top[0])||null;
+          var val=t?(m[3]?money2(t.value):(t.value+(m[0]==='recruiter'?' partners':(m[0]==='net_licenses'?' licensed':(m[0]==='trainings'?' ran':''))))):'—';
+          return '<div class="lbh-card"><div class="t">'+m[2]+' '+esc(m[1])+'</div><div class="champ">'+(t?('👑 '+esc(t.name)):'No entries yet')+'</div>'+(t?('<div class="val">'+esc(val)+'</div><div class="sub">'+esc(t.baseshop||'')+'</div>'):'')+'</div>';
+        }).join('');
+        host.innerHTML='<div class="lbh-title">🏆 STANDARD Leaderboard <span style="font-size:12px;font-weight:700;color:var(--muted)">— '+esc(r.month||'')+' · company-wide champions</span></div>'+cards;
+      }).catch(function(){host.innerHTML='';});
+  }
+  function renderProfiles(){
+    var host=el('view_profiles');if(!host||!token)return;
+    host.innerHTML='<div class="empty">Loading profiles…</div>';
+    fetch(OPSDIR,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:token})})
+      .then(function(r){return r.json();}).then(function(r){
+        if(!r||!r.ok){host.innerHTML='<div class="empty">Could not load profiles.</div>';return;}
+        PROFLOADED=true;
+        var ppl=(r.people||[]).filter(function(p){return p.status!=='quit';});
+        var head='<div class="stats" style="margin-bottom:16px"><div class="stat"><div class="n">'+r.count+'</div><div class="l">Profiles</div></div><div class="stat"><div class="n">'+r.complete+'</div><div class="l">Complete</div></div><div class="stat"><div class="n">'+(r.count-r.complete)+'</div><div class="l">Need info</div></div></div>';
+        var rows=ppl.map(function(p){
+          var rec=p.direct_to?(esc(p.direct_to)+(p.direct_to_name?(' · '+esc(p.direct_to_name)):'')):'<span class="pmiss">—</span>';
+          return '<tr><td><b>'+esc(p.name||'—')+'</b><div style="font-size:11px;color:var(--muted)">'+esc(p.contract_level)+' · '+esc(p.baseshop||'')+'</div></td><td>'+esc(p.code)+'</td><td>'+(p.phone?esc(p.phone):'<span class="pmiss">—</span>')+'</td><td>'+(p.email?esc(p.email):'<span class="pmiss">—</span>')+'</td><td>'+(p.state?esc(p.state):'<span class="pmiss">—</span>')+'</td><td>'+(p.ica?esc(p.ica):'<span class="pmiss">—</span>')+(p.ica_date?('<div style="font-size:11px;color:var(--muted)">'+esc(p.ica_date)+'</div>'):'')+'</td><td>'+rec+'</td><td>'+(p.complete?'<span class="pok">✓</span>':'<span class="pmiss">needs info</span>')+'</td></tr>';
+        }).join('');
+        host.innerHTML=head+'<div style="overflow-x:auto"><table class="ptable"><thead><tr><th>Agent</th><th>GFI Code</th><th>Phone</th><th>Email</th><th>State</th><th>ICA</th><th>Direct Recruiter</th><th>Status</th></tr></thead><tbody>'+(rows||'<tr><td colspan="8" class="empty">No profiles yet.</td></tr>')+'</tbody></table></div>';
+      }).catch(function(){host.innerHTML='<div class="empty">Could not load profiles.</div>';});
+  }
 
   function timeAgo(iso){
     if(!iso)return"—";var d=new Date(iso),s=(Date.now()-d.getTime())/1000;

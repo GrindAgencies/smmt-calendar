@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>My Profile — The Standard Financial Group</title>
+<style>
+:root{
+  --bg:#f5f5f7;--panel:#fff;--panel2:#fbfbfd;--ink:#1d1d1f;--ink2:#6e6e73;--ink3:#8e8e93;
+  --line:#ececf0;--line2:#e3e3e8;--accent:#5b6cff;--accent2:#4f46e5;--accent-soft:rgba(91,108,255,.10);
+  --green:#34c759;--green-soft:rgba(52,199,89,.13);--gold:#c99a2e;--gold-soft:rgba(201,154,46,.14);
+  --red:#ff3b30;--orange:#ff9f0a;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.04),0 1px 3px rgba(0,0,0,.03);--shadow:0 2px 8px rgba(0,0,0,.05),0 14px 40px rgba(0,0,0,.07);
+  --shadow-lg:0 24px 60px rgba(0,0,0,.16);--font:'Inter',-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',system-ui,sans-serif;
+}
+[data-theme="dark"]{--bg:#0a0a0c;--panel:#161618;--panel2:#1c1c1f;--ink:#f5f5f7;--ink2:#a1a1a8;--ink3:#77777e;--line:#26262a;--line2:#2e2e33;--accent:#7c8bff;--accent-soft:rgba(124,139,255,.14);}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);-webkit-font-smoothing:antialiased;letter-spacing:-.01em}
+a{color:inherit}
+.top{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:12px;padding:13px 20px;background:color-mix(in srgb,var(--bg) 86%,transparent);backdrop-filter:saturate(1.6) blur(14px);border-bottom:1px solid var(--line)}
+.top .back{display:inline-flex;align-items:center;gap:7px;text-decoration:none;font-weight:800;font-size:14px;color:var(--ink2);padding:7px 12px;border-radius:10px;border:1px solid var(--line2);background:var(--panel)}
+.top .back:hover{color:var(--ink)}
+.top h1{font-size:16px;font-weight:800;margin:0;letter-spacing:-.02em}
+.top .sp{margin-left:auto}
+.iconbtn{width:36px;height:36px;border-radius:10px;border:1px solid var(--line2);background:var(--panel);color:var(--ink2);cursor:pointer;font-size:15px}
+.signout{border:1px solid var(--line2);background:var(--panel);color:var(--ink2);font-weight:700;font-size:13px;padding:8px 13px;border-radius:10px;cursor:pointer}
+.wrap{max-width:780px;margin:0 auto;padding:22px 20px 90px}
+.sec{margin-bottom:18px}
+.sech{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px}
+.sech h2{font-size:15px;font-weight:800;margin:0;letter-spacing:-.01em}
+.card{padding:16px;border:1px solid var(--line);border-radius:14px;background:var(--panel);box-shadow:var(--shadow-sm)}
+.hero{border-radius:18px;padding:22px 24px;color:#fff;background:linear-gradient(135deg,#34c759,#5b6cff);box-shadow:var(--shadow);margin-bottom:18px}
+.hero h1{margin:0;font-size:24px;font-weight:800;letter-spacing:-.03em}
+.hero p{margin:5px 0 0;opacity:.92;font-weight:600;font-size:14px}
+.banner{display:flex;gap:13px;align-items:flex-start;border-radius:14px;padding:15px 17px;margin-bottom:18px;background:var(--accent-soft);border:1.5px solid color-mix(in srgb,var(--accent) 34%,transparent)}
+.banner .bt{font-weight:800;font-size:14.5px}
+.banner p{margin:3px 0 0;font-size:13px;color:var(--ink2)}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.fld{flex:1;min-width:150px;margin-top:10px}
+label.lbl{display:block;font-size:12px;font-weight:700;color:var(--ink2);margin-bottom:5px}
+label.lbl .hint{color:var(--ink3);font-weight:400}
+input.in,select.in{width:100%;border:1.5px solid var(--line2);border-radius:12px;padding:11px 13px;font-size:15px;background:var(--panel);color:var(--ink);outline:none;font-family:inherit}
+input.in:focus,select.in:focus{border-color:var(--accent)}
+input.in[readonly]{background:var(--panel2);color:var(--ink2)}
+.btn{border:none;padding:11px 20px;border-radius:11px;font-weight:800;font-size:14px;background:var(--accent);color:#fff;cursor:pointer;font-family:inherit}
+.btn.ghost{background:var(--panel);color:var(--ink2);border:1px solid var(--line2)}
+.avatar{width:78px;height:78px;border-radius:50%;overflow:hidden;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:26px;flex:0 0 auto}
+.avatar img{width:100%;height:100%;object-fit:cover}
+.codepill{display:inline-block;font-weight:800;font-size:12.5px;letter-spacing:.03em;padding:3px 10px;border-radius:8px;background:var(--accent-soft);color:var(--accent)}
+.spin,.empty{padding:26px;text-align:center;color:var(--ink3);font-size:14px;font-weight:600}
+/* emblems */
+.psubbar{display:inline-flex;background:var(--panel);border:1px solid var(--line2);border-radius:11px;padding:3px;gap:2px;margin-bottom:16px}
+.psub{border:none;background:none;font-family:inherit;font-weight:800;font-size:13px;color:var(--ink3);padding:8px 15px;border-radius:9px;cursor:pointer}
+.psub.on{background:var(--accent);color:#fff}
+.emb-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:12px}
+.emb-cell{text-align:center;cursor:pointer;padding:10px 6px;border-radius:14px;border:1px solid transparent;transition:background .15s,border-color .15s}
+.emb-cell:hover{background:var(--panel2);border-color:var(--line)}
+.emb-badge{display:flex;justify-content:center}
+.emb-badge.active svg{animation:bob 2.6s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+.emb-name{font-size:12px;font-weight:800;margin-top:6px;line-height:1.2}
+.emb-desc{font-size:10.5px;color:var(--ink3);font-weight:700;margin-top:2px}
+/* modal */
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.44);display:none;align-items:flex-end;justify-content:center;z-index:60}
+.ov.on{display:flex}
+.drawer{width:100%;max-width:520px;background:var(--panel);border-radius:20px 20px 0 0;padding:22px;max-height:88vh;overflow:auto;box-shadow:var(--shadow-lg)}
+@media(min-width:640px){.ov{align-items:center}.drawer{border-radius:20px}}
+.drawer h3{margin:0 0 3px;font-size:19px;font-weight:800}
+.drawer .dsub{margin:0 0 14px;font-size:13px;color:var(--ink3)}
+.dact{display:flex;gap:8px}
+.dact .go{flex:1;border:none;padding:12px;border-radius:12px;font-weight:800;font-size:14px;background:var(--accent);color:#fff;cursor:pointer;font-family:inherit}
+.dact .can,.dact .x{padding:12px 16px;border-radius:12px;font-weight:800;font-size:14px;border:1px solid var(--line2);background:var(--panel);color:var(--ink2);cursor:pointer;font-family:inherit}
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);background:#1d1d1f;color:#fff;padding:12px 20px;border-radius:12px;font-weight:700;font-size:14px;opacity:0;pointer-events:none;transition:.25s;z-index:80}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.gate{max-width:400px;margin:12vh auto;text-align:center;padding:0 20px}
+.gate h2{font-size:20px;font-weight:800}
+.gate p{color:var(--ink2);font-size:14px}
+</style>
+</head>
+<body>
+<div class="top">
+  <a class="back" id="backLink" href="index.html">‹ Dashboard</a>
+  <h1>My Profile</h1>
+  <span class="sp"></span>
+  <button class="iconbtn" onclick="toggleTheme()" title="Theme">◐</button>
+  <button class="signout" onclick="signOut()">Sign out</button>
+</div>
+
+<div class="wrap" id="wrap"><div class="spin">Loading your profile…</div></div>
+
+<div class="ov" id="bkOv"><div class="drawer" id="bkDrawer"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+var PA="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/profile-api";
+var EM="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/emblem-api";
+var CS="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/cal-sync";
+var TA="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/atlas-api";
+var CODE="",NAME="",PROFILE_P={},EMBDATA=null,PROFSUB='profile',WELCOME=false;
+function $(id){return document.getElementById(id);}
+function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+function toast(t){var e=$('toast');e.textContent=t;e.classList.add('on');clearTimeout(e._t);e._t=setTimeout(function(){e.classList.remove('on');},2400);}
+function initials(nm){nm=(nm||'').trim();var p=nm.split(/\s+/);return (((p[0]||'')[0]||'')+((p[1]||'')[0]||'')).toUpperCase();}
+function toggleTheme(){var d=document.documentElement.getAttribute('data-theme')==='dark';document.documentElement.setAttribute('data-theme',d?'light':'dark');try{localStorage.setItem('gfi_theme',d?'light':'dark');}catch(e){}}
+function signOut(){try{localStorage.removeItem('tsfg_code');localStorage.removeItem('tsfg_name');}catch(e){}location.href='index.html';}
+(function(){try{var t=localStorage.getItem('gfi_theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
+
+// ---- boot ----
+(function boot(){
+  try{CODE=(localStorage.getItem('tsfg_code')||'').toUpperCase();NAME=localStorage.getItem('tsfg_name')||'';}catch(e){}
+  try{var ref=document.referrer;if(ref&&/calendar\.html/.test(ref))$('backLink').href=ref;
+      var back=new URLSearchParams(location.search).get('from');if(back==='scheduler')$('backLink').href='calendar.html';
+      WELCOME=new URLSearchParams(location.search).get('welcome')==='1';}catch(e){}
+  if(!CODE){ $('wrap').innerHTML='<div class="gate"><h2>Please sign in</h2><p>Your profile is tied to your GFI code. Sign in from the dashboard to view and edit it.</p><a class="btn" style="display:inline-block;text-decoration:none;margin-top:10px" href="index.html">Go to sign in →</a></div>'; return; }
+  loadProfile();
+})();
+function loadProfile(){
+  fetch(PA,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'get_profile',code:CODE,current_name:NAME})})
+    .then(function(r){return r.json();}).then(function(r){PROFILE_P=(r&&r.profile)||{};renderShell();paintProfile(PROFILE_P);})
+    .catch(function(){PROFILE_P={};renderShell();paintProfile(PROFILE_P);});
+  loadEmblems(function(){if(PROFSUB==='profile'&&PROFILE_P)paintProfile(PROFILE_P);});
+}
+function renderShell(){
+  var full=((PROFILE_P.first_name||'')+' '+(PROFILE_P.last_name||'')).trim()||NAME;
+  var need=(WELCOME||PROFILE_P.profile_complete===false);
+  var banner=need?'<div class="banner"><div style="font-size:22px">👋</div><div><div class="bt">Welcome — let’s finish your profile</div><p>This information routes you into the team hierarchy and keeps Operations in sync. Fill in the fields below (Calendly can wait) and hit <b>Save details</b>. Takes a minute.</p></div></div>':'';
+  $('wrap').innerHTML=
+    '<div class="hero"><h1>'+esc(full)+'</h1><p>'+esc(PROFILE_P.title||'The Standard Financial Group')+' · <span style="opacity:.9">'+esc(CODE)+'</span></p></div>'
+    +banner
+    +'<div class="psubbar"><button id="psub_profile" class="psub on" onclick="setProfSub(\'profile\')">Profile</button><button id="psub_emblems" class="psub" onclick="setProfSub(\'emblems\')">🏆 Emblems</button></div>'
+    +'<div id="profBody"></div>';
+}
+function setProfSub(s){PROFSUB=s;var a=$('psub_profile'),b=$('psub_emblems');if(a)a.classList.toggle('on',s==='profile');if(b)b.classList.toggle('on',s==='emblems');
+  if(s==='emblems'){if(EMBDATA)paintEmblems(EMBDATA);else{$('profBody').innerHTML='<div class="spin">Loading your trophy case…</div>';loadEmblems(function(){paintEmblems(EMBDATA);});}}
+  else paintProfile(PROFILE_P||{});}
+
+// ---- profile form ----
+function paintProfile(p){
+  var full=((p.first_name||'')+' '+(p.last_name||'')).trim()||NAME;
+  var av=p.photo?('<img src="'+esc(p.photo)+'" alt="">'):esc(initials(full));
+  var actBadge='';
+  if(EMBDATA&&EMBDATA.selected&&EMBDATA.selected.length&&EMBDATA.catalog){var _ae=EMBDATA.catalog.filter(function(x){return x.id===EMBDATA.selected[0];})[0];if(_ae)actBadge='<div title="'+esc(_ae.name)+' — your active emblem" style="flex:0 0 auto;cursor:pointer" onclick="setProfSub(\'emblems\')">'+emblemBadge(_ae,true,58,initials(full))+'</div>';}
+  var recruiter=p.direct_to?('<span style="color:var(--green);font-weight:800">'+esc(p.direct_to)+(p.direct_to_name?(' · '+esc(p.direct_to_name)):'')+'</span>'):'<span style="color:var(--ink3)">not set</span>';
+  var h='<div class="sec"><div class="card" style="display:flex;align-items:center;gap:16px"><div class="avatar">'+av+'</div>'
+    +'<div style="flex:1;min-width:140px"><div style="font-weight:800;font-size:17px">'+esc(full)+'</div><div style="font-size:12.5px;color:var(--ink3);margin:3px 0 7px">'+esc(p.title||'Associate')+' · <span class="codepill">'+esc(CODE)+'</span></div>'
+    +'<label style="font-size:12.5px;font-weight:700;color:var(--accent);cursor:pointer">📷 Upload photo<input type="file" accept="image/*" style="display:none" onchange="uploadPhoto(this)"></label></div>'+actBadge+'</div></div>';
+
+  h+='<div class="sec"><div class="sech"><h2>Your details</h2><span style="font-size:12px;color:var(--ink3);font-weight:700">Delivered to Operations</span></div><div class="card">'
+    +'<div class="row"><div class="fld"><label class="lbl">First name</label><input id="pf_first" class="in" value="'+esc(p.first_name||'')+'"></div><div class="fld"><label class="lbl">Last name</label><input id="pf_last" class="in" value="'+esc(p.last_name||'')+'"></div></div>'
+    +'<div class="row"><div class="fld"><label class="lbl">Mobile phone <span class="hint">· SMS + contact</span></label><input id="pf_phone" class="in" value="'+esc(p.phone||'')+'" placeholder="(555) 555-1234"></div><div class="fld"><label class="lbl">Email / Gmail</label><input id="pf_email" type="email" class="in" value="'+esc(p.email||'')+'" placeholder="you@gmail.com"></div></div>'
+    +'<div class="row"><div class="fld"><label class="lbl">State of residence</label><input id="pf_state" class="in" value="'+esc(p.state||'')+'" placeholder="e.g. California" list="statelist"></div><div class="fld"><label class="lbl">Agent code <span class="hint">· assigned</span></label><input class="in" value="'+esc(CODE)+'" readonly></div></div>'
+    +'<div class="row"><div class="fld"><label class="lbl">Direct recruiter — agent code <span class="hint">· who brought you in</span></label><input id="pf_direct" class="in" value="'+esc(p.direct_to||'')+'" placeholder="e.g. C1991" style="text-transform:uppercase"><div style="font-size:11.5px;margin-top:5px">Current: '+recruiter+'</div></div></div>'
+    +'<div class="row"><div class="fld"><label class="lbl">ICA — Independent Contractor Agreement <span class="hint">· signed status / #</span></label><input id="pf_ica" class="in" value="'+esc(p.ica||'')+'" placeholder="Signed / agreement #"></div><div class="fld"><label class="lbl">ICA date <span class="hint">· contract date</span></label><input id="pf_icadate" type="date" class="in" value="'+esc(p.ica_date||'')+'"></div></div>'
+    +'<button class="btn" style="margin-top:14px" onclick="saveProfile()">Save details</button></div></div>';
+
+  h+='<div class="sec"><div class="sech"><h2>Calendar Sync</h2></div><div class="card">'
+    +'<div style="font-size:13px;color:var(--ink2);margin-bottom:12px">Connect your Google &amp; Apple calendars so your existing appointments — <b>including anything still in Calendly</b> — automatically block those times. No more double-bookings.</div>'
+    +'<div id="calSyncStatus" style="font-size:12.5px;font-weight:700;color:var(--ink3);margin-bottom:12px">Checking sync status…</div>'
+    +'<button class="btn" onclick="openCalSync()">🔗 Set up calendar sync</button>'
+    +'<div style="font-size:11.5px;color:var(--ink3);margin-top:10px">Full two-way Google sync + booking emails from your Gmail turn on once the Workspace connection is finished — this busy-blocking works today.</div>'
+    +'<div class="fld" style="margin-top:14px"><label class="lbl">Calendly link <span class="hint">· optional, being replaced</span></label><input id="pf_cal" class="in" value="'+esc(p.calendly||'')+'" placeholder="https://calendly.com/you"></div>'
+    +'</div></div>';
+
+  if(p.is_trainer){
+    h+='<div class="sec"><div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap"><div><div style="font-weight:800;font-size:14px">Manage your booking availability</div><div style="font-size:12.5px;color:var(--ink3)">Weekly hours, blackouts & vacations live in the Scheduler.</div></div><a class="btn ghost" style="text-decoration:none" href="calendar.html?tab=avail">Open My Availability →</a></div></div>';
+  }
+  $('profBody').innerHTML=h+'<datalist id="statelist">'+US_STATES.map(function(s){return '<option value="'+s+'">';}).join('')+'</datalist>';
+  loadCalSyncStatus();
+}
+var US_STATES=["Alabama","Alaska","Arizona","Arkansas","California","Colorado","Connecticut","Delaware","Florida","Georgia","Hawaii","Idaho","Illinois","Indiana","Iowa","Kansas","Kentucky","Louisiana","Maine","Maryland","Massachusetts","Michigan","Minnesota","Mississippi","Missouri","Montana","Nebraska","Nevada","New Hampshire","New Jersey","New Mexico","New York","North Carolina","North Dakota","Ohio","Oklahoma","Oregon","Pennsylvania","Rhode Island","South Carolina","South Dakota","Tennessee","Texas","Utah","Vermont","Virginia","Washington","West Virginia","Wisconsin","Wyoming"];
+function val(id){var e=$(id);return e?(e.value||'').trim():'';}
+function saveProfile(){
+  var first=val('pf_first'),last=val('pf_last');
+  if(!first){toast('First name is required');return;}
+  var body={action:'save_contact',code:CODE,current_name:NAME,first_name:first,last_name:last,phone:val('pf_phone'),email:val('pf_email'),calendly:val('pf_cal'),state:val('pf_state'),direct_to:val('pf_direct').toUpperCase(),ica:val('pf_ica'),ica_date:val('pf_icadate')};
+  fetch(PA,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(function(r){return r.json();}).then(function(r){
+    if(!r||!r.ok){toast((r&&r.error)||'Save failed');return;}
+    var nn=(first+' '+last).trim();if(nn&&nn!==NAME){NAME=nn;try{localStorage.setItem('tsfg_name',nn);}catch(e){}}
+    PROFILE_P.first_name=first;PROFILE_P.last_name=last;PROFILE_P.phone=val('pf_phone');PROFILE_P.email=val('pf_email');PROFILE_P.calendly=val('pf_cal');PROFILE_P.state=val('pf_state');PROFILE_P.direct_to=val('pf_direct').toUpperCase();PROFILE_P.direct_to_name=r.direct_to_name||PROFILE_P.direct_to_name;PROFILE_P.ica=val('pf_ica');PROFILE_P.ica_date=val('pf_icadate');PROFILE_P.profile_complete=r.profile_complete;
+    WELCOME=false;renderShell();paintProfile(PROFILE_P);
+    toast(r.profile_complete?'Profile saved ✓ — Operations updated':'Saved — a few fields still needed');
+  }).catch(function(){toast('Network error');});
+}
+function uploadPhoto(input){var f=input.files&&input.files[0];if(!f)return;if(f.size>2000000){toast('Image too large — max 2MB');return;}
+  var rd=new FileReader();rd.onload=function(){fetch(PA,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'save_photo',code:CODE,photo:rd.result})}).then(function(r){return r.json();}).then(function(r){if(!r||!r.ok){toast((r&&r.error)||'Upload failed');return;}PROFILE_P.photo=rd.result;toast('Photo updated');paintProfile(PROFILE_P);}).catch(function(){toast('Upload failed');});};rd.readAsDataURL(f);}
+
+// ---- calendar sync (ported) ----
+function loadCalSyncStatus(){var el=$('calSyncStatus');if(!el)return;fetch(CS,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'get_feeds',code:CODE})}).then(function(r){return r.json();}).then(function(r){el=$('calSyncStatus');if(!el)return;if(!r||!r.ok){el.textContent='';return;}if(!(r.google_ics||r.apple_ics)){el.innerHTML='⚪ Not connected — set up sync to block your outside appointments.';el.style.color='var(--ink3)';return;}var when=r.last_synced?(' · last synced '+esc(new Date(r.last_synced).toLocaleDateString())):'';el.innerHTML='🟢 Connected — '+r.busy_count+' busy block'+(r.busy_count===1?'':'s')+' imported'+when;el.style.color='var(--green)';}).catch(function(){});}
+function openCalSync(){
+  fetch(CS,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'get_feeds',code:CODE})}).then(function(r){return r.json();}).then(function(r){r=r||{};
+    $('bkDrawer').innerHTML='<h3>Calendar Sync</h3><p class="dsub">Import your outside appointments so no one double-books you. Read-only — we never change your calendar.</p>'
+      +'<div style="padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--panel2);margin-bottom:12px"><label class="lbl">Google Calendar — secret iCal address</label><input id="cs_google" class="in" value="'+esc(r.google_ics||'')+'" placeholder="https://calendar.google.com/calendar/ical/…/basic.ics"><div style="font-size:11.5px;color:var(--ink3);margin-top:7px;line-height:1.4">Google Calendar → <b>Settings</b> → click your calendar → <b>Integrate calendar</b> → copy the <b>Secret address in iCal format</b>. This already includes your Calendly events.</div></div>'
+      +'<div style="padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--panel2);margin-bottom:12px"><label class="lbl">Apple Calendar — public link (optional)</label><input id="cs_apple" class="in" value="'+esc(r.apple_ics||'')+'" placeholder="webcal://… or https://…ics"><div style="font-size:11.5px;color:var(--ink3);margin-top:7px;line-height:1.4">On Mac: right-click the calendar → <b>Share Calendar</b> → tick <b>Public Calendar</b> → copy the link.</div></div>'
+      +'<div id="cs_msg" style="font-size:12.5px;font-weight:700;color:var(--ink3);min-height:16px"></div>'
+      +'<div class="dact" style="margin-top:12px"><button class="go" id="cs_save" onclick="saveCalSync()">Save &amp; sync</button><button class="can" onclick="$(\'bkOv\').classList.remove(\'on\')">Close</button></div>';
+    $('bkOv').classList.add('on');
+  }).catch(function(){toast('Could not open sync setup');});
+}
+function saveCalSync(){
+  var g=($('cs_google').value||'').trim(),a=($('cs_apple').value||'').trim();var msg=$('cs_msg'),btn=$('cs_save');
+  msg.style.color='var(--ink3)';msg.textContent='Syncing your calendar…';if(btn)btn.disabled=true;
+  fetch(CS,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'save_feeds',code:CODE,google_ics:g,apple_ics:a})}).then(function(r){return r.json();}).then(function(r){
+    if(btn)btn.disabled=false;
+    if(!r||!r.ok){msg.style.color='var(--red)';msg.textContent='Could not save — check the links and try again.';return;}
+    var errSrc=(r.sources||[]).filter(function(s){return !s.ok;});
+    if(errSrc.length){msg.style.color='var(--gold)';msg.textContent='Saved, but a link didn’t load ('+esc(errSrc[0].err||'error')+'). Make sure it’s the iCal/ICS URL.';}
+    else{msg.style.color='var(--green)';msg.textContent='✓ Synced — '+r.busy_count+' busy block'+(r.busy_count===1?'':'s')+' imported. Those times are now blocked.';}
+    loadCalSyncStatus();
+  }).catch(function(){if(btn)btn.disabled=false;msg.style.color='var(--red)';msg.textContent='Network error — try again.';});
+}
+
+// ---- emblems (ported verbatim) ----
+function loadEmblems(cb){fetch(EM,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'get',code:CODE})}).then(function(r){return r.json();}).then(function(r){if(r&&r.ok)EMBDATA=r;cb&&cb();}).catch(function(){cb&&cb();});}
+var TIERMETAL={bronze:{a:'#e8a869',b:'#a15e28',rim:'#7a4718',ring:'#5e3712'},silver:{a:'#f2f4f8',b:'#9aa1b2',rim:'#767d90',ring:'#565b6b'},gold:{a:'#f7dc78',b:'#c99a2e',rim:'#a67c1e',ring:'#7d5c15'},platinum:{a:'#eaf4ff',b:'#9fb6da',rim:'#7f97bd',ring:'#5f7196'},rank:{a:'#b9c2ff',b:'#5b6cff',rim:'#4f46e5',ring:'#3a34ad'}};
+function embEsc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+function starPath(cx,cy,ro,ri,pts,rot){var p='';for(var i=0;i<pts*2;i++){var a=Math.PI*i/pts-Math.PI/2+(rot||0);var r=(i%2===0)?ro:ri;p+=(i===0?'M':'L')+(cx+Math.cos(a)*r).toFixed(1)+' '+(cy+Math.sin(a)*r).toFixed(1);}return p+'Z';}
+function emblemBadge(e,earned,size,mono){
+  size=size||90;var uid=(e.id||'x')+Math.floor(Math.random()*1e6);var m=TIERMETAL[e.tier]||TIERMETAL.gold;
+  var A=earned?m.a:'#d2d2d8',B=earned?m.b:'#9a9aa2',RIM=earned?m.rim:'#7d7d86',RING=earned?m.ring:'#5f5f67';
+  var tierN=({bronze:1,silver:2,gold:3,platinum:4,rank:3})[e.tier]||3;
+  var deco;
+  if(mono){deco='<circle cx="50" cy="82" r="9.5" fill="rgba(0,0,0,.55)"/><text x="50" y="85.6" font-size="8.5" font-weight="800" fill="#fff" text-anchor="middle" font-family="Inter,-apple-system,sans-serif">'+embEsc(mono)+'</text>';}
+  else{deco='';for(var i=0;i<tierN;i++){var sx=50+(i-(tierN-1)/2)*8.5;deco+='<path d="'+starPath(sx,82,3.2,1.35,5)+'" fill="'+(earned?'#fff':'#c9c9d0')+'" opacity=".95"/>';}}
+  var lock=earned?'':'<circle cx="75" cy="60" r="11" fill="#2e2e34"/><text x="75" y="64.5" font-size="12" text-anchor="middle">🔒</text>';
+  var sparkle=(earned&&(e.tier==='platinum'||e.tier==='gold'))?'<text x="70" y="24" font-size="12">✨</text>':'';
+  return '<svg viewBox="0 0 100 100" width="'+size+'" height="'+size+'" style="display:block;filter:'+(earned?'drop-shadow(0 4px 11px rgba(0,0,0,.24))':'grayscale(.85)')+';opacity:'+(earned?1:.55)+'">'
+    +'<defs><radialGradient id="mg'+uid+'" cx="44%" cy="30%" r="72%"><stop offset="0" stop-color="'+A+'"/><stop offset="1" stop-color="'+B+'"/></radialGradient></defs>'
+    +'<g transform="translate(50,42)"><path d="'+starPath(0,0,44,20,12)+'" fill="'+RING+'"/><path d="'+starPath(0,0,40,23,12,0.26)+'" fill="'+RIM+'" opacity=".55"/></g>'
+    +'<path d="M33 66 L67 66 L67 91 L50 83 L33 91 Z" fill="'+B+'"/><path d="M33 66 L67 66 L67 71 L33 71 Z" fill="'+RIM+'"/>'
+    +'<circle cx="50" cy="42" r="31" fill="'+RIM+'"/>'
+    +'<circle cx="50" cy="42" r="28" fill="url(#mg'+uid+')" stroke="'+RIM+'" stroke-width="1.2"/>'
+    +'<circle cx="50" cy="42" r="20.5" fill="rgba(0,0,0,.13)"/>'
+    +'<ellipse cx="43" cy="31" rx="17" ry="9" fill="rgba(255,255,255,.34)"/>'
+    +'<text x="50" y="51" font-size="25" text-anchor="middle">'+(e.icon||'★')+'</text>'
+    +deco+sparkle+lock+'</svg>';
+}
+function paintEmblems(r){
+  var host=$('profBody');if(!host)return;if(!r||!r.catalog){host.innerHTML='<div class="empty">Trophy case unavailable right now.</div>';return;}
+  var cat=r.catalog;var selected=r.selected||[];var active=selected[0]||null;
+  var activeE=active?cat.filter(function(e){return e.id===active;})[0]:null;
+  var head='<div class="sec"><div style="display:flex;align-items:center;gap:18px;padding:18px;border:1px solid var(--line);border-radius:16px;background:linear-gradient(135deg,var(--panel),var(--panel2))">'
+    +(activeE?('<div class="emb-badge active" style="flex:0 0 auto">'+emblemBadge(activeE,true,86,initials((r&&r.name)||NAME))+'</div>'):'<div style="width:86px;height:86px;border-radius:50%;border:2px dashed var(--line2);display:flex;align-items:center;justify-content:center;color:var(--ink3);font-size:26px;flex:0 0 auto">🏆</div>')
+    +'<div style="min-width:0"><div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--ink3)">Active Emblem</div><div style="font-weight:800;font-size:17px;margin-top:2px">'+embEsc(activeE?activeE.name:'None selected')+'</div><div style="font-size:12.5px;color:var(--ink3)">'+embEsc(activeE?activeE.desc:'Tap an unlocked emblem below to set your calling card.')+'</div><div style="font-size:12.5px;color:var(--accent);font-weight:800;margin-top:6px">'+r.earned_count+' of '+r.total+' unlocked</div></div></div></div>';
+  var cats=[];cat.forEach(function(e){if(cats.indexOf(e.cat)<0)cats.push(e.cat);});
+  var grid=cats.map(function(c){
+    var earnedN=cat.filter(function(e){return e.cat===c&&e.earned;}).length;var totN=cat.filter(function(e){return e.cat===c;}).length;
+    var items=cat.filter(function(e){return e.cat===c;}).map(function(e){
+      var isActive=(active===e.id);
+      var sub=e.earned?(isActive?'★ Active':'Unlocked'):'🔒 Locked';
+      return '<div class="emb-cell'+(e.earned?' earned':'')+'" onclick="openEmblemDetail(\''+e.id+'\')"><div class="emb-badge'+(isActive?' active':'')+'">'+emblemBadge(e,e.earned,72)+'</div><div class="emb-name">'+embEsc(e.name)+'</div><div class="emb-desc">'+sub+'</div></div>';
+    }).join('');
+    return '<div class="sec"><div class="sech"><h2>'+embEsc(c)+'</h2><span style="font-size:12px;color:var(--ink3);font-weight:700">'+earnedN+'/'+totN+'</span></div><div class="emb-grid">'+items+'</div></div>';
+  }).join('');
+  host.innerHTML=head+grid;
+}
+function setActiveEmblem(id){
+  var cur=(EMBDATA&&EMBDATA.selected)?EMBDATA.selected.slice():[];
+  var ids=(cur[0]===id)?[]:[id];
+  fetch(EM,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'select',code:CODE,ids:ids})}).then(function(r){return r.json();}).then(function(r){if(!r||!r.ok){toast('Could not update');return;}if(EMBDATA)EMBDATA.selected=r.selected||[];toast(ids.length?'Active emblem set 🏆':'Active emblem cleared');paintEmblems(EMBDATA);}).catch(function(){toast('Network error');});
+}
+function money2c(n){n=Number(n)||0;if(n>=1e6)return '$'+(n/1e6).toFixed(2)+'M';if(n>=1e3)return '$'+(Math.round(n/100)/10)+'K';return '$'+Math.round(n);}
+function embProgress(id,s){s=s||{};var M={cash_100k:[s.cashflow,100000,'m'],cash_250k:[s.cashflow,250000,'m'],cash_500k:[s.cashflow,500000,'m'],cash_1m:[s.cashflow,1000000,'m'],team_10:[s.team_active,10],team_25:[s.team_active,25],team_50:[s.team_active,50],team_100:[s.team_active,100],md_1:[s.team_mds,1],md_3:[s.team_mds,3],md_5:[s.team_mds,5],champ_1:[s.champ,1],champ_5:[s.champ,5],champ_10:[s.champ,10],tenure_3mo:[s.tenure_days,90,'d'],tenure_6mo:[s.tenure_days,182,'d'],tenure_1yr:[s.tenure_days,365,'d'],tenure_2yr:[s.tenure_days,730,'d'],tenure_3yr:[s.tenure_days,1095,'d'],tenure_5yr:[s.tenure_days,1825,'d']};var x=M[id];if(!x)return null;return {cur:Number(x[0])||0,tgt:x[1],money:x[2]==='m',days:x[2]==='d'};}
+function openEmblemDetail(id){
+  if(!EMBDATA||!EMBDATA.catalog)return;var e=EMBDATA.catalog.filter(function(x){return x.id===id;})[0];if(!e)return;
+  var pr=embProgress(id,EMBDATA.stats);var bar='';
+  if(pr){var pct=Math.max(0,Math.min(100,Math.round((pr.cur/pr.tgt)*100)));
+    var cT=pr.money?money2c(pr.cur):(pr.days?(pr.cur+'d'):pr.cur),tT=pr.money?money2c(pr.tgt):(pr.days?(pr.tgt+'d'):pr.tgt);
+    bar='<div style="margin-top:14px"><div style="display:flex;justify-content:space-between;font-size:12px;font-weight:800;color:var(--ink2);margin-bottom:5px"><span>'+cT+'</span><span>'+tT+'</span></div><div style="height:9px;border-radius:999px;background:var(--line);overflow:hidden"><span style="display:block;height:100%;width:'+pct+'%;background:'+(e.earned?'linear-gradient(90deg,var(--gold),#e6c874)':'linear-gradient(90deg,var(--accent),#8b9bff)')+';border-radius:999px"></span></div><div style="font-size:12px;font-weight:800;margin-top:6px;color:'+(e.earned?'var(--green)':'var(--ink3)')+'">'+(e.earned?'✓ Unlocked':(pct+'% there'))+'</div></div>';}
+  else bar='<div style="font-size:12px;font-weight:800;margin-top:12px;color:'+(e.earned?'var(--green)':'var(--ink3)')+'">'+(e.earned?'✓ Unlocked':'🔒 Not yet earned')+'</div>';
+  $('bkDrawer').innerHTML='<div style="text-align:center;line-height:0">'+emblemBadge(e,e.earned,124)+'</div>'
+    +'<h3 style="text-align:center;margin:14px 0 2px">'+embEsc(e.name)+'</h3><p class="dsub" style="text-align:center">'+embEsc(e.cat)+' · Emblem</p>'
+    +'<div style="padding:15px;border:1px solid var(--line);border-radius:12px;background:var(--panel2);margin-top:8px"><div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3)">How to earn</div><div style="font-size:14px;font-weight:600;margin-top:4px">'+embEsc(e.desc)+'</div>'+bar+'</div>'
+    +'<div class="dact" style="margin-top:18px">'+(e.earned?'<button class="go" onclick="setActiveEmblem(\''+e.id+'\');$(\'bkOv\').classList.remove(\'on\')">'+((EMBDATA.selected||[])[0]===e.id?'Remove as active':'Set as active')+'</button>':'<button class="go" style="background:var(--panel2);color:var(--ink2)" onclick="$(\'bkOv\').classList.remove(\'on\')">Close</button>')+'</div>';
+  $('bkOv').classList.add('on');
+}
+$('bkOv').addEventListener('click',function(e){if(e.target===this)this.classList.remove('on');});
+</script>
+</body>
+</html>

@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Operations Command — The Standard Financial Group</title>
+<style>
+:root{
+  --bg:#f5f5f7;--panel:#fff;--panel2:#fbfbfd;--ink:#1d1d1f;--ink2:#6e6e73;--ink3:#8e8e93;
+  --line:#ececf0;--line2:#e3e3e8;--accent:#5b6cff;--gold:#c99a2e;--gold-dp:#8a6d1f;--gold-br:#b8891f;
+  --green:#1a9c52;--red:#d0392b;--shadow-sm:0 1px 2px rgba(0,0,0,.04),0 1px 3px rgba(0,0,0,.03);
+  --shadow:0 2px 8px rgba(0,0,0,.05),0 14px 40px rgba(0,0,0,.07);--shadow-lg:0 24px 60px rgba(0,0,0,.16);
+  --font:'Inter',-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',system-ui,sans-serif;
+  --goldsoft:rgba(201,154,46,.12);
+}
+[data-theme="dark"]{--bg:#0a0a0c;--panel:#161618;--panel2:#1c1c1f;--ink:#f5f5f7;--ink2:#a1a1a8;--ink3:#77777e;--line:#26262a;--line2:#2e2e33;--accent:#7c8bff;--gold:#e6c260;--gold-br:#e6c260;--goldsoft:rgba(230,194,96,.12);}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);-webkit-font-smoothing:antialiased;letter-spacing:-.01em}
+/* gate */
+.gate{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;position:relative;overflow:hidden}
+.gate::before,.gate::after{content:"";position:absolute;border-radius:50%;filter:blur(80px);opacity:.5;pointer-events:none}
+.gate::before{width:440px;height:440px;background:radial-gradient(circle,var(--gold),transparent 70%);top:-140px;right:-90px;opacity:.32}
+.gate::after{width:380px;height:380px;background:radial-gradient(circle,#8b9bff,transparent 70%);bottom:-130px;left:-70px;opacity:.4}
+.gate-card{position:relative;width:100%;max-width:410px;background:var(--panel);border:1px solid var(--line);border-radius:24px;box-shadow:var(--shadow-lg);padding:36px 32px;text-align:center}
+.gate-badge{width:56px;height:56px;border-radius:15px;margin:0 auto 15px;background:linear-gradient(135deg,var(--gold),var(--gold-dp));display:flex;align-items:center;justify-content:center;font-size:26px;box-shadow:var(--shadow-sm)}
+.gate-card h1{font-size:22px;font-weight:800;margin:0 0 3px;letter-spacing:-.02em}
+.gate-card p{font-size:13.5px;color:var(--ink2);margin:0 0 22px}
+.gate-card input{width:100%;padding:13px 14px;border-radius:12px;border:1.5px solid var(--line2);background:var(--panel2);color:var(--ink);font-size:15px;outline:none;margin-bottom:11px}
+.gate-card input:focus{border-color:var(--gold)}
+.gbtn{width:100%;border:none;padding:13px;border-radius:12px;font-weight:800;font-size:15px;background:linear-gradient(135deg,var(--gold),var(--gold-dp));color:#fff;cursor:pointer;font-family:inherit;margin-top:4px}
+.gmsg{font-size:13px;font-weight:700;color:var(--red);margin-top:12px;min-height:16px}
+.ghint{font-size:11.5px;color:var(--ink3);margin-top:14px;line-height:1.5}
+/* app */
+.top{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:12px;padding:13px 22px;background:color-mix(in srgb,var(--bg) 86%,transparent);backdrop-filter:saturate(1.6) blur(14px);border-bottom:1px solid var(--line);flex-wrap:wrap}
+.top .brand{display:flex;align-items:center;gap:10px}
+.top .bdot{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--gold),var(--gold-dp));display:flex;align-items:center;justify-content:center;font-size:15px}
+.top h1{font-size:15.5px;font-weight:800;margin:0;letter-spacing:-.02em}
+.top .who{font-size:12px;color:var(--ink3);font-weight:600}
+.top .sp{margin-left:auto}
+.iconbtn{width:36px;height:36px;border-radius:10px;border:1px solid var(--line2);background:var(--panel);color:var(--ink2);cursor:pointer;font-size:15px}
+.signout{border:1px solid var(--line2);background:var(--panel);color:var(--ink2);font-weight:700;font-size:13px;padding:8px 13px;border-radius:10px;cursor:pointer}
+.wrap{max-width:1080px;margin:0 auto;padding:22px 22px 90px}
+.sec{margin-bottom:26px}
+.sec-h{display:flex;align-items:center;justify-content:space-between;margin:0 0 13px;gap:10px;flex-wrap:wrap}
+.sec-h h2{font-size:16px;font-weight:800;margin:0;letter-spacing:-.02em;display:flex;align-items:center;gap:9px}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:13px}
+.stat{border:1px solid var(--line);border-radius:15px;padding:17px;background:linear-gradient(135deg,var(--goldsoft),var(--panel));box-shadow:var(--shadow-sm)}
+.stat .n{font-size:26px;font-weight:800;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.stat .l{font-size:11.5px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em;margin-top:4px}
+.lbgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.lbc{border:1px solid var(--line);border-radius:16px;background:var(--panel);box-shadow:var(--shadow-sm);overflow:hidden}
+.lbc .hd{display:flex;align-items:center;gap:9px;padding:13px 15px;border-bottom:1px solid var(--line);font-weight:800;font-size:13.5px}
+.lbc .hd .ic{font-size:17px}
+.lbrow{display:flex;align-items:center;gap:10px;padding:9px 15px;font-size:13.5px}
+.lbrow .rk{width:20px;font-weight:800;color:var(--ink3);text-align:center}
+.lbrow.g1{background:linear-gradient(100deg,rgba(201,154,46,.14),transparent 75%)}
+.lbrow.g2{background:linear-gradient(100deg,rgba(170,176,189,.13),transparent 75%)}
+.lbrow.g3{background:linear-gradient(100deg,rgba(192,127,58,.11),transparent 75%)}
+.lbrow .nm{flex:1;font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lbrow .vl{font-weight:800;color:var(--gold-br);font-variant-numeric:tabular-nums}
+.lbrow .base{font-size:11px;color:var(--ink3);font-weight:600}
+.card{border:1px solid var(--line);border-radius:15px;background:var(--panel);box-shadow:var(--shadow-sm);padding:4px}
+.appt{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.appt:last-child{border-bottom:none}
+.appt .dt{font-weight:800;font-size:13px;min-width:112px}
+.appt .ag{flex:1;font-size:13.5px}
+.appt .ag .sub{font-size:12px;color:var(--ink3)}
+.appt .st{font-size:11px;font-weight:800;padding:3px 9px;border-radius:7px;background:var(--goldsoft);color:var(--gold-br)}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:13px}
+.tile{display:block;text-decoration:none;color:inherit;border:1px solid var(--line);border-radius:15px;background:var(--panel);padding:17px;box-shadow:var(--shadow-sm);transition:transform .15s,box-shadow .15s}
+.tile:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
+.tile .ti{font-size:22px}
+.tile .tt{font-weight:800;font-size:14.5px;margin-top:9px}
+.tile .td{font-size:12px;color:var(--ink3);margin-top:2px}
+.searchbar{width:100%;max-width:320px;padding:10px 13px;border:1.5px solid var(--line2);border-radius:11px;background:var(--panel);color:var(--ink);font-size:14px;outline:none;font-family:inherit}
+.ptable{width:100%;border-collapse:collapse;font-size:13px}
+.ptable th{position:sticky;top:0;background:var(--panel2);color:var(--gold-br);text-align:left;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;padding:10px 12px;border-bottom:1px solid var(--line)}
+.ptable td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+.ptable tr:hover td{background:var(--panel2)}
+.miss{color:var(--red);font-weight:800}.ok{color:var(--green);font-weight:800}
+.spin,.empty{padding:26px;text-align:center;color:var(--ink3);font-size:14px;font-weight:600}
+.tablewrap{border:1px solid var(--line);border-radius:15px;overflow:auto;max-height:560px;background:var(--panel)}
+.hide{display:none!important}
+</style>
+</head>
+<body>
+<!-- GATE -->
+<div class="gate" id="gate">
+  <div class="gate-card">
+    <div class="gate-badge">🛡️</div>
+    <h1>Operations Command</h1>
+    <p>Total company view for the Operations team.</p>
+    <input id="gName" placeholder="Your name" autocomplete="name">
+    <input id="gCode" placeholder="Operations code" inputmode="numeric" autocomplete="off">
+    <button class="gbtn" id="gBtn">Enter Operations →</button>
+    <div class="gmsg" id="gMsg"></div>
+    <div class="ghint">Operations codes only (0000–0004). Not an Operations user? <a href="index.html" style="color:var(--gold-br);font-weight:700">Go to the broker dashboard →</a></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" class="hide">
+  <div class="top">
+    <div class="brand"><div class="bdot">🛡️</div><div><h1>Operations Command</h1><div class="who" id="whoLbl"></div></div></div>
+    <span class="sp"></span>
+    <button class="iconbtn" onclick="toggleTheme()" title="Theme">◐</button>
+    <button class="signout" onclick="signOut()">Sign out</button>
+  </div>
+  <div class="wrap">
+    <div class="sec"><div class="stat-grid" id="statGrid"><div class="stat"><div class="n">…</div><div class="l">Loading</div></div></div></div>
+
+    <div class="sec">
+      <div class="sec-h"><h2>🏆 Company Leaderboard <span id="lbMonth" style="font-size:12px;font-weight:700;color:var(--ink3)"></span></h2></div>
+      <div class="lbgrid" id="lbGrid"><div class="spin">Loading leaderboard…</div></div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-h"><h2>📅 My Operations Appointments</h2></div>
+      <div class="card" id="apptCard"><div class="spin">Loading…</div></div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-h"><h2>🧭 Full Platform</h2></div>
+      <div class="tiles">
+        <a class="tile" href="dashboard.html"><div class="ti">📊</div><div class="tt">Onboarding Dashboard</div><div class="td">Every agent's 90-day progress + profiles</div></a>
+        <a class="tile" href="newbusiness.html"><div class="ti">💰</div><div class="tt">New Business</div><div class="td">All policies — enter Operations mode</div></a>
+        <a class="tile" href="teamhub.html"><div class="ti">💬</div><div class="tt">Team Hub</div><div class="td">Company + baseshop chat</div></a>
+        <a class="tile" href="calendar.html"><div class="ti">🗓️</div><div class="tt">Scheduler</div><div class="td">Trainings, availability & bookings</div></a>
+        <a class="tile" href="index.html"><div class="ti">🏠</div><div class="tt">Broker Home</div><div class="td">Leaderboard + snapshot</div></a>
+        <a class="tile" href="org.html"><div class="ti">🌳</div><div class="tt">Org Chart</div><div class="td">The whole hierarchy</div></a>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-h"><h2>👥 Agent Profiles <span id="profCount" style="font-size:12px;font-weight:700;color:var(--ink3)"></span></h2><input class="searchbar" id="profSearch" placeholder="Search name, code, state…" oninput="renderProfiles()"></div>
+      <div class="tablewrap"><table class="ptable"><thead><tr><th>Agent</th><th>Code</th><th>Phone</th><th>Email</th><th>State</th><th>ICA</th><th>Recruiter</th><th>Base</th><th>Profile</th></tr></thead><tbody id="profRows"><tr><td colspan="9" class="spin">Loading profiles…</td></tr></tbody></table></div>
+    </div>
+
+    <div style="text-align:center;color:var(--ink3);font-size:12px;padding-top:8px">The Standard Financial Group · Operations Command</div>
+  </div>
+</div>
+
+<script>
+var OD="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/ops-directory";
+var LB="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/leaderboard-api";
+var TOKEN="2026",OPS=null,PROFILES=[];
+function $(id){return document.getElementById(id);}
+function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+function money2(n){n=Number(n)||0;if(n>=1e6)return '$'+(n/1e6).toFixed(2)+'M';if(n>=1e3)return '$'+(Math.round(n/100)/10)+'K';return '$'+Math.round(n);}
+function money(n){n=Math.round(Number(n)||0);return '$'+n.toLocaleString('en-US');}
+function toggleTheme(){var d=document.documentElement.getAttribute('data-theme')==='dark';document.documentElement.setAttribute('data-theme',d?'light':'dark');try{localStorage.setItem('gfi_theme',d?'light':'dark');}catch(e){}}
+(function(){try{var t=localStorage.getItem('gfi_theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
+function signOut(){try{sessionStorage.removeItem('tsfg_ops');}catch(e){}OPS=null;$('app').classList.add('hide');$('gate').classList.remove('hide');$('gName').value='';$('gCode').value='';}
+
+/* ---- login ---- */
+function doLogin(){
+  var name=$('gName').value.trim(),code=$('gCode').value.trim();var msg=$('gMsg');
+  if(!name){msg.textContent='Enter your name.';return;}
+  if(!code){msg.textContent='Enter your Operations code.';return;}
+  msg.style.color='var(--ink3)';msg.textContent='Checking…';
+  fetch(OD,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'ops_login',code:code,name:name})})
+    .then(function(r){return r.json();}).then(function(r){
+      if(!r||!r.ok){msg.style.color='var(--red)';msg.textContent=(r&&r.error)||'Could not sign in.';if(r&&r.not_ops)msg.textContent='That isn’t an Operations code — use the broker dashboard.';return;}
+      OPS=r.ops;try{sessionStorage.setItem('tsfg_ops',JSON.stringify(OPS));}catch(e){}
+      showApp();
+    }).catch(function(){msg.style.color='var(--red)';msg.textContent='Network error — try again.';});
+}
+$('gBtn').addEventListener('click',doLogin);
+['gName','gCode'].forEach(function(id){$(id).addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});});
+
+function showApp(){
+  $('gate').classList.add('hide');$('app').classList.remove('hide');
+  $('whoLbl').textContent=OPS.name+' · '+(OPS.title||'Operations')+((OPS.baseshops&&OPS.baseshops.length)?(' · '+OPS.baseshops.join(' & ')):'');
+  loadOverview();loadLeaderboard();loadDirectory();
+}
+
+/* ---- overview ---- */
+function loadOverview(){
+  fetch(OD,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'overview',token:TOKEN,code:OPS.code})})
+    .then(function(r){return r.json();}).then(function(r){
+      if(!r||!r.ok){return;}var o=r.overview||{};
+      var bases=Object.keys(o.by_base||{}).map(function(b){return b+' '+o.by_base[b];}).join(' · ');
+      $('statGrid').innerHTML=
+        stat(o.agents,'Active Agents')+
+        stat(o.complete+' / '+o.agents,'Profiles Complete')+
+        stat(money2(o.month_ap||0),'AP Submitted · MTD')+
+        stat(o.month_policies||0,'Policies · MTD')+
+        stat(bases||'—','By Baseshop','small');
+      renderAppts(o.appts||[]);
+    }).catch(function(){});
+}
+function stat(n,l,sm){return '<div class="stat"><div class="n"'+(sm?' style="font-size:15px;line-height:1.4"':'')+'>'+esc(String(n))+'</div><div class="l">'+esc(l)+'</div></div>';}
+function renderAppts(a){
+  var host=$('apptCard');if(!host)return;
+  if(!a.length){host.innerHTML='<div class="empty">No upcoming appointments booked with you yet. Agents book you from Scheduler → Base Ops.</div>';return;}
+  host.innerHTML=a.slice(0,25).map(function(b){
+    return '<div class="appt"><div class="dt">'+esc(prettyDate(b.date))+'<div style="font-size:12px;color:var(--ink3)">'+esc(b.time||'')+' PT</div></div><div class="ag"><b>'+esc(b.agent||'—')+'</b><div class="sub">'+esc(b.category||'Operations')+(b.conf?(' · '+esc(b.conf)):'')+'</div></div><span class="st">'+esc(b.status||'booked')+'</span></div>';
+  }).join('');
+}
+function prettyDate(d){if(!d)return '';var p=String(d).split('-');if(p.length<3)return d;var dt=new Date(Date.UTC(+p[0],+p[1]-1,+p[2]));return dt.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',timeZone:'UTC'});}
+
+/* ---- leaderboard ---- */
+var LMET=[['recruiter','Business Partners','🤝',false,' partners'],['premium','Premium Submitted','💰',true,''],['net_licenses','Net Licenses','🎫',false,' licensed'],['trainings','Field Trainings Ran','🏋️',false,' ran']];
+function loadLeaderboard(){
+  fetch(LB,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'board',code:'',scope:'hierarchy',period:'month'})})
+    .then(function(r){return r.json();}).then(function(r){
+      if(!r||!r.ok){$('lbGrid').innerHTML='<div class="empty">Leaderboard unavailable.</div>';return;}
+      $('lbMonth').textContent='· '+(r.month||'');
+      $('lbGrid').innerHTML=LMET.map(function(m){
+        var b=(r.boards&&r.boards[m[0]])||{top:[]};var top=(b.top||[]).slice(0,3);
+        var rows=top.length?top.map(function(t,i){var v=m[3]?money(t.value):(t.value+m[4]);return '<div class="lbrow g'+(i+1)+'"><span class="rk">'+(i===0?'👑':(i+1))+'</span><span class="nm">'+esc(t.name)+'<div class="base">'+esc(t.baseshop||'')+'</div></span><span class="vl">'+esc(v)+'</span></div>';}).join(''):'<div class="empty" style="padding:16px">No entries yet</div>';
+        return '<div class="lbc"><div class="hd"><span class="ic">'+m[2]+'</span>'+esc(m[1])+'</div>'+rows+'</div>';
+      }).join('');
+    }).catch(function(){$('lbGrid').innerHTML='<div class="empty">Leaderboard unavailable.</div>';});
+}
+
+/* ---- directory ---- */
+function loadDirectory(){
+  fetch(OD,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'directory',token:TOKEN})})
+    .then(function(r){return r.json();}).then(function(r){
+      if(!r||!r.ok){$('profRows').innerHTML='<tr><td colspan="9" class="empty">Could not load profiles.</td></tr>';return;}
+      PROFILES=(r.people||[]).filter(function(p){return p.status!=='quit';});
+      $('profCount').textContent='· '+r.complete+' of '+r.count+' complete';
+      renderProfiles();
+    }).catch(function(){$('profRows').innerHTML='<tr><td colspan="9" class="empty">Could not load profiles.</td></tr>';});
+}
+function renderProfiles(){
+  var q=($('profSearch').value||'').trim().toLowerCase();
+  var list=PROFILES.filter(function(p){if(!q)return true;return (p.name+' '+p.code+' '+p.state+' '+p.baseshop+' '+p.email).toLowerCase().indexOf(q)>=0;});
+  var body=$('profRows');
+  if(!list.length){body.innerHTML='<tr><td colspan="9" class="empty">No matches.</td></tr>';return;}
+  body.innerHTML=list.map(function(p){
+    var rec=p.direct_to?(esc(p.direct_to)+(p.direct_to_name?('<div style="font-size:11px;color:var(--ink3)">'+esc(p.direct_to_name)+'</div>'):'')):'<span class="miss">—</span>';
+    var m=function(v){return v?esc(v):'<span class="miss">—</span>';};
+    return '<tr><td><b>'+esc(p.name||'—')+'</b><div style="font-size:11px;color:var(--ink3)">'+esc(p.contract_level)+'</div></td><td>'+esc(p.code)+'</td><td>'+m(p.phone)+'</td><td>'+m(p.email)+'</td><td>'+m(p.state)+'</td><td>'+m(p.ica)+(p.ica_date?('<div style="font-size:11px;color:var(--ink3)">'+esc(p.ica_date)+'</div>'):'')+'</td><td>'+rec+'</td><td>'+esc(p.baseshop||'')+'</td><td>'+(p.complete?'<span class="ok">✓</span>':'<span class="miss">needs info</span>')+'</td></tr>';
+  }).join('');
+}
+
+/* ---- boot ---- */
+(function(){
+  try{var s=sessionStorage.getItem('tsfg_ops');if(s){OPS=JSON.parse(s);if(OPS&&OPS.code){showApp();return;}}}catch(e){}
+  try{var q=new URLSearchParams(location.search);var qc=q.get('code'),qn=q.get('name');if(qc)$('gCode').value=qc;if(qn)$('gName').value=qn;if(qc&&qn)doLogin();}catch(e){}
+})();
+</script>
+</body>
+</html>
