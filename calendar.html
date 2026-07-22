@@ -700,8 +700,8 @@ function pickTime(t){SELTIME=t;renderTimes();var trs=trainersAt(SELDATE,t);
   $('trWrap').scrollIntoView({behavior:'smooth',block:'center'});}
 function bookTrainerCard(c){var col=avColor(c.name);return '<div class="tcard"><div class="th"><div class="tav" style="background:'+col+'">'+initials(c.name)+'</div><div><div class="tn">'+esc(c.name)+'</div><div class="tr">'+esc(roleLabel(c.role))+'</div></div></div><div class="tmeta"><span class="m">'+esc(SELTIME)+' PT</span><span class="m">'+esc(SELCAT)+'</span></div><button class="book" onclick="confirmBook(\''+encodeURIComponent(c.name)+'\')">Book this time</button></div>';}
 function startBookWith(encName){var name=decodeURIComponent(encName);var c=TRAINERS.filter(function(x){return x.name===name;})[0];if(!c)return;
-  var no=nextOpening(c);if(!no){toast(name+' has no open times in the next 2 weeks.');return;}
-  SELDATE=no.date;SELTIME=no.time;setTab('book');setTimeout(function(){confirmBook(encName);},250);}
+  if(c.calendly){window.open(c.calendly,'_blank','noopener');toast('Opening '+name.split(' ')[0]+'’s Calendly…');return;}
+  toast(name.split(' ')[0]+' hasn’t connected their Calendly yet.');}
 function quickSchedule(){
   for(var i=0;i<14;i++){var ds=ymd(addDays(i));var wd=wdOf(ds);var times={};
     bTr().forEach(function(c){var key=DAYS[wd];var slots=(c.slots&&c.slots[key])||[];slots.forEach(function(t){if(!times[t])times[t]=c;});});
