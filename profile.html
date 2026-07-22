@@ -172,7 +172,7 @@ function loadCalendlyStatus(){
   fetch(CALS,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'status',code:CODE})}).then(function(r){return r.json();}).then(function(r){el=$('calendlyStatus');if(!el)return;
     if(!r||!r.ok||!r.connected){el.innerHTML='⚪ Not connected — connect Calendly to publish your booking link.';el.style.color='var(--ink3)';return;}
     var when=r.synced_at?(' · synced '+esc(new Date(r.synced_at).toLocaleString())):'';
-    el.innerHTML='🟢 Connected as '+esc(r.cal_name||r.cal_email||'Calendly')+' — '+r.events+' booking'+(r.events===1?'':'s')+when+(r.scheduling_url?('<div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><a href="'+esc(r.scheduling_url)+'" target="_blank" rel="noopener" style="color:var(--accent);font-weight:800">'+esc(r.scheduling_url)+'</a><button class="btn ghost" style="padding:4px 10px;font-size:12px" onclick="copyCalLink(\''+esc(r.scheduling_url)+'\')">Copy link</button></div>'):'');
+    el.innerHTML='🟢 Connected as '+esc(r.cal_name||r.cal_email||'Calendly')+' — '+r.events+' booking'+(r.events===1?'':'s')+(r.webhook?' · 🔔 real-time alerts on':'')+when+(r.scheduling_url?('<div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><a href="'+esc(r.scheduling_url)+'" target="_blank" rel="noopener" style="color:var(--accent);font-weight:800">'+esc(r.scheduling_url)+'</a><button class="btn ghost" style="padding:4px 10px;font-size:12px" onclick="copyCalLink(\''+esc(r.scheduling_url)+'\')">Copy link</button></div>'):'');
     el.style.color='var(--green)';
   }).catch(function(){});
 }
