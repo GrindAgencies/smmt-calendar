@@ -526,45 +526,79 @@ function renderImportBox(){
   var box=$('importBox'); if(!box)return;
   box.innerHTML='<div class="mgroup" style="padding:16px 18px">'+
     '<div style="font-weight:800;font-size:14px;margin-bottom:8px">📥 Import the client’s budget</div>'+
-    '<div style="font-size:13px;color:var(--ink3);margin-bottom:12px">Upload a file (CSV, spreadsheet export, or a text/PDF budget) <b>or</b> paste the numbers below. Our AI reads it and fills your fields automatically.</div>'+
-    '<input type="file" id="budgetFile" accept=".csv,.txt,.tsv,.md,.json,application/pdf,text/*" onchange="budgetFilePicked(this)" style="margin-bottom:10px">'+
-    '<textarea id="budgetPaste" placeholder="…or paste the budget here (income, rent, utilities, groceries, debts, savings, etc.)" style="width:100%;min-height:120px;border:1px solid var(--line2);border-radius:12px;padding:12px;font-family:inherit;font-size:13.5px;background:var(--panel2);color:var(--ink);resize:vertical"></textarea>'+
-    '<div style="display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap">'+
-      '<button class="aibtn" onclick="parseBudget()">✨ Read &amp; auto-fill</button>'+
-      '<button class="fsavebtn" style="background:var(--panel);border:1px solid var(--line2);color:var(--ink2)" onclick="nextStep()">Skip &amp; enter manually →</button>'+
-      '<span class="fsave" id="importStatus" style="margin-left:0"></span>'+
-    '</div></div>';
+    '<div style="font-size:13px;color:var(--ink3);margin-bottom:12px">Drag a file right in — a PDF, a screenshot/photo, a spreadsheet export, or a CSV — and it reads &amp; auto-fills instantly. You can also click to browse, or paste the numbers below.</div>'+
+    '<div id="dropzone" tabindex="0" role="button" onclick="$(\'budgetFile\').click()" ondragover="dzOver(event)" ondragenter="dzOver(event)" ondragleave="dzLeave(event)" ondrop="dzDrop(event)" '+
+      'style="border:2px dashed var(--line2);border-radius:14px;padding:28px 16px;text-align:center;cursor:pointer;background:var(--panel2);transition:border-color .15s, background .15s">'+
+      '<div style="font-size:34px;line-height:1">📄</div>'+
+      '<div style="font-weight:800;font-size:14px;margin-top:6px">Drag &amp; drop the budget here</div>'+
+      '<div style="font-size:12px;color:var(--ink3);margin-top:2px">or click to browse — PDF, image, CSV, or text</div>'+
+    '</div>'+
+    '<input type="file" id="budgetFile" accept=".csv,.txt,.tsv,.md,.json,.pdf,application/pdf,image/*,text/*" style="display:none" onchange="budgetFilePicked(this)">'+
+    '<div class="fsave" id="importStatus" style="margin:10px 0 0;display:block"></div>'+
+    '<div id="importReview" style="margin-top:12px"></div>'+
+    '<details style="margin-top:12px"><summary style="cursor:pointer;font-size:12.5px;color:var(--ink3);font-weight:700">Or paste the numbers instead</summary>'+
+      '<textarea id="budgetPaste" placeholder="Paste the budget here (income, rent, utilities, groceries, debts, savings, etc.)" style="width:100%;min-height:110px;border:1px solid var(--line2);border-radius:12px;padding:12px;font-family:inherit;font-size:13.5px;background:var(--panel2);color:var(--ink);resize:vertical;margin-top:8px"></textarea>'+
+      '<button class="aibtn" style="margin-top:8px" onclick="parseBudgetText()">✨ Read &amp; auto-fill</button>'+
+    '</details>'+
+    '<div style="margin-top:12px"><button class="fsavebtn" style="background:var(--panel);border:1px solid var(--line2);color:var(--ink2)" onclick="nextStep()">Skip &amp; enter manually →</button></div>'+
+  '</div>';
 }
-var __budgetText='';
-function budgetFilePicked(inp){
-  var f=inp.files&&inp.files[0]; if(!f)return; var st=$('importStatus'); if(st)st.textContent='Reading '+f.name+'…';
-  if(/pdf$/i.test(f.name)||f.type==='application/pdf'){ if(st)st.textContent='PDF picked — please copy the text into the box (PDF text extraction is limited in-browser).'; return; }
-  var r=new FileReader(); r.onload=function(){ __budgetText=String(r.result||''); var pb=$('budgetPaste'); if(pb)pb.value=__budgetText.slice(0,6000); if(st)st.textContent='Loaded '+f.name+' — click “Read & auto-fill”.'; }; r.readAsText(f);
+function dzOver(e){e.preventDefault();e.stopPropagation();var z=$('dropzone');if(z){z.style.borderColor='var(--accent)';z.style.background='var(--accent-soft)';}}
+function dzLeave(e){e.preventDefault();e.stopPropagation();var z=$('dropzone');if(z){z.style.borderColor='var(--line2)';z.style.background='var(--panel2)';}}
+function dzDrop(e){e.preventDefault();e.stopPropagation();dzLeave(e);var f=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0];if(f)handleBudgetFile(f);}
+function budgetFilePicked(inp){var f=inp.files&&inp.files[0];if(f)handleBudgetFile(f);}
+function bStat(msg){var st=$('importStatus');if(st)st.textContent=msg;}
+function handleBudgetFile(f){
+  if(!f)return;
+  if(f.size>12*1024*1024){bStat('That file is large (>12 MB) — try a PDF or a clearer screenshot.');return;}
+  var isPdf=/\.pdf$/i.test(f.name)||f.type==='application/pdf';
+  var isImg=/^image\//.test(f.type)||/\.(png|jpe?g|webp|gif)$/i.test(f.name);
+  bStat('⏳ Reading '+f.name+'…');
+  var r=new FileReader();
+  r.onerror=function(){bStat('Could not read that file — try another, or paste the numbers.');};
+  if(isPdf||isImg){
+    r.onload=function(){ extractBudget({filename:f.name,mime:f.type||(isPdf?'application/pdf':''),data:String(r.result||'')}); };
+    r.readAsDataURL(f);
+  } else {
+    r.onload=function(){ extractBudget({text:String(r.result||'')}); };
+    r.readAsText(f);
+  }
 }
-function parseBudget(){
-  var txt=(($('budgetPaste')&&$('budgetPaste').value)||__budgetText||'').trim();
-  var st=$('importStatus');
-  if(!txt){ if(st)st.textContent='Add a file or paste the budget first.'; return; }
-  if(st)st.textContent='🤖 Reading the budget…';
-  var sys='You extract a household budget from messy text into STRICT JSON. Output ONLY a JSON object, no prose. Use these exact keys and put monthly dollar amounts (numbers only, no $ or commas; 0 if unknown):\\n'+
-    '{"income":{"Job":0,"Spouse":0,"Passive":0,"Portfolio":0},'+
-    '"expenses":{"Mortgage/Rent":0,"Property Tax":0,"HOA":0,"Utilities":0,"Phone":0,"Internet":0,"Groceries":0,"Subscriptions":0,"Insurances":0,"Gas":0,"Childcare":0,"Pets":0,"Petty Cash":0,"Debt Payments":0,"Unforeseen":0},'+
-    '"assets":{"House":0,"Car":0,"Savings Acct.":0,"Checking":0,"Properties":0,"Businesses":0},'+
-    '"invest":{"401k":0,"Roth IRA":0,"Trad. IRA":0,"Stocks":0,"Bonds":0,"CDs":0,"Crypto":0,"IUL":0,"FIA":0},'+
-    '"debt":{"Mortgage":0,"Auto Loan":0,"Student Loan":0,"Credit Cards":0,"Personal Loan":0,"Medical":0,"HELOC":0}}\\n'+
-    'Map synonyms (rent->Mortgage/Rent, food->Groceries, car payment->Debt Payments AND Auto Loan balance if given, 401(k)->401k, etc.). Balances (assets/debt/invest) are totals, not monthly.';
-  fetch('https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/ai-api',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'ask',system:sys,prompt:txt,max_tokens:900})})
+function parseBudgetText(){var t=(($('budgetPaste')&&$('budgetPaste').value)||'').trim();if(!t){bStat('Paste the budget first.');return;}extractBudget({text:t});}
+function extractBudget(payload){
+  payload.action='extract_budget';
+  bStat('🤖 Reading the budget with AI…');
+  fetch('https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/ai-api',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
    .then(function(r){return r.json();}).then(function(r){
-     if(!(r&&r.ok&&r.answer)){ if(st)st.textContent='Could not read it — you can enter the numbers manually. '+((r&&r.error)?('('+r.error+')'):''); return; }
-     var j=null; try{ var m=r.answer.match(/\{[\s\S]*\}/); j=JSON.parse(m?m[0]:r.answer); }catch(e){ j=null; }
-     if(!j){ if(st)st.textContent='The file was hard to read — please enter the numbers manually.'; return; }
-     var dd=d(); var merged=0;
-     ['income','expenses','assets','invest','debt'].forEach(function(cat){ if(j[cat]&&typeof j[cat]==='object'){ if(!dd[cat])dd[cat]={}; for(var k in j[cat]){ var v=Number(j[cat][k])||0; if(v){ dd[cat][k]=v; merged++; } } } });
-     scheduleSave();
-     if(st)st.textContent='✓ Imported '+merged+' values — review them on the next steps.';
-     toast('Budget imported ✓ — auto-filled '+merged+' fields');
-     setTimeout(nextStep,900);
-   }).catch(function(){ if(st)st.textContent='Connection issue — enter the numbers manually.'; });
+     if(!(r&&r.ok)){ bStat('Could not read it — '+((r&&r.error)?r.error:'try a clearer file')+'. You can paste the numbers instead.'); return; }
+     var j=r.data; if(!j){ try{ var m=(r.answer||'').match(/\{[\s\S]*\}/); j=JSON.parse(m?m[0]:r.answer); }catch(e){ j=null; } }
+     if(!j){ bStat('The file was hard to read — please paste the numbers instead.'); return; }
+     applyBudget(j);
+   }).catch(function(){ bStat('Connection issue — paste the numbers instead.'); });
+}
+function applyBudget(j){
+  var dd=d(); var merged=0; var sums={income:0,expenses:0,assets:0,invest:0,debt:0};
+  ['income','expenses','assets','invest','debt'].forEach(function(cat){
+    if(j[cat]&&typeof j[cat]==='object'){ if(!dd[cat])dd[cat]={};
+      for(var k in j[cat]){ var v=Number(j[cat][k])||0; if(v){ dd[cat][k]=v; merged++; sums[cat]+=v; } } }
+  });
+  scheduleSave();
+  bStat('');
+  var inc=sums.income, exp=sums.expenses, surp=inc-exp;
+  var rev=$('importReview');
+  if(rev){
+    function tile(l,v,col){return '<div><div style="color:var(--ink3);font-size:11px;text-transform:uppercase;letter-spacing:.04em">'+l+'</div><div style="font-weight:800'+(col?(';color:'+col):'')+'">'+v+'</div></div>';}
+    rev.innerHTML='<div class="mgroup" style="padding:14px 16px;border:1px solid var(--gold);background:var(--gold-soft)">'+
+      '<div style="font-weight:800;font-size:13.5px;margin-bottom:9px">✓ Imported '+merged+' values'+(j.note?(' · <span style="font-weight:600;color:var(--ink2)">'+esc(j.note)+'</span>'):'')+'</div>'+
+      '<div style="display:flex;gap:18px;flex-wrap:wrap;font-size:13px">'+
+        tile('Income',money(inc)+'/mo')+tile('Expenses',money(exp)+'/mo')+tile(surp>=0?'Surplus':'Shortfall',money(Math.abs(surp))+'/mo',surp>=0?'var(--green)':'#d9534f')+
+      '</div>'+
+      '<div style="font-size:11.5px;color:var(--ink2);margin-top:10px">Every field is editable on the next steps — tweak anything that needs it.</div>'+
+      '<button class="aibtn" style="margin-top:10px" onclick="nextStep()">Review &amp; continue →</button>'+
+    '</div>';
+  }
+  toast('Budget imported ✓ — auto-filled '+merged+' fields');
+  setTimeout(function(){ if(CUR&&STEPS[STEP]==='import') nextStep(); },2000);
 }
 
 RENDER.vision=function(){return '<div class="eyebrow">Retirement Vision</div>'+

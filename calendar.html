@@ -1137,5 +1137,13 @@ function spotKey(e){if(e.key==='ArrowDown'){e.preventDefault();SPOTSEL=Math.min(
 function spotHi(){[].forEach.call($('spotR').children,function(el,i){el.classList.toggle('sel',i===SPOTSEL);});}
 </script>
 <script defer src="notif.js"></script>
+<script>
+/* Universal drag & drop: routes a dropped file into the matching hidden <input type=file> and fires its normal handler. Works on any [data-drop="inputId"] container or any <label> that wraps a file input. */
+(function(){function zf(t){if(!t||!t.closest)return null;var z=t.closest('[data-drop]');if(z){var i=document.getElementById(z.getAttribute('data-drop'));if(i)return{z:z,i:i};}var l=t.closest('label');if(l){var i2=l.querySelector('input[type=file]');if(i2)return{z:l,i:i2};}return null;}
+var cur=null;function hi(z,on){if(!z)return;z.style.outline=on?'2px dashed var(--accent,#5b6cff)':'';z.style.outlineOffset=on?'3px':'';}
+document.addEventListener('dragover',function(e){var m=zf(e.target);if(!m)return;e.preventDefault();if(cur!==m.z){hi(cur,false);cur=m.z;hi(cur,true);}},false);
+document.addEventListener('dragleave',function(e){if(cur&&!cur.contains(e.relatedTarget)){hi(cur,false);cur=null;}},false);
+document.addEventListener('drop',function(e){var m=zf(e.target);hi(cur,false);cur=null;if(!m)return;e.preventDefault();var fs=e.dataTransfer&&e.dataTransfer.files;if(!fs||!fs.length)return;try{var dt=new DataTransfer();for(var k=0;k<fs.length;k++)dt.items.add(fs[k]);m.i.files=dt.files;}catch(_){}m.i.dispatchEvent(new Event('change',{bubbles:true}));},false);})();
+</script>
 </body>
 </html>
