@@ -412,6 +412,7 @@ function toggleBookable(code2,name2,on){
   fetch(PA,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'enable_bookable',code:CODE,target_code:code2,bookable:on})}).then(function(r){return r.json();}).then(function(r){
     if(!r||!r.ok){toast((r&&r.error)||'Could not update');return;}
     toast(on?(name2+' is now bookable'):(name2+' hidden from booking'));
+    if(on)setTimeout(function(){alert(name2+' is now a bookable CFT.\n\nRequired next step: '+name2.split(' ')[0]+' must connect their Calendly in their Profile → Calendly Booking so clients can book them. Their booking link goes live the moment they connect.');},250);
     fetch(TA,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'cftavail'})}).then(function(x){return x.json();}).then(function(rr){var v=rr&&rr.value;TRAINERS=(v&&Array.isArray(v.cfts))?v.cfts:[];renderOps();}).catch(function(){renderOps();});
   }).catch(function(){toast('Network error');});
 }
@@ -471,6 +472,17 @@ var CAL="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/cal-feed";
 var PA="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/profile-api";
 var EM="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/emblem-api";
 var CS="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/cal-sync";
+var CALS="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/calendly-sync";
+function calFmt(iso){if(!iso)return '';var d=new Date(iso);if(isNaN(d))return '';return d.toLocaleString('en-US',{weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});}
+function loadMyCalendly(){
+  var host=$('myCalendly');if(!host)return;
+  fetch(CALS,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'list',code:CODE})}).then(function(r){return r.json();}).then(function(r){
+    host=$('myCalendly');if(!host)return;var evs=(r&&r.events)||[];
+    var up=evs.filter(function(b){return b.start_time && new Date(b.start_time)>=new Date() && b.status!=='canceled' && b.status!=='cancelled';}).sort(function(a,b){return new Date(a.start_time)-new Date(b.start_time);}).slice(0,12);
+    if(!up.length){host.innerHTML='';return;}
+    host.innerHTML='<div class="sec"><div class="sech"><h2>📅 Your Calendly bookings</h2><span style="font-size:12px;color:var(--ink3)">'+up.length+' upcoming</span></div>'+up.map(function(b){return '<div class="apt"><div style="min-width:0"><div style="font-weight:700;font-size:14px">'+esc(b.name||'Booking')+(b.invitee_name?(' · '+esc(b.invitee_name)):'')+'</div><div style="font-size:12px;color:var(--ink3)">'+esc(calFmt(b.start_time))+' PT</div></div>'+(b.join_url?('<a class="qbtn" style="margin-left:auto;text-decoration:none" href="'+esc(b.join_url)+'" target="_blank" rel="noopener">Join</a>'):'')+'</div>';}).join('')+'</div>';
+  }).catch(function(){});
+}
 var PROFSUB='profile',EMBDATA=null,PROFILE_P=null;
 function openProfile(){location.href='profile.html?from=scheduler';}
 function setProfileChip(){var a=$('profileAv'),n=$('profileName');if(a)a.textContent=initials(NAME);if(n)n.textContent=(NAME||'').split(' ')[0]||'Profile';}
@@ -914,7 +926,8 @@ function renderMe(){var t=todayStr();
   var up=MYB.filter(isUp);var past=MYB.filter(function(b){return !isUp(b);});
   var myTrain=MYT.filter(isUp);
   var pendCount=myTrain.filter(function(b){return b.status==='pending';}).length;
-  var h='<div class="sec"><div class="sech"><h2>Upcoming appointments</h2><a onclick="setTab(\'book\')">Book another →</a></div>'+(up.length?up.map(aptRow).join(''):'<div class="empty">Nothing on the books — tap Book a Trainer to schedule.</div>')+'</div>';
+  var h='<div id="myCalendly"></div>';
+  h+='<div class="sec"><div class="sech"><h2>Upcoming appointments</h2><a onclick="setTab(\'book\')">Book another →</a></div>'+(up.length?up.map(aptRow).join(''):'<div class="empty">Nothing on the books — tap Book a Trainer to schedule.</div>')+'</div>';
   if(myTrain.length){h+='<div class="sec"><div class="sech"><h2>Sessions you\'re training</h2><span style="font-size:12px;color:var(--ink3)">'+myTrain.length+' upcoming'+(pendCount?' · '+pendCount+' to approve':'')+'</span></div><div style="font-size:12.5px;color:var(--ink3);margin:0 2px 10px">'+(pendCount?'Approve or decline pending requests below.':'Your upcoming sessions.')+'</div>'+myTrain.map(trainerAptRow).join('')+'</div>';}
   var toReview=MYT.filter(function(b){return (b.status==='booked'||b.status==='confirmed')&&isPastBk(b);});
   if(toReview.length){h+='<div class="sec"><div class="sech"><h2>Sessions to review</h2><span style="font-size:12px;color:var(--gold);font-weight:700">'+toReview.length+'</span></div><div style="font-size:12.5px;color:var(--ink3);margin:0 2px 10px">These have passed — mark each Completed or No-show. No-shows trigger a follow-up.</div>'+toReview.map(trainerAptRow).join('')+'</div>';}
@@ -922,7 +935,7 @@ function renderMe(){var t=todayStr();
   for(var i=0;i<7;i++){var dd=addDays(i);var w=dd.getUTCDay();var ts=trainingsFor(w);if(!ts.length)continue;h+='<div style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin:14px 2px 8px">'+(i===0?'Today':dd.toLocaleDateString('en-US',{weekday:'long',timeZone:'UTC'}))+'</div>'+ts.map(trainingRow).join('');}
   h+='</div>';
   if(past.length)h+='<div class="sec"><div class="sech"><h2>Past &amp; canceled</h2></div>'+past.slice(0,10).map(aptRow).join('')+'</div>';
-  $('view').innerHTML=h;
+  $('view').innerHTML=h;loadMyCalendly();
 }
 // === My Availability tab (trainer self-manage) ===
 function renderAvail(){

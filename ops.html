@@ -58,6 +58,24 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);-web
 .addbtn{border:none;background:var(--accent);color:#fff;font-weight:800;font-size:13px;padding:10px 15px;border-radius:11px;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px}
 .resetcols{border:1px solid var(--line2);background:var(--panel);color:var(--ink3);font-weight:700;font-size:12px;padding:9px 12px;border-radius:10px;cursor:pointer;font-family:inherit}
 .tablewrap{border:1px solid var(--line);border-radius:15px;overflow:auto;max-height:72vh;background:var(--panel);box-shadow:var(--shadow-sm)}
+.cc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:16px}
+.cc-2col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:760px){.cc-2col{grid-template-columns:1fr}}
+.cc-panel{border:1px solid var(--line);border-radius:15px;background:var(--panel);padding:16px 18px;box-shadow:var(--shadow-sm);margin-bottom:16px}
+.cc-panel h3{margin:0 0 13px;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--gold-br)}
+.bar-row{display:flex;align-items:center;gap:11px;margin-bottom:8px;font-size:12.5px}
+.bar-row .bl{width:160px;flex:0 0 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700}
+.bar-row .bt{flex:1;height:16px;border-radius:6px;background:var(--line);overflow:hidden}
+.bar-row .bt span{display:block;height:100%;background:linear-gradient(90deg,var(--gold),#e6c874);border-radius:6px}
+.bar-row .bv{width:46px;text-align:right;font-weight:800;font-variant-numeric:tabular-nums}
+.trend{display:flex;align-items:flex-end;gap:6px;height:104px;padding-top:16px}
+.trend .tb{background:linear-gradient(180deg,var(--accent),#8b9bff);border-radius:5px 5px 0 0;position:relative}
+.trend .tb .tv{position:absolute;top:-15px;left:0;right:0;text-align:center;font-size:10px;font-weight:800;color:var(--ink2)}
+.trend .tl{font-size:9.5px;color:var(--ink3);text-align:center;margin-top:5px;white-space:nowrap}
+.feedrow{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--line)}
+.feedrow:last-child{border-bottom:none}
+.feedrow .fd{font-weight:800;font-size:12.5px;min-width:120px;flex:0 0 auto}
+.feedrow .fn{flex:1;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ptable{width:100%;border-collapse:collapse;font-size:13px;min-width:960px;table-layout:auto}
 .ptable th{position:sticky;top:0;background:var(--panel2);color:var(--gold-br);text-align:left;font-size:10px;letter-spacing:.07em;text-transform:uppercase;padding:12px 18px;border-bottom:1.5px solid var(--line2);white-space:nowrap;z-index:1;user-select:none}
 .ptable th.dragover{background:var(--goldsoft);box-shadow:inset 3px 0 0 var(--gold)}
@@ -169,11 +187,13 @@ select.cellin{cursor:pointer}
         <button class="tgl on" id="tg_licensing" onclick="setTab('licensing')">🎫 Licensing</button>
         <button class="tgl" id="tg_newbiz" onclick="setTab('newbiz')">💰 New Business</button>
         <button class="tgl" id="tg_faststart" onclick="setTab('faststart')">🚀 Fast Start</button>
+        <button class="tgl" id="tg_bookings" onclick="setTab('bookings')">📅 Bookings</button>
       </div>
       <button class="addbtn hide" id="addBtn" onclick="openAddMenu()">＋ Add</button>
-      <input class="searchbar" id="search" placeholder="Search…" oninput="renderTab()">
+      <input class="searchbar" id="search" placeholder="Search…" oninput="onSearch()">
     </div>
-    <div class="tablewrap"><div id="tableHost"><div class="spin">Loading tracker…</div></div></div>
+    <div class="tablewrap" id="tableWrap"><div id="tableHost"><div class="spin">Loading tracker…</div></div></div>
+    <div id="bookingsHost" class="hide"></div>
     <div id="opsTiles"></div>
   </div>
 </div>
@@ -186,6 +206,10 @@ select.cellin{cursor:pointer}
 
 <script>
 var OD="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/ops-directory";
+var CALS="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/calendly-sync";
+function calBody(extra){var b=extra||{};b.code=OPS?OPS.code:'';if(canEdit())b.token='2026';return b;}
+function calApi(b){return fetch(CALS,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();});}
+function fmtDT(iso){if(!iso)return '';var d=new Date(iso);if(isNaN(d))return '';return d.toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});}
 var OPS=null,ROWS=[],TAB="licensing",CUR=null,SORT={licensing:{k:'name',dir:1},newbiz:{k:'name',dir:1},faststart:{k:'name',dir:1}},DRAGK=null,CUSTOMCOLS=[];
 var LICTYPES=['Life','Health','Life & Health','Life & Annuity','Property & Casualty','Series 6/63','Other'];
 var LICSTATUS=['Not Started','Pre-Licensing','Exam Passed','Licensed'];
@@ -304,7 +328,44 @@ function loadTracker(){
   }).catch(function(){$('tableHost').innerHTML='<div class="empty">Could not load the tracker.</div>';});
 }
 function renderReqBanner(n){var host=$('reqBanner');if(!host)return;host.innerHTML=(canEdit()&&n>0)?('<div class="reqbanner">✏️ '+n+' edit request'+(n===1?'':'s')+' from leaders awaiting review<button onclick="openRequests()">Review requests</button></div>'):'';}
-function setTab(t){TAB=t;['licensing','newbiz','faststart'].forEach(function(x){var b=$('tg_'+x);if(b)b.classList.toggle('on',x===t);});renderTab();}
+function setTab(t){TAB=t;['licensing','newbiz','faststart','bookings'].forEach(function(x){var b=$('tg_'+x);if(b)b.classList.toggle('on',x===t);});
+  var isB=(t==='bookings');var tw=$('tableWrap'),bh=$('bookingsHost'),sb=$('search'),ab=$('addBtn');
+  if(tw)tw.classList.toggle('hide',isB);if(bh)bh.classList.toggle('hide',!isB);
+  if(sb)sb.placeholder=isB?'Search bookings — name, type, agent…':'Search…';
+  if(ab)ab.classList.toggle('hide',isB||!canEdit());
+  if(isB)renderBookings();else renderTab();}
+function onSearch(){if(TAB==='bookings')renderBookingsTable();else renderTab();}
+/* ---- Calendly Command Center ---- */
+var BOOKINGS=[];
+function renderBookings(){
+  var host=$('bookingsHost');if(!host)return;host.innerHTML='<div class="spin">Loading Calendly bookings…</div>';
+  calApi(calBody({action:'analytics'})).then(function(r){var a=(r&&r.analytics)||{};
+    calApi(calBody({action:'bookings',limit:400})).then(function(rb){BOOKINGS=(rb&&rb.events)||[];paintBookings(a);})
+      .catch(function(){paintBookings(a);});
+  }).catch(function(){host.innerHTML='<div class="empty">Could not load bookings. Connect Calendly in your Profile.</div>';});
+}
+function bstat(n,l){return '<div class="stat"><div class="n">'+esc(String(n))+'</div><div class="l">'+esc(l)+'</div></div>';}
+function paintBookings(a){
+  var host=$('bookingsHost');if(!host)return;
+  var stats='<div class="cc-grid">'+bstat(a.total||0,'Total bookings')+bstat(a.active||0,'Active')+bstat(a.upcoming||0,'Upcoming')+bstat((a.cancel_rate||0)+'%','Cancel rate')+bstat(a.this_month||0,'This month')+'</div>';
+  var types=(a.by_type||[]).slice(0,8);var mx=types.length?(types[0].count||1):1;
+  var typePanel='<div class="cc-panel"><h3>Bookings by type</h3>'+(types.length?types.map(function(t){var pct=Math.max(3,Math.round(t.count*100/mx));return '<div class="bar-row"><span class="bl" title="'+esc(t.type)+'">'+esc(t.type)+'</span><span class="bt"><span style="width:'+pct+'%"></span></span><span class="bv">'+t.count+'</span></div>';}).join(''):'<div class="sub">No data</div>')+'</div>';
+  var months=(a.by_month||[]).slice(-12);var mmax=months.reduce(function(m,x){return Math.max(m,x.count);},1);
+  var trendPanel='<div class="cc-panel"><h3>Monthly trend</h3><div class="trend">'+(months.length?months.map(function(m){var h=Math.max(4,Math.round(m.count*80/mmax));return '<div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end"><div class="tb" style="height:'+h+'px"><span class="tv">'+m.count+'</span></div><div class="tl">'+esc(m.month.slice(2))+'</div></div>';}).join(''):'<div class="sub">No data</div>')+'</div></div>';
+  var agents=(a.by_agent||[]).slice(0,10);
+  var agentPanel=(agents.length>1)?('<div class="cc-panel"><h3>Bookings by CFT</h3>'+agents.map(function(g){return '<div class="bar-row"><span class="bl">'+esc(g.name||g.code)+'</span><span class="bt"><span style="width:'+Math.max(3,Math.round(g.count*100/(agents[0].count||1)))+'%"></span></span><span class="bv">'+g.count+'</span></div>';}).join('')+'</div>'):'';
+  var up=BOOKINGS.filter(function(b){return b.start_time && new Date(b.start_time)>=new Date() && b.status!=='canceled' && b.status!=='cancelled';}).slice(0,12);
+  var feedPanel='<div class="cc-panel"><h3>Upcoming</h3>'+(up.length?up.map(function(b){return '<div class="feedrow"><div class="fd">'+esc(fmtDT(b.start_time))+'</div><div class="fn">'+esc(b.name||'')+(b.invitee_name?(' · '+esc(b.invitee_name)):'')+'</div>'+(b.join_url?('<a class="dbtn blue" style="padding:5px 11px;font-size:12px;text-decoration:none" href="'+esc(b.join_url)+'" target="_blank" rel="noopener">Join</a>'):'')+'</div>';}).join(''):'<div class="sub">No upcoming bookings.</div>')+'</div>';
+  host.innerHTML=stats+'<div class="cc-2col">'+typePanel+trendPanel+'</div>'+agentPanel+feedPanel+'<div class="cc-panel"><h3>All bookings <span id="bkCount" style="color:var(--ink3);font-weight:700"></span></h3><div class="tablewrap" style="max-height:52vh;box-shadow:none"><table class="ptable" style="min-width:640px"><thead><tr><th>When</th><th>Type</th><th>Booked by</th><th>CFT</th><th>Status</th></tr></thead><tbody id="bkRows"></tbody></table></div></div>';
+  renderBookingsTable();
+}
+function renderBookingsTable(){
+  var q=($('search').value||'').trim().toLowerCase();
+  var rows=BOOKINGS.filter(function(b){if(!q)return true;return ((b.name||'')+' '+(b.invitee_name||'')+' '+(b.agent_name||'')+' '+(b.status||'')).toLowerCase().indexOf(q)>=0;});
+  var el=$('bkRows');if(!el)return;
+  el.innerHTML=rows.length?rows.slice(0,300).map(function(b){var canceled=(b.status==='canceled'||b.status==='cancelled');return '<tr><td>'+esc(fmtDT(b.start_time))+'</td><td>'+esc(b.name||'')+'</td><td>'+(b.invitee_name?esc(b.invitee_name):'<span class="sub">—</span>')+'</td><td>'+esc(b.agent_name||'')+'</td><td><span class="pill '+(canceled?'none':'lic')+'">'+esc(b.status||'')+'</span></td></tr>';}).join(''):'<tr><td colspan="5" class="empty">No matching bookings.</td></tr>';
+  var c=$('bkCount');if(c)c.textContent='· '+rows.length;
+}
 function filtered(){var q=($('search').value||'').trim().toLowerCase();return ROWS.filter(function(r){if(!q)return true;return (r.name+' '+r.code+' '+r.state+' '+r.baseshop+' '+(r.direct_to_name||'')+' '+r.license_status).toLowerCase().indexOf(q)>=0;});}
 function sortRows(rows){var s=SORT[TAB];var cols=COLS[TAB];var col=null;cols.forEach(function(c){if(c.k===s.k)col=c;});if(!col)return rows;
   return rows.slice().sort(function(a,b){var x=col.s(a),y=col.s(b);if(typeof x==='number'&&typeof y==='number')return (x-y)*s.dir;x=String(x);y=String(y);return x.localeCompare(y)*s.dir;});}

@@ -80,6 +80,7 @@ button,input,select,textarea{font-family:inherit;}button{cursor:pointer;}
 </div>
 <script>
 var AT="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/atlas-api";
+var CALS="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/calendly-sync";
 var SLUG=new URLSearchParams(location.search).get('t')||'';
 var TRAINER=null,SLOTS=[],TYPES=[],SELTYPE=null,SELDATE=null,SELTIME=null,SUBMITTING=false;
 function $(id){return document.getElementById(id);}
@@ -96,6 +97,13 @@ else if(!SLUG){document.getElementById('view').innerHTML='<div class="body"><div
 else{init();}
 
 function init(){
+  // Calendly-first: if this person has connected Calendly, forward the client straight to it.
+  fetch(CALS,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'public_link',slug:SLUG})}).then(function(r){return r.json();}).then(function(r){
+    if(r&&r.ok&&r.scheduling_url){$('view').innerHTML='<div class="body" style="text-align:center;padding:44px 20px"><div style="font-size:18px;font-weight:800">Redirecting to '+esc(r.name||'Calendly')+'…</div><p style="color:#6e6e73;margin-top:8px;font-size:14px">If you’re not redirected automatically, <a href="'+esc(r.scheduling_url)+'" style="color:#5b6cff;font-weight:700">click here to book</a>.</p></div>';location.replace(r.scheduling_url);return;}
+    nativeInit();
+  }).catch(function(){nativeInit();});
+}
+function nativeInit(){
   Promise.all([
     fetch(AT+'?action=atlas_public_types').then(function(r){return r.json();}),
     fetch(AT+'?action=atlas_public_trainer&slug='+encodeURIComponent(SLUG)).then(function(r){return r.json();})
