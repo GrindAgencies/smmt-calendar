@@ -100,8 +100,17 @@ function init(){
   // Calendly-first: if this person has connected Calendly, forward the client straight to it.
   fetch(CALS,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'public_link',slug:SLUG})}).then(function(r){return r.json();}).then(function(r){
     if(r&&r.ok&&r.scheduling_url){$('view').innerHTML='<div class="body" style="text-align:center;padding:44px 20px"><div style="font-size:18px;font-weight:800">Redirecting to '+esc(r.name||'Calendly')+'…</div><p style="color:#6e6e73;margin-top:8px;font-size:14px">If you’re not redirected automatically, <a href="'+esc(r.scheduling_url)+'" style="color:#5b6cff;font-weight:700">click here to book</a>.</p></div>';location.replace(r.scheduling_url);return;}
-    nativeInit();
-  }).catch(function(){nativeInit();});
+    notReady();
+  }).catch(function(){notReady();});
+}
+// Calendly-only: if this person hasn't connected Calendly, don't fall back to the retired native
+// booking form (those bookings wouldn't show up anywhere) — ask the client to reach out directly.
+function notReady(){
+  $('view').innerHTML='<div class="body" style="text-align:center;padding:44px 20px">'+
+    '<div style="font-size:44px;line-height:1;margin-bottom:12px">📅</div>'+
+    '<div style="font-size:18px;font-weight:800">Online booking isn’t available for this link yet</div>'+
+    '<p style="color:#6e6e73;margin-top:10px;font-size:14px;max-width:340px;margin-left:auto;margin-right:auto">Please reach out to your Standard Financial Group contact directly and they’ll get you scheduled right away.</p>'+
+    '</div>';
 }
 function nativeInit(){
   Promise.all([
