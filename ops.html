@@ -360,20 +360,21 @@ function setTab(t){TAB=t;['licensing','newbiz','faststart','bookings','appointed
   var tw=$('tableWrap'),bh=$('bookingsHost'),nh=$('newbizHost'),ifh=$('inforceHost'),sb=$('search'),ab=$('addBtn');
   if(tw)tw.classList.toggle('hide',isB||isNB||isIF);if(bh)bh.classList.toggle('hide',!isB);if(nh)nh.classList.toggle('hide',!isNB);if(ifh)ifh.classList.toggle('hide',!isIF);
   if(sb)sb.placeholder=isB?'Search bookings — name, type, agent…':(isNB?(t==='gfi'?'Search tickets — client, ticket #, category, status…':'Search records — client, agent, status…'):(isIF?'Search in-force — client, agent, carrier…':'Search…'));
-  if(ab)ab.classList.toggle('hide',isB||isIF||!canEdit());
+  if(ab)ab.classList.toggle('hide',isB||isIF||(t==='newbiz')||!canEdit());
   if(isB)renderBookings();else if(isIF)renderInforce();else if(isNB)renderNewbiz();else renderTab();}
 function onSearch(){if(TAB==='bookings')renderBookingsTable();else if(TAB==='inforce')paintInforce();else if(TAB==='newbiz'||TAB==='gfi')paintNewbiz();else renderTab();}
 /* ---- New Business feed (Operations back-end) — column-driven, fully editable ---- */
 var NB="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/ops-newbiz";
-var NBT=[],NBCOLS=[],NBEDIT=false,NBSORT={k:'client_name',dir:1},NBCUR=null,NBCOLDRAFT=[],NBBOARD='newbiz',NBARCH=false,NBARCHCOUNT=0;
-function nbApi(body){var b=body||{};b.board=NBBOARD;if(OPS&&OPS.role==='ops')b.token='2026';if(OPS){b.by_code=OPS.code;b.by_name=OPS.name;}return fetch(NB,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();});}
+var NBFEED="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/ops-nbfeed";
+var NBT=[],NBCOLS=[],NBEDIT=false,NBSORT={k:'client_name',dir:1},NBCUR=null,NBCOLDRAFT=[],NBBOARD='newbiz',NBARCH=false,NBARCHCOUNT=0,NBLIVE=false;
+function nbApi(body){var b=body||{};b.board=NBBOARD;if(OPS&&OPS.role==='ops')b.token='2026';if(OPS){b.by_code=OPS.code;b.by_name=OPS.name;}return fetch(NBLIVE?NBFEED:NB,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();});}
 function nbVal(t,k){return (t.data&&t.data[k]!=null)?t.data[k]:'';}
 function nbFmtMoney(v){v=(v==null?'':String(v)).trim();if(!v)return '';var num=v.replace(/[$,\s]/g,'');if(num!==''&&!isNaN(Number(num)))return '$'+Number(num).toLocaleString('en-US');return v;}
 function nbDash(){return '<span style="color:var(--line2)">—</span>';}
 function nbOpts(col){return Array.isArray(col.options)?col.options:[];}
 function nbOptColor(col,val){var o=nbOpts(col).filter(function(x){return x.value===val;})[0];return o?o.color:'#8e8e93';}
 function nbOptIndex(col,val){var a=nbOpts(col);for(var i=0;i<a.length;i++){if(a[i].value===val)return i;}return -1;}
-function renderNewbiz(){NBBOARD=(TAB==='gfi')?'gfi':'newbiz';var host=$('newbizHost');if(!host)return;host.innerHTML='<div class="spin">Loading…</div>';
+function renderNewbiz(){NBBOARD=(TAB==='gfi')?'gfi':'newbiz';NBLIVE=(TAB==='newbiz');if(NBLIVE)NBARCH=false;var host=$('newbizHost');if(!host)return;host.innerHTML='<div class="spin">Loading…</div>';
   nbApi({action:'nb_list',archived:NBARCH}).then(function(r){if(!r||!r.ok){host.innerHTML='<div class="empty">Could not load.</div>';return;}NBT=r.tickets||[];NBCOLS=r.columns||[];NBEDIT=!!r.can_edit;NBARCHCOUNT=r.archived_count||0;
     if(NBSORT.k!=='__notes'&&!NBCOLS.some(function(c){return c.key===NBSORT.k;}))NBSORT.k=(NBCOLS[0]&&NBCOLS[0].key)||'client_name';
     paintNewbiz();}).catch(function(){host.innerHTML='<div class="empty">Could not load.</div>';});}
@@ -390,23 +391,23 @@ function nbFiltered(){var q=($('search').value||'').trim().toLowerCase();var a=N
 function nbSortBy(k){if(NBSORT.k===k)NBSORT.dir=-NBSORT.dir;else{NBSORT.k=k;NBSORT.dir=1;}paintNewbiz();}
 function nbSelectCell(t,col){var v=nbVal(t,col.key);var c=nbOptColor(col,v);return '<select class="cellin" style="font-weight:700'+(v?(';color:'+c):'')+'" onchange="nbSet(\''+t.id+'\',\''+col.key+'\',this.value)"><option value=""></option>'+nbOpts(col).map(function(o,i){return '<option value="'+esc(o.value)+'"'+(o.value===v?' selected':'')+' style="color:'+esc(o.color)+'">'+esc((i+1)+'. '+o.value)+'</option>';}).join('')+'</select>';}
 function nbSelectPill(col,v){if(!v)return nbDash();var c=nbOptColor(col,v);var i=nbOptIndex(col,v);return '<span class="cpill" style="background:'+c+'22;color:'+c+'">'+esc((i>=0?(i+1)+'. ':'')+v)+'</span>';}
-function nbCell(t,col){var v=nbVal(t,col.key);
-  if(col.type==='select')return NBEDIT?nbSelectCell(t,col):nbSelectPill(col,v);
-  if(col.key==='client_name')return '<a onclick="openTicket(\''+t.id+'\')" style="cursor:pointer;font-weight:800;color:var(--gold);text-decoration:none">'+(esc(v)||'—')+'</a>';
-  if(NBEDIT)return '<input class="cellin"'+(col.type==='money'?' style="text-align:right"':'')+' value="'+esc(v)+'" placeholder="—" onchange="nbSet(\''+t.id+'\',\''+col.key+'\',this.value)">';
+function nbCell(t,col){var v=nbVal(t,col.key);var ed=NBEDIT&&!col.ro;var firstKey=NBCOLS[0]&&NBCOLS[0].key;
+  if(col.type==='select')return ed?nbSelectCell(t,col):nbSelectPill(col,v);
+  if(col.key===firstKey)return '<a onclick="openTicket(\''+t.id+'\')" style="cursor:pointer;font-weight:800;color:var(--gold);text-decoration:none">'+(esc(v)||'—')+'</a>';
+  if(ed)return '<input class="cellin"'+(col.type==='money'?' style="text-align:right"':'')+' value="'+esc(v)+'" placeholder="—" onchange="nbSet(\''+t.id+'\',\''+col.key+'\',this.value)">';
   return col.type==='money'?(esc(nbFmtMoney(v))||nbDash()):(esc(v)||nbDash());}
 function paintNewbiz(){var host=$('newbizHost');if(!host)return;var rows=nbFiltered();
   var head=NBCOLS.map(function(col){var ar=(NBSORT.k===col.key)?('<span class="sarrow on">'+(NBSORT.dir>0?'▲':'▼')+'</span>'):'<span class="sarrow">↕</span>';var hc=col.headerColor?('background:'+col.headerColor+'22;'):'';return '<th style="'+hc+(col.type==='money'?'text-align:right':'')+'"><span class="thlbl" onclick="nbSortBy(\''+col.key+'\')">'+esc(col.label)+ar+'</span></th>';}).join('');
   head+='<th><span class="thlbl" onclick="nbSortBy(\'__notes\')">Notes'+(NBSORT.k==='__notes'?('<span class="sarrow on">'+(NBSORT.dir>0?'▲':'▼')+'</span>'):'<span class="sarrow">↕</span>')+'</span></th>';
   var body=rows.length?rows.map(function(t){var rc=(t.data&&t.data._color)||'';return '<tr'+(rc?(' style="background:'+rc+'22"'):'')+'>'+NBCOLS.map(function(col){return '<td'+(col.type==='money'?' style="text-align:right;white-space:nowrap"':(col.key==='status'||col.type==='select'?'':' style="white-space:nowrap"'))+'>'+nbCell(t,col)+'</td>';}).join('')+'<td onclick="openTicket(\''+t.id+'\')" style="cursor:pointer;white-space:nowrap;color:var(--ink3,#8e8e93)">💬 '+((t.notes&&t.notes.length)||0)+'</td></tr>';}).join(''):'<tr><td colspan="'+(NBCOLS.length+1)+'" class="empty">No records'+(NBEDIT?' yet — click ＋ Add.':'.')+'</td></tr>';
-  var noun=(NBBOARD==='gfi'?'ticket':'record');
-  var toolbar=NBEDIT?('<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="dbtn ghost" style="padding:6px 12px;font-size:12.5px'+(NBARCH?';border-color:var(--gold);color:var(--gold)':'')+'" onclick="nbToggleArch()">🗄 '+(NBARCH?'Viewing archive — back to active':'Archived ('+NBARCHCOUNT+')')+'</button><button class="dbtn ghost" style="padding:6px 12px;font-size:12.5px" onclick="openNbCols()">⚙ Edit columns</button></div>'):'';
-  host.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin:0 0 10px;flex-wrap:wrap"><div style="font-size:12.5px;color:var(--ink3,#8e8e93)">'+rows.length+' '+(NBARCH?'archived ':'')+noun+(rows.length===1?'':'s')+' · click the first cell to open '+(NBBOARD==='gfi'?'the ticket &amp; update history':'notes')+(NBEDIT&&!NBARCH?' · cells edit inline':'')+'</div>'+toolbar+'</div>'+
+  var noun=NBLIVE?'policy':(NBBOARD==='gfi'?'ticket':'record');var nouns=NBLIVE?'policies':(noun+'s');
+  var toolbar=NBLIVE?'<span style="font-size:12px;color:var(--green);font-weight:800">🔄 Live — auto-synced from agent submissions</span>':(NBEDIT?('<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="dbtn ghost" style="padding:6px 12px;font-size:12.5px'+(NBARCH?';border-color:var(--gold);color:var(--gold)':'')+'" onclick="nbToggleArch()">🗄 '+(NBARCH?'Viewing archive — back to active':'Archived ('+NBARCHCOUNT+')')+'</button><button class="dbtn ghost" style="padding:6px 12px;font-size:12.5px" onclick="openNbCols()">⚙ Edit columns</button></div>'):'');
+  host.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin:0 0 10px;flex-wrap:wrap"><div style="font-size:12.5px;color:var(--ink3,#8e8e93)">'+rows.length+' '+(NBARCH?'archived ':'')+(rows.length===1?noun:nouns)+' · click the first cell to open '+(NBLIVE?'Ops notes &amp; set Process':(NBBOARD==='gfi'?'the ticket &amp; update history':'notes'))+(NBEDIT&&!NBARCH?(NBLIVE?' · Ops Process edits inline; policy data is live/read-only':' · cells edit inline'):'')+'</div>'+toolbar+'</div>'+
     '<div class="tablewrap" style="overflow-x:auto"><table class="ptable" style="min-width:1200px"><thead><tr>'+head+'</tr></thead><tbody>'+body+'</tbody></table></div>';}
 function nbSet(id,field,val){nbApi({action:'nb_update',id:id,field:field,value:val}).then(function(r){if(!r||!r.ok){toast((r&&r.error)||'Save failed');return;}var t=NBT.filter(function(x){return x.id===id;})[0];if(t){t.data=t.data||{};t.data[field]=val;}paintNewbiz();if(field!=='_color')toast('Saved ✓');});}
-function nbDrawerField(id,col,v){
-  if(col.type==='select'){if(!NBEDIT)return '<div class="fg"><label>'+esc(col.label)+'</label><div style="padding:4px 0">'+nbSelectPill(col,v)+'</div></div>';var c=nbOptColor(col,v);return '<div class="fg"><label>'+esc(col.label)+'</label><select style="font-weight:700'+(v?(';color:'+c):'')+'" onchange="nbSet(\''+id+'\',\''+col.key+'\',this.value)"><option value=""></option>'+nbOpts(col).map(function(o,i){return '<option value="'+esc(o.value)+'"'+(o.value===v?' selected':'')+' style="color:'+esc(o.color)+'">'+esc((i+1)+'. '+o.value)+'</option>';}).join('')+'</select></div>';}
-  return '<div class="fg"><label>'+esc(col.label)+'</label>'+(NBEDIT?'<input value="'+esc(v)+'" onchange="nbSet(\''+id+'\',\''+col.key+'\',this.value)">':'<div style="padding:6px 0;font-size:14px">'+(esc(v)||'—')+'</div>')+'</div>';}
+function nbDrawerField(id,col,v){var ed=NBEDIT&&!col.ro;
+  if(col.type==='select'){if(!ed)return '<div class="fg"><label>'+esc(col.label)+'</label><div style="padding:4px 0">'+nbSelectPill(col,v)+'</div></div>';var c=nbOptColor(col,v);return '<div class="fg"><label>'+esc(col.label)+'</label><select style="font-weight:700'+(v?(';color:'+c):'')+'" onchange="nbSet(\''+id+'\',\''+col.key+'\',this.value)"><option value=""></option>'+nbOpts(col).map(function(o,i){return '<option value="'+esc(o.value)+'"'+(o.value===v?' selected':'')+' style="color:'+esc(o.color)+'">'+esc((i+1)+'. '+o.value)+'</option>';}).join('')+'</select></div>';}
+  return '<div class="fg"><label>'+esc(col.label)+'</label>'+(ed?'<input value="'+esc(v)+'" onchange="nbSet(\''+id+'\',\''+col.key+'\',this.value)">':'<div style="padding:6px 0;font-size:14px">'+((col.type==='money'?esc(nbFmtMoney(v)):esc(v))||'—')+'</div>')+'</div>';}
 function openTicket(id){var t=NBT.filter(function(x){return x.id===id;})[0];if(!t)return;NBCUR=id;
   var fs=NBCOLS.map(function(col){return nbDrawerField(id,col,nbVal(t,col.key));});
   var frows='';for(var i=0;i<fs.length;i+=2){frows+='<div class="frow">'+fs[i]+(fs[i+1]||'')+'</div>';}
@@ -414,9 +415,9 @@ function openTicket(id){var t=NBT.filter(function(x){return x.id===id;})[0];if(!
   var notes=(t.notes||[]).map(function(n){var mine=OPS&&n.by_code&&String(n.by_code).toUpperCase()===String(OPS.code).toUpperCase();var canDel=NBEDIT||mine;
     return '<div style="border-left:3px solid var(--gold);background:var(--panel2,#fbfbfd);border-radius:0 10px 10px 0;padding:9px 12px;margin-bottom:8px"><div style="font-size:11px;color:var(--ink3,#8e8e93);margin-bottom:3px">'+esc(n.by_name||'')+' · '+esc(fmtTs(n.ts)||'')+(n.edited_at?' · edited':'')+(canDel?(' · <span style="cursor:pointer;color:var(--red)" onclick="nbDelNote(\''+id+'\',\''+n.id+'\')">delete</span>'):'')+'</div><div style="font-size:13px;white-space:pre-wrap;line-height:1.45">'+esc(n.text)+'</div></div>';}).join('')||'<div class="sub">No notes yet.</div>';
   var title=nbVal(t,'client_name')||(NBBOARD==='gfi'?'Ticket':'Record');
-  var sub=(NBBOARD==='gfi'?'GFI ticket · full update history':'New Business record');
+  var sub=(NBLIVE?'Live policy · Ops tracking & notes':(NBBOARD==='gfi'?'GFI ticket · full update history':'New Business record'));
   var foot='';
-  if(NBEDIT){ if(t.archived){ foot='<button class="dbtn" style="width:100%;margin-top:14px" onclick="nbUnarchive(\''+id+'\')">♻ Reactivate</button>'; }
+  if(NBEDIT&&!NBLIVE){ if(t.archived){ foot='<button class="dbtn" style="width:100%;margin-top:14px" onclick="nbUnarchive(\''+id+'\')">♻ Reactivate</button>'; }
     else { foot='<button class="dbtn ghost" style="width:100%;margin-top:14px" onclick="nbArchive(\''+id+'\')">🗄 Archive — keep for records</button>'+(NBBOARD!=='gfi'?'<button class="dbtn ghost" style="width:100%;margin-top:8px;color:var(--red);border-color:var(--red)" onclick="nbDel(\''+id+'\')">🗑 Delete permanently</button>':''); } }
   $('drawer').innerHTML='<div class="dhd"><div><h3>'+esc(title)+'</h3><div class="sub">'+esc(sub)+(t.archived?' · 🗄 archived':'')+'</div></div><button class="x" onclick="closeDrawer()">✕</button></div><div class="dbody">'+frows+rowcolor+
     '<div style="margin-top:16px;font-weight:800;font-size:13px">📝 '+(NBBOARD==='gfi'?'Update history':'Notes')+'</div>'+
@@ -619,7 +620,7 @@ function deleteCol(key){
 
 /* ---- add menu: row (agent) or column (custom field) ---- */
 function openAddMenu(){
-  if(TAB==='newbiz'||TAB==='gfi'){openAddTicket();return;}
+  if(TAB==='gfi'){openAddTicket();return;}
   $('drawer').innerHTML='<div class="dhd"><div><h3>Add to tracker</h3><div class="sub">Current view: '+esc(TAB)+'</div></div><button class="x" onclick="closeDrawer()">✕</button></div><div class="dbody">'+
     '<button class="dbtn" style="width:100%;margin-bottom:10px" onclick="openAddAgent()">＋ Add a ROW — full agent profile</button>'+
     '<button class="dbtn blue" style="width:100%;margin-bottom:10px" onclick="openAddColumn()">＋ Add a COLUMN — custom field</button>'+
