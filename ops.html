@@ -105,7 +105,11 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);-web
 .cellin:hover{border-color:var(--line2);background:var(--panel)}
 .cellin:focus{border-color:var(--gold);background:var(--panel)}
 .cellin.saved{border-color:var(--green);background:rgba(26,156,82,.08)}
-select.cellin{cursor:pointer}
+select.cellin{cursor:pointer;-webkit-appearance:none;appearance:none;padding-right:24px;text-overflow:ellipsis;white-space:nowrap;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' fill='none' stroke='%238e8e93' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/></svg>");background-repeat:no-repeat;background-position:right 8px center;background-size:10px 6px}
+.cellchk{width:18px;height:18px;cursor:pointer;accent-color:var(--gold);margin:0;display:block}
+.cpill{display:inline-block;padding:3px 9px;border-radius:999px;font-size:11.5px;font-weight:700;line-height:1.5;white-space:nowrap}
+.tybtn{flex:1;padding:9px 6px;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:9px;font-weight:700;font-size:12.5px;cursor:pointer;font-family:inherit;opacity:.65;transition:.12s}
+.tybtn.on{border-color:var(--gold);background:var(--gold-soft,rgba(201,154,46,.14));color:var(--gold);opacity:1}
 .mbar{height:7px;border-radius:999px;background:var(--line);overflow:hidden;width:70px;display:inline-block;vertical-align:middle}
 .mbar span{display:block;height:100%;background:linear-gradient(90deg,var(--gold),#e6c874)}
 .ms{display:inline-flex;gap:4px}.mschip{font-size:13px;opacity:.28;filter:grayscale(1)}.mschip.on{opacity:1;filter:none}
@@ -274,6 +278,13 @@ function st(n,l,sm){return '<div class="stat"><div class="n"'+(sm?' style="font-
 /* ---- column model ---- */
 function nameCell(r){return '<button class="namebtn" onclick="openAgent(\''+esc(r.code)+'\')">'+esc(r.name||'—')+'</button><div class="sub">'+esc(r.contract_level||'')+'</div>';}
 function licPill(s){var c=s==='Licensed'?'lic':(s==='Exam Passed'?'exam':(s==='Pre-Licensing'?'pre':'none'));return '<span class="pill '+c+'">'+esc(s||'—')+'</span>';}
+function cdFmt(s){var m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(s||''));return m?(m[2]+'/'+m[3]+'/'+m[1]):String(s||'');}
+function custDisp(ty,v,color){v=(v==null?'':String(v));
+  if(ty==='check')return v==='yes'?'<span style="color:var(--green);font-weight:800;font-size:15px">✓</span>':'<span style="color:var(--line2)">—</span>';
+  if(!v)return missTxt('');
+  if(ty==='select')return '<span class="cpill" style="background:'+esc(color||'#c99a2e')+'22;color:'+esc(color||'#c99a2e')+'">'+esc(v)+'</span>';
+  if(ty==='date')return esc(cdFmt(v));
+  return esc(v);}
 function missTxt(v){return v?esc(v):'<span class="miss">—</span>';}
 var COLS={
   licensing:[
@@ -306,7 +317,7 @@ var COLS={
     {k:'last',l:'Last Active',s:function(r){return r.days_inactive==null?999999:r.days_inactive;},c:function(r){var di=r.days_inactive;return di==null?'—':(di===0?'today':(di===1?'yesterday':di+'d ago'));}}
   ]
 };
-function customColsFor(tab){return CUSTOMCOLS.filter(function(c){return c.tab===tab;}).map(function(c){var ck=c.key;return {k:'c_'+ck,l:c.label,e:'ctext',ckey:ck,delcol:ck,s:function(r){return low((r.custom||{})[ck]);},c:function(r){return missTxt((r.custom||{})[ck]);}};});}
+function customColsFor(tab){return CUSTOMCOLS.filter(function(c){return c.tab===tab;}).map(function(c){var ck=c.key;var ty=c.type||'text';var opts=c.options||[];var color=c.color||'#c99a2e';return {k:'c_'+ck,l:c.label,e:'custom',ckey:ck,ctype:ty,copts:opts,ccolor:color,delcol:ck,s:function(r){return low((r.custom||{})[ck]);},c:function(r){return custDisp(ty,(r.custom||{})[ck],color);}};});}
 function baseCols(tab){return COLS[tab].concat(customColsFor(tab));}
 function colOrderKey(tab){return 'ops_colorder_'+tab;}
 function orderedCols(tab){
@@ -372,7 +383,11 @@ function sortRows(rows){var s=SORT[TAB];var cols=COLS[TAB];var col=null;cols.for
 function clickSort(k){var s=SORT[TAB];if(s.k===k)s.dir=-s.dir;else{s.k=k;s.dir=1;}renderTab();}
 function valOf(k,r){return r[k]!=null?r[k]:'';}
 function editInput(col,r){
-  if(col.ckey){var cv=(r.custom||{})[col.ckey]||'';return '<input class="cellin" value="'+esc(cv)+'" placeholder="—" onchange="saveCustom(this,\''+esc(r.code)+'\',\''+col.ckey+'\')">';}
+  if(col.ckey){var cv=(r.custom||{})[col.ckey]||'';var ct=col.ctype||'text';var occ='saveCustom(this,\''+esc(r.code)+'\',\''+col.ckey+'\')';
+    if(ct==='select'){var o0=col.copts||[];return '<select class="cellin" style="font-weight:700'+(col.ccolor?(';color:'+esc(col.ccolor)):'')+'" onchange="'+occ+'"><option value=""></option>'+o0.map(function(o){return '<option'+(o===cv?' selected':'')+'>'+esc(o)+'</option>';}).join('')+'</select>';}
+    if(ct==='date')return '<input type="date" class="cellin" value="'+esc(cv)+'" onchange="'+occ+'">';
+    if(ct==='check')return '<input type="checkbox" class="cellchk"'+(cv==='yes'?' checked':'')+' onchange="'+occ+'">';
+    return '<input class="cellin" value="'+esc(cv)+'" placeholder="—" onchange="'+occ+'">';}
   var v=valOf(col.k,r);var oc='saveCell(this,\''+esc(r.code)+'\',\''+col.k+'\')';
   if(col.e==='select')return '<select class="cellin" onchange="'+oc+'">'+col.opts.map(function(o){return '<option'+(o===v?' selected':'')+'>'+esc(o)+'</option>';}).join('')+'</select>';
   if(col.e==='date')return '<input type="date" class="cellin" value="'+esc(v)+'" onchange="'+oc+'">';
@@ -407,7 +422,7 @@ function saveCell(el,code,field){
   }).catch(function(){toast('Network error');});
 }
 function saveCustom(el,code,ckey){
-  var v=(el.value||'').trim();
+  var v=el.type==='checkbox'?(el.checked?'yes':''):(el.value||'').trim();
   api(auth({action:'agent_update',code:code,custom_key:ckey,custom_val:v})).then(function(r){
     if(!r||!r.ok){toast((r&&r.error)||'Save failed');return;}
     var row=ROWS.filter(function(x){return x.code===code;})[0];if(row){row.custom=row.custom||{};if(v==='')delete row.custom[ckey];else row.custom[ckey]=v;}
@@ -429,9 +444,42 @@ function openAddMenu(){
     '<div class="sub" style="margin-top:14px">A custom column adds a field you can fill in per agent on the <b>'+esc(TAB)+'</b> view — for anything extra you want to track.</div></div>';
   $('ov').classList.add('on');
 }
+var NEWCOL={type:'text',options:['',''],color:'#c99a2e'};
 function openAddColumn(){
-  var label=prompt('Name the new column (e.g. Carrier appointments, Background check, E&O):');if(label===null)return;label=(label||'').trim();if(!label){toast('Enter a column name');return;}
-  api(auth({action:'add_column',label:label,tab:TAB})).then(function(r){if(!r||!r.ok){toast((r&&r.error)||'Could not add column');return;}CUSTOMCOLS=r.columns||CUSTOMCOLS;toast('Column “'+label+'” added ✓');closeDrawer();renderTab();});
+  NEWCOL={type:'text',options:['',''],color:'#c99a2e'};
+  var types=[['text','Text'],['select','Dropdown'],['date','Date'],['check','Checkbox']];
+  $('drawer').innerHTML='<div class="dhd"><div><h3>Add a column</h3><div class="sub">Custom field on the <b>'+esc(TAB)+'</b> view</div></div><button class="x" onclick="closeDrawer()">✕</button></div><div class="dbody">'+
+    '<div class="fg" style="margin-bottom:12px"><label>Column name *</label><input id="nc_label" placeholder="e.g. Background check, E&amp;O, Carrier appts"></div>'+
+    '<div class="fg" style="margin-bottom:10px"><label>Field type</label><div style="display:flex;gap:8px" id="nc_types">'+
+      types.map(function(t){return '<button type="button" class="tybtn'+(NEWCOL.type===t[0]?' on':'')+'" data-t="'+t[0]+'" onclick="setColType(\''+t[0]+'\')">'+t[1]+'</button>';}).join('')+
+    '</div></div>'+
+    '<div id="nc_cfg"></div>'+
+    '<button class="dbtn blue" style="width:100%;margin-top:14px" onclick="addColumnSave()">Add column ✓</button>'+
+    '<div class="sub" style="margin-top:10px">Adds a field you fill in per agent on the '+esc(TAB)+' view.</div></div>';
+  ncRenderCfg();$('ov').classList.add('on');
+}
+function setColType(t){NEWCOL.type=t;var bs=document.querySelectorAll('#nc_types .tybtn');[].forEach.call(bs,function(b){b.classList.toggle('on',b.getAttribute('data-t')===t);});ncRenderCfg();}
+function ncRenderCfg(){var box=$('nc_cfg');if(!box)return;
+  if(NEWCOL.type==='select'){
+    box.innerHTML='<div class="fg" style="margin-bottom:10px"><label>Dropdown options — add as many as you want</label><div id="nc_opts"></div>'+
+      '<button type="button" class="dbtn ghost" style="width:100%;margin-top:6px" onclick="ncAddOpt()">＋ Add option</button></div>'+
+      '<div class="fg"><label>Pill color</label><div style="display:flex;align-items:center;gap:10px"><input type="color" id="nc_color" value="'+esc(NEWCOL.color)+'" oninput="NEWCOL.color=this.value;ncSwatch()" style="width:46px;height:34px;border:1px solid var(--line);border-radius:8px;background:none;cursor:pointer;padding:2px"><span class="cpill" id="nc_swatch" style="background:'+esc(NEWCOL.color)+'22;color:'+esc(NEWCOL.color)+'">Preview</span></div></div>';
+    ncRenderOpts();
+  } else if(NEWCOL.type==='date'){ box.innerHTML='<div class="sub">Each agent gets a date picker in this column.</div>'; }
+  else if(NEWCOL.type==='check'){ box.innerHTML='<div class="sub">Each agent gets a checkbox in this column (done / not done).</div>'; }
+  else { box.innerHTML='<div class="sub">Each agent gets a free-text field in this column.</div>'; }
+}
+function ncRenderOpts(){var w=$('nc_opts');if(!w)return;
+  w.innerHTML=NEWCOL.options.map(function(o,i){return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><input class="cellin" style="flex:1;min-width:0;border:1px solid var(--line2)" value="'+esc(o)+'" placeholder="Option '+(i+1)+'" oninput="NEWCOL.options['+i+']=this.value"><span onclick="ncDelOpt('+i+')" title="Remove" style="cursor:pointer;color:var(--red,#d9534f);font-weight:800;font-size:16px">✕</span></div>';}).join('');
+}
+function ncAddOpt(){NEWCOL.options.push('');ncRenderOpts();}
+function ncDelOpt(i){NEWCOL.options.splice(i,1);if(!NEWCOL.options.length)NEWCOL.options.push('');ncRenderOpts();}
+function ncSwatch(){var s=$('nc_swatch');if(s){s.style.background=NEWCOL.color+'22';s.style.color=NEWCOL.color;}}
+function addColumnSave(){
+  var label=(($('nc_label')&&$('nc_label').value)||'').trim();if(!label){toast('Enter a column name');return;}
+  var payload={action:'add_column',label:label,tab:TAB,type:NEWCOL.type};
+  if(NEWCOL.type==='select'){var opts=NEWCOL.options.map(function(o){return (o||'').trim();}).filter(Boolean);if(!opts.length){toast('Add at least one dropdown option');return;}payload.options=opts;payload.color=NEWCOL.color;}
+  api(auth(payload)).then(function(r){if(!r||!r.ok){toast((r&&r.error)||'Could not add column');return;}CUSTOMCOLS=r.columns||CUSTOMCOLS;toast('Column “'+label+'” added ✓');closeDrawer();renderTab();});
 }
 var LSDRAFT=[];
 function openManageStatuses(){
