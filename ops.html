@@ -217,7 +217,7 @@ var CALS="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/calendly-sync";
 function calBody(extra){var b=extra||{};b.code=OPS?OPS.code:'';if(canEdit())b.token='2026';return b;}
 function calApi(b){return fetch(CALS,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();});}
 function fmtDT(iso){if(!iso)return '';var d=new Date(iso);if(isNaN(d))return '';return d.toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});}
-var OPS=null,ROWS=[],TAB="licensing",CUR=null,SORT={licensing:{k:'name',dir:1},newbiz:{k:'name',dir:1},faststart:{k:'name',dir:1},appointed:{k:'baseshop',dir:1}},DRAGK=null,CUSTOMCOLS=[],COLCOLORS={};
+var OPS=null,ROWS=[],TAB="licensing",CUR=null,SORT={licensing:{k:'name',dir:1},newbiz:{k:'name',dir:1},faststart:{k:'name',dir:1},appointed:{k:'baseshop',dir:1}},DRAGK=null,CUSTOMCOLS=[],COLCOLORS={},STATUSCOLORS={};
 var LICTYPES=['Life','Health','Life & Health','Life & Annuity','Property & Casualty','Series 6/63','Other'];
 var LICSTATUS=['Not Started','Pre-Licensing','Exam Passed','Licensed'];
 function setLicStatuses(a){if(!a||!a.length)return;LICSTATUS.length=0;a.forEach(function(s){LICSTATUS.push(s);});}
@@ -280,12 +280,16 @@ function st(n,l,sm){return '<div class="stat"><div class="n"'+(sm?' style="font-
 
 /* ---- column model ---- */
 function nameCell(r){return '<button class="namebtn" onclick="openAgent(\''+esc(r.code)+'\')">'+esc(r.name||'—')+'</button><div class="sub">'+esc(r.contract_level||'')+'</div>';}
-function licPill(s){var i=LICSTATUS.indexOf(s);var c=s==='Licensed'?'lic':(s==='Exam Passed'?'exam':(s==='Pre-Licensing'?'pre':'none'));return '<span class="pill '+c+'">'+esc((i>=0?(i+1)+'. ':'')+(s||'—'))+'</span>';}
+function optVal(o){return (o&&typeof o==='object'&&o.value!=null)?o.value:o;}
+function optCol(o){return (o&&typeof o==='object'&&o.color)?o.color:'#8e8e93';}
+function optColorFor(opts,v){var c=null;(opts||[]).forEach(function(o){if(optVal(o)===v)c=optCol(o);});return c;}
+function optIndexFor(opts,v){var idx=-1;(opts||[]).forEach(function(o,i){if(optVal(o)===v)idx=i;});return idx;}
+function licPill(s){var i=LICSTATUS.indexOf(s);var col=STATUSCOLORS[s]||'#8e8e93';return '<span class="cpill" style="background:'+col+'22;color:'+col+'">'+esc((i>=0?(i+1)+'. ':'')+(s||'—'))+'</span>';}
 function cdFmt(s){var m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(s||''));return m?(m[2]+'/'+m[3]+'/'+m[1]):String(s||'');}
 function custDisp(ty,v,color,opts){v=(v==null?'':String(v));
   if(ty==='check')return v==='yes'?'<span style="color:var(--green);font-weight:800;font-size:15px">✓</span>':'<span style="color:var(--line2)">—</span>';
   if(!v)return missTxt('');
-  if(ty==='select'){var i=(opts||[]).indexOf(v);return '<span class="cpill" style="background:'+esc(color||'#c99a2e')+'22;color:'+esc(color||'#c99a2e')+'">'+esc((i>=0?(i+1)+'. ':'')+v)+'</span>';}
+  if(ty==='select'){var oc=optColorFor(opts,v)||color||'#8e8e93';var i=optIndexFor(opts,v);return '<span class="cpill" style="background:'+oc+'22;color:'+oc+'">'+esc((i>=0?(i+1)+'. ':'')+v)+'</span>';}
   if(ty==='date')return esc(cdFmt(v));
   return esc(v);}
 function missTxt(v){return v?esc(v):'<span class="miss">—</span>';}
@@ -339,7 +343,7 @@ function resetCols(){try{localStorage.removeItem(colOrderKey(TAB));}catch(e){}to
 function loadTracker(){
   api(auth({action:'tracker'})).then(function(r){
     if(!r||!r.ok){$('tableHost').innerHTML='<div class="empty">Could not load the tracker.</div>';return;}
-    ROWS=r.rows||[];CUSTOMCOLS=r.custom_columns||[];COLCOLORS=(r.col_colors&&typeof r.col_colors==='object')?r.col_colors:{};setLicStatuses(r.license_statuses);renderReqBanner(r.pending_requests||0);renderTab();
+    ROWS=r.rows||[];CUSTOMCOLS=r.custom_columns||[];COLCOLORS=(r.col_colors&&typeof r.col_colors==='object')?r.col_colors:{};STATUSCOLORS=(r.status_colors&&typeof r.status_colors==='object')?r.status_colors:{};setLicStatuses(r.license_statuses);renderReqBanner(r.pending_requests||0);renderTab();
   }).catch(function(){$('tableHost').innerHTML='<div class="empty">Could not load the tracker.</div>';});
 }
 function renderReqBanner(n){var host=$('reqBanner');if(!host)return;host.innerHTML=(canEdit()&&n>0)?('<div class="reqbanner">✏️ '+n+' edit request'+(n===1?'':'s')+' from leaders awaiting review<button onclick="openRequests()">Review requests</button></div>'):'';}
@@ -500,12 +504,12 @@ function clickSort(k){var s=SORT[TAB];if(s.k===k)s.dir=-s.dir;else{s.k=k;s.dir=1
 function valOf(k,r){return r[k]!=null?r[k]:'';}
 function editInput(col,r){
   if(col.ckey){var cv=(r.custom||{})[col.ckey]||'';var ct=col.ctype||'text';var occ='saveCustom(this,\''+esc(r.code)+'\',\''+col.ckey+'\')';
-    if(ct==='select'){var o0=col.copts||[];return '<select class="cellin" style="font-weight:700'+(col.ccolor?(';color:'+esc(col.ccolor)):'')+'" onchange="'+occ+'"><option value=""></option>'+o0.map(function(o,i){return '<option value="'+esc(o)+'"'+(o===cv?' selected':'')+'>'+esc((i+1)+'. '+o)+'</option>';}).join('')+'</select>';}
+    if(ct==='select'){var o0=col.copts||[];var selc=optColorFor(o0,cv)||col.ccolor||'';return '<select class="cellin" style="font-weight:700'+(selc?(';color:'+esc(selc)):'')+'" onchange="'+occ+'"><option value=""></option>'+o0.map(function(o,i){var ov=optVal(o);return '<option value="'+esc(ov)+'"'+(ov===cv?' selected':'')+' style="color:'+esc(optCol(o))+'">'+esc((i+1)+'. '+ov)+'</option>';}).join('')+'</select>';}
     if(ct==='date')return '<input type="date" class="cellin" value="'+esc(cv)+'" onchange="'+occ+'">';
     if(ct==='check')return '<input type="checkbox" class="cellchk"'+(cv==='yes'?' checked':'')+' onchange="'+occ+'">';
     return '<input class="cellin" value="'+esc(cv)+'" placeholder="—" onchange="'+occ+'">';}
   var v=valOf(col.k,r);var oc='saveCell(this,\''+esc(r.code)+'\',\''+col.k+'\')';
-  if(col.e==='select')return '<select class="cellin" onchange="'+oc+'">'+col.opts.map(function(o,i){return '<option value="'+esc(o)+'"'+(o===v?' selected':'')+'>'+esc((i+1)+'. '+o)+'</option>';}).join('')+'</select>';
+  if(col.e==='select'){var isLic=(col.k==='license_status');var selc=isLic?(STATUSCOLORS[v]||''):'';return '<select class="cellin" style="font-weight:700'+(selc?(';color:'+selc):'')+'" onchange="'+oc+'">'+col.opts.map(function(o,i){var oc2=isLic?(STATUSCOLORS[o]||''):'';return '<option value="'+esc(o)+'"'+(o===v?' selected':'')+(oc2?(' style="color:'+oc2+'"'):'')+'>'+esc((i+1)+'. '+o)+'</option>';}).join('')+'</select>';}
   if(col.e==='date')return '<input type="date" class="cellin" value="'+esc(v)+'" onchange="'+oc+'">';
   if(col.e==='list')return '<input class="cellin" list="'+esc(col.dl||'')+'" value="'+esc(v)+'" placeholder="—" onchange="'+oc+'">';
   return '<input class="cellin" value="'+esc(v)+'" placeholder="—" onchange="'+oc+'">';
@@ -523,10 +527,11 @@ function renderTab(){
   if(!ROWS.length){$('tableHost').innerHTML='<div class="spin">Loading…</div>';return;}
   var head=cols.map(function(col){
     var ar=(s.k===col.k)?('<span class="sarrow on">'+(s.dir>0?'▲':'▼')+'</span>'):'<span class="sarrow">↕</span>';
-    var del=(col.delcol&&canEdit())?'<span onclick="deleteCol(\''+col.delcol+'\')" title="Delete column" style="cursor:pointer;color:var(--red);font-weight:800;margin-left:2px">×</span>':'';
+    var edit=(col.delcol&&canEdit())?'<span onclick="openEditColumn(\''+col.delcol+'\')" title="Edit column" style="cursor:pointer;color:var(--ink3);font-weight:800;margin-left:4px">✎</span>':'';
+    var del=(col.delcol&&canEdit())?'<span onclick="deleteCol(\''+col.delcol+'\')" title="Delete column" style="cursor:pointer;color:var(--red);font-weight:800;margin-left:3px">×</span>':'';
     var cc=CC[col.k]||'';
     var sw=canEdit()?('<input type="color" value="'+(cc||'#eeeeee')+'" title="Column color" onclick="event.stopPropagation()" onchange="setColColor(\''+col.k+'\',this.value)" style="width:15px;height:15px;border:none;background:none;padding:0;cursor:pointer;vertical-align:middle;margin-left:5px">'+(cc?'<span onclick="setColColor(\''+col.k+'\',\'\')" title="Clear color" style="cursor:pointer;color:var(--red);margin-left:1px">×</span>':'')):'';
-    return '<th data-key="'+col.k+'" style="'+(cc?'background:'+cc+'22;':'')+'" ondragover="thOver(event)" ondragleave="thLeave(event)" ondrop="thDrop(event,\''+col.k+'\')"><div class="thin'+(col.num?' r':'')+'"><span class="grip" draggable="true" ondragstart="thDrag(event,\''+col.k+'\')" title="Drag to reorder">⋮⋮</span><span class="thlbl" onclick="clickSort(\''+col.k+'\')">'+esc(col.l)+ar+'</span>'+del+sw+'</div></th>';
+    return '<th data-key="'+col.k+'" style="'+(cc?'background:'+cc+'22;':'')+'" ondragover="thOver(event)" ondragleave="thLeave(event)" ondrop="thDrop(event,\''+col.k+'\')"><div class="thin'+(col.num?' r':'')+'"><span class="grip" draggable="true" ondragstart="thDrag(event,\''+col.k+'\')" title="Drag to reorder">⋮⋮</span><span class="thlbl" onclick="clickSort(\''+col.k+'\')">'+esc(col.l)+ar+'</span>'+edit+del+sw+'</div></th>';
   }).join('');
   var body=rows.length?rows.map(function(r){var rc=(r.custom&&r.custom.__rowcolor)||'';
     return '<tr'+(rc?(' style="background:'+rc+'22"'):'')+'>'+cols.map(function(col){var cc=CC[col.k]||'';var st=(col.num?'text-align:right;':'')+((cc&&!rc)?('background:'+cc+'14;'):'');return '<td'+(st?' style="'+st+'"':'')+'>'+cellFor(col,r)+'</td>';}).join('')+'</tr>';}).join(''):'<tr><td colspan="'+cols.length+'" class="empty">No matches.</td></tr>';
@@ -572,46 +577,48 @@ function openAddMenu(){
     '<div class="sub" style="margin-top:14px">A custom column adds a field you can fill in per agent on the <b>'+esc(TAB)+'</b> view — for anything extra you want to track.</div></div>';
   $('ov').classList.add('on');
 }
-var NEWCOL={type:'text',options:['',''],color:'#c99a2e'};
-function openAddColumn(){
-  NEWCOL={type:'text',options:['',''],color:'#c99a2e'};
-  var types=[['text','Text'],['select','Dropdown'],['date','Date'],['check','Checkbox']];
-  $('drawer').innerHTML='<div class="dhd"><div><h3>Add a column</h3><div class="sub">Custom field on the <b>'+esc(TAB)+'</b> view</div></div><button class="x" onclick="closeDrawer()">✕</button></div><div class="dbody">'+
+var NEWCOL={type:'text',options:[{value:'',color:'#2e86c9'},{value:'',color:'#e07a2f'}],color:'#c99a2e',editKey:''};
+function ncDefault(){return {type:'text',options:[{value:'',color:'#2e86c9'},{value:'',color:'#e07a2f'}],color:'#c99a2e',editKey:''};}
+function drawColumnEditor(title,btn){var types=[['text','Text'],['select','Dropdown'],['date','Date'],['check','Checkbox']];
+  $('drawer').innerHTML='<div class="dhd"><div><h3>'+esc(title)+'</h3><div class="sub">Custom field on the <b>'+esc(TAB)+'</b> view</div></div><button class="x" onclick="closeDrawer()">✕</button></div><div class="dbody">'+
     '<div class="fg" style="margin-bottom:12px"><label>Column name *</label><input id="nc_label" placeholder="e.g. Background check, E&amp;O, Carrier appts"></div>'+
     '<div class="fg" style="margin-bottom:10px"><label>Field type</label><div style="display:flex;gap:8px" id="nc_types">'+
       types.map(function(t){return '<button type="button" class="tybtn'+(NEWCOL.type===t[0]?' on':'')+'" data-t="'+t[0]+'" onclick="setColType(\''+t[0]+'\')">'+t[1]+'</button>';}).join('')+
-    '</div></div>'+
-    '<div id="nc_cfg"></div>'+
-    '<button class="dbtn blue" style="width:100%;margin-top:14px" onclick="addColumnSave()">Add column ✓</button>'+
-    '<div class="sub" style="margin-top:10px">Adds a field you fill in per agent on the '+esc(TAB)+' view.</div></div>';
-  ncRenderCfg();$('ov').classList.add('on');
-}
+    '</div></div><div id="nc_cfg"></div>'+
+    '<button class="dbtn blue" style="width:100%;margin-top:14px" onclick="addColumnSave()">'+esc(btn)+'</button>'+
+    '<div class="sub" style="margin-top:10px">Dropdown options each carry their own color &amp; rank (order) — selected values show as colored pills everywhere.</div></div>';
+  ncRenderCfg();$('ov').classList.add('on');}
+function openAddColumn(){NEWCOL=ncDefault();drawColumnEditor('Add a column','Add column ✓');}
+function openEditColumn(key){var c=null;CUSTOMCOLS.forEach(function(x){if(x.key===key)c=x;});if(!c){toast('Column not found');return;}
+  NEWCOL={type:c.type||'text',options:(c.options&&c.options.length)?c.options.map(function(o){return {value:optVal(o),color:optCol(o)};}):[{value:'',color:'#2e86c9'}],color:c.color||'#c99a2e',editKey:key};
+  drawColumnEditor('Edit column','Save column ✓');var lab=$('nc_label');if(lab)lab.value=c.label||'';}
 function setColType(t){NEWCOL.type=t;var bs=document.querySelectorAll('#nc_types .tybtn');[].forEach.call(bs,function(b){b.classList.toggle('on',b.getAttribute('data-t')===t);});ncRenderCfg();}
 function ncRenderCfg(){var box=$('nc_cfg');if(!box)return;
   if(NEWCOL.type==='select'){
-    box.innerHTML='<div class="fg" style="margin-bottom:10px"><label>Dropdown options — add as many as you want</label><div id="nc_opts"></div>'+
-      '<button type="button" class="dbtn ghost" style="width:100%;margin-top:6px" onclick="ncAddOpt()">＋ Add option</button></div>'+
-      '<div class="fg"><label>Pill color</label><div style="display:flex;align-items:center;gap:10px"><input type="color" id="nc_color" value="'+esc(NEWCOL.color)+'" oninput="NEWCOL.color=this.value;ncSwatch()" style="width:46px;height:34px;border:1px solid var(--line);border-radius:8px;background:none;cursor:pointer;padding:2px"><span class="cpill" id="nc_swatch" style="background:'+esc(NEWCOL.color)+'22;color:'+esc(NEWCOL.color)+'">Preview</span></div></div>';
+    box.innerHTML='<div class="fg"><label>Dropdown options — each with its own name &amp; color · order = rank</label><div id="nc_opts"></div>'+
+      '<button type="button" class="dbtn ghost" style="width:100%;margin-top:6px" onclick="ncAddOpt()">＋ Add option</button></div>';
     ncRenderOpts();
   } else if(NEWCOL.type==='date'){ box.innerHTML='<div class="sub">Each agent gets a date picker in this column.</div>'; }
   else if(NEWCOL.type==='check'){ box.innerHTML='<div class="sub">Each agent gets a checkbox in this column (done / not done).</div>'; }
   else { box.innerHTML='<div class="sub">Each agent gets a free-text field in this column.</div>'; }
 }
 function ncRenderOpts(){var w=$('nc_opts');if(!w)return;
-  w.innerHTML=NEWCOL.options.map(function(o,i){return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><input class="cellin" style="flex:1;min-width:0;border:1px solid var(--line2)" value="'+esc(o)+'" placeholder="Option '+(i+1)+'" oninput="NEWCOL.options['+i+']=this.value"><span onclick="ncDelOpt('+i+')" title="Remove" style="cursor:pointer;color:var(--red,#d9534f);font-weight:800;font-size:16px">✕</span></div>';}).join('');
+  w.innerHTML=NEWCOL.options.map(function(o,i){return '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px"><span style="min-width:18px;text-align:right;font-weight:800;color:var(--ink3);font-size:12px">'+(i+1)+'.</span><input type="color" value="'+esc(o.color||'#8e8e93')+'" oninput="NEWCOL.options['+i+'].color=this.value" style="width:32px;height:28px;border:1px solid var(--line);border-radius:6px;padding:1px;cursor:pointer"><input class="cellin" style="flex:1;min-width:0;border:1px solid var(--line2)" value="'+esc(o.value)+'" placeholder="Option '+(i+1)+'" oninput="NEWCOL.options['+i+'].value=this.value"><span onclick="ncMoveOpt('+i+',-1)" title="Move up" style="cursor:pointer;font-size:12px">▲</span><span onclick="ncMoveOpt('+i+',1)" title="Move down" style="cursor:pointer;font-size:12px">▼</span><span onclick="ncDelOpt('+i+')" title="Remove" style="cursor:pointer;color:var(--red,#d9534f);font-weight:800;font-size:16px">✕</span></div>';}).join('');
 }
-function ncAddOpt(){NEWCOL.options.push('');ncRenderOpts();}
-function ncDelOpt(i){NEWCOL.options.splice(i,1);if(!NEWCOL.options.length)NEWCOL.options.push('');ncRenderOpts();}
-function ncSwatch(){var s=$('nc_swatch');if(s){s.style.background=NEWCOL.color+'22';s.style.color=NEWCOL.color;}}
+function ncAddOpt(){NEWCOL.options.push({value:'',color:'#8e8e93'});ncRenderOpts();}
+function ncDelOpt(i){NEWCOL.options.splice(i,1);if(!NEWCOL.options.length)NEWCOL.options.push({value:'',color:'#8e8e93'});ncRenderOpts();}
+function ncMoveOpt(i,d){var j=i+d;if(j<0||j>=NEWCOL.options.length)return;var t=NEWCOL.options[i];NEWCOL.options[i]=NEWCOL.options[j];NEWCOL.options[j]=t;ncRenderOpts();}
 function addColumnSave(){
   var label=(($('nc_label')&&$('nc_label').value)||'').trim();if(!label){toast('Enter a column name');return;}
-  var payload={action:'add_column',label:label,tab:TAB,type:NEWCOL.type};
-  if(NEWCOL.type==='select'){var opts=NEWCOL.options.map(function(o){return (o||'').trim();}).filter(Boolean);if(!opts.length){toast('Add at least one dropdown option');return;}payload.options=opts;payload.color=NEWCOL.color;}
-  api(auth(payload)).then(function(r){if(!r||!r.ok){toast((r&&r.error)||'Could not add column');return;}CUSTOMCOLS=r.columns||CUSTOMCOLS;toast('Column “'+label+'” added ✓');closeDrawer();renderTab();});
+  var payload={action:NEWCOL.editKey?'update_column':'add_column',label:label,tab:TAB,type:NEWCOL.type};
+  if(NEWCOL.editKey)payload.key=NEWCOL.editKey;
+  if(NEWCOL.type==='select'){var opts=NEWCOL.options.map(function(o){return {value:(o.value||'').trim(),color:o.color||'#8e8e93'};}).filter(function(o){return o.value;});if(!opts.length){toast('Add at least one dropdown option');return;}payload.options=opts;}
+  else payload.options=[];
+  api(auth(payload)).then(function(r){if(!r||!r.ok){toast((r&&r.error)||'Could not save column');return;}CUSTOMCOLS=r.columns||CUSTOMCOLS;toast('Column saved ✓');closeDrawer();renderTab();});
 }
 var LSDRAFT=[];
 function openManageStatuses(){
-  LSDRAFT=LICSTATUS.slice();
+  LSDRAFT=LICSTATUS.map(function(s){return {value:s,color:(STATUSCOLORS[s]||'#8e8e93')};});
   $('drawer').innerHTML='<div class="dhd"><div><h3>License statuses</h3><div class="sub">Operations controls the Progress options</div></div><button class="x" onclick="closeDrawer()">✕</button></div><div class="dbody">'+
     '<div id="lsList">'+lsListHtml()+'</div>'+
     '<div class="frow" style="margin-top:8px;align-items:flex-end"><div class="fg" style="flex:1;margin:0"><label>New status</label><input id="ls_new" placeholder="e.g. Fingerprinting, Background check"></div><button class="dbtn" onclick="lsAdd()">Add</button></div>'+
@@ -619,12 +626,12 @@ function openManageStatuses(){
     '<div class="sub" style="margin-top:12px">These are the options in the <b>Progress</b> dropdown. Agents keep their current value even if you rename or remove a status.</div></div>';
   $('ov').classList.add('on');
 }
-function lsListHtml(){return LSDRAFT.length?LSDRAFT.map(function(s,i){return '<div class="note" style="display:flex;align-items:center;gap:8px;margin-bottom:7px"><span style="font-weight:800;color:var(--ink3);min-width:22px;text-align:right">'+(i+1)+'.</span><input class="cellin" style="flex:1;min-width:0" value="'+esc(s)+'" oninput="LSDRAFT['+i+']=this.value"><span onclick="lsMove('+i+',-1)" title="Move up" style="cursor:pointer;font-size:13px">▲</span><span onclick="lsMove('+i+',1)" title="Move down" style="cursor:pointer;font-size:13px">▼</span><span onclick="lsDel('+i+')" title="Remove" style="cursor:pointer;color:var(--red);font-weight:800;font-size:16px">✕</span></div>';}).join(''):'<div class="sub">No statuses yet — add one below. Order = rank; the tracker sorts &amp; groups by this order.</div>';}
+function lsListHtml(){return LSDRAFT.length?LSDRAFT.map(function(o,i){return '<div class="note" style="display:flex;align-items:center;gap:7px;margin-bottom:7px"><span style="font-weight:800;color:var(--ink3);min-width:22px;text-align:right">'+(i+1)+'.</span><input type="color" value="'+esc(o.color||'#8e8e93')+'" oninput="LSDRAFT['+i+'].color=this.value" title="Status color" style="width:30px;height:28px;border:1px solid var(--line);border-radius:6px;padding:1px;cursor:pointer"><input class="cellin" style="flex:1;min-width:0" value="'+esc(o.value)+'" oninput="LSDRAFT['+i+'].value=this.value"><span onclick="lsMove('+i+',-1)" title="Move up" style="cursor:pointer;font-size:13px">▲</span><span onclick="lsMove('+i+',1)" title="Move down" style="cursor:pointer;font-size:13px">▼</span><span onclick="lsDel('+i+')" title="Remove" style="cursor:pointer;color:var(--red);font-weight:800;font-size:16px">✕</span></div>';}).join(''):'<div class="sub">No statuses yet — add one below. Order = rank; each color shows as the Progress pill.</div>';}
 function lsMove(i,d){var j=i+d;if(j<0||j>=LSDRAFT.length)return;var t=LSDRAFT[i];LSDRAFT[i]=LSDRAFT[j];LSDRAFT[j]=t;$('lsList').innerHTML=lsListHtml();}
-function lsAdd(){var v=($('ls_new').value||'').trim();if(!v)return;LSDRAFT.push(v);$('ls_new').value='';$('lsList').innerHTML=lsListHtml();}
+function lsAdd(){var v=($('ls_new').value||'').trim();if(!v)return;LSDRAFT.push({value:v,color:'#8e8e93'});$('ls_new').value='';$('lsList').innerHTML=lsListHtml();}
 function lsDel(i){LSDRAFT.splice(i,1);$('lsList').innerHTML=lsListHtml();}
-function lsSave(){var arr=LSDRAFT.map(function(s){return (s||'').trim();}).filter(Boolean);if(!arr.length){toast('Keep at least one status');return;}
-  api(auth({action:'save_license_statuses',statuses:arr})).then(function(r){if(!r||!r.ok){toast((r&&r.error)||'Could not save');return;}setLicStatuses(r.license_statuses||arr);toast('License statuses saved ✓');closeDrawer();renderTab();});
+function lsSave(){var arr=[],colors={};LSDRAFT.forEach(function(o){var v=(o.value||'').trim();if(v){arr.push(v);colors[v]=o.color||'#8e8e93';}});if(!arr.length){toast('Keep at least one status');return;}
+  api(auth({action:'save_license_statuses',statuses:arr,colors:colors})).then(function(r){if(!r||!r.ok){toast((r&&r.error)||'Could not save');return;}setLicStatuses(r.license_statuses||arr);STATUSCOLORS=(r.status_colors&&typeof r.status_colors==='object')?r.status_colors:colors;toast('License statuses saved ✓');closeDrawer();renderTab();});
 }
 function openAddAgent(){
   $('drawer').innerHTML='<div class="dhd"><div><h3>New agent profile</h3><div class="sub">A GFI code is generated automatically</div></div><button class="x" onclick="closeDrawer()">✕</button></div><div class="dbody">'+
