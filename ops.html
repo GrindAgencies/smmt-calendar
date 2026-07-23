@@ -170,6 +170,7 @@ select.cellin{cursor:pointer;-webkit-appearance:none;appearance:none;padding-rig
     <button class="gbtn" id="gBtn">Enter →</button>
     <div class="gmsg" id="gMsg"></div>
     <div class="ghint"><b>Operations staff</b> (0000–0004) view &amp; edit everything.<br><b>MDs &amp; EMDs</b> sign in with their GFI code to view, add notes &amp; request edits.</div>
+    <a href="index.html" style="display:inline-block;margin-top:16px;color:var(--ink3,#8e8e93);font-size:13px;font-weight:600;text-decoration:none">← Back to Dashboard</a>
   </div>
 </div>
 
@@ -179,6 +180,7 @@ select.cellin{cursor:pointer;-webkit-appearance:none;appearance:none;padding-rig
     <div><h1>Operations Tracker</h1><div class="who" id="whoLbl"></div></div>
     <span id="roleChip"></span>
     <span class="sp"></span>
+    <a class="iconbtn" href="index.html" title="Back to Dashboard" style="text-decoration:none">← Dashboard</a>
     <button class="iconbtn bell hide" id="bellBtn" onclick="openNotif()" title="Booking notifications">🔔<span class="badge hide" id="bellBadge">0</span></button>
     <button class="iconbtn" onclick="toggleTheme()" title="Theme">◐</button>
     <button class="signout" onclick="signOut()">Sign out</button>
@@ -198,6 +200,7 @@ select.cellin{cursor:pointer;-webkit-appearance:none;appearance:none;padding-rig
     </div>
     <div class="tablewrap" id="tableWrap"><div id="tableHost"><div class="spin">Loading tracker…</div></div></div>
     <div id="bookingsHost" class="hide"></div>
+    <div id="newbizHost" class="hide"></div>
     <div id="opsTiles"></div>
   </div>
 </div>
@@ -340,12 +343,82 @@ function loadTracker(){
 }
 function renderReqBanner(n){var host=$('reqBanner');if(!host)return;host.innerHTML=(canEdit()&&n>0)?('<div class="reqbanner">✏️ '+n+' edit request'+(n===1?'':'s')+' from leaders awaiting review<button onclick="openRequests()">Review requests</button></div>'):'';}
 function setTab(t){TAB=t;['licensing','newbiz','faststart','bookings'].forEach(function(x){var b=$('tg_'+x);if(b)b.classList.toggle('on',x===t);});
-  var isB=(t==='bookings');var tw=$('tableWrap'),bh=$('bookingsHost'),sb=$('search'),ab=$('addBtn');
-  if(tw)tw.classList.toggle('hide',isB);if(bh)bh.classList.toggle('hide',!isB);
-  if(sb)sb.placeholder=isB?'Search bookings — name, type, agent…':'Search…';
+  var isB=(t==='bookings'),isNB=(t==='newbiz');var tw=$('tableWrap'),bh=$('bookingsHost'),nh=$('newbizHost'),sb=$('search'),ab=$('addBtn');
+  if(tw)tw.classList.toggle('hide',isB||isNB);if(bh)bh.classList.toggle('hide',!isB);if(nh)nh.classList.toggle('hide',!isNB);
+  if(sb)sb.placeholder=isB?'Search bookings — name, type, agent…':(isNB?'Search tickets — client, ticket #, category, status…':'Search…');
   if(ab)ab.classList.toggle('hide',isB||!canEdit());
-  if(isB)renderBookings();else renderTab();}
-function onSearch(){if(TAB==='bookings')renderBookingsTable();else renderTab();}
+  if(isB)renderBookings();else if(isNB)renderNewbiz();else renderTab();}
+function onSearch(){if(TAB==='bookings')renderBookingsTable();else if(TAB==='newbiz')paintNewbiz();else renderTab();}
+/* ---- New Business ticket tracker (Operations back-end feed) ---- */
+var NB="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/ops-newbiz";
+var NBT=[],NBSTAT=[],NBCAT=[],NBEDIT=false,NBSORT={k:'name',dir:1},NBCUR=null;
+var NBSTATCOLOR={'Top Priority':'#d64550','Need to Escalate':'#e07a2f','Awaiting GFI':'#2e86c9','Awaiting Agent':'#8a63d2','Confirm Fix':'#1f9c8a','Needs Attention':'#c99a2e','Needs Follow Up':'#c99a2e','Complete':'#1a9c52','Cancelled':'#8e8e93'};
+var NBCATCOLOR={'Commissions':'#1a9c52','Coding':'#2e86c9','Ethos':'#8a63d2','Split':'#e07a2f','Other':'#8e8e93','N/A':'#8e8e93'};
+function nbApi(body){var b=body||{};if(OPS&&OPS.role==='ops')b.token='2026';if(OPS){b.by_code=OPS.code;b.by_name=OPS.name;}return fetch(NB,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();});}
+function renderNewbiz(){var host=$('newbizHost');if(!host)return;host.innerHTML='<div class="spin">Loading new business…</div>';
+  nbApi({action:'nb_list'}).then(function(r){if(!r||!r.ok){host.innerHTML='<div class="empty">Could not load new business.</div>';return;}NBT=r.tickets||[];NBSTAT=r.statuses||[];NBCAT=r.categories||[];NBEDIT=!!r.can_edit;paintNewbiz();}).catch(function(){host.innerHTML='<div class="empty">Could not load new business.</div>';});}
+function nbFiltered(){var q=($('search').value||'').trim().toLowerCase();var a=NBT.slice();if(q)a=a.filter(function(t){return (t.name+' '+t.leader+' '+t.ticket+' '+t.category+' '+t.status+' '+t.description).toLowerCase().indexOf(q)>=0;});
+  var k=NBSORT.k,d=NBSORT.dir;a.sort(function(x,y){var xv=(x[k]==null?'':x[k]).toString().toLowerCase(),yv=(y[k]==null?'':y[k]).toString().toLowerCase();if(k==='notes'){xv=(x.notes||[]).length;yv=(y.notes||[]).length;return (xv-yv)*d;}return xv<yv?-d:xv>yv?d:0;});return a;}
+function nbSortBy(k){if(NBSORT.k===k)NBSORT.dir=-NBSORT.dir;else{NBSORT.k=k;NBSORT.dir=1;}paintNewbiz();}
+function nbPill(v,map){if(!v)return '<span style="color:var(--line2)">—</span>';var c=map[v]||'#8e8e93';return '<span class="cpill" style="background:'+c+'22;color:'+c+'">'+esc(v)+'</span>';}
+function nbSelect(t,field,list,map){var v=t[field]||'';var c=map[v]||'#8e8e93';
+  return '<select class="cellin" style="font-weight:700'+(v?(';color:'+c):'')+'" onclick="event.stopPropagation()" onchange="nbSet(\''+t.id+'\',\''+field+'\',this.value)"><option value=""></option>'+list.map(function(o){return '<option'+(o===v?' selected':'')+'>'+esc(o)+'</option>';}).join('')+'</select>';}
+function paintNewbiz(){var host=$('newbizHost');if(!host)return;var rows=nbFiltered();
+  var cols=[['name','Client'],['leader','Leader'],['date','Date'],['ticket','Ticket #'],['category','Category'],['points','Points'],['description','Description'],['status','Status'],['notes','Notes']];
+  var head=cols.map(function(c){var ar=(NBSORT.k===c[0])?('<span class="sarrow on">'+(NBSORT.dir>0?'▲':'▼')+'</span>'):'<span class="sarrow">↕</span>';return '<th><span class="thlbl" onclick="nbSortBy(\''+c[0]+'\')">'+esc(c[1])+ar+'</span></th>';}).join('');
+  var body=rows.length?rows.map(function(t){
+    var cat=NBEDIT?nbSelect(t,'category',NBCAT,NBCATCOLOR):nbPill(t.category,NBCATCOLOR);
+    var sta=NBEDIT?nbSelect(t,'status',NBSTAT,NBSTATCOLOR):nbPill(t.status,NBSTATCOLOR);
+    var nc=(t.notes&&t.notes.length)||0;
+    return '<tr style="cursor:pointer" onclick="openTicket(\''+t.id+'\')">'+
+      '<td><span style="font-weight:800;color:var(--gold)">'+esc(t.name||'—')+'</span></td>'+
+      '<td>'+esc(t.leader||'')+'</td><td style="white-space:nowrap">'+esc(t.date||'')+'</td>'+
+      '<td style="white-space:nowrap">'+esc(t.ticket||'')+'</td>'+
+      '<td onclick="event.stopPropagation()">'+cat+'</td><td>'+esc(t.points||'')+'</td>'+
+      '<td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(t.description||'')+'">'+esc(t.description||'')+'</td>'+
+      '<td onclick="event.stopPropagation()">'+sta+'</td>'+
+      '<td style="white-space:nowrap;color:var(--ink3,#8e8e93)">💬 '+nc+'</td>'+
+    '</tr>';
+  }).join(''):'<tr><td colspan="9" class="empty">No tickets'+(NBEDIT?' yet — click ＋ Add to log one.':'.')+'</td></tr>';
+  host.innerHTML='<div style="font-size:12.5px;color:var(--ink3,#8e8e93);margin:0 0 10px">'+rows.length+' ticket'+(rows.length===1?'':'s')+' · click a client to open notes'+(NBEDIT?' · Category & Status are editable inline':'')+'</div>'+
+    '<div class="tablewrap"><table class="ptable"><thead><tr>'+head+'</tr></thead><tbody>'+body+'</tbody></table></div>';
+}
+function nbSet(id,field,val){var b={action:'nb_update',id:id};b[field]=val;nbApi(b).then(function(r){if(!r||!r.ok){toast((r&&r.error)||'Save failed');return;}var t=NBT.filter(function(x){return x.id===id;})[0];if(t)t[field]=val;paintNewbiz();toast('Saved ✓');});}
+function nbFld(id,lbl,field,val,wide){return '<div class="fg"'+(wide?' style="grid-column:1/-1"':'')+'><label>'+esc(lbl)+'</label>'+(NBEDIT?'<input value="'+esc(val||'')+'" onchange="nbSet(\''+id+'\',\''+field+'\',this.value)">':'<div style="padding:6px 0;font-size:14px">'+(esc(val)||'—')+'</div>')+'</div>';}
+function nbSelFld(id,lbl,field,list,map,val){if(!NBEDIT)return '<div class="fg"><label>'+esc(lbl)+'</label><div style="padding:4px 0">'+nbPill(val,map)+'</div></div>';
+  var c=map[val]||'#8e8e93';return '<div class="fg"><label>'+esc(lbl)+'</label><select style="font-weight:700'+(val?(';color:'+c):'')+'" onchange="nbSet(\''+id+'\',\''+field+'\',this.value)"><option value=""></option>'+list.map(function(o){return '<option'+(o===val?' selected':'')+'>'+esc(o)+'</option>';}).join('')+'</select></div>';}
+function openTicket(id){var t=NBT.filter(function(x){return x.id===id;})[0];if(!t)return;NBCUR=id;
+  var notes=(t.notes||[]).map(function(n){var mine=OPS&&n.by_code&&String(n.by_code).toUpperCase()===String(OPS.code).toUpperCase();var canDel=NBEDIT||mine;
+    return '<div style="border-left:3px solid var(--gold);background:var(--panel2,#fbfbfd);border-radius:0 10px 10px 0;padding:9px 12px;margin-bottom:8px"><div style="font-size:11px;color:var(--ink3,#8e8e93);margin-bottom:3px">'+esc(n.by_name||'')+' · '+esc(fmtTs(n.ts)||'')+(n.edited_at?' · edited':'')+(canDel?(' · <span style="cursor:pointer;color:var(--red)" onclick="nbDelNote(\''+id+'\',\''+n.id+'\')">delete</span>'):'')+'</div><div style="font-size:13px;white-space:pre-wrap;line-height:1.45">'+esc(n.text)+'</div></div>';}).join('')||'<div class="sub">No notes yet.</div>';
+  $('drawer').innerHTML='<div class="dhd"><div><h3>'+esc(t.name||'Ticket')+'</h3><div class="sub">New Business ticket'+(t.ticket?(' · '+esc(t.ticket)):'')+'</div></div><button class="x" onclick="closeDrawer()">✕</button></div><div class="dbody">'+
+    '<div class="frow">'+nbFld(id,'Client','name',t.name)+nbFld(id,'Leader','leader',t.leader)+'</div>'+
+    '<div class="frow">'+nbFld(id,'Date','date',t.date)+nbFld(id,'Ticket #','ticket',t.ticket)+'</div>'+
+    '<div class="frow">'+nbSelFld(id,'Category','category',NBCAT,NBCATCOLOR,t.category)+nbSelFld(id,'Status','status',NBSTAT,NBSTATCOLOR,t.status)+'</div>'+
+    '<div class="frow">'+nbFld(id,'Points','points',t.points)+'</div>'+
+    '<div class="fg" style="margin-top:2px"><label>Description</label>'+(NBEDIT?'<textarea style="min-height:56px" onchange="nbSet(\''+id+'\',\'description\',this.value)">'+esc(t.description||'')+'</textarea>':'<div style="font-size:14px;white-space:pre-wrap">'+(esc(t.description)||'—')+'</div>')+'</div>'+
+    '<div style="margin-top:16px;font-weight:800;font-size:13px">📝 Notes</div>'+
+    '<div style="display:flex;gap:8px;margin:8px 0 12px"><textarea id="tk_note" placeholder="Add a note…" style="flex:1;min-height:44px"></textarea><button class="dbtn blue" style="align-self:flex-end" onclick="nbAddNote(\''+id+'\')">Add</button></div>'+
+    notes+
+    (NBEDIT?'<button class="dbtn ghost" style="width:100%;margin-top:14px;color:var(--red);border-color:var(--red)" onclick="nbDel(\''+id+'\')">🗑 Delete ticket</button>':'')+
+  '</div>';
+  $('ov').classList.add('on');
+}
+function nbAddNote(id){var el=$('tk_note');var text=(el&&el.value||'').trim();if(!text){toast('Write a note first');return;}
+  nbApi({action:'nb_note',id:id,text:text}).then(function(r){if(!r||!r.ok){toast((r&&r.error)||'Failed');return;}var t=NBT.filter(function(x){return x.id===id;})[0];if(t)t.notes=r.notes;openTicket(id);paintNewbiz();});}
+function nbDelNote(id,nid){if(!confirm('Delete this note?'))return;nbApi({action:'nb_note_del',id:id,note_id:nid}).then(function(r){if(!r||!r.ok){toast((r&&r.error)||'Failed');return;}var t=NBT.filter(function(x){return x.id===id;})[0];if(t)t.notes=r.notes;openTicket(id);paintNewbiz();});}
+function nbDel(id){if(!confirm('Delete this ticket? This cannot be undone.'))return;nbApi({action:'nb_delete',id:id}).then(function(r){if(!r||!r.ok){toast((r&&r.error)||'Failed');return;}NBT=r.tickets||NBT;toast('Ticket deleted');closeDrawer();paintNewbiz();});}
+function openAddTicket(){
+  $('drawer').innerHTML='<div class="dhd"><div><h3>Add a new-business ticket</h3><div class="sub">Logs a case in the Operations feed</div></div><button class="x" onclick="closeDrawer()">✕</button></div><div class="dbody">'+
+    '<div class="frow"><div class="fg"><label>Client *</label><input id="at_name" placeholder="Client / agent the case is about"></div><div class="fg"><label>Leader</label><input id="at_leader" placeholder="e.g. LORENZ"></div></div>'+
+    '<div class="frow"><div class="fg"><label>Date</label><input id="at_date" placeholder="6/22 or 06/22/2026"></div><div class="fg"><label>Ticket #</label><input id="at_ticket" placeholder="Ticket #785115"></div></div>'+
+    '<div class="frow"><div class="fg"><label>Category</label><select id="at_cat"><option value=""></option>'+NBCAT.map(function(o){return '<option>'+esc(o)+'</option>';}).join('')+'</select></div><div class="fg"><label>Status</label><select id="at_status"><option value=""></option>'+NBSTAT.map(function(o){return '<option>'+esc(o)+'</option>';}).join('')+'</select></div></div>'+
+    '<div class="frow"><div class="fg"><label>Points</label><input id="at_points" placeholder="optional"></div></div>'+
+    '<div class="fg" style="margin-top:2px"><label>Description</label><textarea id="at_desc" style="min-height:56px" placeholder="What is the issue / what needs to happen"></textarea></div>'+
+    '<button class="dbtn blue" style="width:100%;margin-top:14px" onclick="addTicketSave()">Add ticket ✓</button></div>';
+  $('ov').classList.add('on');
+}
+function addTicketSave(){var name=(($('at_name')&&$('at_name').value)||'').trim();if(!name){toast('Enter a client name');return;}
+  nbApi({action:'nb_add',name:name,leader:$('at_leader').value,date:$('at_date').value,ticket:$('at_ticket').value,category:$('at_cat').value,points:$('at_points').value,description:$('at_desc').value,status:$('at_status').value}).then(function(r){if(!r||!r.ok){toast((r&&r.error)||'Could not add');return;}NBT=r.tickets||NBT;toast('Ticket added ✓');closeDrawer();paintNewbiz();});}
 /* ---- Calendly Command Center ---- */
 var BOOKINGS=[];
 function renderBookings(){
@@ -436,6 +509,7 @@ function deleteCol(key){
 
 /* ---- add menu: row (agent) or column (custom field) ---- */
 function openAddMenu(){
+  if(TAB==='newbiz'){openAddTicket();return;}
   $('drawer').innerHTML='<div class="dhd"><div><h3>Add to tracker</h3><div class="sub">Current view: '+esc(TAB)+'</div></div><button class="x" onclick="closeDrawer()">✕</button></div><div class="dbody">'+
     '<button class="dbtn" style="width:100%;margin-bottom:10px" onclick="openAddAgent()">＋ Add a ROW — full agent profile</button>'+
     '<button class="dbtn blue" style="width:100%;margin-bottom:10px" onclick="openAddColumn()">＋ Add a COLUMN — custom field</button>'+
