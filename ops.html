@@ -105,7 +105,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);-web
 .cellin:hover{border-color:var(--line2);background:var(--panel)}
 .cellin:focus{border-color:var(--gold);background:var(--panel)}
 .cellin.saved{border-color:var(--green);background:rgba(26,156,82,.08)}
-select.cellin{cursor:pointer;-webkit-appearance:none;appearance:none;padding-right:24px;text-overflow:ellipsis;white-space:nowrap;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' fill='none' stroke='%238e8e93' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/></svg>");background-repeat:no-repeat;background-position:right 8px center;background-size:10px 6px}
+select.cellin{cursor:pointer;min-width:140px;-webkit-appearance:none;appearance:none;padding-right:26px;text-overflow:ellipsis;white-space:nowrap;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' fill='none' stroke='%238e8e93' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/></svg>");background-repeat:no-repeat;background-position:right 8px center;background-size:10px 6px}
 .cellchk{width:18px;height:18px;cursor:pointer;accent-color:var(--gold);margin:0;display:block}
 .cpill{display:inline-block;padding:3px 9px;border-radius:999px;font-size:11.5px;font-weight:700;line-height:1.5;white-space:nowrap}
 .tybtn{flex:1;padding:9px 6px;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:9px;font-weight:700;font-size:12.5px;cursor:pointer;font-family:inherit;opacity:.65;transition:.12s}
@@ -179,8 +179,7 @@ select.cellin{cursor:pointer;-webkit-appearance:none;appearance:none;padding-rig
     <div class="bdot">🛡️</div>
     <div><h1>Operations Tracker</h1><div class="who" id="whoLbl"></div></div>
     <span id="roleChip"></span>
-    <span class="sp"></span>
-    <a class="iconbtn" href="index.html" title="Back to Dashboard" style="text-decoration:none">← Dashboard</a>
+    <a class="signout" href="index.html" title="Back to Dashboard" style="text-decoration:none;display:inline-flex;align-items:center;gap:5px;margin-left:auto">← Dashboard</a>
     <button class="iconbtn bell hide" id="bellBtn" onclick="openNotif()" title="Booking notifications">🔔<span class="badge hide" id="bellBadge">0</span></button>
     <button class="iconbtn" onclick="toggleTheme()" title="Theme">◐</button>
     <button class="signout" onclick="signOut()">Sign out</button>
