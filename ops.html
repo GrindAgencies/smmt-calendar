@@ -198,6 +198,7 @@ select.cellin{cursor:pointer;min-width:140px;-webkit-appearance:none;appearance:
         <button class="tgl" id="tg_inforce" onclick="setTab('inforce')">🟢 In Force</button>
         <button class="tgl" id="tg_gfi" onclick="setTab('gfi')">🎟️ GFI Tickets</button>
         <button class="tgl" id="tg_bookings" onclick="setTab('bookings')">📅 Bookings</button>
+        <button class="tgl" id="tg_teamhub" onclick="setTab('teamhub')">💬 Team Hub</button>
       </div>
       <button class="addbtn hide" id="addBtn" onclick="openAddMenu()">＋ Add</button>
       <input class="searchbar" id="search" placeholder="Search…" oninput="onSearch()">
@@ -206,6 +207,7 @@ select.cellin{cursor:pointer;min-width:140px;-webkit-appearance:none;appearance:
     <div id="bookingsHost" class="hide"></div>
     <div id="newbizHost" class="hide"></div>
     <div id="inforceHost" class="hide"></div>
+    <div id="teamhubHost" class="hide"></div>
     <div id="opsTiles"></div>
   </div>
 </div>
@@ -355,13 +357,16 @@ function loadTracker(){
   }).catch(function(){$('tableHost').innerHTML='<div class="empty">Could not load the tracker.</div>';});
 }
 function renderReqBanner(n){var host=$('reqBanner');if(!host)return;host.innerHTML=(canEdit()&&n>0)?('<div class="reqbanner">✏️ '+n+' edit request'+(n===1?'':'s')+' from leaders awaiting review<button onclick="openRequests()">Review requests</button></div>'):'';}
-function setTab(t){TAB=t;['licensing','newbiz','faststart','bookings','appointed','inforce','gfi'].forEach(function(x){var b=$('tg_'+x);if(b)b.classList.toggle('on',x===t);});
-  var isB=(t==='bookings'),isNB=(t==='newbiz'||t==='gfi'),isIF=(t==='inforce');
-  var tw=$('tableWrap'),bh=$('bookingsHost'),nh=$('newbizHost'),ifh=$('inforceHost'),sb=$('search'),ab=$('addBtn');
-  if(tw)tw.classList.toggle('hide',isB||isNB||isIF);if(bh)bh.classList.toggle('hide',!isB);if(nh)nh.classList.toggle('hide',!isNB);if(ifh)ifh.classList.toggle('hide',!isIF);
-  if(sb)sb.placeholder=isB?'Search bookings — name, type, agent…':(isNB?(t==='gfi'?'Search tickets — client, ticket #, category, status…':'Search records — client, agent, status…'):(isIF?'Search in-force — client, agent, carrier…':'Search…'));
-  if(ab)ab.classList.toggle('hide',isB||isIF||(t==='newbiz')||!canEdit());
-  if(isB)renderBookings();else if(isIF)renderInforce();else if(isNB)renderNewbiz();else renderTab();}
+function setTab(t){TAB=t;['licensing','newbiz','faststart','bookings','appointed','inforce','gfi','teamhub'].forEach(function(x){var b=$('tg_'+x);if(b)b.classList.toggle('on',x===t);});
+  var isB=(t==='bookings'),isNB=(t==='newbiz'||t==='gfi'),isIF=(t==='inforce'),isTH=(t==='teamhub');
+  var tw=$('tableWrap'),bh=$('bookingsHost'),nh=$('newbizHost'),ifh=$('inforceHost'),thh=$('teamhubHost'),sb=$('search'),ab=$('addBtn');
+  if(tw)tw.classList.toggle('hide',isB||isNB||isIF||isTH);if(bh)bh.classList.toggle('hide',!isB);if(nh)nh.classList.toggle('hide',!isNB);if(ifh)ifh.classList.toggle('hide',!isIF);if(thh)thh.classList.toggle('hide',!isTH);
+  if(sb){sb.style.display=isTH?'none':'';sb.placeholder=isB?'Search bookings — name, type, agent…':(isNB?(t==='gfi'?'Search tickets — client, ticket #, category, status…':'Search records — client, agent, status…'):(isIF?'Search in-force — client, agent, carrier…':'Search…'));}
+  if(ab)ab.classList.toggle('hide',isB||isIF||isTH||(t==='newbiz')||!canEdit());
+  if(isB)renderBookings();else if(isIF)renderInforce();else if(isTH)renderTeamhub();else if(isNB)renderNewbiz();else renderTab();}
+function renderTeamhub(){var host=$('teamhubHost');if(!host)return;if(host.getAttribute('data-loaded'))return;host.setAttribute('data-loaded','1');
+  var src='teamhub.html?ops=1&code='+encodeURIComponent(OPS?OPS.code:'OPS')+'&name='+encodeURIComponent(OPS?OPS.name:'Operations');
+  host.innerHTML='<div style="font-size:12.5px;color:var(--ink3,#8e8e93);margin:0 0 8px">🛡️ Operations oversight — full access to every channel &amp; direct message, and all recognition/AI bot activity. You post as <b>'+esc((OPS&&OPS.name)||'Operations')+'</b>.</div><iframe src="'+esc(src)+'" style="width:100%;height:calc(100vh - 150px);min-height:560px;border:1px solid var(--line);border-radius:15px;background:var(--panel)" title="Team Hub" allow="clipboard-write"></iframe>';}
 function onSearch(){if(TAB==='bookings')renderBookingsTable();else if(TAB==='inforce')paintInforce();else if(TAB==='newbiz'||TAB==='gfi')paintNewbiz();else renderTab();}
 /* ---- New Business feed (Operations back-end) — column-driven, fully editable ---- */
 var NB="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/ops-newbiz";
