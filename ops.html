@@ -90,8 +90,10 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);-web
 .ptable td{padding:11px 18px;border-bottom:1px solid var(--line);vertical-align:middle;white-space:nowrap;line-height:1.4}
 .ptable td,.ptable th{max-width:300px;border-right:1px solid var(--line)}
 .ptable td:last-child,.ptable th:last-child{border-right:none}
-.ptable tbody tr:nth-child(even) td{background:color-mix(in srgb,var(--panel2) 55%,transparent)}
+.ptable tbody tr:nth-child(even) td{background:color-mix(in srgb,var(--panel2) 55%,var(--panel))}
 .ptable tbody tr:hover td{background:var(--panel2)}
+.twoline{display:flex;flex-direction:column;gap:1px;line-height:1.3;min-width:0;max-width:100%}
+.twoline .tl1,.twoline .sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;max-width:100%}
 .namebtn{background:none;border:none;font-family:inherit;font-weight:800;font-size:13.5px;color:var(--accent);cursor:pointer;padding:0;text-align:left;letter-spacing:-.01em}
 .namebtn:hover{text-decoration:underline}
 .sub{font-size:11px;color:var(--ink3);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -297,7 +299,7 @@ var COLS={
   licensing:[
     {k:'name',l:'Agent',s:function(r){return low(r.name);},c:nameCell},
     {k:'code',l:'GFI Code',s:function(r){return r.code;},c:function(r){return esc(r.code);}},
-    {k:'direct_to_name',l:'Direct Recruiter',s:function(r){return low(r.direct_to_name);},c:function(r){return r.direct_to_name?(esc(r.direct_to_name)+(r.direct_to?'<div class="sub">'+esc(r.direct_to)+'</div>':'')):'<span class="miss">—</span>';}},
+    {k:'direct_to_name',l:'Direct Recruiter',s:function(r){return low(r.direct_to_name);},c:function(r){return r.direct_to_name?('<div class="twoline"><div class="tl1">'+esc(r.direct_to_name)+'</div>'+(r.direct_to?'<div class="sub">'+esc(r.direct_to)+'</div>':'')+'</div>'):'<span class="miss">—</span>';}},
     {k:'baseshop',l:'Baseshop',e:'text',s:function(r){return low(r.baseshop);}},
     {k:'ica_date',l:'ICA Date',e:'date',s:function(r){return r.ica_date||'';}},
     {k:'license_type',l:'License Type',e:'list',dl:'dl_license_type',s:function(r){return low(r.license_type);}},
