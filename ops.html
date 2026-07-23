@@ -349,47 +349,51 @@ function setTab(t){TAB=t;['licensing','newbiz','faststart','bookings'].forEach(f
   if(ab)ab.classList.toggle('hide',isB||!canEdit());
   if(isB)renderBookings();else if(isNB)renderNewbiz();else renderTab();}
 function onSearch(){if(TAB==='bookings')renderBookingsTable();else if(TAB==='newbiz')paintNewbiz();else renderTab();}
-/* ---- New Business feed (Operations back-end) — column-driven ---- */
+/* ---- New Business feed (Operations back-end) — column-driven, fully editable ---- */
 var NB="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/ops-newbiz";
-var NBT=[],NBCOLS=[],NBSTAT=[],NBEDIT=false,NBSORT={k:'client_name',dir:1},NBCUR=null;
-var NBSTATCOLOR={'Top Priority':'#d64550','Need to Escalate':'#e07a2f','Awaiting GFI':'#2e86c9','Awaiting Agent':'#8a63d2','Confirm Fix':'#1f9c8a','Needs Attention':'#c99a2e','Needs Follow Up':'#c99a2e','Complete':'#1a9c52','Cancelled':'#8e8e93'};
+var NBT=[],NBCOLS=[],NBEDIT=false,NBSORT={k:'client_name',dir:1},NBCUR=null,NBCOLDRAFT=[];
 function nbApi(body){var b=body||{};if(OPS&&OPS.role==='ops')b.token='2026';if(OPS){b.by_code=OPS.code;b.by_name=OPS.name;}return fetch(NB,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();});}
 function nbVal(t,k){return (t.data&&t.data[k]!=null)?t.data[k]:'';}
 function nbFmtMoney(v){v=(v==null?'':String(v)).trim();if(!v)return '';var num=v.replace(/[$,\s]/g,'');if(num!==''&&!isNaN(Number(num)))return '$'+Number(num).toLocaleString('en-US');return v;}
 function nbDash(){return '<span style="color:var(--line2)">—</span>';}
+function nbOpts(col){return Array.isArray(col.options)?col.options:[];}
+function nbOptColor(col,val){var o=nbOpts(col).filter(function(x){return x.value===val;})[0];return o?o.color:'#8e8e93';}
 function renderNewbiz(){var host=$('newbizHost');if(!host)return;host.innerHTML='<div class="spin">Loading new business…</div>';
-  nbApi({action:'nb_list'}).then(function(r){if(!r||!r.ok){host.innerHTML='<div class="empty">Could not load new business.</div>';return;}NBT=r.tickets||[];NBCOLS=r.columns||[];NBSTAT=r.statuses||[];NBEDIT=!!r.can_edit;
+  nbApi({action:'nb_list'}).then(function(r){if(!r||!r.ok){host.innerHTML='<div class="empty">Could not load new business.</div>';return;}NBT=r.tickets||[];NBCOLS=r.columns||[];NBEDIT=!!r.can_edit;
     if(NBSORT.k!=='__notes'&&!NBCOLS.some(function(c){return c.key===NBSORT.k;}))NBSORT.k=(NBCOLS[0]&&NBCOLS[0].key)||'client_name';
     paintNewbiz();}).catch(function(){host.innerHTML='<div class="empty">Could not load new business.</div>';});}
 function nbFiltered(){var q=($('search').value||'').trim().toLowerCase();var a=NBT.slice();
-  if(q)a=a.filter(function(t){var s=[];var dd=t.data||{};for(var k in dd)s.push(dd[k]);return s.join(' ').toLowerCase().indexOf(q)>=0;});
+  if(q)a=a.filter(function(t){var s=[];var dd=t.data||{};for(var k in dd){if(k!=='_color')s.push(dd[k]);}return s.join(' ').toLowerCase().indexOf(q)>=0;});
   var k=NBSORT.k,d=NBSORT.dir;
   a.sort(function(x,y){if(k==='__notes')return (((x.notes||[]).length)-((y.notes||[]).length))*d;var xv=String(nbVal(x,k)).toLowerCase(),yv=String(nbVal(y,k)).toLowerCase();return xv<yv?-d:xv>yv?d:0;});
   return a;}
 function nbSortBy(k){if(NBSORT.k===k)NBSORT.dir=-NBSORT.dir;else{NBSORT.k=k;NBSORT.dir=1;}paintNewbiz();}
-function nbPillStatus(v){if(!v)return nbDash();var c=NBSTATCOLOR[v]||'#8e8e93';return '<span class="cpill" style="background:'+c+'22;color:'+c+'">'+esc(v)+'</span>';}
-function nbStatusSelect(t){var v=nbVal(t,'status');var c=NBSTATCOLOR[v]||'#8e8e93';return '<select class="cellin" style="font-weight:700'+(v?(';color:'+c):'')+'" onchange="nbSet(\''+t.id+'\',\'status\',this.value)">'+'<option value=""></option>'+NBSTAT.map(function(o){return '<option'+(o===v?' selected':'')+'>'+esc(o)+'</option>';}).join('')+'</select>';}
+function nbSelectCell(t,col){var v=nbVal(t,col.key);var c=nbOptColor(col,v);return '<select class="cellin" style="font-weight:700'+(v?(';color:'+c):'')+'" onchange="nbSet(\''+t.id+'\',\''+col.key+'\',this.value)"><option value=""></option>'+nbOpts(col).map(function(o){return '<option'+(o.value===v?' selected':'')+' style="color:'+esc(o.color)+'">'+esc(o.value)+'</option>';}).join('')+'</select>';}
+function nbSelectPill(col,v){if(!v)return nbDash();var c=nbOptColor(col,v);return '<span class="cpill" style="background:'+c+'22;color:'+c+'">'+esc(v)+'</span>';}
 function nbCell(t,col){var v=nbVal(t,col.key);
-  if(col.type==='status')return NBEDIT?nbStatusSelect(t):nbPillStatus(v);
+  if(col.type==='select')return NBEDIT?nbSelectCell(t,col):nbSelectPill(col,v);
   if(col.key==='client_name')return '<a onclick="openTicket(\''+t.id+'\')" style="cursor:pointer;font-weight:800;color:var(--gold);text-decoration:none">'+(esc(v)||'—')+'</a>';
   if(NBEDIT)return '<input class="cellin"'+(col.type==='money'?' style="text-align:right"':'')+' value="'+esc(v)+'" placeholder="—" onchange="nbSet(\''+t.id+'\',\''+col.key+'\',this.value)">';
   return col.type==='money'?(esc(nbFmtMoney(v))||nbDash()):(esc(v)||nbDash());}
 function paintNewbiz(){var host=$('newbizHost');if(!host)return;var rows=nbFiltered();
-  var head=NBCOLS.map(function(col){var ar=(NBSORT.k===col.key)?('<span class="sarrow on">'+(NBSORT.dir>0?'▲':'▼')+'</span>'):'<span class="sarrow">↕</span>';return '<th'+(col.type==='money'?' style="text-align:right"':'')+'><span class="thlbl" onclick="nbSortBy(\''+col.key+'\')">'+esc(col.label)+ar+'</span></th>';}).join('');
+  var head=NBCOLS.map(function(col){var ar=(NBSORT.k===col.key)?('<span class="sarrow on">'+(NBSORT.dir>0?'▲':'▼')+'</span>'):'<span class="sarrow">↕</span>';var hc=col.headerColor?('background:'+col.headerColor+'22;'):'';return '<th style="'+hc+(col.type==='money'?'text-align:right':'')+'"><span class="thlbl" onclick="nbSortBy(\''+col.key+'\')">'+esc(col.label)+ar+'</span></th>';}).join('');
   head+='<th><span class="thlbl" onclick="nbSortBy(\'__notes\')">Notes'+(NBSORT.k==='__notes'?('<span class="sarrow on">'+(NBSORT.dir>0?'▲':'▼')+'</span>'):'<span class="sarrow">↕</span>')+'</span></th>';
-  var body=rows.length?rows.map(function(t){return '<tr>'+NBCOLS.map(function(col){return '<td'+(col.type==='money'?' style="text-align:right;white-space:nowrap"':(col.key==='status'?'':' style="white-space:nowrap"'))+'>'+nbCell(t,col)+'</td>';}).join('')+'<td onclick="openTicket(\''+t.id+'\')" style="cursor:pointer;white-space:nowrap;color:var(--ink3,#8e8e93)">💬 '+((t.notes&&t.notes.length)||0)+'</td></tr>';}).join(''):'<tr><td colspan="'+(NBCOLS.length+1)+'" class="empty">No records'+(NBEDIT?' yet — click ＋ Add.':'.')+'</td></tr>';
-  host.innerHTML='<div style="font-size:12.5px;color:var(--ink3,#8e8e93);margin:0 0 10px">'+rows.length+' record'+(rows.length===1?'':'s')+' · click a client name to open notes'+(NBEDIT?' · cells edit inline':'')+'</div><div class="tablewrap" style="overflow-x:auto"><table class="ptable" style="min-width:1200px"><thead><tr>'+head+'</tr></thead><tbody>'+body+'</tbody></table></div>';}
-function nbSet(id,field,val){nbApi({action:'nb_update',id:id,field:field,value:val}).then(function(r){if(!r||!r.ok){toast((r&&r.error)||'Save failed');return;}var t=NBT.filter(function(x){return x.id===id;})[0];if(t){t.data=t.data||{};t.data[field]=val;}paintNewbiz();toast('Saved ✓');});}
+  var body=rows.length?rows.map(function(t){var rc=(t.data&&t.data._color)||'';return '<tr'+(rc?(' style="background:'+rc+'22"'):'')+'>'+NBCOLS.map(function(col){return '<td'+(col.type==='money'?' style="text-align:right;white-space:nowrap"':(col.key==='status'||col.type==='select'?'':' style="white-space:nowrap"'))+'>'+nbCell(t,col)+'</td>';}).join('')+'<td onclick="openTicket(\''+t.id+'\')" style="cursor:pointer;white-space:nowrap;color:var(--ink3,#8e8e93)">💬 '+((t.notes&&t.notes.length)||0)+'</td></tr>';}).join(''):'<tr><td colspan="'+(NBCOLS.length+1)+'" class="empty">No records'+(NBEDIT?' yet — click ＋ Add.':'.')+'</td></tr>';
+  var toolbar=NBEDIT?'<button class="dbtn ghost" style="padding:6px 12px;font-size:12.5px" onclick="openNbCols()">⚙ Edit columns</button>':'';
+  host.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin:0 0 10px;flex-wrap:wrap"><div style="font-size:12.5px;color:var(--ink3,#8e8e93)">'+rows.length+' record'+(rows.length===1?'':'s')+' · click a client name to open notes'+(NBEDIT?' · cells edit inline':'')+'</div>'+toolbar+'</div>'+
+    '<div class="tablewrap" style="overflow-x:auto"><table class="ptable" style="min-width:1200px"><thead><tr>'+head+'</tr></thead><tbody>'+body+'</tbody></table></div>';}
+function nbSet(id,field,val){nbApi({action:'nb_update',id:id,field:field,value:val}).then(function(r){if(!r||!r.ok){toast((r&&r.error)||'Save failed');return;}var t=NBT.filter(function(x){return x.id===id;})[0];if(t){t.data=t.data||{};t.data[field]=val;}paintNewbiz();if(field!=='_color')toast('Saved ✓');});}
 function nbDrawerField(id,col,v){
-  if(col.type==='status'){if(!NBEDIT)return '<div class="fg"><label>'+esc(col.label)+'</label><div style="padding:4px 0">'+nbPillStatus(v)+'</div></div>';var c=NBSTATCOLOR[v]||'#8e8e93';return '<div class="fg"><label>'+esc(col.label)+'</label><select style="font-weight:700'+(v?(';color:'+c):'')+'" onchange="nbSet(\''+id+'\',\'status\',this.value)"><option value=""></option>'+NBSTAT.map(function(o){return '<option'+(o===v?' selected':'')+'>'+esc(o)+'</option>';}).join('')+'</select></div>';}
+  if(col.type==='select'){if(!NBEDIT)return '<div class="fg"><label>'+esc(col.label)+'</label><div style="padding:4px 0">'+nbSelectPill(col,v)+'</div></div>';var c=nbOptColor(col,v);return '<div class="fg"><label>'+esc(col.label)+'</label><select style="font-weight:700'+(v?(';color:'+c):'')+'" onchange="nbSet(\''+id+'\',\''+col.key+'\',this.value)"><option value=""></option>'+nbOpts(col).map(function(o){return '<option'+(o.value===v?' selected':'')+' style="color:'+esc(o.color)+'">'+esc(o.value)+'</option>';}).join('')+'</select></div>';}
   return '<div class="fg"><label>'+esc(col.label)+'</label>'+(NBEDIT?'<input value="'+esc(v)+'" onchange="nbSet(\''+id+'\',\''+col.key+'\',this.value)">':'<div style="padding:6px 0;font-size:14px">'+(esc(v)||'—')+'</div>')+'</div>';}
 function openTicket(id){var t=NBT.filter(function(x){return x.id===id;})[0];if(!t)return;NBCUR=id;
   var fs=NBCOLS.map(function(col){return nbDrawerField(id,col,nbVal(t,col.key));});
   var frows='';for(var i=0;i<fs.length;i+=2){frows+='<div class="frow">'+fs[i]+(fs[i+1]||'')+'</div>';}
+  var rowcolor=NBEDIT?('<div class="fg" style="margin-top:2px"><label>Row highlight color</label><div style="display:flex;align-items:center;gap:10px"><input type="color" value="'+((t.data&&t.data._color)||'#ffffff')+'" oninput="nbSet(\''+id+'\',\'_color\',this.value)" style="width:46px;height:32px;border:1px solid var(--line);border-radius:8px;cursor:pointer;padding:2px"><span onclick="nbSet(\''+id+'\',\'_color\',\'\')" style="cursor:pointer;color:var(--ink3);font-size:13px">Clear</span></div></div>'):'';
   var notes=(t.notes||[]).map(function(n){var mine=OPS&&n.by_code&&String(n.by_code).toUpperCase()===String(OPS.code).toUpperCase();var canDel=NBEDIT||mine;
     return '<div style="border-left:3px solid var(--gold);background:var(--panel2,#fbfbfd);border-radius:0 10px 10px 0;padding:9px 12px;margin-bottom:8px"><div style="font-size:11px;color:var(--ink3,#8e8e93);margin-bottom:3px">'+esc(n.by_name||'')+' · '+esc(fmtTs(n.ts)||'')+(n.edited_at?' · edited':'')+(canDel?(' · <span style="cursor:pointer;color:var(--red)" onclick="nbDelNote(\''+id+'\',\''+n.id+'\')">delete</span>'):'')+'</div><div style="font-size:13px;white-space:pre-wrap;line-height:1.45">'+esc(n.text)+'</div></div>';}).join('')||'<div class="sub">No notes yet.</div>';
   var title=nbVal(t,'client_name')||'Record';
-  $('drawer').innerHTML='<div class="dhd"><div><h3>'+esc(title)+'</h3><div class="sub">New Business record</div></div><button class="x" onclick="closeDrawer()">✕</button></div><div class="dbody">'+frows+
+  $('drawer').innerHTML='<div class="dhd"><div><h3>'+esc(title)+'</h3><div class="sub">New Business record</div></div><button class="x" onclick="closeDrawer()">✕</button></div><div class="dbody">'+frows+rowcolor+
     '<div style="margin-top:16px;font-weight:800;font-size:13px">📝 Notes</div>'+
     '<div style="display:flex;gap:8px;margin:8px 0 12px"><textarea id="tk_note" placeholder="Add a note…" style="flex:1;min-height:44px"></textarea><button class="dbtn blue" style="align-self:flex-end" onclick="nbAddNote(\''+id+'\')">Add</button></div>'+notes+
     (NBEDIT?'<button class="dbtn ghost" style="width:100%;margin-top:14px;color:var(--red);border-color:var(--red)" onclick="nbDel(\''+id+'\')">🗑 Delete record</button>':'')+
@@ -401,13 +405,43 @@ function nbDelNote(id,nid){if(!confirm('Delete this note?'))return;nbApi({action
 function nbDel(id){if(!confirm('Delete this record? This cannot be undone.'))return;nbApi({action:'nb_delete',id:id}).then(function(r){if(!r||!r.ok){toast((r&&r.error)||'Failed');return;}NBT=r.tickets||NBT;toast('Record deleted');closeDrawer();paintNewbiz();});}
 function openAddTicket(){
   var fs=NBCOLS.map(function(col){
-    if(col.type==='status')return '<div class="fg"><label>'+esc(col.label)+'</label><select id="at_'+col.key+'"><option value=""></option>'+NBSTAT.map(function(o){return '<option>'+esc(o)+'</option>';}).join('')+'</select></div>';
+    if(col.type==='select')return '<div class="fg"><label>'+esc(col.label)+'</label><select id="at_'+col.key+'"><option value=""></option>'+nbOpts(col).map(function(o){return '<option style="color:'+esc(o.color)+'">'+esc(o.value)+'</option>';}).join('')+'</select></div>';
     return '<div class="fg"><label>'+esc(col.label)+(col.key==='client_name'?' *':'')+'</label><input id="at_'+col.key+'"></div>';});
   var frows='';for(var i=0;i<fs.length;i+=2){frows+='<div class="frow">'+fs[i]+(fs[i+1]||'')+'</div>';}
   $('drawer').innerHTML='<div class="dhd"><div><h3>Add a new-business record</h3><div class="sub">Logs a policy in the Operations feed</div></div><button class="x" onclick="closeDrawer()">✕</button></div><div class="dbody">'+frows+'<button class="dbtn blue" style="width:100%;margin-top:14px" onclick="addTicketSave()">Add record ✓</button></div>';
   $('ov').classList.add('on');}
 function addTicketSave(){var data={};NBCOLS.forEach(function(col){var el=$('at_'+col.key);if(el)data[col.key]=el.value;});if(!(data.client_name||'').trim()){toast('Enter a client name');return;}
   nbApi({action:'nb_add',data:data}).then(function(r){if(!r||!r.ok){toast((r&&r.error)||'Could not add');return;}NBT=r.tickets||NBT;toast('Record added ✓');closeDrawer();paintNewbiz();});}
+/* ---- New Business: column editor (add/rename/retype/recolor/reorder/delete anytime) ---- */
+function openNbCols(){NBCOLDRAFT=JSON.parse(JSON.stringify(NBCOLS));renderNbColsEditor();$('ov').classList.add('on');}
+function renderNbColsEditor(){
+  var TYP=[['text','Text'],['select','Dropdown'],['money','Money'],['date','Date']];
+  var rows=NBCOLDRAFT.map(function(col,i){
+    var opts=(col.type==='select')?('<div style="margin-top:8px;padding-left:2px"><div style="font-size:11px;color:var(--ink3);margin-bottom:4px">Options — each with its own color</div>'+(col.options||[]).map(function(o,j){return '<div style="display:flex;gap:6px;align-items:center;margin-bottom:5px"><input type="color" value="'+esc(o.color||'#8e8e93')+'" oninput="NBCOLDRAFT['+i+'].options['+j+'].color=this.value" style="width:32px;height:28px;border:1px solid var(--line);border-radius:6px;padding:1px;cursor:pointer"><input class="cellin" style="flex:1;border:1px solid var(--line2)" value="'+esc(o.value)+'" oninput="NBCOLDRAFT['+i+'].options['+j+'].value=this.value" placeholder="Option name"><span onclick="nbColOptDel('+i+','+j+')" title="Remove" style="cursor:pointer;color:var(--red);font-weight:800">✕</span></div>';}).join('')+'<button class="dbtn ghost" style="padding:5px 11px;font-size:12px;margin-top:2px" onclick="nbColOptAdd('+i+')">＋ Add option</button></div>'):'';
+    return '<div style="border:1px solid var(--line2);border-radius:12px;padding:12px;margin-bottom:10px">'+
+      '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'+
+        '<input class="cellin" style="flex:1;min-width:120px;border:1px solid var(--line2);font-weight:700" value="'+esc(col.label)+'" oninput="NBCOLDRAFT['+i+'].label=this.value" placeholder="Column name">'+
+        '<select class="cellin" style="border:1px solid var(--line2);width:104px" onchange="nbColType('+i+',this.value)">'+TYP.map(function(tp){return '<option value="'+tp[0]+'"'+(col.type===tp[0]?' selected':'')+'>'+tp[1]+'</option>';}).join('')+'</select>'+
+        '<label style="font-size:11px;color:var(--ink3);display:flex;align-items:center;gap:3px" title="Column header color"><input type="color" value="'+esc(col.headerColor||'#eaeaea')+'" oninput="NBCOLDRAFT['+i+'].headerColor=this.value" style="width:26px;height:24px;border:1px solid var(--line);border-radius:5px;padding:1px;cursor:pointer">hdr</label>'+
+        '<span onclick="nbColClearHdr('+i+')" style="cursor:pointer;font-size:11px;color:var(--ink3)">clear</span>'+
+        '<span onclick="nbColMove('+i+',-1)" title="Move up" style="cursor:pointer;font-size:13px">▲</span><span onclick="nbColMove('+i+',1)" title="Move down" style="cursor:pointer;font-size:13px">▼</span>'+
+        '<span onclick="nbColDel('+i+')" title="Delete column" style="cursor:pointer;color:var(--red);font-weight:800">🗑</span>'+
+      '</div>'+opts+'</div>';
+  }).join('');
+  $('drawer').innerHTML='<div class="dhd"><div><h3>Edit columns</h3><div class="sub">Rename · retype · recolor · reorder · add · delete</div></div><button class="x" onclick="closeDrawer()">✕</button></div><div class="dbody">'+rows+
+    '<button class="dbtn ghost" style="width:100%;margin-bottom:10px" onclick="nbColAdd()">＋ Add column</button>'+
+    '<button class="dbtn blue" style="width:100%" onclick="nbColsSave()">Save columns ✓</button>'+
+    '<div class="sub" style="margin-top:10px">Renaming keeps existing data. Deleting hides the column (its data is kept).</div></div>';}
+function nbColType(i,v){NBCOLDRAFT[i].type=v;if(v==='select'&&!(NBCOLDRAFT[i].options&&NBCOLDRAFT[i].options.length))NBCOLDRAFT[i].options=[{value:'',color:'#2e86c9'}];renderNbColsEditor();}
+function nbColOptAdd(i){NBCOLDRAFT[i].options=NBCOLDRAFT[i].options||[];NBCOLDRAFT[i].options.push({value:'',color:'#8e8e93'});renderNbColsEditor();}
+function nbColOptDel(i,j){NBCOLDRAFT[i].options.splice(j,1);renderNbColsEditor();}
+function nbColClearHdr(i){NBCOLDRAFT[i].headerColor='';renderNbColsEditor();}
+function nbColMove(i,d){var j=i+d;if(j<0||j>=NBCOLDRAFT.length)return;var t=NBCOLDRAFT[i];NBCOLDRAFT[i]=NBCOLDRAFT[j];NBCOLDRAFT[j]=t;renderNbColsEditor();}
+function nbColDel(i){if(!confirm('Delete column "'+(NBCOLDRAFT[i].label||'')+'"? Its data is kept but the column is hidden.'))return;NBCOLDRAFT.splice(i,1);renderNbColsEditor();}
+function nbColAdd(){NBCOLDRAFT.push({key:'',label:'New Column',type:'text',options:[],headerColor:''});renderNbColsEditor();}
+function nbColsSave(){var cols=NBCOLDRAFT.filter(function(c){return (c.label||'').trim();}).map(function(c){return {key:c.key||'',label:c.label,type:c.type,options:(c.type==='select'?(c.options||[]).filter(function(o){return (o.value||'').trim();}):[]),headerColor:c.headerColor||''};});
+  if(!cols.length){toast('Keep at least one column');return;}
+  nbApi({action:'nb_set_columns',columns:cols}).then(function(r){if(!r||!r.ok){toast((r&&r.error)||'Could not save');return;}NBCOLS=r.columns||cols;if(NBSORT.k!=='__notes'&&!NBCOLS.some(function(c){return c.key===NBSORT.k;}))NBSORT.k=(NBCOLS[0]&&NBCOLS[0].key)||'client_name';toast('Columns saved ✓');closeDrawer();paintNewbiz();});}
 /* ---- Calendly Command Center ---- */
 var BOOKINGS=[];
 function renderBookings(){
