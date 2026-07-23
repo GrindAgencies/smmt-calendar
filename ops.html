@@ -217,7 +217,7 @@ var CALS="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/calendly-sync";
 function calBody(extra){var b=extra||{};b.code=OPS?OPS.code:'';if(canEdit())b.token='2026';return b;}
 function calApi(b){return fetch(CALS,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();});}
 function fmtDT(iso){if(!iso)return '';var d=new Date(iso);if(isNaN(d))return '';return d.toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});}
-var OPS=null,ROWS=[],TAB="licensing",CUR=null,SORT={licensing:{k:'name',dir:1},newbiz:{k:'name',dir:1},faststart:{k:'name',dir:1},appointed:{k:'baseshop',dir:1}},DRAGK=null,CUSTOMCOLS=[];
+var OPS=null,ROWS=[],TAB="licensing",CUR=null,SORT={licensing:{k:'name',dir:1},newbiz:{k:'name',dir:1},faststart:{k:'name',dir:1},appointed:{k:'baseshop',dir:1}},DRAGK=null,CUSTOMCOLS=[],COLCOLORS={};
 var LICTYPES=['Life','Health','Life & Health','Life & Annuity','Property & Casualty','Series 6/63','Other'];
 var LICSTATUS=['Not Started','Pre-Licensing','Exam Passed','Licensed'];
 function setLicStatuses(a){if(!a||!a.length)return;LICSTATUS.length=0;a.forEach(function(s){LICSTATUS.push(s);});}
@@ -339,7 +339,7 @@ function resetCols(){try{localStorage.removeItem(colOrderKey(TAB));}catch(e){}to
 function loadTracker(){
   api(auth({action:'tracker'})).then(function(r){
     if(!r||!r.ok){$('tableHost').innerHTML='<div class="empty">Could not load the tracker.</div>';return;}
-    ROWS=r.rows||[];CUSTOMCOLS=r.custom_columns||[];setLicStatuses(r.license_statuses);renderReqBanner(r.pending_requests||0);renderTab();
+    ROWS=r.rows||[];CUSTOMCOLS=r.custom_columns||[];COLCOLORS=(r.col_colors&&typeof r.col_colors==='object')?r.col_colors:{};setLicStatuses(r.license_statuses);renderReqBanner(r.pending_requests||0);renderTab();
   }).catch(function(){$('tableHost').innerHTML='<div class="empty">Could not load the tracker.</div>';});
 }
 function renderReqBanner(n){var host=$('reqBanner');if(!host)return;host.innerHTML=(canEdit()&&n>0)?('<div class="reqbanner">✏️ '+n+' edit request'+(n===1?'':'s')+' from leaders awaiting review<button onclick="openRequests()">Review requests</button></div>'):'';}
@@ -511,8 +511,9 @@ function editInput(col,r){
   return '<input class="cellin" value="'+esc(v)+'" placeholder="—" onchange="'+oc+'">';
 }
 function cellFor(col,r){if(col.e&&canEdit())return editInput(col,r);if(col.c)return col.c(r);return missTxt(valOf(col.k,r));}
-function colColors(tab){try{return JSON.parse(localStorage.getItem('ops_colcolor_'+colsTab(tab))||'{}')||{};}catch(e){return {};}}
-function setColColor(k,v){var t=colsTab(TAB);var m=colColors(t);if(v)m[k]=v;else delete m[k];try{localStorage.setItem('ops_colcolor_'+t,JSON.stringify(m));}catch(e){}renderTab();}
+function colColors(tab){var m=COLCOLORS[colsTab(tab)];return (m&&typeof m==='object')?m:{};}
+function setColColor(k,v){var t=colsTab(TAB);if(!COLCOLORS[t])COLCOLORS[t]={};if(v)COLCOLORS[t][k]=v;else delete COLCOLORS[t][k];renderTab();
+  api(auth({action:'set_col_colors',tab:t,key:k,color:v||''})).then(function(r){if(!r||!r.ok){toast((r&&r.error)||'Could not save color');return;}if(r.col_colors&&typeof r.col_colors==='object')COLCOLORS=r.col_colors;toast('Column color saved ✓');});}
 function setRowColor(code,val){api(auth({action:'agent_update',code:code,custom_key:'__rowcolor',custom_val:val})).then(function(r){if(!r||!r.ok){toast((r&&r.error)||'Save failed');return;}
   var row=ROWS.filter(function(x){return x.code===code;})[0];if(row){row.custom=row.custom||{};if(val)row.custom.__rowcolor=val;else delete row.custom.__rowcolor;}
   if(CUR&&CUR.agent&&CUR.agent.code===code){CUR.agent.custom=CUR.agent.custom||{};if(val)CUR.agent.custom.__rowcolor=val;else delete CUR.agent.custom.__rowcolor;}
