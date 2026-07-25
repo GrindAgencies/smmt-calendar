@@ -7,7 +7,7 @@
 <link rel="icon" href="logo.png">
 <style>
 *{box-sizing:border-box}
-body{margin:0;background:#1d1d1f;color:#1d1d1f;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;}
+body{margin:0;background:#f5f5f7;color:#1d1d1f;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;}
 .wrap{max-width:1120px;margin:0 auto;padding-bottom:60px;}
 a{color:inherit}
 .head{text-align:center;padding:26px 16px 6px;}
@@ -15,113 +15,54 @@ a{color:inherit}
 .head h1{margin:6px 0 2px;font-size:26px;font-weight:900;letter-spacing:-.01em;background:linear-gradient(180deg,#fff4cf,#c99a2e 55%,#cda22f);-webkit-background-clip:text;background-clip:text;color:transparent;}
 .head .sub{font-size:13px;color:#6e6e73;}
 .panel{margin:16px;border:1px solid #ececf0;border-radius:16px;background:linear-gradient(160deg,#ffffff,#fbfbfd);padding:16px 16px 18px;}
-.pick{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:center;}
-.pick label{font-size:13px;font-weight:800;color:#c99a2e;text-transform:uppercase;letter-spacing:.05em;}
-select,.btn{font-family:inherit;font-size:14px;}
-select{background:#f2f2f5;color:#1d1d1f;border:1px solid #8a6d1f;border-radius:10px;padding:11px 13px;font-weight:700;min-width:240px;}
-.btn{cursor:pointer;border:0;border-radius:999px;padding:10px 16px;font-weight:800;background:linear-gradient(90deg,#c99a2e,#c99a2e);color:#1d1d1f;}
-.btn.ghost{background:#f2f2f5;color:#c99a2e;border:1px solid #8a6d1f;}
-.btn.sm{padding:5px 11px;font-size:12px;}
-.muted{color:#6e6e73;}
-.center{text-align:center;}
-.hint{font-size:12px;color:#6e6e73;text-align:center;margin-top:8px;}
-
-.sumrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;margin-top:4px;}
-.bchip{font-size:12.5px;font-weight:700;color:#1d1d1f;background:#f2f2f5;border:1px solid #ececf0;border-radius:999px;padding:6px 12px;}
-.bchip b{font-weight:900}
-.bchip.g b{color:#3ec98a}.bchip.y b{color:#c99a2e}.bchip.o b{color:#e08c3a}.bchip.r b{color:#e0533d}
-
-.lb{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-top:14px;}
-.lbcard{border:1px solid #ececf0;border-radius:12px;background:#fbfbfd;padding:10px 12px;}
-.lbcard h5{margin:0 0 7px;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:#c99a2e;font-weight:900;}
-.lbcard .li{display:flex;justify-content:space-between;font-size:12.5px;padding:3px 0;color:#e7ddc2;}
-.lbcard .li b{color:#1d1d1f}
-.lbcard .empty{font-size:12px;color:#7c7358;font-style:italic;}
-
-.tbl{margin-top:6px;}
-.arow{display:grid;grid-template-columns:14px 1fr auto;gap:11px;align-items:center;border:1px solid #ececf0;border-left-width:5px;border-radius:12px;background:#ffffff;padding:11px 13px;margin-top:8px;cursor:pointer;transition:.12s;}
-.arow:hover{background:#ffffff;border-color:#e3e3e8;}
-.arow.g{border-left-color:#3ec98a}.arow.y{border-left-color:#c99a2e}.arow.o{border-left-color:#e08c3a}.arow.r{border-left-color:#e0533d}
-.dot{width:11px;height:11px;border-radius:50%;}
-.dot.g{background:#3ec98a}.dot.y{background:#c99a2e}.dot.o{background:#e08c3a}.dot.r{background:#e0533d}
-.aname{font-weight:800;font-size:15px;color:#1d1d1f;}
-.aname .rel{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;margin-left:8px;padding:2px 7px;border-radius:999px;vertical-align:middle;}
-.rel.direct{background:rgba(62,201,138,.14);color:#7be0b0;border:1px solid #2c6b4d;}
-.rel.org{background:rgba(122,140,160,.14);color:#aebbcb;border:1px solid #3b4a5c;}
-.ameta{font-size:12px;color:#6e6e73;margin-top:3px;}
-.ameta span{margin-right:12px;white-space:nowrap;}
-.ameta b{color:#1d1d1f}
-.astat{text-align:right;font-size:11.5px;color:#6e6e73;font-weight:700;white-space:nowrap;}
-.astat .pc{font-size:19px;font-weight:900;color:#c99a2e;display:block;line-height:1;}
-
-.drill{border:1px solid #e3e3e8;border-radius:14px;background:#fbfbfd;margin:8px 0 4px;padding:14px;}
-.drill h4{margin:0 0 4px;font-size:15px;color:#c99a2e;font-weight:900;}
-.drill .dsub{font-size:12px;color:#6e6e73;margin-bottom:12px;}
-.act{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;border:1px solid #ececf0;border-radius:10px;padding:10px 12px;background:#ffffff;margin-bottom:12px;}
-.act .fld{display:flex;flex-direction:column;gap:3px;}
-.act .fld label{font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:#6e6e73;font-weight:800;}
-.act .fld input{width:64px;background:#f2f2f5;border:1px solid #e3e3e8;border-radius:8px;color:#1d1d1f;padding:7px;font-size:14px;font-weight:700;text-align:center;}
-.lead{border:1px solid #1f1906;border-radius:11px;background:#ffffff;padding:10px 12px;margin-top:8px;}
-.lead .lh{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;}
-.lead .ln{font-weight:800;font-size:14px;color:#1d1d1f;}
-.lead .lp{font-size:12px;color:#6e6e73;margin-top:2px;}
-.lead .lp a{color:#6e6e73;text-decoration:none;border-bottom:1px dotted #d7d7de;}
-.pills{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px;}
-.pill{cursor:pointer;border:1px solid #e3e3e8;background:#f2f2f5;color:#6e6e73;border-radius:999px;padding:5px 11px;font-size:12px;font-weight:800;transition:.12s;}
-.pill:hover{border-color:#8a6d1f;color:#1d1d1f;}
-.pill.on.fresh{background:#243a52;border-color:#3b6ea5;color:#cfe6ff;}
-.pill.on.nurture{background:#e3e3e8;border-color:#caa23a;color:#ffe9a8;}
-.pill.on.called{background:#243a52;border-color:#3b6ea5;color:#cfe6ff;}
-.pill.on.scheduled{background:#e3e3e8;border-color:#caa23a;color:#ffe9a8;}
-.pill.on.followup{background:#2c1f3a;border-color:#9a6ec9;color:#e6c6ff;}
-.pill.on.won{background:#1d3a26;border-color:#2c6b4d;color:#8ee9b6;}
-.pill.on.lost{background:#3a1d18;border-color:#8a3a2a;color:#f3b0a2;}
-.pill.lock{margin-left:auto;}
-.pill.lock.on{background:#ececf0;border-color:#caa23a;color:#ffe06a;}
-.tag{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;padding:2px 7px;border-radius:999px;}
-.tag.pool{background:rgba(224,140,58,.16);color:#ffba73;border:1px solid #7a4d1a;}
-.tag.lk{background:rgba(202,162,58,.16);color:#ffe06a;border:1px solid #7a661a;}
-.empty-leads{font-size:13px;color:#7c7358;font-style:italic;padding:8px 2px;}
+.muted{color:#6e6e73;}.center{text-align:center;}
+.spin{text-align:center;color:#6e6e73;padding:34px;font-style:italic;}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#eef0f4;border:1px solid #8a6d1f;color:#1d1d1f;padding:10px 16px;border-radius:10px;font-size:13px;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:.2s;z-index:90;}
 .toast.show{opacity:1;}
-.spin{text-align:center;color:#6e6e73;padding:30px;font-style:italic;}
-@media(max-width:560px){.arow{grid-template-columns:12px 1fr;}.astat{grid-column:2;text-align:left;margin-top:4px;}.astat .pc{display:inline;font-size:15px;margin-right:6px;}}
-
-<!-- ga-shell -->
+/* stat cards */
+.tmstat{display:grid;grid-template-columns:repeat(auto-fit,minmax(128px,1fr));gap:10px;margin:14px 16px 4px;}
+.tmst{background:#fff;border:1px solid #ececf0;border-radius:14px;padding:13px 15px;text-align:center;box-shadow:0 1px 2px rgba(0,0,0,.03);}
+.tmst b{display:block;font-size:24px;font-weight:900;line-height:1;color:#1d1d1f;font-variant-numeric:tabular-nums;}
+.tmst span{font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:#6e6e73;font-weight:800;margin-top:5px;display:block;}
+.tmst.grn b{color:#1a9c52}.tmst.gold b{color:#c99a2e}.tmst.blu b{color:#5b6cff}
+/* legs */
+.legttl{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:#c99a2e;margin:12px 16px 4px;}
+.legrow{display:flex;gap:10px;overflow-x:auto;padding:2px 16px 6px;scrollbar-width:thin;}
+.legcard{flex:0 0 auto;min-width:152px;border:1px solid #ececf0;border-radius:13px;background:#fbfbfd;padding:11px 13px;cursor:pointer;transition:.12s;}
+.legcard:hover{border-color:#c99a2e;}
+.legcard.on{border-color:#c99a2e;background:#fff7e6;}
+.legcard .ln{font-weight:800;font-size:13.5px;color:#1d1d1f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;}
+.legcard .lm{font-size:11.5px;color:#6e6e73;margin-top:3px;}
+/* controls + roster */
+.tbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 16px 2px;}
+.tbar input,.tbar select{font:inherit;font-size:13px;font-weight:600;padding:9px 13px;border:1px solid #e3e3e8;border-radius:11px;background:#fff;color:#1d1d1f;}
+.tbar input{flex:1;min-width:150px;max-width:260px;}
+.crumb{margin:6px 16px 0;font-size:13px;color:#6e6e73;}
+.crumb a{color:#5b6cff;font-weight:700;cursor:pointer;}
+.trow{display:grid;grid-template-columns:40px 1fr auto;gap:12px;align-items:center;border:1px solid #ececf0;border-left-width:5px;border-radius:12px;background:#fff;padding:10px 13px;margin-top:8px;cursor:pointer;transition:.12s;}
+.trow:hover{border-color:#e3e3e8;box-shadow:0 2px 8px rgba(0,0,0,.05);}
+.trow.g{border-left-color:#3ec98a}.trow.y{border-left-color:#c99a2e}.trow.r{border-left-color:#e0533d}.trow.n{border-left-color:#b7b7bd}
+.tav{position:relative;width:40px;height:40px;border-radius:50%;background:linear-gradient(180deg,#f0d08a,#c99433);color:#3a2a12;font-weight:900;font-size:13px;display:flex;align-items:center;justify-content:center;overflow:hidden;flex:0 0 auto;}
+.tav img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+.tnm{font-weight:800;font-size:14.5px;color:#1d1d1f;}
+.tbadge{font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.03em;padding:2px 6px;border-radius:999px;margin-left:6px;vertical-align:middle;}
+.tbadge.emd{background:rgba(201,154,46,.16);color:#8a6d1f;border:1px solid #caa23a;}
+.tbadge.md{background:rgba(91,108,255,.12);color:#4048c0;border:1px solid #7fb0e6;}
+.tbadge.new{background:rgba(52,199,89,.16);color:#1a7f47;border:1px solid #2c6b4d;}
+.tmeta{font-size:12px;color:#6e6e73;margin-top:3px;line-height:1.5;}
+.tmeta span{margin-right:11px;white-space:nowrap;}
+.tright{text-align:right;font-size:10.5px;color:#6e6e73;font-weight:700;white-space:nowrap;}
+.tright .big{font-size:18px;font-weight:900;color:#1d1d1f;display:block;line-height:1;}
+@media(max-width:560px){.trow{grid-template-columns:36px 1fr auto;}.tmeta span{margin-right:8px;}}
 </style>
-<style id="ga-shell">
-:root{--ga-gold:#c99a2e;--ga-gold-br:#c99a2e;--ga-gold-dp:#8a6d1f;--ga-muted:#6e6e73;--ga-line:#ececf0;}
-.ga-top{position:sticky;top:0;z-index:60;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;padding:10px 18px;background:linear-gradient(180deg,#f2f2f5,#fbfbfd);border-bottom:1px solid var(--ga-gold-dp);box-shadow:0 6px 22px rgba(0,0,0,.35);}
-.ga-brand{display:flex;align-items:center;gap:10px;text-decoration:none;font-weight:900;letter-spacing:.05em;font-size:14.5px;color:#1d1d1f;text-transform:uppercase;white-space:nowrap;}
-.ga-brand img{height:30px;width:auto;border-radius:6px;}
-.ga-brand b{background:linear-gradient(180deg,#fff4cf,var(--ga-gold-br) 50%,var(--ga-gold-dp));-webkit-background-clip:text;background-clip:text;color:transparent;}
-.ga-nav{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
-.ga-nav a{display:inline-flex;align-items:center;gap:6px;text-decoration:none;font-weight:800;font-size:12.5px;letter-spacing:.02em;color:var(--ga-gold);background:#f2f2f5;border:1px solid var(--ga-gold-dp);border-radius:999px;padding:8px 13px;transition:.15s;white-space:nowrap;}
-.ga-nav a:hover{border-color:var(--ga-gold);color:#1d1d1f;}
-.ga-nav a.ga-on{color:#1d1d1f;background:linear-gradient(90deg,var(--ga-gold-br),var(--ga-gold));border-color:var(--ga-gold);box-shadow:0 4px 14px rgba(212,175,55,.3);}
-.ga-nav a.ga-lead{color:#bcdcff;border-color:#3b6ea5;background:rgba(59,110,165,.12);}
-.ga-nav a.ga-lead.ga-on{color:#06223f;background:linear-gradient(90deg,#bcdcff,#7fb0e6);border-color:#7fb0e6;box-shadow:0 4px 14px rgba(59,110,165,.3);}
-</style>
-
-
-
-
-
-
 <style id="tsfg-skin">
 :root, html[data-theme]{
-  --bg:#f5f5f7!important;--panel:#ffffff!important;--panel2:#fbfbfd!important;--panel-2:#fbfbfd!important;
-  --ink:#1d1d1f!important;--text:#1d1d1f!important;--muted:#6e6e73!important;--muted2:#8e8e93!important;
-  --line:#ececf0!important;--line-2:#e3e3e8!important;
-  --gold:#c99a2e!important;--gold-bright:#c99a2e!important;--gold-deep:#e6dcc2!important;--today:#c99a2e!important;
-  --green:#34c759!important;--red:#ff3b30!important;--blue:#5b6cff!important;--silver:#8e8e93!important;
-  --ga-gold:#c99a2e!important;--ga-gold-br:#c99a2e!important;--ga-gold-dp:#e6dcc2!important;--ga-muted:#6e6e73!important;--ga-line:#ececf0!important;
+  --bg:#f5f5f7!important;--panel:#ffffff!important;--ink:#1d1d1f!important;--muted:#6e6e73!important;--line:#ececf0!important;
+  --gold:#c99a2e!important;--green:#34c759!important;--red:#ff3b30!important;--blue:#5b6cff!important;
   --tsfg-accent:#5b6cff;--tsfg-side:248px;
 }
 html,body{background:#f5f5f7!important;color:#1d1d1f!important;}
 body{padding-left:var(--tsfg-side)!important;padding-top:60px!important;-webkit-font-smoothing:antialiased;}
-.ga-top{display:none!important;}
-/* ---- sidebar ---- */
 .tsfg-side{position:fixed;left:0;top:0;height:100vh;width:var(--tsfg-side);background:#fff;border-right:1px solid #ececf0;
   display:flex;flex-direction:column;gap:3px;padding:16px 12px;z-index:900;overflow-y:auto;transition:transform .24s cubic-bezier(.2,.8,.2,1);}
 .tsfg-brand{display:flex;align-items:center;gap:11px;padding:6px 8px 14px;color:#1d1d1f;text-decoration:none;}
@@ -133,7 +74,6 @@ body{padding-left:var(--tsfg-side)!important;padding-top:60px!important;-webkit-
 .tsfg-side .side-link:hover{background:#f5f5f7;color:#1d1d1f;}
 .tsfg-side .side-link.on{background:rgba(91,108,255,.10);color:var(--tsfg-accent);}
 .tsfg-foot{margin-top:auto;padding-top:10px;border-top:1px solid #ececf0;}
-/* ---- topbar ---- */
 .tsfg-top{position:fixed;top:0;left:var(--tsfg-side);right:0;height:60px;z-index:850;display:flex;align-items:center;gap:14px;
   padding:0 22px;background:rgba(245,245,247,.8);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid #ececf0;}
 .tsfg-title{font-weight:800;font-size:17px;letter-spacing:-.02em;color:#1d1d1f;}
@@ -148,291 +88,98 @@ body.tsfg-drawer .tsfg-scrim{display:block;}
   body.tsfg-drawer .tsfg-side{transform:none;}
   .tsfg-top{left:0;}
 }
-/* ---- soften common surfaces to the premium look ---- */
 input,textarea,select{border-radius:12px;}
-/* neutralize dark-designed heroes/logos for light bg */
-.hero img,.ga-start img,.res-hero img,[style*="mix-blend-mode:screen"]{mix-blend-mode:normal!important;filter:none!important;}
-.hero,.commit,.stuck,.ga-start{box-shadow:0 2px 6px rgba(0,0,0,.04),0 12px 34px rgba(0,0,0,.06)!important;}
-.hero{background:#fff!important;}
 </style>
-
-
 </head>
 <body>
 <div class="tsfg-scrim" onclick="tsfgDrawer(false)"></div><aside class="tsfg-side"><a class="tsfg-brand" href="index.html"><img src="logo.png" alt="" onerror="this.style.visibility='hidden'"><span class="bn">The <b>Standard</b></span></a><a class="side-link" href="index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span class="lbl">Home</span></a><a class="side-link" href="teamhub.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H8l-4 4V5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z"/></svg><span class="lbl">Team Hub</span></a><a class="side-link" href="calendar.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9h18M8 3v3M16 3v3"/></svg><span class="lbl">Scheduler</span></a><a class="side-link" href="newbusiness.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg><span class="lbl">New Business</span></a><a class="side-link" href="pfr.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-2M9 12h6M9 16h6M9 8h6"/></svg><span class="lbl">PFR Builder</span></a><a class="side-link" href="checklist.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span class="lbl">My Tracker</span></a><a class="side-link" href="marketing.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg><span class="lbl">Leads</span></a><a class="side-link on" href="team.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg><span class="lbl">My Team</span></a><a class="side-link" href="org.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="5" rx="1.5"/><rect x="3" y="16" width="6" height="5" rx="1.5"/><rect x="15" y="16" width="6" height="5" rx="1.5"/><path d="M12 8v4M6 16v-2h12v2"/></svg><span class="lbl">Org Chart</span></a><a class="side-link" href="resources.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5a2 2 0 0 1 2-2h13v18H6a2 2 0 0 1-2-2z"/><path d="M4 5v14M9 3v18"/></svg><span class="lbl">Resources</span></a><a class="side-link" href="ops.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="6" rx="1"/><rect x="12" y="7" width="3" height="10" rx="1"/><rect x="17" y="13" width="3" height="4" rx="1"/></svg><span class="lbl">Ops Dashboard</span></a><div class="tsfg-foot"><a class="side-link" href="#" onclick="tsfgSignOut();return false;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg><span class="lbl">Sign out</span></a></div></aside><header class="tsfg-top"><button class="tsfg-ic" onclick="tsfgToggle()" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button><div class="tsfg-title">My Team</div><div style="flex:1"></div><button class="tsfg-ic" onclick="tsfgTheme()" id="tsfgThemeBtn" aria-label="Theme"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg></button></header>
 
-
-
-
-
 <div class="wrap">
-  <header class="ga-top">
-    <a class="ga-brand" href="index.html"><img src="logo.png" alt="GRIND Agencies"><span>GRIND <b>Agencies</b></span></a>
-    <nav class="ga-nav">
-      <a href="index.html">🏠 Home</a>
-      <a href="calendar.html">🗓️ Calendar</a>
-      <a href="checklist.html">✅ My Tracker</a>
-      <a href="resources.html">📚 Resources</a>
-      <a href="ops.html" class="ga-lead">🔒 Ops</a>
-      <a href="marketing.html" class="ga-lead">🔒 Leads</a>
-      <a href="team.html" class="ga-lead ga-on">👥 My Team</a>
-    </nav>
-  </header>
-
   <div class="head">
     <div class="wm">The Standard Financial Group</div>
     <h1>My Team</h1>
-    <div class="sub">Pick your name to coach your downline — their book of business, outreach, and momentum.</div>
+    <div class="sub" id="viewSub">Your full downline — momentum, growth, and every leg.</div>
   </div>
-
-  <div class="panel">
-    <div class="pick">
-      <label for="leaderSel">I am:</label>
-      <select id="leaderSel"><option value="">Loading leaders…</option></select>
-      <button class="btn" id="goBtn" onclick="loadTeam()">View my team →</button>
-    </div>
-    <div class="hint">Senior Brokers see their associate agents; Exec Brokers see their whole branch. No password — keep this link inside the team.</div>
-  </div>
-
-  <div id="teamArea"></div>
+  <div id="teamArea"><div class="spin">Loading your team…</div></div>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script>
-const API = "https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/tracker-api";
-let LEADER = "";
-let TEAM = null;
-let OPEN = null; // open drill-down agent code
+const ORGAPI="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/org-api";
+const AVATAR="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/avatar";
+let CODE="",NAME="";
+try{CODE=(localStorage.getItem('tsfg_code')||'').toUpperCase();NAME=localStorage.getItem('tsfg_name')||'';}catch(e){}
+let VIEW=CODE, LEADER=null, CREW=[], STATS=null, LEG="", Q="", SORT="team";
+const $=function(id){return document.getElementById(id);};
+function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+function toast(m){var t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(function(){t.classList.remove('show');},2100);}
+function initials(n){var p=(n||'').trim().split(/\s+/).filter(function(x){return x&&x!=='&';});return (((p[0]||'')[0]||'')+((p[1]||'')[0]||'')).toUpperCase();}
+function actClass(n){if(n.active)return 'g';if(n.days_inactive==null)return 'n';if(n.days_inactive<=45)return 'y';return 'r';}
+function lvlBadge(lvl){var l=(lvl||'').toLowerCase();if(/executive|national vice|senior executive/.test(l))return '<span class="tbadge emd">EMD</span>';if(/marketing director/.test(l))return '<span class="tbadge md">MD</span>';return '';}
 
-const $ = (id)=>document.getElementById(id);
-function toast(m){ const t=$('toast'); t.textContent=m; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),1900); }
-function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
-
-async function api(payload){
-  const r = await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-  return r.json();
+function load(code){
+  VIEW=(code||CODE||'').toUpperCase();
+  if(!VIEW){ $('teamArea').innerHTML='<div class="panel center muted">Sign in from Home first to see your team.</div>'; return; }
+  $('teamArea').innerHTML='<div class="spin">Loading team…</div>';
+  Promise.all([
+    fetch(ORGAPI,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'stats',code:VIEW})}).then(function(r){return r.json();}),
+    fetch(ORGAPI,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'downline',code:VIEW})}).then(function(r){return r.json();})
+  ]).then(function(res){
+    var st=res[0], dl=res[1];
+    if(!st||!st.ok){ $('teamArea').innerHTML='<div class="panel center muted">Could not load this team.</div>'; return; }
+    STATS=st; LEADER=st.leader||{}; CREW=(dl&&dl.downline)||[]; LEG=""; Q=""; render();
+    try{window.scrollTo(0,0);}catch(e){}
+  }).catch(function(){ $('teamArea').innerHTML='<div class="panel center muted">Network error — try again.</div>'; });
 }
-
-async function loadLeaders(){
-  try{
-    const r = await fetch(API+"?action=leaders");
-    const d = await r.json();
-    const sel = $('leaderSel');
-    const saved = localStorage.getItem('ga_team_leader')||"";
-    if(!d.leaders || !d.leaders.length){ sel.innerHTML='<option value="">No teams set up yet</option>'; return; }
-    sel.innerHTML = '<option value="">— pick your name —</option>' + d.leaders.map(l=>
-      `<option value="${esc(l.name)}" ${l.name===saved?'selected':''}>${esc(l.name)} — ${esc(l.role)} (${l.team})</option>`).join('');
-    if(saved && d.leaders.some(l=>l.name===saved)){ LEADER=saved; loadTeam(); }
-  }catch(e){ $('leaderSel').innerHTML='<option value="">Could not load</option>'; }
-}
-
-var LEAD_STATUSES=['fresh','called','scheduled','followup','won','lost'];
-var LEAD_LABELS={fresh:'Fresh',called:'Called',scheduled:'Scheduled',followup:'Future Follow Up',won:'Won',lost:'Lost'};
-function leadStatus(c){
-  if(c.status && LEAD_STATUSES.indexOf(c.status)>=0) return c.status;
-  if(c.outcome==='win') return 'won';
-  if(c.outcome==='lose') return 'lost';
-  if(c.contacted) return 'called';
-  return 'fresh';
-}
-
-function fmtDaysInactive(n){
-  if(n==null) return 'never active';
-  if(n<=0) return 'active today';
-  if(n===1) return '1 day quiet';
-  return n+' days quiet';
-}
-
-async function loadTeam(){
-  const sel = $('leaderSel');
-  LEADER = sel.value;
-  if(!LEADER){ toast('Pick your name first'); return; }
-  localStorage.setItem('ga_team_leader', LEADER);
-  OPEN = null;
-  $('teamArea').innerHTML = '<div class="spin">Loading your team…</div>';
-  try{
-    const r = await fetch(API+"?action=team&leader="+encodeURIComponent(LEADER));
-    TEAM = await r.json();
-    if(!TEAM.ok){ $('teamArea').innerHTML='<div class="panel center muted">'+esc(TEAM.error||'Could not load team')+'</div>'; return; }
-    render();
-  }catch(e){ $('teamArea').innerHTML='<div class="panel center muted">Network error — try again.</div>'; }
-}
-
 function render(){
-  const t = TEAM;
-  const b = t.buckets||{green:0,yellow:0,orange:0,red:0};
-  const lb = t.leaderboard||{};
-  const order = {green:0,yellow:1,orange:2,red:3};
-  const agents = (t.agents||[]).slice().sort((x,y)=>{
-    const so=(order[y.progress_status]||0)-(order[x.progress_status]||0);
-    if(so!==0) return so;
-    return (y.days_inactive||0)-(x.days_inactive||0);
+  if(!STATS)return;
+  var L=LEADER||{};
+  $('viewSub').textContent=(VIEW===CODE?'Your full downline':(L.name+"’s team"))+' — momentum, growth, and every leg.';
+  var crumb=(VIEW!==CODE)?'<div class="crumb"><a onclick="load(\''+CODE+'\')">← Back to my team</a> · viewing <b>'+esc(L.name||'')+'</b>'+(L.baseshop?(' · '+esc(L.baseshop)):'')+'</div>':'';
+  var stat='<div class="tmstat">'+
+    '<div class="tmst"><b>'+(STATS.total_downline||0)+'</b><span>Team size</span></div>'+
+    '<div class="tmst"><b>'+(STATS.directs||0)+'</b><span>Direct legs</span></div>'+
+    '<div class="tmst grn"><b>'+(STATS.active_pct||0)+'%</b><span>Active</span></div>'+
+    '<div class="tmst gold"><b>'+(STATS.new_recruits_30d||0)+'</b><span>New · 30d</span></div>'+
+    '</div>';
+  var legNew={}; CREW.forEach(function(p){ if(p.is_new&&p.leg) legNew[p.leg]=(legNew[p.leg]||0)+1; });
+  var legs=(STATS.legs||[]);
+  var legHtml=legs.length?('<div class="legttl">Legs</div><div class="legrow">'+
+    '<div class="legcard'+(LEG===''?' on':'')+'" onclick="setLeg(\'\')"><div class="ln">All legs</div><div class="lm">'+(STATS.total_downline||0)+' people</div></div>'+
+    legs.map(function(l){return '<div class="legcard'+(LEG===l.code?' on':'')+'" onclick="setLeg(\''+l.code+'\')"><div class="ln">'+esc(l.name)+'</div><div class="lm">'+l.size+' team · '+l.active+' active'+(legNew[l.code]?(' · +'+legNew[l.code]+' new'):'')+'</div></div>';}).join('')+'</div>'):'';
+  var ctrl='<div class="tbar"><input id="q" placeholder="Search your team…" oninput="onSearch()" value="'+esc(Q)+'"><select id="sort" onchange="SORT=this.value;paint()"><option value="team"'+(SORT==='team'?' selected':'')+'>Sort: team size</option><option value="name"'+(SORT==='name'?' selected':'')+'>Sort: name</option><option value="active"'+(SORT==='active'?' selected':'')+'>Sort: activity</option><option value="new"'+(SORT==='new'?' selected':'')+'>Sort: newest</option></select></div>';
+  $('teamArea').innerHTML=crumb+stat+legHtml+ctrl+'<div id="roster" style="margin:0 16px"></div>';
+  paint();
+}
+function paint(){
+  var el=$('roster'); if(!el)return;
+  var rows=CREW.slice();
+  if(LEG) rows=rows.filter(function(p){return p.leg===LEG;});
+  if(Q) rows=rows.filter(function(p){return (p.name+' '+p.code+' '+(p.baseshop||'')+' '+(p.direct_to_name||'')).toLowerCase().indexOf(Q)>=0;});
+  rows.sort(function(a,b){
+    if(SORT==='name')return a.name.localeCompare(b.name);
+    if(SORT==='active')return (b.active?1:0)-(a.active?1:0)||((a.days_inactive==null?999:a.days_inactive)-(b.days_inactive==null?999:b.days_inactive));
+    if(SORT==='new')return (b.is_new?1:0)-(a.is_new?1:0)||String(b.created_at||'').localeCompare(String(a.created_at||''));
+    return (b.downline_total||0)-(a.downline_total||0)||a.name.localeCompare(b.name);
   });
-
-  const lbCard = (title, arr, suffix)=>{
-    arr = arr||[];
-    const rows = arr.length ? arr.map(x=>`<div class="li"><span>${esc(x.name||'')}</span><b>${x.value}${suffix||''}</b></div>`).join('')
-      : '<div class="empty">No activity yet</div>';
-    return `<div class="lbcard"><h5>${title}</h5>${rows}</div>`;
-  };
-
-  let html = `
-  <div class="panel">
-    <div class="center" style="margin-bottom:6px;"><span class="muted" style="font-size:12px;">Team of</span> <b style="font-size:15px;color:#fff6da;">${esc(LEADER)}</b> <span class="muted" style="font-size:12px;">· ${t.count} ${t.count===1?'person':'people'}</span></div>
-    <div class="sumrow">
-      <span class="bchip g">On track <b>${b.green}</b></span>
-      <span class="bchip y">Slowing <b>${b.yellow}</b></span>
-      <span class="bchip o">Stalling <b>${b.orange}</b></span>
-      <span class="bchip r">Stalled <b>${b.red}</b></span>
-    </div>
-    <div class="lb">
-      ${lbCard('Most leads added (7d)', lb.adders)}
-      ${lbCard('Reached out (7d)', lb.reached)}
-      ${lbCard('Appts booked (7d)', lb.appts)}
-      ${lbCard('Field trainings (total)', lb.trainings)}
-      ${lbCard('Daily streaks', lb.streaks, 'd')}
-    </div>
-    <div class="hint">Green ≤7 days since last activity · Yellow 8–14 · Orange 15–30 · Red 30+ or never. Click anyone to open their book.</div>
-  </div>
-  <div class="panel tbl">`;
-
-  if(!agents.length){ html += '<div class="center muted">No active people report to you yet.</div>'; }
-
-  for(const a of agents){
-    const s = a.progress_status||'r';
-    const sc = s[0];
-    const nm = ((a.first_name||'')+' '+(a.last_name||'')).trim();
-    const rel = a.relation==='direct' ? '<span class="rel direct">Direct</span>' : '<span class="rel org">Org</span>';
-    html += `
-    <div class="arow ${sc}" onclick="toggleDrill('${a.code}')">
-      <div class="dot ${sc}"></div>
-      <div>
-        <div class="aname">${esc(nm||a.code)} ${rel}</div>
-        <div class="ameta">
-          <span>📞 <b>${a.warm_leads||0}</b> leads</span>
-          <span>✅ <b>${a.mp_contacted||0}</b> reached</span>
-          <span>🎯 <b>${a.act_appts_7||0}</b> appts 7d</span>
-          <span>🏋️ <b>${a.ft_done||0}</b> FTs</span>
-          <span>🕒 ${fmtDaysInactive(a.days_inactive)}</span>
-        </div>
-      </div>
-      <div class="astat"><span class="pc">${a.pct||0}%</span>${esc(a.code)}</div>
-    </div>
-    <div id="drill-${a.code}"></div>`;
-  }
-  html += `</div>`;
-  $('teamArea').innerHTML = html;
-  if(OPEN){ const keep=OPEN; OPEN=null; toggleDrill(keep); }
+  if(!rows.length){ el.innerHTML='<div class="panel center muted">'+(CREW.length?'No one matches that search.':'No downline yet — recruits will appear here as your team grows.')+'</div>'; return; }
+  el.innerHTML=rows.map(function(p){
+    var ac=actClass(p);
+    var act=p.active?'Active':(p.days_inactive==null?'No activity yet':(p.days_inactive+'d quiet'));
+    var face=p.has_photo?('<img src="'+AVATAR+'?code='+encodeURIComponent(p.code)+'" alt="" loading="lazy" onerror="this.remove()">'):'';
+    var right=(p.downline_total>0)?('<div class="tright"><span class="big">'+p.downline_total+'</span>team →</div>'):('<div class="tright"><span class="big">'+(p.onboarding_pct||0)+'%</span>onboard</div>');
+    return '<div class="trow '+ac+'" onclick="load(\''+p.code+'\')" title="'+(p.downline_total>0?'Open '+esc(p.name)+'’s team':esc(p.name))+'">'+
+      '<div class="tav">'+face+esc(initials(p.name))+'</div>'+
+      '<div style="min-width:0"><div class="tnm">'+esc(p.name)+lvlBadge(p.level)+(p.is_new?'<span class="tbadge new">New</span>':'')+'</div>'+
+        '<div class="tmeta"><span>'+esc(p.baseshop||'—')+'</span><span>under '+esc(p.direct_to_name||'—')+'</span><span>'+esc(act)+'</span>'+(p.license_status?('<span>'+esc(p.license_status)+'</span>'):'')+'</div></div>'+
+      right+'</div>';
+  }).join('');
 }
-
-function agentByCode(code){ return (TEAM.agents||[]).find(a=>a.code===code); }
-
-function toggleDrill(code){
-  const host = $('drill-'+code);
-  if(!host) return;
-  if(OPEN===code){ host.innerHTML=''; OPEN=null; return; }
-  if(OPEN){ const prev=$('drill-'+OPEN); if(prev) prev.innerHTML=''; }
-  OPEN = code;
-  const a = agentByCode(code);
-  if(!a){ return; }
-  const nm = ((a.first_name||'')+' '+(a.last_name||'')).trim();
-  const leads = (a.leads||[]).slice().sort((x,y)=> (y.date||'').localeCompare(x.date||''));
-  let lh = '';
-  if(!leads.length){ lh = '<div class="empty-leads">No leads in their marketing plan yet.</div>'; }
-  for(const c of leads){
-    const st = leadStatus(c);
-    const tags = (c.pooled?'<span class="tag pool">In pool</span> ':'') ;
-    lh += `
-    <div class="lead">
-      <div class="lh">
-        <div>
-          <div class="ln">${esc(c.name||'(no name)')} ${tags}</div>
-          <div class="lp">${c.phone?('<a href="tel:'+esc(c.phone)+'">'+esc(c.phone)+'</a>'):''}${c.howKnow?(' · '+esc(c.howKnow)):''}${c.apptDate?(' · 📅 '+esc(c.apptDate)):''}</div>
-        </div>
-      </div>
-      <div class="pills">
-        ${LEAD_STATUSES.map(p=>`<span class="pill ${p} ${st===p?'on':''}" onclick="setStatus('${code}','${c.id}','${p}',event)">${LEAD_LABELS[p]}</span>`).join('')}
-        <span class="pill lock ${c.locked?'on':''}" onclick="setLock('${code}','${c.id}',${c.locked?true:false},event)">${c.locked?'🔒 Locked':'🔓 Lock'}</span>
-      </div>
-    </div>`;
-  }
-  host.innerHTML = `
-  <div class="drill">
-    <h4>${esc(nm||code)}'s book</h4>
-    <div class="dsub">${esc(a.code)} · ${a.warm_leads||0} leads · ${a.mp_contacted||0} reached · ${a.pct||0}% through onboarding · last active ${fmtDaysInactive(a.days_inactive)}</div>
-    <div class="act">
-      <div class="fld"><label>Dials</label><input id="d-${code}" type="number" min="0" value="0"></div>
-      <div class="fld"><label>Convos</label><input id="c-${code}" type="number" min="0" value="0"></div>
-      <div class="fld"><label>Appts</label><input id="ap-${code}" type="number" min="0" value="0"></div>
-      <button class="btn sm" onclick="logAct('${code}',event)">Log activity for them</button>
-      <span class="muted" style="font-size:11px;">Credits today's effort to their tracker.</span>
-    </div>
-    ${lh}
-  </div>`;
-}
-
-async function setStatus(code, leadId, status, ev){
-  if(ev) ev.stopPropagation();
-  const a = agentByCode(code); if(!a) return;
-  const lead = (a.leads||[]).find(l=>l.id===leadId); if(!lead) return;
-  const prev = {contacted:lead.contacted, outcome:lead.outcome, status:lead.status};
-  lead.status = status;
-  if(status==='fresh'){ lead.contacted=false; lead.outcome=''; }
-  else if(status==='won'){ lead.contacted=true; lead.outcome='win'; }
-  else if(status==='lost'){ lead.contacted=true; lead.outcome='lose'; }
-  else { lead.contacted=true; lead.outcome=''; }
-  refreshDrill(code);
-  const d = await api({action:'team_setleadstatus', leader:LEADER, code, leadId, status});
-  if(!d.ok){ lead.contacted=prev.contacted; lead.outcome=prev.outcome; lead.status=prev.status; refreshDrill(code); toast(d.error||'Could not update'); }
-  else toast('Marked '+status);
-}
-
-async function setLock(code, leadId, cur, ev){
-  if(ev) ev.stopPropagation();
-  const a = agentByCode(code); if(!a) return;
-  const lead = (a.leads||[]).find(l=>l.id===leadId); if(!lead) return;
-  const want = !cur;
-  lead.locked = want; if(want) lead.pooled=false;
-  refreshDrill(code);
-  const d = await api({action:'team_setlocked', leader:LEADER, code, leadId, locked:want});
-  if(!d.ok){ lead.locked=cur; refreshDrill(code); toast(d.error||'Could not update'); }
-  else toast(want?'Lead locked (protected from pool)':'Lead unlocked');
-}
-
-async function logAct(code, ev){
-  if(ev) ev.stopPropagation();
-  const dials=+($('d-'+code).value||0), convos=+($('c-'+code).value||0), appts=+($('ap-'+code).value||0);
-  if(dials+convos+appts<=0){ toast('Enter at least one number'); return; }
-  const d = await api({action:'team_logactivity', leader:LEADER, code, dials, convos, appts});
-  if(!d.ok){ toast(d.error||'Could not log'); return; }
-  toast('Logged '+dials+' dials · '+convos+' convos · '+appts+' appts');
-  // bump local so it shows immediately, then refresh team for accurate metrics
-  loadTeam();
-}
-
-function refreshDrill(code){
-  const keep = OPEN;
-  if(keep===code){ OPEN=null; toggleDrill(code); }
-}
-
-loadLeaders();
+function onSearch(){ Q=(($('q')||{}).value||'').trim().toLowerCase(); paint(); }
+function setLeg(l){ LEG=l; render(); }
+load(CODE);
 </script>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 <script>
 function tsfgToggle(){ if(window.innerWidth<=860){tsfgDrawer(!document.body.classList.contains('tsfg-drawer'));} }
@@ -440,7 +187,6 @@ function tsfgDrawer(on){document.body.classList.toggle('tsfg-drawer',!!on);}
 function tsfgTheme(){var d=document.documentElement.getAttribute('data-theme')==='dark';document.documentElement.setAttribute('data-theme',d?'light':'dark');try{localStorage.setItem('gfi_theme',d?'light':'dark');}catch(e){}}
 function tsfgSignOut(){try{localStorage.removeItem('tsfg_code');localStorage.removeItem('tsfg_name');}catch(e){}location.href='index.html';}
 </script>
-
 <script defer src="notif.js"></script>
 </body>
 </html>
