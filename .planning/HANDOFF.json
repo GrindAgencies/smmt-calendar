@@ -1,0 +1,21 @@
+{
+  "version": "1.0",
+  "timestamp": "2026-07-25T04:58:57.004Z",
+  "source": "auto-postool",
+  "partial": false,
+  "phase": null,
+  "phase_name": null,
+  "phase_dir": null,
+  "plan": null,
+  "task": null,
+  "total_tasks": null,
+  "status": "auto-checkpoint",
+  "completed_tasks": [],
+  "remaining_tasks": [],
+  "blockers": [],
+  "human_actions_pending": [],
+  "decisions": [],
+  "uncommitted_files": [],
+  "next_action": null,
+  "context_notes": "Recent commits:\nc2ada1e sw.js: live-first service worker — auto-purge caches + always-fresh pages (no stale/empty screens)\nea9641f PWA: installable app launcher (app.html) — simplified agent app = Team Hub, New Business, Scheduler, Notifications; manifest + icons + service worker; wired via notif.js\nf770ca8 Merge branch 'main' of https://github.com/GrindAgencies/smmt-calendar\nc9400cf Google Calendar one-click connect (replaces paste-an-iCal-URL for most brokers)\n34d8814 Launch: custom domain tsfg.app (CNAME) + robots.txt noindex (internal agent platform)"
+}
