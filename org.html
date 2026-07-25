@@ -13,23 +13,33 @@ a{color:inherit}
 .head{text-align:center;padding:24px 16px 4px;}
 .head .wm{font-size:11px;letter-spacing:.34em;text-transform:uppercase;color:#6e6e73;font-weight:700;}
 .head h1{margin:6px 0 2px;font-size:26px;font-weight:900;letter-spacing:-.01em;background:linear-gradient(180deg,#fff4cf,#c99a2e 55%,#cda22f);-webkit-background-clip:text;background-clip:text;color:transparent;}
-.head .sub{font-size:13px;color:#6e6e73;max-width:700px;margin:0 auto;}
+.head .sub{font-size:13px;color:#6e6e73;max-width:720px;margin:0 auto;line-height:1.5;}
 .stats{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:16px 16px 4px;}
 .stat{background:linear-gradient(160deg,#ffffff,#fbfbfd);border:1px solid #ececf0;border-radius:13px;padding:9px 15px;text-align:center;min-width:86px;}
 .stat b{display:block;font-size:19px;font-weight:900;color:#1d1d1f;line-height:1;}
 .stat span{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#6e6e73;font-weight:700;}
-.stat.blu b{color:#9cc7f5;}.stat.grn b{color:#5fdca0;}.stat.yel b{color:#c99a2e;}.stat.red b{color:#f0836f;}
+.stat.blu b{color:#5f92d6;}.stat.grn b{color:#2fa46d;}.stat.yel b{color:#c99a2e;}.stat.red b{color:#d6543c;}.stat.gold b{color:#c99a2e;}
 .legend{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:center;font-size:12px;color:#6e6e73;margin:12px 16px 6px;}
 .legc{display:inline-flex;align-items:center;gap:6px;}
 .dotc{width:11px;height:11px;border-radius:50%;display:inline-block;}
 .bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;margin:12px 16px;}
 .bar button{font:inherit;cursor:pointer;font-size:12.5px;font-weight:800;color:#1c1206;background:linear-gradient(180deg,#c99a2e,#cda22f);border:1px solid #b6901f;border-radius:999px;padding:8px 14px;box-shadow:0 2px 6px rgba(120,90,10,.25);}
 .bar button.ghost{background:#f2f2f5;color:#c99a2e;border:1px solid #8a6d1f;box-shadow:none;}
-.bar button.danger{background:#2a1410;color:#f3b0a2;border:1px solid #8a3a2a;box-shadow:none;}
 .bar button:disabled{opacity:.4;cursor:not-allowed;}
+.bar input,.bar select{font:inherit;font-size:12.5px;font-weight:600;padding:8px 13px;border-radius:999px;border:1px solid #d7d7de;background:#fff;color:#1d1d1f;}
 .count-badge{font-size:12px;color:#6e6e73;}
-.editbanner{margin:8px 16px 0;border:1px solid #3b6ea5;border-radius:12px;background:rgba(59,110,165,.12);padding:11px 14px;font-size:12.5px;color:#bcdcff;line-height:1.55;display:none;}
-.editbanner.on{display:block;} .editbanner b{color:#e7f0fb;}
+.editbanner{margin:8px 16px 0;border:1px solid #3b6ea5;border-radius:12px;background:rgba(59,110,165,.12);padding:11px 14px;font-size:12.5px;color:#274b74;line-height:1.55;display:none;}
+.editbanner.on{display:block;} .editbanner b{color:#123;}
+
+/* Needs-placement tray */
+.tray{display:none;margin:10px 16px 0;border:1px solid #caa23a;border-radius:14px;background:rgba(201,154,46,.09);padding:12px 14px;}
+.tray.on{display:block;}
+.tray-h{font-size:12px;font-weight:800;color:#8a6d1f;text-transform:uppercase;letter-spacing:.04em;margin-bottom:9px;}
+.tray-chips{display:flex;flex-wrap:wrap;gap:8px;}
+.chip{display:inline-flex;align-items:center;gap:7px;border:1px solid #caa23a;background:#fff;border-radius:999px;padding:6px 12px 6px 6px;font-size:12.5px;font-weight:700;color:#1d1d1f;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;}
+.chip:active{cursor:grabbing;}
+.chip .cav{width:24px;height:24px;border-radius:50%;background:linear-gradient(180deg,#f0d08a,#c99433);color:#3a2a12;font-size:10px;font-weight:900;display:flex;align-items:center;justify-content:center;}
+.chip.dragsrc{opacity:.4;}
 
 /* centered top-down tree */
 .treewrap{overflow-x:auto;overflow-y:hidden;padding:10px 24px 44px;}
@@ -45,84 +55,50 @@ a{color:inherit}
 .tree>ul>li::before,.tree>ul>li::after{display:none;}
 .tree li.collapsed>ul{display:none;}
 
-.card{position:relative;display:flex;flex-direction:column;align-items:center;gap:5px;width:132px;border:1px solid #ececf0;border-top-width:4px;border-radius:14px;background:linear-gradient(170deg,#ffffff,#fbfbfd);padding:12px 10px 10px;box-shadow:0 3px 12px rgba(0,0,0,.3);transition:border-color .14s,transform .1s;user-select:none;-webkit-user-select:none;}
+.card{position:relative;display:flex;flex-direction:column;align-items:center;gap:5px;width:140px;border:1px solid #ececf0;border-top-width:4px;border-radius:14px;background:linear-gradient(170deg,#ffffff,#fbfbfd);padding:12px 10px 12px;box-shadow:0 3px 12px rgba(0,0,0,.3);transition:border-color .14s,transform .1s,opacity .14s;user-select:none;-webkit-user-select:none;}
 .card:hover{border-color:#4a3f1c;}
-.av{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:15px;color:#fbfbfd;box-shadow:inset 0 0 0 2px rgba(255,255,255,.15);}
+.card.dim{opacity:.3;}
+.av{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:15px;color:#fbfbfd;box-shadow:inset 0 0 0 2px rgba(255,255,255,.15);overflow:hidden;}
+.av img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
 .nm{font-weight:800;font-size:13px;color:#1d1d1f;line-height:1.15;text-align:center;cursor:pointer;}
 .nm:hover{text-decoration:underline;text-decoration-color:#7fb0e6;text-underline-offset:2px;}
-.loverlay{position:fixed;inset:0;z-index:130;background:rgba(6,5,2,.72);display:none;align-items:flex-start;justify-content:center;padding:40px 14px;overflow:auto;}
-.loverlay.on{display:flex;}
-.lmodal{width:100%;max-width:520px;background:linear-gradient(170deg,#ffffff,#fbfbfd);border:1px solid #e3e3e8;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.6);overflow:hidden;}
-.lmhead{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 16px;border-bottom:1px solid #ececf0;background:linear-gradient(180deg,#221a08,#140f06);}
-.lmhead h3{margin:0;font-size:16px;color:#1d1d1f;font-weight:900;}
-.lmhead .sub{font-size:11.5px;color:#6e6e73;margin-top:2px;}
-.lmx{cursor:pointer;width:30px;height:30px;border-radius:50%;border:1px solid #d7d7de;background:#eef0f4;color:#c99a2e;font-size:15px;font-weight:900;display:flex;align-items:center;justify-content:center;flex:0 0 30px;}
-.lmbody{max-height:64vh;overflow:auto;padding:10px 14px 4px;}
-.lead{border:1px solid #1f1906;border-radius:11px;background:#ffffff;padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
-.lead .ln{font-weight:800;font-size:14px;color:#1d1d1f;}
-.lead .lmeta{font-size:11.5px;color:#6e6e73;margin-top:2px;}
-.lead a.call{text-decoration:none;font-size:13px;font-weight:800;color:#06150e;background:linear-gradient(90deg,#7ee0b0,#34b57d);border-radius:999px;padding:7px 13px;white-space:nowrap;}
-.lstat{font-size:9.5px;font-weight:900;text-transform:uppercase;letter-spacing:.03em;padding:2px 7px;border-radius:999px;}
-.lstat.fresh{background:#243a52;color:#cfe6ff;border:1px solid #3b6ea5;}
-.lstat.nurture{background:#e3e3e8;color:#ffe9a8;border:1px solid #caa23a;}
-.lstat.called{background:#243a52;color:#cfe6ff;border:1px solid #3b6ea5;}
-.lstat.scheduled{background:#e3e3e8;color:#ffe9a8;border:1px solid #caa23a;}
-.lstat.followup{background:#2c1f3a;color:#e6c6ff;border:1px solid #9a6ec9;}
-.lstat.won{background:#1d3a26;color:#8ee9b6;border:1px solid #2c6b4d;}
-.lstat.lost{background:#3a1d18;color:#f3b0a2;border:1px solid #8a3a2a;}
-.lmempty{color:#6e6e73;font-style:italic;font-size:13px;padding:14px 4px;text-align:center;}
-.lmfoot{padding:10px 14px 14px;border-top:1px solid #ececf0;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;}
-.lmfoot a{text-decoration:none;font-size:12.5px;font-weight:800;color:#1d1d1f;background:linear-gradient(180deg,#c99a2e,#cda22f);border:1px solid #b6901f;border-radius:999px;padding:8px 13px;}
-.lmfoot .cnt{font-size:12px;color:#6e6e73;}
-.cmeta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:center;}
+.cmeta{display:flex;align-items:center;gap:5px;flex-wrap:wrap;justify-content:center;}
 .role{font-size:8.5px;font-weight:900;text-transform:uppercase;letter-spacing:.04em;padding:2px 7px;border-radius:999px;}
+.bschip{font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;padding:2px 7px;border-radius:999px;background:#eef0f4;color:#5c5c66;border:1px solid #d7d7de;}
 .gfi{font-size:10px;color:#8e8e93;font-weight:700;font-family:ui-monospace,Menlo,monospace;}
+.dln{font-size:10px;color:#6e6e73;font-weight:700;}
 .tog{position:absolute;bottom:-13px;left:50%;transform:translateX(-50%);z-index:3;width:24px;height:24px;border-radius:50%;border:1px solid #d7d7de;background:#eef0f4;color:#c99a2e;font-weight:900;font-size:12px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.4);}
 .tog .kn{font-size:9px;}
-.rea{position:absolute;top:-10px;right:-10px;z-index:3;width:24px;height:24px;border-radius:50%;border:1px solid #3b6ea5;background:#12233c;color:#bcdcff;font-size:12px;font-weight:900;cursor:pointer;display:none;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.4);}
-.del{position:absolute;top:-10px;left:-10px;z-index:3;width:24px;height:24px;border-radius:50%;border:1px solid #8a3a2a;background:#2a1410;color:#f3a293;font-size:11px;font-weight:900;cursor:pointer;display:none;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.4);}
-.del:hover{background:#5a221a;color:#ffd7cf;}
-body.editing .rea,body.editing .del{display:flex;}
 body.editing .card{cursor:grab;touch-action:none;}
 body.editing .card:active{cursor:grabbing;}
-/* status colors */
+/* level + activity colors */
 .av.c-exec{background:linear-gradient(180deg,#ffe08a,#c99a2e);} .card.c-exec{border-top-color:#e8c14a;}
 .av.c-senior{background:linear-gradient(180deg,#bcdcff,#6fa2e0);} .card.c-senior{border-top-color:#7fb0e6;}
-.av.c-cft{background:linear-gradient(180deg,#f0d08a,#c99433);} .card.c-cft{border-top-color:#d9a83a;}
-.role.c-cft{background:linear-gradient(90deg,#ffe3a0,#e0b84a);color:#3a2a12;border:1px solid #b6901f;}
 .av.c-green{background:linear-gradient(180deg,#8fe8bf,#34b57d);} .card.c-green{border-top-color:#3ec98a;}
 .av.c-yellow{background:linear-gradient(180deg,#ffe89a,#e6b93a);} .card.c-yellow{border-top-color:#c99a2e;}
 .av.c-red{background:linear-gradient(180deg,#f4a898,#d6543c);} .card.c-red{border-top-color:#e0533d;}
 .av.c-none{background:linear-gradient(180deg,#cfc39a,#8a7d4f);} .card.c-none{border-top-color:#4a3f1c;}
 .role.c-exec{background:linear-gradient(90deg,#c99a2e,#c99a2e);color:#241400;}
-.role.c-senior{background:rgba(127,176,230,.18);color:#bcdcff;border:1px solid #3b6ea5;}
+.role.c-senior{background:rgba(127,176,230,.18);color:#274b74;border:1px solid #7fb0e6;}
 .card.dragsrc{opacity:.4;}
-.card.drop-hover{outline:2px dashed #7fb0e6;outline-offset:3px;background:#15243a;}
+.card.drop-hover{outline:2px dashed #3b6ea5;outline-offset:3px;background:#eaf2fc;}
 #dragGhost{position:fixed;z-index:120;pointer-events:none;background:#eef0f4;border:1px solid #7fb0e6;color:#1d1d1f;font-weight:800;font-size:12.5px;border-radius:10px;padding:7px 12px;box-shadow:0 10px 26px rgba(0,0,0,.55);opacity:.96;display:none;}
 .foot{margin:10px 16px 0;font-size:11.5px;color:#7c7358;text-align:center;}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#eef0f4;border:1px solid #8a6d1f;color:#1d1d1f;padding:10px 16px;border-radius:10px;font-size:13px;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:.2s;z-index:90;}
 .toast.show{opacity:1;}
 .spin{text-align:center;color:#6e6e73;padding:40px;font-style:italic;}
+/* person info modal */
+.loverlay{position:fixed;inset:0;z-index:130;background:rgba(6,5,2,.72);display:none;align-items:flex-start;justify-content:center;padding:44px 14px;overflow:auto;}
+.loverlay.on{display:flex;}
+.lmodal{width:100%;max-width:440px;background:linear-gradient(170deg,#ffffff,#fbfbfd);border:1px solid #e3e3e8;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.6);overflow:hidden;}
+.lmhead{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 16px;border-bottom:1px solid #ececf0;}
+.lmhead h3{margin:0;font-size:16px;color:#1d1d1f;font-weight:900;}
+.lmhead .sub{font-size:11.5px;color:#6e6e73;margin-top:2px;}
+.lmx{cursor:pointer;width:30px;height:30px;border-radius:50%;border:1px solid #d7d7de;background:#eef0f4;color:#c99a2e;font-size:15px;font-weight:900;display:flex;align-items:center;justify-content:center;flex:0 0 30px;}
+.lmbody{padding:14px 16px 18px;}
+.irow{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid #f0f0f3;font-size:13px;}
+.irow .k{color:#6e6e73;font-weight:600;} .irow .v{color:#1d1d1f;font-weight:800;text-align:right;}
 </style>
-<style id="ga-shell">
-:root{--ga-gold:#c99a2e;--ga-gold-br:#c99a2e;--ga-gold-dp:#8a6d1f;--ga-muted:#6e6e73;--ga-line:#ececf0;}
-.ga-top{position:sticky;top:0;z-index:60;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;padding:10px 18px;background:linear-gradient(180deg,#f2f2f5,#fbfbfd);border-bottom:1px solid var(--ga-gold-dp);box-shadow:0 6px 22px rgba(0,0,0,.35);}
-.ga-brand{display:flex;align-items:center;gap:10px;text-decoration:none;font-weight:900;letter-spacing:.05em;font-size:14.5px;color:#1d1d1f;text-transform:uppercase;white-space:nowrap;}
-.ga-brand img{height:30px;width:auto;border-radius:6px;}
-.ga-brand b{background:linear-gradient(180deg,#fff4cf,var(--ga-gold-br) 50%,var(--ga-gold-dp));-webkit-background-clip:text;background-clip:text;color:transparent;}
-.ga-nav{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
-.ga-nav a{display:inline-flex;align-items:center;gap:6px;text-decoration:none;font-weight:800;font-size:12.5px;letter-spacing:.02em;color:var(--ga-gold);background:#f2f2f5;border:1px solid var(--ga-gold-dp);border-radius:999px;padding:8px 13px;transition:.15s;white-space:nowrap;}
-.ga-nav a:hover{border-color:var(--ga-gold);color:#1d1d1f;}
-.ga-nav a.ga-on{color:#1d1d1f;background:linear-gradient(90deg,var(--ga-gold-br),var(--ga-gold));border-color:var(--ga-gold);box-shadow:0 4px 14px rgba(212,175,55,.3);}
-.ga-nav a.ga-lead{color:#bcdcff;border-color:#3b6ea5;background:rgba(59,110,165,.12);}
-.ga-nav a.ga-lead.ga-on{color:#06223f;background:linear-gradient(90deg,#bcdcff,#7fb0e6);border-color:#7fb0e6;box-shadow:0 4px 14px rgba(59,110,165,.3);}
-</style>
-
-
-
-
-
-
 <style id="tsfg-skin">
 :root, html[data-theme]{
   --bg:#f5f5f7!important;--panel:#ffffff!important;--panel2:#fbfbfd!important;--panel-2:#fbfbfd!important;
@@ -130,13 +106,10 @@ body.editing .card:active{cursor:grabbing;}
   --line:#ececf0!important;--line-2:#e3e3e8!important;
   --gold:#c99a2e!important;--gold-bright:#c99a2e!important;--gold-deep:#e6dcc2!important;--today:#c99a2e!important;
   --green:#34c759!important;--red:#ff3b30!important;--blue:#5b6cff!important;--silver:#8e8e93!important;
-  --ga-gold:#c99a2e!important;--ga-gold-br:#c99a2e!important;--ga-gold-dp:#e6dcc2!important;--ga-muted:#6e6e73!important;--ga-line:#ececf0!important;
   --tsfg-accent:#5b6cff;--tsfg-side:248px;
 }
 html,body{background:#f5f5f7!important;color:#1d1d1f!important;}
 body{padding-left:var(--tsfg-side)!important;padding-top:60px!important;-webkit-font-smoothing:antialiased;}
-.ga-top{display:none!important;}
-/* ---- sidebar ---- */
 .tsfg-side{position:fixed;left:0;top:0;height:100vh;width:var(--tsfg-side);background:#fff;border-right:1px solid #ececf0;
   display:flex;flex-direction:column;gap:3px;padding:16px 12px;z-index:900;overflow-y:auto;transition:transform .24s cubic-bezier(.2,.8,.2,1);}
 .tsfg-brand{display:flex;align-items:center;gap:11px;padding:6px 8px 14px;color:#1d1d1f;text-decoration:none;}
@@ -148,7 +121,6 @@ body{padding-left:var(--tsfg-side)!important;padding-top:60px!important;-webkit-
 .tsfg-side .side-link:hover{background:#f5f5f7;color:#1d1d1f;}
 .tsfg-side .side-link.on{background:rgba(91,108,255,.10);color:var(--tsfg-accent);}
 .tsfg-foot{margin-top:auto;padding-top:10px;border-top:1px solid #ececf0;}
-/* ---- topbar ---- */
 .tsfg-top{position:fixed;top:0;left:var(--tsfg-side);right:0;height:60px;z-index:850;display:flex;align-items:center;gap:14px;
   padding:0 22px;background:rgba(245,245,247,.8);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid #ececf0;}
 .tsfg-title{font-weight:800;font-size:17px;letter-spacing:-.02em;color:#1d1d1f;}
@@ -163,322 +135,250 @@ body.tsfg-drawer .tsfg-scrim{display:block;}
   body.tsfg-drawer .tsfg-side{transform:none;}
   .tsfg-top{left:0;}
 }
-/* ---- soften common surfaces to the premium look ---- */
 input,textarea,select{border-radius:12px;}
-/* neutralize dark-designed heroes/logos for light bg */
-.hero img,.ga-start img,.res-hero img,[style*="mix-blend-mode:screen"]{mix-blend-mode:normal!important;filter:none!important;}
-.hero,.commit,.stuck,.ga-start{box-shadow:0 2px 6px rgba(0,0,0,.04),0 12px 34px rgba(0,0,0,.06)!important;}
-.hero{background:#fff!important;}
 </style>
-
-
 </head>
 <body>
 <div class="tsfg-scrim" onclick="tsfgDrawer(false)"></div><aside class="tsfg-side"><a class="tsfg-brand" href="index.html"><img src="logo.png" alt="" onerror="this.style.visibility='hidden'"><span class="bn">The <b>Standard</b></span></a><a class="side-link" href="index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span class="lbl">Home</span></a><a class="side-link" href="teamhub.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H8l-4 4V5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z"/></svg><span class="lbl">Team Hub</span></a><a class="side-link" href="calendar.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9h18M8 3v3M16 3v3"/></svg><span class="lbl">Scheduler</span></a><a class="side-link" href="newbusiness.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg><span class="lbl">New Business</span></a><a class="side-link" href="pfr.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-2M9 12h6M9 16h6M9 8h6"/></svg><span class="lbl">PFR Builder</span></a><a class="side-link" href="checklist.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span class="lbl">My Tracker</span></a><a class="side-link" href="marketing.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg><span class="lbl">Leads</span></a><a class="side-link" href="team.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg><span class="lbl">My Team</span></a><a class="side-link on" href="org.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="5" rx="1.5"/><rect x="3" y="16" width="6" height="5" rx="1.5"/><rect x="15" y="16" width="6" height="5" rx="1.5"/><path d="M12 8v4M6 16v-2h12v2"/></svg><span class="lbl">Org Chart</span></a><a class="side-link" href="resources.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5a2 2 0 0 1 2-2h13v18H6a2 2 0 0 1-2-2z"/><path d="M4 5v14M9 3v18"/></svg><span class="lbl">Resources</span></a><a class="side-link" href="ops.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="6" rx="1"/><rect x="12" y="7" width="3" height="10" rx="1"/><rect x="17" y="13" width="3" height="4" rx="1"/></svg><span class="lbl">Ops Dashboard</span></a><div class="tsfg-foot"><a class="side-link" href="#" onclick="tsfgSignOut();return false;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg><span class="lbl">Sign out</span></a></div></aside><header class="tsfg-top"><button class="tsfg-ic" onclick="tsfgToggle()" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button><div class="tsfg-title">Org Chart</div><div style="flex:1"></div><button class="tsfg-ic" onclick="tsfgTheme()" id="tsfgThemeBtn" aria-label="Theme"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg></button></header>
 
-
-
-
-
 <div class="wrap">
-  <header class="ga-top">
-    <a class="ga-brand" href="index.html"><img src="logo.png" alt="GRIND Agencies"><span>GRIND <b>Agencies</b></span></a>
-    <nav class="ga-nav">
-      <a href="index.html">🏠 Home</a>
-      <a href="calendar.html">🗓️ Calendar</a>
-      <a href="checklist.html">✅ My Tracker</a>
-      <a href="resources.html">📚 Resources</a>
-      <a href="ops.html" class="ga-lead">🔒 Ops</a>
-      <a href="marketing.html" class="ga-lead">🔒 Leads</a>
-      <a href="team.html" class="ga-lead">👥 My Team</a>
-      <a href="org.html" class="ga-lead ga-on">🌳 Org Chart</a>
-    </nav>
-  </header>
-
   <div class="head">
     <div class="wm">The Standard Financial Group</div>
     <h1>Organizational Chart</h1>
-    <div class="sub">Everyone from the tracker, colored by movement. Click a ⊕ to open a leg. Turn on Edit, then just drag a card onto whoever they belong under.</div>
+    <div class="sub">The live hierarchy — one source of truth. Everyone sits under their direct upline. Colored by activity. Turn on <b>Edit</b>, then drag any card (or someone from <b>Needs placement</b>) onto whoever they belong under — it saves instantly.</div>
   </div>
 
   <div class="stats" id="stats"></div>
   <div class="legend">
-    <span class="legc"><span class="dotc" style="background:#e8c14a"></span>Executive MD</span>
+    <span class="legc"><span class="dotc" style="background:#e8c14a"></span>EMD / Exec</span>
     <span class="legc"><span class="dotc" style="background:#7fb0e6"></span>Marketing Director</span>
-    <span class="legc"><span class="dotc" style="background:#d9a83a"></span>🏵️ Certified Field Trainer</span>
     <span class="legc"><span class="dotc" style="background:#3ec98a"></span>Active</span>
-    <span class="legc"><span class="dotc" style="background:#f7d873"></span>Slow</span>
+    <span class="legc"><span class="dotc" style="background:#f7d873"></span>Slowing</span>
     <span class="legc"><span class="dotc" style="background:#e0533d"></span>Stalled</span>
-    <span class="legc"><span class="dotc" style="background:#8a7d4f"></span>No data</span>
+    <span class="legc"><span class="dotc" style="background:#8a7d4f"></span>No activity yet</span>
   </div>
   <div class="bar">
+    <input id="search" placeholder="Find a person…" oninput="onSearch()">
     <button onclick="expandAll(true)">⤢ Expand all</button>
     <button class="ghost" onclick="expandAll(false)">⤡ Collapse to legs</button>
     <button id="editBtn" class="ghost" onclick="toggleEdit()">✏️ Edit hierarchy</button>
-    <button id="saveBtn" onclick="save()" disabled>💾 Save changes</button>
-    <button id="revertBtn" class="danger" onclick="revert()" disabled>↺ Revert</button>
     <span class="count-badge" id="countBadge"></span>
   </div>
   <div class="editbanner" id="editBanner">
-    <b>Edit mode on.</b> Grab any card and drag it onto the person they should sit under — drop when it highlights blue. Tap <b>⇄</b> to reassign from a list, or the red <b>✕</b> to delete a duplicate/error (anyone under them moves up a level). Changes stage locally until you press <b>Save changes</b>.
+    <b>Edit mode on.</b> Grab any card and drag it onto the person they should sit under — drop when it highlights blue. Drag from <b>Needs placement</b> to seat someone for the first time. Every move saves instantly to the live hierarchy (only Marketing Directors and above can edit).
   </div>
+
+  <div id="tray" class="tray"></div>
 
   <div class="treewrap"><div class="tree" id="tree"><div class="spin">Loading the org…</div></div></div>
   <div class="foot" id="foot"></div>
 </div>
 <div id="dragGhost"></div>
-<div class="loverlay" id="leadsOverlay" onclick="if(event.target===this)closeLeads()">
+<div class="loverlay" id="infoOverlay" onclick="if(event.target===this)closeInfo()">
   <div class="lmodal">
-    <div class="lmhead"><div><h3 id="lmName">Marketing Plan</h3><div class="sub" id="lmSub"></div></div><span class="lmx" onclick="closeLeads()">✕</span></div>
-    <div class="lmbody" id="lmBody"></div>
-    <div class="lmfoot"><span class="cnt" id="lmCnt"></span><a id="lmFull" href="marketing.html" target="_blank" rel="noopener">Open full Leads page →</a></div>
+    <div class="lmhead"><div><h3 id="iName">Person</h3><div class="sub" id="iSub"></div></div><span class="lmx" onclick="closeInfo()">✕</span></div>
+    <div class="lmbody" id="iBody"></div>
   </div>
 </div>
 <div class="toast" id="toast"></div>
 
 <script>
-const API="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/tracker-api";
-const roleLabel={exec:"Executive Marketing Director",senior:"Marketing Director",cft:"Certified Field Trainer",tl:"Senior Associate",trainer:"Certified Field Trainer",agent:"Associate"};
-let NODES=[], byId={}, ROOT="ELI", STATUS={}, LEADS={};
-let editing=false, dirty=false, EDITOR="", orig=null;
+const ORGAPI="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/org-api";
+const AVAPI="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/av-prefs"; // reserved
+let CODE="", NAME="";
+try{ CODE=(localStorage.getItem('tsfg_code')||'').toUpperCase(); NAME=localStorage.getItem('tsfg_name')||''; }catch(e){}
+let NODES=[], byCode={}, KIDS={}, ROOTS=[], UNASSIGNED=[];
+let editing=false, canEdit=false, SEARCH="";
 const openSet=new Set();
 const $=(id)=>document.getElementById(id);
 function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
-function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),1900);}
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2100);}
 function initials(name){ const p=(name||'').trim().split(/\s+/).filter(x=>x&&x!=='&'); return (((p[0]||'')[0]||'')+((p[1]||'')[0]||'')).toUpperCase(); }
-function idx(){ byId={}; NODES.forEach(n=>byId[n.id]=n); }
-function childrenSorted(pid){ return NODES.filter(n=>n.parent===pid).sort((a,b)=>((a.ord??0)-(b.ord??0))|| a.name.localeCompare(b.name)); }
-function renumber(pid){ childrenSorted(pid).forEach((n,i)=>n.ord=i); }
-function countDesc(id){ let c=0; childrenSorted(id).forEach(k=>{ c+=1+countDesc(k.id); }); return c; }
-function isDescendant(anc,maybe){ let st=childrenSorted(anc).slice(); while(st.length){ const n=st.pop(); if(n.id===maybe) return true; st.push(...childrenSorted(n.id)); } return false; }
-function colorClass(n){
-  if(n.role==='exec') return 'c-exec';
-  if(n.role==='senior') return 'c-senior';
-  if(n.role==='cft'||n.role==='trainer') return 'c-cft';
-  const st=STATUS[(n.gfi||'').toUpperCase()];
-  if(!st||!st.s) return 'c-none';
-  if(st.s==='green') return 'c-green';
-  if(st.s==='red') return 'c-red';
-  return 'c-yellow';
+function isMgr(lvl){ return /marketing director|executive|national vice|senior executive/i.test(lvl||''); }
+function levelChip(lvl){ const l=(lvl||'').toLowerCase();
+  if(/national vice/.test(l))return 'NVP'; if(/senior executive/.test(l))return 'SEVP';
+  if(/executive marketing/.test(l))return 'EMD'; if(/marketing director/.test(l))return 'MD';
+  if(/senior/.test(l))return 'Sr Assoc'; return ''; }
+
+function reindex(){
+  byCode={}; KIDS={};
+  NODES.forEach(n=>{ byCode[n.code]=n; });
+  NODES.forEach(n=>{ const up=n.direct_to||''; if(up&&byCode[up]&&up!==n.code){ (KIDS[up]=KIDS[up]||[]).push(n.code); } });
+  Object.keys(KIDS).forEach(k=>KIDS[k].sort((a,b)=>((byCode[b].downline_total||0)-(byCode[a].downline_total||0))||byCode[a].name.localeCompare(byCode[b].name)));
 }
-function renderNode(id){
-  const n=byId[id]; if(!n) return '';
-  const ch=childrenSorted(id); const has=ch.length>0; const open=openSet.has(id); const collapsed=has&&!open;
-  const cc=colorClass(n);
-  let c='<div class="card '+cc+'" data-id="'+esc(n.id)+'">';
-  c+='<div class="av '+cc+'">'+esc(initials(n.name))+'</div>';
-  c+='<div class="nm" onclick="openLeads(event,\''+esc(n.id)+'\')" title="Open '+esc(n.name)+'&#39;s marketing plan">'+esc(n.name)+'</div>';
+function descendants(code){ const out=new Set(); (function w(c){ (KIDS[c]||[]).forEach(k=>{ if(!out.has(k)){out.add(k);w(k);} }); })(code); return out; }
+function colorClass(n){
+  const l=(n.level||'').toLowerCase();
+  if(/executive|national vice|senior executive/.test(l)) return 'c-exec';
+  if(/marketing director/.test(l)) return 'c-senior';
+  if(n.active) return 'c-green';
+  if(n.days_inactive==null) return 'c-none';
+  if(n.days_inactive<=45) return 'c-yellow';
+  return 'c-red';
+}
+function nameHit(n){ if(!SEARCH) return true; return (n.name+' '+n.code+' '+(n.baseshop||'')).toLowerCase().indexOf(SEARCH)>=0; }
+
+function renderNode(code){
+  const n=byCode[code]; if(!n) return '';
+  const ch=(KIDS[code]||[]); const has=ch.length>0; const open=openSet.has(code); const collapsed=has&&!open;
+  const cc=colorClass(n); const dim=(SEARCH&&!nameHit(n))?' dim':'';
+  const lc=levelChip(n.level);
+  let c='<div class="card '+cc+dim+'" data-id="'+esc(code)+'">';
+  c+='<div class="av '+cc+'">'+(n.photo?('<img src="'+esc(n.photo)+'" alt="">'):esc(initials(n.name)))+'</div>';
+  c+='<div class="nm" onclick="openInfo(event,\''+esc(code)+'\')">'+esc(n.name)+'</div>';
   c+='<div class="cmeta">';
-  if(n.role==='exec'||n.role==='senior'||n.role==='cft'||n.role==='trainer'){var em=(n.role==='cft'||n.role==='trainer')?'🏵️ ':'';c+='<span class="role '+cc+'">'+em+roleLabel[n.role]+'</span>';}
-  if(n.gfi) c+='<span class="gfi">'+esc(n.gfi)+'</span>';
+  if(lc){ const rc=(cc==='c-exec'||cc==='c-senior')?cc:''; c+='<span class="role '+rc+'" '+(rc?'':'style="background:#eef0f4;color:#5c5c66;border:1px solid #d7d7de"')+'>'+lc+'</span>'; }
+  if(n.baseshop) c+='<span class="bschip">'+esc(n.baseshop)+'</span>';
   c+='</div>';
-  if(n.id!==ROOT) c+='<span class="rea" title="Reassign" onclick="reassignPrompt(event,\''+esc(n.id)+'\')">⇄</span>';
-  if(n.id!==ROOT) c+='<span class="del" title="Delete from chart" onclick="deleteNode(event,\''+esc(n.id)+'\')">✕</span>';
-  if(has) c+='<span class="tog" title="'+(collapsed?'Show':'Hide')+' '+countDesc(id)+' downline">'+(collapsed?('<span class="kn">'+ch.length+'</span>'):'–')+'</span>';
+  c+='<div class="cmeta"><span class="gfi">'+esc(code)+'</span>'+(n.downline_total?('<span class="dln">· '+n.downline_total+' team</span>'):'')+'</div>';
+  if(has) c+='<span class="tog" title="'+(collapsed?'Show':'Hide')+' '+n.downline_total+' downline">'+(collapsed?('<span class="kn">'+ch.length+'</span>'):'–')+'</span>';
   c+='</div>';
-  let sub=''; if(has) sub='<ul>'+ch.map(k=>renderNode(k.id)).join('')+'</ul>';
-  return '<li class="node'+(collapsed?' collapsed':'')+'" data-id="'+esc(n.id)+'">'+c+sub+'</li>';
+  let sub=''; if(has) sub='<ul>'+ch.map(k=>renderNode(k)).join('')+'</ul>';
+  return '<li class="node'+(collapsed?' collapsed':'')+'" data-id="'+esc(code)+'">'+c+sub+'</li>';
 }
 function render(){
-  idx();
-  $('tree').innerHTML='<ul>'+renderNode(ROOT)+'</ul>';
-  const total=NODES.length, cnt=(r)=>NODES.filter(n=>n.role===r).length;
-  let g=0,y=0,rd=0;
-  NODES.forEach(n=>{ if(n.role==='exec'||n.role==='senior')return; const st=STATUS[(n.gfi||'').toUpperCase()]; if(!st||!st.s)return; if(st.s==='green')g++; else if(st.s==='red')rd++; else y++; });
+  reindex();
+  const rootsToShow = ROOTS.length?ROOTS:[NODES[0]&&NODES[0].code].filter(Boolean);
+  $('tree').innerHTML='<ul>'+rootsToShow.map(r=>renderNode(r)).join('')+'</ul>';
+  // stats (exclude the Apple test account)
+  const people=NODES.filter(n=>n.code!=='APLREVIEW');
+  const emd=people.filter(n=>/executive|national vice|senior executive/i.test(n.level||'')).length;
+  const md=people.filter(n=>/marketing director/i.test(n.level||'')&&!/executive/i.test(n.level||'')).length;
+  const active=people.filter(n=>n.active).length;
+  const isNew=people.filter(n=>n.is_new).length;
+  const needs=UNASSIGNED.filter(c=>c!=='APLREVIEW').length;
   $('stats').innerHTML=
-    '<div class="stat"><b>'+total+'</b><span>People</span></div>'+
-    '<div class="stat blu"><b>'+cnt('senior')+'</b><span>Marketing Directors</span></div>'+
-    '<div class="stat"><b>'+cnt('cft')+'</b><span>Field Trainers</span></div>'+
-    '<div class="stat grn"><b>'+g+'</b><span>Active</span></div>'+
-    '<div class="stat yel"><b>'+y+'</b><span>Slow</span></div>'+
-    '<div class="stat red"><b>'+rd+'</b><span>Stalled</span></div>';
-  $('countBadge').textContent=NODES.filter(n=>childrenSorted(n.id).length>0).length+' with a downline';
-  $('saveBtn').disabled=!dirty; $('revertBtn').disabled=!dirty;
+    '<div class="stat"><b>'+people.length+'</b><span>People</span></div>'+
+    '<div class="stat gold"><b>'+emd+'</b><span>EMDs</span></div>'+
+    '<div class="stat blu"><b>'+md+'</b><span>Marketing Dirs</span></div>'+
+    '<div class="stat grn"><b>'+active+'</b><span>Active</span></div>'+
+    '<div class="stat"><b>'+isNew+'</b><span>New (30d)</span></div>'+
+    (needs?('<div class="stat red"><b>'+needs+'</b><span>Need placing</span></div>'):'');
+  $('countBadge').textContent=people.filter(n=>(KIDS[n.code]||[]).length>0).length+' with a downline';
+  renderTray();
 }
-function reparent(childId,newParent){
-  if(childId===newParent) return;
-  const n=byId[childId]; if(!n||childId===ROOT) return;
-  if(n.parent===newParent){ toast('Already there'); return; }
-  if(isDescendant(childId,newParent)){ toast("Can't move someone under their own downline"); return; }
-  const oldP=n.parent; n.parent=newParent; n.ord=childrenSorted(newParent).length; renumber(newParent); renumber(oldP); openSet.add(newParent); dirty=true; render(); toast(n.name+' → '+byId[newParent].name);
+function renderTray(){
+  const tray=$('tray'); const list=UNASSIGNED.filter(c=>byCode[c]&&c!=='APLREVIEW');
+  if(!editing||!list.length){ tray.classList.remove('on'); tray.innerHTML=''; return; }
+  tray.classList.add('on');
+  tray.innerHTML='<div class="tray-h">Needs placement — drag each onto their direct upline</div><div class="tray-chips">'+
+    list.map(c=>{const n=byCode[c];return '<div class="chip" data-id="'+esc(c)+'" data-tray="1"><span class="cav">'+esc(initials(n.name))+'</span>'+esc(n.name)+'</div>';}).join('')+'</div>';
 }
-var SLABEL={fresh:'Fresh',called:'Called',scheduled:'Scheduled',followup:'Follow Up',won:'Won',lost:'Lost'};
-function leadStatus(c){ if(c.status&&SLABEL[c.status])return c.status; if(c.outcome==='win')return'won'; if(c.outcome==='lose')return'lost'; if(c.contacted)return'called'; return'fresh'; }
-window.openLeads=function(ev,id){
-  if(ev){ ev.stopPropagation(); }
-  if(editing) return; // in edit mode the card is for dragging
-  const n=byId[id]; if(!n) return;
-  const code=(n.gfi||'').toUpperCase();
-  const leads=(code&&LEADS[code])?LEADS[code].slice():[];
-  document.getElementById('lmName').textContent=n.name+"'s Marketing Plan";
-  document.getElementById('lmSub').textContent=(code?code+' · ':'')+(leads.length?(leads.length+' lead'+(leads.length===1?'':'s')+' · tap a number to call'):'');
-  const full=document.getElementById('lmFull'); full.href='marketing.html'+(code?('?agent='+encodeURIComponent(code)):'');
-  document.getElementById('lmCnt').textContent = leads.length?(leads.filter(l=>l.contacted).length+' reached · '+leads.filter(l=>!l.contacted).length+' to call'):'';
-  const body=document.getElementById('lmBody');
-  if(!leads.length){
-    body.innerHTML='<div class="lmempty">'+ (code?'No leads in their marketing plan yet.':'Not a registered agent yet — no marketing plan to show.') +'</div>';
-  } else {
-    leads.sort((a,b)=> (a.contacted?1:0)-(b.contacted?1:0) || (b.date||'').localeCompare(a.date||''));
-    body.innerHTML=leads.map(c=>{
-      const st=leadStatus(c);
-      const ph=(c.phone||'').toString();
-      const call=ph?('<a class="call" href="tel:'+esc(ph.replace(/[^0-9+]/g,''))+'">📞 '+esc(ph)+'</a>'):'<span style="font-size:11px;color:#7c7358">no phone</span>';
-      const meta=[c.howKnow,c.apptDate?('📅 '+c.apptDate):''].filter(Boolean).join(' · ');
-      return '<div class="lead"><div><div class="ln">'+esc(c.name||'(no name)')+' <span class="lstat '+st+'">'+st+'</span></div>'+(meta?'<div class="lmeta">'+esc(meta)+'</div>':'')+'</div>'+call+'</div>';
-    }).join('');
-  }
-  document.getElementById('leadsOverlay').classList.add('on');
-};
-window.closeLeads=function(){ document.getElementById('leadsOverlay').classList.remove('on'); };
-document.addEventListener('keydown',function(e){ if(e.key==='Escape') closeLeads(); });
-window.reassignPrompt=function(ev,id){
-  if(ev){ev.stopPropagation();ev.preventDefault();}
-  const n=byId[id];
-  const opts=NODES.filter(x=> x.id!==id && !isDescendant(id,x.id)).sort((a,b)=>a.name.localeCompare(b.name));
-  const list=opts.map((x,i)=> (i+1)+'. '+x.name+(x.gfi?(' ['+x.gfi+']'):'')).join('\n');
-  const cur=byId[n.parent]?byId[n.parent].name:'(none)';
-  const ans=prompt('Move '+n.name+' under which upline?\nCurrently under: '+cur+'\n\n'+list+'\n\nType the number:');
-  if(!ans) return; const i=parseInt(ans,10)-1;
-  if(isNaN(i)||i<0||i>=opts.length){ toast('Not a valid choice'); return; }
-  reparent(id, opts[i].id);
-};
-window.deleteNode=function(ev,id){
-  if(ev){ev.stopPropagation();ev.preventDefault();}
-  const n=byId[id]; if(!n||id===ROOT) return;
-  const ch=childrenSorted(id); const gpName=byId[n.parent]?byId[n.parent].name:'the top';
-  const msg=ch.length ? (n.name+' has '+ch.length+' under them.\nDelete '+n.name+' and move those '+ch.length+' up to '+gpName+'?') : ('Delete '+n.name+' from the chart?');
-  if(!confirm(msg)) return;
-  const gp=n.parent; ch.forEach(k=>{ k.parent=gp; });
-  NODES=NODES.filter(x=>x.id!==id); idx(); renumber(gp); dirty=true; render(); toast('Deleted '+n.name);
-};
-window.toggleEdit=function(){
-  if(!editing){
-    const seniors=NODES.filter(n=>n.role==='senior').map(n=>n.name);
-    if(!seniors.length){ alert('No Marketing Directors are set up in the chart yet.'); return; }
-    const list=seniors.map((s,i)=>(i+1)+'. '+s).join('\n');
-    const p=prompt('Editing the org chart is for Marketing Directors only.\nType your name (or the number next to it):\n\n'+list);
-    if(!p) return;
-    let name=''; const num=parseInt(p,10);
-    if(!isNaN(num)&&num>=1&&num<=seniors.length) name=seniors[num-1];
-    else { const m=seniors.find(s=>s.toLowerCase()===p.trim().toLowerCase()); name=m||''; }
-    if(!name){ alert("Marketing Directors only — that's not a Marketing Director name."); return; }
-    EDITOR=name; editing=true; document.body.classList.add('editing');
-    $('editBtn').textContent='✓ Done ('+name.split(' ')[0]+')'; $('editBtn').classList.remove('ghost'); $('editBanner').classList.add('on');
-    orig=JSON.stringify(NODES);
-  } else {
-    if(dirty && !confirm('You have unsaved changes. Leave edit mode and keep them staged?')) return;
-    editing=false; EDITOR=''; document.body.classList.remove('editing');
-    $('editBtn').textContent='✏️ Edit hierarchy'; $('editBtn').classList.add('ghost'); $('editBanner').classList.remove('on');
-  }
-};
-window.save=async function(){
-  if(!dirty) return;
-  const value={updated:new Date().toISOString().slice(0,10), root:ROOT, nodes:NODES.filter(n=>!n._derived).map(n=>({id:n.id,name:n.name,role:n.role,parent:n.parent,gfi:n.gfi||'',ord:n.ord??0}))};
-  $('saveBtn').disabled=true; $('saveBtn').textContent='Saving…';
-  try{
-    const r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'setorg',by:EDITOR,value})});
-    const d=await r.json();
-    if(d.ok){ dirty=false; orig=JSON.stringify(NODES); toast('Hierarchy saved ✓'); }
-    else toast(d.error==='unauthorized'?'Marketing Directors only':'Save failed');
-  }catch(e){ toast('Network error — try again'); }
-  $('saveBtn').textContent='💾 Save changes'; $('saveBtn').disabled=!dirty; $('revertBtn').disabled=!dirty;
-};
-window.revert=function(){ if(!orig)return; NODES=JSON.parse(orig); idx(); dirty=false; render(); toast('Reverted staged changes'); };
+function onSearch(){ SEARCH=($('search').value||'').trim().toLowerCase(); if(SEARCH) expandAll(true); else render(); }
 window.expandAll=function(open){
-  if(open){ NODES.forEach(n=>{ if(childrenSorted(n.id).length) openSet.add(n.id); }); }
-  else { openSet.clear(); openSet.add(ROOT); }
+  if(open){ NODES.forEach(n=>{ if((KIDS[n.code]||[]).length) openSet.add(n.code); }); }
+  else { openSet.clear(); ROOTS.forEach(r=>openSet.add(r)); }
   render();
 };
+window.openInfo=function(ev,code){
+  if(ev) ev.stopPropagation();
+  if(editing) return;
+  const n=byCode[code]; if(!n) return;
+  $('iName').textContent=n.name; $('iSub').textContent=(levelChip(n.level)?levelChip(n.level)+' · ':'')+code+(n.baseshop?(' · '+n.baseshop):'');
+  const up=byCode[n.direct_to];
+  const act=n.active?'Active':(n.days_inactive==null?'No activity yet':(n.days_inactive+' days quiet'));
+  const rows=[
+    ['Direct upline', up?up.name:'—'],
+    ['Direct recruits', (KIDS[code]||[]).length],
+    ['Total downline', n.downline_total||0],
+    ['Baseshop', n.baseshop||'—'],
+    ['Activity', act],
+    ['Onboarding', (n.onboarding_pct||0)+'%'],
+    ['License', n.license_status||'—'],
+    ['Joined', (n.created_at||'').slice(0,10)||'—']
+  ];
+  $('iBody').innerHTML=rows.map(r=>'<div class="irow"><span class="k">'+esc(r[0])+'</span><span class="v">'+esc(r[1])+'</span></div>').join('')+
+    ((n.phone||n.email)?('<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">'+(n.phone?'<a class="lmx" style="width:auto;padding:0 14px;text-decoration:none" href="tel:'+esc(String(n.phone).replace(/[^0-9+]/g,''))+'">📞 Call</a>':'')+(n.email?'<a class="lmx" style="width:auto;padding:0 14px;text-decoration:none" href="mailto:'+esc(n.email)+'">✉️ Email</a>':'')+'</div>'):'');
+  $('infoOverlay').classList.add('on');
+};
+window.closeInfo=function(){ $('infoOverlay').classList.remove('on'); };
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeInfo(); });
+
+window.toggleEdit=function(){
+  if(!editing){
+    if(!canEdit){ alert('Editing the org chart is for Marketing Directors and above. Sign in as an MD/EMD to make changes.'); return; }
+    editing=true; document.body.classList.add('editing');
+    $('editBtn').textContent='✓ Done editing'; $('editBtn').classList.remove('ghost'); $('editBanner').classList.add('on');
+  } else {
+    editing=false; document.body.classList.remove('editing');
+    $('editBtn').textContent='✏️ Edit hierarchy'; $('editBtn').classList.add('ghost'); $('editBanner').classList.remove('on');
+  }
+  render();
+};
+async function doAssign(childCode, upCode){
+  if(!childCode||!upCode||childCode===upCode) return;
+  const child=byCode[childCode], up=byCode[upCode]; if(!child||!up) return;
+  if(descendants(childCode).has(upCode)){ toast("Can't move someone under their own downline"); return; }
+  if(child.direct_to===upCode){ toast('Already under '+up.name); return; }
+  if(!confirm('Move '+child.name+' under '+up.name+'?')) return;
+  toast('Saving…');
+  try{
+    const r=await fetch(ORGAPI,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'set_upline',code:childCode,direct_to:upCode,by:CODE})});
+    const d=await r.json();
+    if(!d.ok){ toast(d.error||'Not allowed'); return; }
+    toast(child.name+' → '+up.name+' ✓');
+    openSet.add(upCode);
+    await load(true);
+  }catch(e){ toast('Network error — try again'); }
+}
 // collapse toggle
 $('tree').addEventListener('click', function(e){
   const t=e.target.closest('.tog'); if(!t) return;
   const li=t.closest('li.node'); if(!li) return; const id=li.getAttribute('data-id');
-  if(childrenSorted(id).length===0) return;
+  if(!(KIDS[id]||[]).length) return;
   if(openSet.has(id)) openSet.delete(id); else openSet.add(id);
   render();
 });
-// ---- whole-card pointer drag with threshold ----
+// unified pointer drag for cards (in tree) + chips (tray)
 let drag=null;
-$('tree').addEventListener('pointerdown', function(e){
+document.addEventListener('pointerdown', function(e){
   if(!editing) return;
-  if(e.target.closest('.tog')||e.target.closest('.rea')||e.target.closest('.del')) return;
-  const card=e.target.closest('.card'); if(!card) return;
+  if(e.target.closest('.tog')) return;
+  const src=e.target.closest('.card,[data-tray]'); if(!src) return;
+  const id=src.getAttribute('data-id'); if(!id) return;
   e.preventDefault();
-  try{ card.setPointerCapture(e.pointerId); }catch(_){}
-  drag={id:card.getAttribute('data-id'), card, pid:e.pointerId, x0:e.clientX, y0:e.clientY, active:false, target:null};
+  try{ src.setPointerCapture(e.pointerId); }catch(_){}
+  drag={id, src, pid:e.pointerId, x0:e.clientX, y0:e.clientY, active:false, target:null};
   window.addEventListener('pointermove', onMove);
   window.addEventListener('pointerup', onUp, {once:true});
 });
-function positionGhost(e){ const g=$('dragGhost'); g.style.left=(e.clientX+14)+'px'; g.style.top=(e.clientY+12)+'px'; }
 function onMove(e){
   if(!drag) return;
   if(!drag.active){
     if(Math.abs(e.clientX-drag.x0)+Math.abs(e.clientY-drag.y0) < 6) return;
-    drag.active=true; drag.card.classList.add('dragsrc');
-    const g=$('dragGhost'); g.textContent=byId[drag.id].name; g.style.display='block';
+    drag.active=true; drag.src.classList.add('dragsrc');
+    const g=$('dragGhost'); g.textContent=(byCode[drag.id]||{}).name||drag.id; g.style.display='block';
   }
-  positionGhost(e);
+  const g=$('dragGhost'); g.style.left=(e.clientX+14)+'px'; g.style.top=(e.clientY+12)+'px';
   const el=document.elementFromPoint(e.clientX,e.clientY);
   const card=el?el.closest('.card'):null;
   document.querySelectorAll('.drop-hover').forEach(x=>x.classList.remove('drop-hover'));
   drag.target=null;
-  if(card){ const tid=card.getAttribute('data-id'); if(tid!==drag.id && !isDescendant(drag.id,tid)){ card.classList.add('drop-hover'); drag.target=tid; } }
+  if(card){ const tid=card.getAttribute('data-id'); if(tid!==drag.id && !descendants(drag.id).has(tid)){ card.classList.add('drop-hover'); drag.target=tid; } }
 }
 function onUp(e){
   window.removeEventListener('pointermove', onMove);
-  const g=$('dragGhost'); g.style.display='none';
-  if(drag && drag.active){ drag.card.classList.remove('dragsrc'); if(drag.target) reparent(drag.id, drag.target); }
+  $('dragGhost').style.display='none';
+  const d=drag; drag=null;
+  if(d){ d.src.classList.remove('dragsrc'); }
   document.querySelectorAll('.drop-hover').forEach(x=>x.classList.remove('drop-hover'));
-  drag=null;
+  if(d && d.active && d.target){ doAssign(d.id, d.target); }
 }
-async function loadStatus(){
-  const leaders=['Elijah Cox','Christopher Lorenz','Edgar Zavala']; const map={};
-  await Promise.all(leaders.map(async L=>{
-    try{ const r=await fetch(API+'?action=team&leader='+encodeURIComponent(L)); const d=await r.json();
-      if(d&&d.ok&&Array.isArray(d.agents)) d.agents.forEach(a=>{ if(a.code){ const k=String(a.code).toUpperCase(); map[k]={s:a.progress_status,d:a.days_inactive}; LEADS[k]=Array.isArray(a.leads)?a.leads:[]; } });
-    }catch(e){}
-  }));
-  return map;
-}
-async function load(){
+async function load(keepOpen){
   try{
-    const [orgR, statusMap]=await Promise.all([ fetch(API+'?action=orgtree').then(r=>r.json()), loadStatus() ]);
-    STATUS=statusMap||{};
-    if(!orgR.ok||!orgR.value||!Array.isArray(orgR.value.nodes)){ $('tree').innerHTML='<div class="spin">Org not set up yet.</div>'; return; }
-    NODES=orgR.value.nodes.map(n=>({...n})); ROOT=orgR.value.root||'ELI'; idx();
-    const missing=NODES.some(n=>n.ord===undefined||n.ord===null);
-    if(missing){ const parents=[...new Set(NODES.map(n=>n.parent))];
-      parents.forEach(pid=>{ NODES.filter(n=>n.parent===pid).sort((a,b)=>a.name.localeCompare(b.name)).forEach((n,i)=>n.ord=i); }); }
-    try{
-      const rr=await fetch('https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/hub-api?action=hub_roster').then(r=>r.json());
-      const members=(rr&&rr.members)||[];
-      const byGfi={}; NODES.forEach(n=>{ if(n.gfi) byGfi[String(n.gfi).toUpperCase()]=n; });
-      let changed=false;
-      members.forEach(m=>{ const code=String(m.code||'').toUpperCase(); const dt=String(m.direct_to||'').toUpperCase(); if(!code||!dt) return; const target=byGfi[dt]; if(!target) return; let node=byGfi[code]; if(node){ if(node.id!==target.id && node.parent!==target.id){ node.parent=target.id; changed=true; } } else { node={id:'A_'+code,name:m.name||code,role:'agent',gfi:code,parent:target.id,ord:999,_derived:true}; NODES.push(node); byGfi[code]=node; changed=true; } });
-      if(changed){ idx(); [...new Set(NODES.map(n=>n.parent))].forEach(pid=>renumber(pid)); }
-    }catch(e){}
-    openSet.clear(); openSet.add(ROOT); // start tidy: only the top expanded
+    const r=await fetch(ORGAPI,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'tree'})});
+    const d=await r.json();
+    if(!d.ok||!Array.isArray(d.nodes)){ $('tree').innerHTML='<div class="spin">Could not load the org.</div>'; return; }
+    NODES=d.nodes; ROOTS=d.roots||[]; UNASSIGNED=d.unassigned||[];
+    reindex();
+    const me=byCode[CODE]; canEdit=!!(me&&isMgr(me.level));
+    if(!keepOpen){ openSet.clear(); ROOTS.forEach(rc=>openSet.add(rc)); (KIDS[ROOTS[0]]||[]).forEach(c=>openSet.add(c)); }
     render();
-    $('foot').textContent='Colored by activity · everyone starts under Christopher — drag them into place · last saved '+(orgR.value.updated||'');
+    $('foot').textContent='One source of truth — the tree is built from each person’s direct upline. '+(canEdit?'You can edit.':'View only (Marketing Directors and above can edit).');
   }catch(e){ $('tree').innerHTML='<div class="spin">Could not load the org.</div>'; }
 }
 load();
 </script>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 <script>
 function tsfgToggle(){ if(window.innerWidth<=860){tsfgDrawer(!document.body.classList.contains('tsfg-drawer'));} }
@@ -486,7 +386,6 @@ function tsfgDrawer(on){document.body.classList.toggle('tsfg-drawer',!!on);}
 function tsfgTheme(){var d=document.documentElement.getAttribute('data-theme')==='dark';document.documentElement.setAttribute('data-theme',d?'light':'dark');try{localStorage.setItem('gfi_theme',d?'light':'dark');}catch(e){}}
 function tsfgSignOut(){try{localStorage.removeItem('tsfg_code');localStorage.removeItem('tsfg_name');}catch(e){}location.href='index.html';}
 </script>
-
 <script defer src="notif.js"></script>
 </body>
 </html>
