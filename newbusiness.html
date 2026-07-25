@@ -36,6 +36,7 @@ body.drawer .scrim{display:block;}
 .wrap{padding-left:var(--side);padding-top:60px;}
 .content{max-width:1360px;margin:0 auto;padding:26px 30px;}
 @media(max-width:860px){.wrap{padding-left:0;}.side{transform:translateX(-100%);box-shadow:var(--shadow-lg);}body.drawer .side{transform:none;}.top{left:0;}.content{padding:18px 14px;}}
+@media(max-width:860px){.tabs{display:flex;max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}.tabs::-webkit-scrollbar{display:none;}.tabs button{flex:0 0 auto;white-space:nowrap;}}
 .bizseg{display:flex;gap:10px;margin-bottom:22px;}
 .bizseg button{flex:1;padding:16px;border:1px solid var(--line2);background:var(--panel);border-radius:16px;font-weight:800;font-size:15px;color:var(--ink2);box-shadow:var(--shadow-sm);transition:.15s;}
 .bizseg button.on{background:var(--accent);color:#fff;border-color:var(--accent);box-shadow:0 8px 22px var(--accent-soft);}
