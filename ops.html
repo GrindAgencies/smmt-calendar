@@ -198,6 +198,7 @@ select.cellin{cursor:pointer;min-width:140px;-webkit-appearance:none;appearance:
         <button class="tgl" id="tg_inforce" onclick="setTab('inforce')">🟢 In Force</button>
         <button class="tgl" id="tg_gfi" onclick="setTab('gfi')">🎟️ GFI Tickets</button>
         <button class="tgl" id="tg_bookings" onclick="setTab('bookings')">📅 Bookings</button>
+        <button class="tgl" id="tg_fieldtraining" onclick="setTab('fieldtraining')">🎓 Field Training</button>
         <button class="tgl" id="tg_teamhub" onclick="setTab('teamhub')">💬 Team Hub</button>
       </div>
       <button class="addbtn hide" id="addBtn" onclick="openAddMenu()">＋ Add</button>
@@ -207,6 +208,7 @@ select.cellin{cursor:pointer;min-width:140px;-webkit-appearance:none;appearance:
     <div id="bookingsHost" class="hide"></div>
     <div id="newbizHost" class="hide"></div>
     <div id="inforceHost" class="hide"></div>
+    <div id="fieldtrainingHost" class="hide"></div>
     <div id="teamhubHost" class="hide"></div>
     <div id="opsTiles"></div>
   </div>
@@ -357,17 +359,17 @@ function loadTracker(){
   }).catch(function(){$('tableHost').innerHTML='<div class="empty">Could not load the tracker.</div>';});
 }
 function renderReqBanner(n){var host=$('reqBanner');if(!host)return;host.innerHTML=(canEdit()&&n>0)?('<div class="reqbanner">✏️ '+n+' edit request'+(n===1?'':'s')+' from leaders awaiting review<button onclick="openRequests()">Review requests</button></div>'):'';}
-function setTab(t){TAB=t;['licensing','newbiz','faststart','bookings','appointed','inforce','gfi','teamhub'].forEach(function(x){var b=$('tg_'+x);if(b)b.classList.toggle('on',x===t);});
-  var isB=(t==='bookings'),isNB=(t==='newbiz'||t==='gfi'),isIF=(t==='inforce'),isTH=(t==='teamhub');
-  var tw=$('tableWrap'),bh=$('bookingsHost'),nh=$('newbizHost'),ifh=$('inforceHost'),thh=$('teamhubHost'),sb=$('search'),ab=$('addBtn');
-  if(tw)tw.classList.toggle('hide',isB||isNB||isIF||isTH);if(bh)bh.classList.toggle('hide',!isB);if(nh)nh.classList.toggle('hide',!isNB);if(ifh)ifh.classList.toggle('hide',!isIF);if(thh)thh.classList.toggle('hide',!isTH);
-  if(sb){sb.style.display=isTH?'none':'';sb.placeholder=isB?'Search bookings — name, type, agent…':(isNB?(t==='gfi'?'Search tickets — client, ticket #, category, status…':'Search records — client, agent, status…'):(isIF?'Search in-force — client, agent, carrier…':'Search…'));}
-  if(ab)ab.classList.toggle('hide',isB||isIF||isTH||(t==='newbiz')||!canEdit());
-  if(isB)renderBookings();else if(isIF)renderInforce();else if(isTH)renderTeamhub();else if(isNB)renderNewbiz();else renderTab();}
+function setTab(t){TAB=t;['licensing','newbiz','faststart','bookings','appointed','inforce','gfi','fieldtraining','teamhub'].forEach(function(x){var b=$('tg_'+x);if(b)b.classList.toggle('on',x===t);});
+  var isB=(t==='bookings'),isNB=(t==='newbiz'||t==='gfi'),isIF=(t==='inforce'),isTH=(t==='teamhub'),isFT=(t==='fieldtraining');
+  var tw=$('tableWrap'),bh=$('bookingsHost'),nh=$('newbizHost'),ifh=$('inforceHost'),thh=$('teamhubHost'),fth=$('fieldtrainingHost'),sb=$('search'),ab=$('addBtn');
+  if(tw)tw.classList.toggle('hide',isB||isNB||isIF||isTH||isFT);if(bh)bh.classList.toggle('hide',!isB);if(nh)nh.classList.toggle('hide',!isNB);if(ifh)ifh.classList.toggle('hide',!isIF);if(thh)thh.classList.toggle('hide',!isTH);if(fth)fth.classList.toggle('hide',!isFT);
+  if(sb){sb.style.display=isTH?'none':'';sb.placeholder=isB?'Search bookings — name, type, agent…':(isNB?(t==='gfi'?'Search tickets — client, ticket #, category, status…':'Search records — client, agent, status…'):(isIF?'Search in-force — client, agent, carrier…':(isFT?'Search agents — name, baseshop, trainer…':'Search…')));}
+  if(ab)ab.classList.toggle('hide',isB||isIF||isTH||isFT||(t==='newbiz')||!canEdit());
+  if(isB)renderBookings();else if(isIF)renderInforce();else if(isTH)renderTeamhub();else if(isFT)renderFieldtraining();else if(isNB)renderNewbiz();else renderTab();}
 function renderTeamhub(){var host=$('teamhubHost');if(!host)return;if(host.getAttribute('data-loaded'))return;host.setAttribute('data-loaded','1');
   var src='teamhub.html?ops=1&code='+encodeURIComponent(OPS?OPS.code:'OPS')+'&name='+encodeURIComponent(OPS?OPS.name:'Operations');
   host.innerHTML='<div style="font-size:12.5px;color:var(--ink3,#8e8e93);margin:0 0 8px">🛡️ Operations oversight — full access to every channel &amp; direct message, and all recognition/AI bot activity. You post as <b>'+esc((OPS&&OPS.name)||'Operations')+'</b>.</div><iframe src="'+esc(src)+'" style="width:100%;height:calc(100vh - 150px);min-height:560px;border:1px solid var(--line);border-radius:15px;background:var(--panel)" title="Team Hub" allow="clipboard-write"></iframe>';}
-function onSearch(){if(TAB==='bookings')renderBookingsTable();else if(TAB==='inforce')paintInforce();else if(TAB==='newbiz'||TAB==='gfi')paintNewbiz();else renderTab();}
+function onSearch(){if(TAB==='bookings')renderBookingsTable();else if(TAB==='inforce')paintInforce();else if(TAB==='fieldtraining')paintFieldtraining();else if(TAB==='newbiz'||TAB==='gfi')paintNewbiz();else renderTab();}
 /* ---- New Business feed (Operations back-end) — column-driven, fully editable ---- */
 var NB="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/ops-newbiz";
 var NBFEED="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/ops-nbfeed";
@@ -459,6 +461,43 @@ function paintInforce(){var host=$('inforceHost');if(!host)return;var rows=ifFil
   var head=cols.map(function(c){var ar=(IFSORT.k===c[0])?('<span class="sarrow on">'+(IFSORT.dir>0?'▲':'▼')+'</span>'):'<span class="sarrow">↕</span>';return '<th'+(c[0]==='ap'?' style="text-align:right"':'')+'><span class="thlbl" onclick="ifSort(\''+c[0]+'\')">'+esc(c[1])+ar+'</span></th>';}).join('');
   var body=rows.length?rows.map(function(p){return '<tr><td style="font-weight:700">'+esc(p.client||'—')+'</td><td>'+esc(p.agent||'')+'</td><td>'+esc(p.baseshop||'')+'</td><td>'+esc(p.carrier||'')+'</td><td>'+esc(p.product||'')+'</td><td style="text-align:right;white-space:nowrap;font-weight:700">'+money(p.ap)+'</td><td><span class="cpill" style="background:#1a9c5222;color:#1a9c52">'+esc(p.status_label||'')+'</span></td><td style="white-space:nowrap">'+esc(cdFmt(p.date))+'</td></tr>';}).join(''):'<tr><td colspan="8" class="empty">No in-force policies yet.</td></tr>';
   host.innerHTML='<div style="font-size:12.5px;color:var(--ink3,#8e8e93);margin:0 0 10px"><b style="color:var(--green)">'+rows.length+'</b> in-force '+(rows.length===1?'policy':'policies')+' · <b>'+money(IFTOTAL)+'</b> total annual premium · these are all active/paying policies (Policy Issued, Premium Drafted, Paid, Funds Received)</div><div class="tablewrap" style="overflow-x:auto"><table class="ptable" style="min-width:1000px"><thead><tr>'+head+'</tr></thead><tbody>'+body+'</tbody></table></div>';}
+/* ===== Field Training tracker — live from calendar bookings ===== */
+var FT_URL="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/ops-fieldtraining";
+var FTAGENTS=[],FTTOTALS={},FTSORT={k:'completed',dir:-1};
+function ftApi(){var b={action:'ft_list'};if(OPS&&OPS.role==='ops')b.token='2026';if(OPS)b.code=OPS.code;return fetch(FT_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();});}
+function renderFieldtraining(){var host=$('fieldtrainingHost');if(!host)return;host.innerHTML='<div class="spin">Loading field training…</div>';
+  ftApi().then(function(r){if(!r||!r.ok){host.innerHTML='<div class="empty">Could not load field training. '+esc((r&&r.error)||'')+'</div>';return;}FTAGENTS=r.agents||[];FTTOTALS=r.totals||{};paintFieldtraining();}).catch(function(){host.innerHTML='<div class="empty">Could not load field training.</div>';});}
+function ftFiltered(){var q=($('search').value||'').trim().toLowerCase();var a=FTAGENTS.slice();
+  if(q)a=a.filter(function(x){return ((x.agent_name||'')+' '+(x.agent_code||'')+' '+(x.baseshop||'')+' '+((x.trainer_list||[]).join(' '))).toLowerCase().indexOf(q)>=0;});
+  var k=FTSORT.k,d=FTSORT.dir;a.sort(function(x,y){var xv=x[k],yv=y[k];if(typeof xv==='number'&&typeof yv==='number')return (xv-yv)*d;xv=String(xv||'').toLowerCase();yv=String(yv||'').toLowerCase();return xv<yv?-d:xv>yv?d:0;});return a;}
+function ftSort(k){if(FTSORT.k===k)FTSORT.dir=-FTSORT.dir;else{FTSORT.k=k;FTSORT.dir=(k==='agent_name'||k==='baseshop')?1:-1;}paintFieldtraining();}
+function paintFieldtraining(){var host=$('fieldtrainingHost');if(!host)return;var rows=ftFiltered();
+  var cols=[['agent_name','Agent'],['baseshop','Baseshop'],['completed','Completed'],['upcoming','Upcoming'],['canceled','Canceled'],['last_completed','Last Session'],['trainer_list','Trainers']];
+  var head=cols.map(function(c){var ar=(FTSORT.k===c[0])?('<span class="sarrow on">'+(FTSORT.dir>0?'▲':'▼')+'</span>'):'<span class="sarrow">↕</span>';var num=(c[0]==='completed'||c[0]==='upcoming'||c[0]==='canceled');return '<th'+(num?' style="text-align:center"':'')+'><span class="thlbl" onclick="ftSort(\''+c[0]+'\')">'+esc(c[1])+ar+'</span></th>';}).join('');
+  var body=rows.length?rows.map(function(a){
+    var tr=(a.trainer_list||[]).slice(0,2).join(', ')+(((a.trainer_list||[]).length>2)?(' +'+((a.trainer_list||[]).length-2)):'');
+    var up=Number(a.upcoming)||0;
+    return '<tr style="cursor:pointer" onclick="openFtAgent(\''+esc(String(a.agent_code||a.agent_name).replace(/\\/g,"").replace(/'/g,"\\'"))+'\')">'+
+      '<td style="font-weight:700">'+esc(a.agent_name||'—')+(a.active?'':' <span style="font-size:11px;color:var(--ink3)">(inactive)</span>')+'<div style="font-size:11px;color:var(--ink3)">'+esc(a.agent_code||'')+'</div></td>'+
+      '<td>'+esc(a.baseshop||'—')+'</td>'+
+      '<td style="text-align:center"><span class="cpill" style="background:#1a9c5222;color:#1a9c52;font-weight:800">'+(Number(a.completed)||0)+'</span></td>'+
+      '<td style="text-align:center">'+(up?('<span class="cpill" style="background:#2e86c922;color:#2e86c9;font-weight:800">'+up+'</span>'):'<span style="color:var(--ink3)">—</span>')+'</td>'+
+      '<td style="text-align:center;color:var(--ink3)">'+(Number(a.canceled)||0)+'</td>'+
+      '<td style="white-space:nowrap">'+(a.last_completed?esc(cdFmt(a.last_completed)):'<span style="color:var(--ink3)">—</span>')+'</td>'+
+      '<td style="font-size:12.5px">'+esc(tr||'—')+'</td></tr>';}).join(''):'<tr><td colspan="7" class="empty">No field training on record.</td></tr>';
+  host.innerHTML='<div style="font-size:12.5px;color:var(--ink3,#8e8e93);margin:0 0 10px"><b style="color:var(--green)">'+(FTTOTALS.completed||0)+'</b> completed field trainings · <b>'+(FTTOTALS.agents||0)+'</b> agents developed · <b>'+(FTTOTALS.upcoming||0)+'</b> upcoming · live from the booking calendar. Click an agent for their full session history.</div><div class="tablewrap" style="overflow-x:auto"><table class="ptable" style="min-width:920px"><thead><tr>'+head+'</tr></thead><tbody>'+body+'</tbody></table></div>';}
+function openFtAgent(key){var a=FTAGENTS.filter(function(x){return String(x.agent_code||x.agent_name)===key;})[0];if(!a)return;
+  var ss=(a.sessions||[]).slice().sort(function(x,y){return (y.date||'').localeCompare(x.date||'');});
+  var stColor={completed:'#1a9c52',booked:'#2e86c9',pending:'#e0a100',confirmed:'#2e86c9',canceled:'#d9534f',cancelled:'#d9534f',no_show:'#d9534f'};
+  var rows=ss.length?ss.map(function(s){var c=stColor[s.status]||'#8e8e93';return '<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)"><div style="min-width:78px;font-weight:700;font-size:12.5px">'+esc(cdFmt(s.date))+'</div><div style="min-width:56px;font-size:12px;color:var(--ink3)">'+esc(s.time||'')+'</div><div style="flex:1;font-size:12.5px">'+esc(s.trainer||'—')+(s.notes?('<div style="font-size:11px;color:var(--ink3)">'+esc(s.notes)+'</div>'):'')+'</div><span class="cpill" style="background:'+c+'22;color:'+c+';font-weight:700;text-transform:capitalize">'+esc((s.status||'').replace(/_/g,' '))+'</span></div>';}).join(''):'<div class="empty">No sessions.</div>';
+  $('drawer').innerHTML='<div class="dhd"><div><h3>'+esc(a.agent_name||'Agent')+' · Field Training</h3><div class="sub">'+esc(a.agent_code||'')+(a.baseshop?(' · '+esc(a.baseshop)):'')+'</div></div><button class="x" onclick="closeDrawer()">✕</button></div><div class="dbody">'+
+    '<div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">'+
+      '<div style="flex:1;min-width:90px;text-align:center;padding:12px;border:1px solid var(--line);border-radius:12px"><div style="font-size:22px;font-weight:800;color:var(--green)">'+(Number(a.completed)||0)+'</div><div style="font-size:11px;color:var(--ink3)">Completed</div></div>'+
+      '<div style="flex:1;min-width:90px;text-align:center;padding:12px;border:1px solid var(--line);border-radius:12px"><div style="font-size:22px;font-weight:800;color:#2e86c9">'+(Number(a.upcoming)||0)+'</div><div style="font-size:11px;color:var(--ink3)">Upcoming</div></div>'+
+      '<div style="flex:1;min-width:90px;text-align:center;padding:12px;border:1px solid var(--line);border-radius:12px"><div style="font-size:22px;font-weight:800;color:var(--ink3)">'+(Number(a.canceled)||0)+'</div><div style="font-size:11px;color:var(--ink3)">Canceled</div></div>'+
+    '</div>'+
+    '<div style="font-size:12px;color:var(--ink3);font-weight:700;margin-bottom:4px">SESSION HISTORY ('+ss.length+')</div>'+rows+'</div>';
+  $('ov').classList.add('on');}
 /* ---- New Business: column editor (add/rename/retype/recolor/reorder/delete anytime) ---- */
 function openNbCols(){NBCOLDRAFT=JSON.parse(JSON.stringify(NBCOLS));renderNbColsEditor();$('ov').classList.add('on');}
 function renderNbColsEditor(){

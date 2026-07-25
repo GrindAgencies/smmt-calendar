@@ -326,11 +326,11 @@ function render(){
     var cov=p.coverage?('$'+Number(p.coverage).toLocaleString('en-US')+' coverage'):'';
     var d=(p.submitted_date||'').slice(0,10);
     var cbadge=recoBadge(p);
-    tr.innerHTML='<td><div class="cli"><div class="av">'+initials(p.client_name)+'</div><div><div class="cn">'+esc(p.client_name||'—')+'</div><div class="cm">'+esc(cov)+(p.split_flag?' · split':'')+(p.suitability_ok?' · ✅ suitability':'')+(Number(p.chargeback_amount)?' · ⚠ chargeback':'')+(p.paid_out_date?(' · 💰 '+String(p.paid_out_date).slice(0,10)):'')+'</div></div></div></td>'+
+    tr.innerHTML='<td><div class="cli"><div class="av">'+initials(p.client_name)+'</div><div><div class="cn">'+esc(p.client_name||'—')+'</div><div class="cm">'+esc(cov)+splitLabel(p)+(p.suitability_ok?' · ✅ suitability':'')+(Number(p.chargeback_amount)?' · ⚠ chargeback':'')+(p.paid_out_date?(' · 💰 '+String(p.paid_out_date).slice(0,10)):'')+'</div></div></div></td>'+
       '<td><span class="stpill '+pillClass(p.status)+'">'+esc(stLabel(p.status))+'</span></td>'+
       '<td class="muted">'+esc(d||'—')+'</td><td>'+esc(p.state||'—')+'</td><td>'+esc(p.carrier||'—')+cbadge+'</td>'+
       '<td class="muted">'+esc(p.policy_number||'—')+'</td><td>'+esc(p.product||'—')+'</td>'+
-      '<td>'+esc(p.split_agent||'')+(p.split_agent?'':'<span class="muted">—</span>')+'</td>'+
+      '<td>'+splitCol(p)+'</td>'+
       '<td class="r"><div class="prem">'+money(p.annual_premium)+'</div><div class="premc">'+(p.expected_commission!=null?('~'+money(p.expected_commission)+' comm'):'annual')+'</div></td>'+
       '<td class="r"><div class="rowact">'+(canEdit(p)?'<button class="iconb" title="Edit" onclick="event.stopPropagation();openEdit(findP('+p.id+'))">✏️</button>':'')+'</div></td>';
     tb.appendChild(tr);
@@ -357,6 +357,17 @@ function loadRecos(){
     .catch(function(){});
 }
 function findP(id){return POLICIES.filter(function(p){return p.id===id;})[0];}
+/* ===== Split coordination: a split policy appears for BOTH the writer and the split partner ===== */
+function splitLabel(p){
+  if(p.split_role==='received')return ' · 🤝 split from '+esc(p.agent_name||'agent');
+  if(p.split_flag)return ' · 🤝 split'+(p.split_agent?(' w/ '+esc(p.split_agent)):'');
+  return '';
+}
+function splitCol(p){
+  if(p.split_role==='received')return '<span class="stpill" style="background:#e8f0ff;color:#1e40af" title="This sale was written by '+esc(p.agent_name||'')+' and split with you">↩ from '+esc(p.agent_name||'—')+'</span>';
+  if(p.split_agent)return esc(p.split_agent);
+  return '<span class="muted">—</span>';
+}
 
 function load(){
   var q={action:'newbiz_list',business_type:BIZ};
