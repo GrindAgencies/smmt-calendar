@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Access Approvals — The Standard (Ops)</title>
+<style>
+  :root{ --bg:#f5f5f7; --panel:#fff; --panel2:#fbfbfd; --ink:#1d1d1f; --ink2:#6e6e73; --ink3:#8e8e93;
+    --line:#ececf0; --line2:#e3e3e8; --accent:#5b6cff; --gold:#c99a2e; --green:#1a9c52; --red:#d1453b;
+    --font:'Inter',-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',system-ui,sans-serif; }
+  *{box-sizing:border-box;} body{margin:0;font-family:var(--font);background:var(--bg);color:var(--ink);}
+  .wrap{max-width:760px;margin:0 auto;padding:22px 16px 60px;}
+  header{display:flex;align-items:center;gap:11px;margin-bottom:6px;}
+  .mark{width:38px;height:38px;border-radius:11px;border:1.5px solid var(--gold);display:flex;align-items:center;justify-content:center;color:var(--gold);font-weight:800;font-size:14px;}
+  h1{font-size:19px;margin:0;font-weight:800;}
+  .sub{font-size:13px;color:var(--ink2);margin:2px 0 18px 49px;}
+  .gate{max-width:340px;margin:60px auto;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:22px;}
+  .gate h2{margin:0 0 4px;font-size:16px;} .gate p{font-size:13px;color:var(--ink2);margin:0 0 14px;}
+  input{width:100%;padding:11px 13px;border:1px solid var(--line2);border-radius:11px;font-size:15px;font-family:inherit;background:var(--panel2);color:var(--ink);text-transform:uppercase;letter-spacing:.1em;font-weight:700;}
+  .btn{border:none;border-radius:11px;padding:11px 16px;font-weight:750;font-size:14px;cursor:pointer;font-family:inherit;}
+  .btn.pri{background:var(--accent);color:#fff;width:100%;margin-top:10px;}
+  .tabs{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
+  .tab{border:1px solid var(--line2);background:var(--panel);color:var(--ink2);border-radius:999px;padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer;}
+  .tab.on{background:var(--ink);color:#fff;border-color:var(--ink);}
+  .tab .c{display:inline-block;margin-left:6px;background:var(--red);color:#fff;border-radius:999px;padding:1px 7px;font-size:11px;font-weight:800;}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:15px 16px;margin-bottom:11px;}
+  .row1{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
+  .nm{font-weight:750;font-size:15.5px;} .cd{font-size:12px;color:var(--ink3);font-weight:700;letter-spacing:.06em;}
+  .meta{font-size:12.5px;color:var(--ink2);margin-top:6px;line-height:1.5;}
+  .pill{display:inline-block;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700;}
+  .pill.pending{background:rgba(201,154,46,.14);color:var(--gold);} .pill.denied{background:rgba(209,69,59,.12);color:var(--red);} .pill.approved{background:rgba(26,156,82,.12);color:var(--green);}
+  .acts{display:flex;gap:8px;margin-top:12px;}
+  .approve{background:var(--green);color:#fff;flex:1;} .deny{background:var(--panel);color:var(--red);border:1px solid var(--red);flex:1;} .undo{background:var(--panel2);color:var(--ink2);border:1px solid var(--line2);}
+  .empty{text-align:center;color:var(--ink3);padding:44px 12px;font-size:14px;}
+  .err{color:var(--red);font-size:12.5px;margin-top:8px;min-height:16px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><div class="mark">TS</div><h1>Access Approvals</h1></header>
+  <div class="sub">Operations · approve new agents requesting platform access</div>
+
+  <div id="gate" class="gate">
+    <h2>Operations sign-in</h2>
+    <p>Enter your Operations code to manage access requests.</p>
+    <input id="opsCode" placeholder="Ops code" autocomplete="off">
+    <button class="btn pri" onclick="opsIn()">Enter →</button>
+    <div class="err" id="gErr"></div>
+  </div>
+
+  <div id="console" style="display:none">
+    <div class="tabs">
+      <button class="tab on" data-f="pending" onclick="setFilter('pending')">Pending <span class="c" id="pc" style="display:none">0</span></button>
+      <button class="tab" data-f="denied" onclick="setFilter('denied')">Denied</button>
+      <button class="tab" data-f="all" onclick="setFilter('all')">All</button>
+    </div>
+    <div id="list"><div class="empty">Loading…</div></div>
+  </div>
+</div>
+
+<script>
+var API="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/access-api";
+var TOKEN="2026", OPS="", FILTER="pending";
+function $(id){return document.getElementById(id);}
+function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+function api(b){b.token=TOKEN;return fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();}).catch(function(){return{ok:false};});}
+function opsIn(){
+  var c=($('opsCode').value||'').trim().toUpperCase();
+  if(!/^000[0-4]$/.test(c)){ $('gErr').textContent='That is not a valid Operations code.'; return; }
+  OPS=c; try{sessionStorage.setItem('tsfg_ops',c);}catch(e){}
+  $('gate').style.display='none'; $('console').style.display='block'; load();
+}
+function setFilter(f){FILTER=f;document.querySelectorAll('.tab').forEach(function(t){t.classList.toggle('on',t.getAttribute('data-f')===f);});load();}
+function fmt(ts){ if(!ts)return 'no request time'; try{return new Date(ts).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});}catch(e){return ts;} }
+function load(){
+  $('list').innerHTML='<div class="empty">Loading…</div>';
+  api({action:'list',filter:FILTER}).then(function(r){
+    if(!r||!r.ok){ $('list').innerHTML='<div class="empty">Could not load ('+((r&&r.error)||'error')+').</div>'; return; }
+    var pc=r.pending_count||0; var pcEl=$('pc'); if(pcEl){ pcEl.style.display=pc>0?'inline-block':'none'; pcEl.textContent=pc; }
+    var rows=r.requests||[];
+    if(!rows.length){ $('list').innerHTML='<div class="empty">'+(FILTER==='pending'?'No pending requests — you\'re all caught up. 🎉':'Nothing here.')+'</div>'; return; }
+    $('list').innerHTML=rows.map(card).join('');
+  });
+}
+function card(a){
+  var name=esc(((a.first_name||'')+' '+(a.last_name||'')).trim()||'(no name)');
+  var st=a.access_status||'pending';
+  var up=[a.emd,a.md].filter(Boolean).map(esc).join(' · ')||'—';
+  var contact=[a.email,a.phone].filter(Boolean).map(esc).join(' · ');
+  var acts= st==='pending'
+    ? '<div class="acts"><button class="btn approve" onclick="decide(\''+esc(a.code)+'\',\'approved\')">✓ Approve</button><button class="btn deny" onclick="decide(\''+esc(a.code)+'\',\'denied\')">✕ Deny</button></div>'
+    : '<div class="acts"><button class="btn undo" onclick="decide(\''+esc(a.code)+'\',\'approved\')">Approve</button><button class="btn undo" onclick="decide(\''+esc(a.code)+'\',\'pending\')">Reset to pending</button></div>';
+  return '<div class="card"><div class="row1"><div><div class="nm">'+name+'</div><div class="cd">GFI '+esc(a.code)+'</div></div><span class="pill '+st+'">'+st+'</span></div>'+
+    '<div class="meta">Upline: '+up+(contact?('<br>'+contact):'')+'<br>Requested: '+fmt(a.access_requested_at)+(a.access_decided_by?('<br>Decided by '+esc(a.access_decided_by)):'')+'</div>'+acts+'</div>';
+}
+function decide(code,decision){
+  api({action:'set',code:code,decision:decision,by:('Ops '+OPS)}).then(function(r){
+    if(r&&r.ok){ load(); } else { alert((r&&r.error)||'Could not update.'); }
+  });
+}
+(function(){ try{var c=sessionStorage.getItem('tsfg_ops'); if(c&&/^000[0-4]$/.test(c)){ OPS=c; $('gate').style.display='none'; $('console').style.display='block'; load(); }}catch(e){} })();
+</script>
+</body>
+</html>

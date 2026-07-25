@@ -781,6 +781,18 @@ function showApp(){
   paintHeaderTime();tickClock();setInterval(tickClock,1000);setInterval(paintHeaderTime,60000);
   loadData();loadLeaderboard();loadAvatars();startLBPoll();
 }
+function showGate(){ $('app').classList.add('hide'); $('gate').classList.remove('hide'); }
+function gatePending(status, firstName){
+  try{localStorage.removeItem('tsfg_code');localStorage.removeItem('tsfg_name');}catch(e){}
+  CODE=null; NAME='';
+  showGate();
+  var msg=$('gMsg');
+  if(msg){
+    if(status==='denied'){ msg.className='gmsg'; msg.textContent='Access for this code was declined. Please contact Operations if you believe this is an error.'; }
+    else { msg.className='gmsg'; msg.textContent='⏳ Thanks'+(firstName?(', '+firstName):'')+'! Your access is pending Operations approval — you\'ll be able to sign in as soon as you\'re approved.'; }
+  }
+  var b=$('gBtn'); if(b){ b.disabled=false; b.textContent='Enter dashboard →'; }
+}
 document.addEventListener('visibilitychange',function(){if(!document.hidden&&CODE)loadLeaderboard();});
 function doLogin(){
   var first=$('gFirst').value.trim(),last=$('gLast').value.trim(),code=($('gCode').value||'').trim().toUpperCase();
@@ -792,6 +804,8 @@ function doLogin(){
   api(payload).then(function(res){
     btn.disabled=false;btn.textContent='Enter dashboard →';
     if(res&&res.ok&&res.agent){
+      var acc=(res.agent.access_status||'approved');
+      if(acc!=='approved'){ gatePending(acc,(res.agent.first_name||first)); return; }
       CODE=code;NAME=(res.agent.first_name||first)+' '+(res.agent.last_name||last);NAME=NAME.trim();
       try{localStorage.setItem('tsfg_code',CODE);localStorage.setItem('tsfg_name',NAME);}catch(e){}
       showApp();
@@ -819,10 +833,8 @@ function doSignup(){
     .then(function(r){return r.json();}).then(function(r){
       btn.disabled=false;btn.textContent='Create my account →';
       if(r&&r.ok){
-        msg.className='gmsg ok';msg.textContent='Welcome, '+r.name+'! Your code is '+r.code+' (under '+r.upline+'). Let’s finish your profile…';
-        CODE=r.code;NAME=r.name;
-        try{localStorage.setItem('tsfg_code',CODE);localStorage.setItem('tsfg_name',NAME);}catch(e){}
-        setTimeout(function(){location.href='profile.html?welcome=1';},1500);
+        msg.className='gmsg ok';msg.textContent='✅ Welcome, '+r.name+'! Your GFI code is '+r.code+' (under '+r.upline+'). Your access is now pending Operations approval — you\'ll be able to sign in as soon as you\'re approved.';
+        setTimeout(function(){ setAuthMode('signin'); var g=$('gCode'); if(g)g.value=r.code; },2600);
       } else { msg.textContent=(r&&r.error)||'Could not create your account.'; }
     }).catch(function(){btn.disabled=false;btn.textContent='Create my account →';msg.textContent='Network error — try again.';});
 }
@@ -837,7 +849,11 @@ $('sBtn').addEventListener('click',doSignup);
   if(c){ // validate silently, but reveal fast
     CODE=c;NAME=n;
     api({action:'load',code:c}).then(function(res){
-      if(res&&res.ok&&res.agent){NAME=(res.agent.first_name||'')+' '+(res.agent.last_name||'');NAME=NAME.trim()||n;try{localStorage.setItem('tsfg_name',NAME);}catch(e){}showApp();}
+      if(res&&res.ok&&res.agent){
+        var acc=(res.agent.access_status||'approved');
+        if(acc!=='approved'){ gatePending(acc,(res.agent.first_name||'')); return; }
+        NAME=(res.agent.first_name||'')+' '+(res.agent.last_name||'');NAME=NAME.trim()||n;try{localStorage.setItem('tsfg_name',NAME);}catch(e){}showApp();
+      }
       else{try{localStorage.removeItem('tsfg_code');}catch(e){} } // fall through to gate
     });
     // optimistic reveal so it feels instant
