@@ -201,8 +201,39 @@ function saveProfile(){
     toast(r.profile_complete?'Profile saved ✓ — Operations updated':'Saved — a few fields still needed');
   }).catch(function(){toast('Network error');});
 }
-function uploadPhoto(input){var f=input.files&&input.files[0];if(!f)return;if(f.size>2000000){toast('Image too large — max 2MB');return;}
-  var rd=new FileReader();rd.onload=function(){fetch(PA,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'save_photo',code:CODE,photo:rd.result})}).then(function(r){return r.json();}).then(function(r){if(!r||!r.ok){toast((r&&r.error)||'Upload failed');return;}PROFILE_P.photo=rd.result;toast('Photo updated');paintProfile(PROFILE_P);}).catch(function(){toast('Upload failed');});};rd.readAsDataURL(f);}
+function uploadPhoto(input){var f=input.files&&input.files[0];if(!f)return;
+  if(!/^image\//.test(f.type||'')){toast('Please choose an image file');return;}
+  toast('Processing photo…');
+  var rd=new FileReader();
+  rd.onerror=function(){toast('Could not read that image — try another');};
+  rd.onload=function(){
+    var img=new Image();
+    img.onload=function(){
+      try{
+        var MAX=512;var w=img.naturalWidth||img.width,h=img.naturalHeight||img.height;
+        if(!w||!h){sendPhoto(rd.result);return;}
+        var scale=Math.min(1,MAX/Math.max(w,h));
+        var cw=Math.max(1,Math.round(w*scale)),ch=Math.max(1,Math.round(h*scale));
+        var cv=document.createElement('canvas');cv.width=cw;cv.height=ch;
+        var ctx=cv.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,cw,ch);ctx.drawImage(img,0,0,cw,ch);
+        var out=cv.toDataURL('image/jpeg',0.85);
+        if(out.length>1200000)out=cv.toDataURL('image/jpeg',0.6);   // extra squeeze for very detailed shots
+        sendPhoto(out);
+      }catch(e){sendPhoto(rd.result);}   // canvas blocked (rare) — fall back to raw, server guards size
+    };
+    img.onerror=function(){sendPhoto(rd.result);};   // undecodable (e.g. HEIC) — send raw; server guards size
+    img.src=rd.result;
+  };
+  rd.readAsDataURL(f);
+}
+function sendPhoto(dataUrl){
+  if(!dataUrl){toast('Upload failed');return;}
+  if(dataUrl.length>2900000){toast('That photo is too large even after shrinking — please try a different one');return;}
+  fetch(PA,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'save_photo',code:CODE,photo:dataUrl})})
+    .then(function(r){return r.json();})
+    .then(function(r){if(!r||!r.ok){toast((r&&r.error)||'Upload failed');return;}PROFILE_P.photo=dataUrl;toast('Photo updated ✓');paintProfile(PROFILE_P);})
+    .catch(function(){toast('Upload failed');});
+}
 
 // ---- calendar sync (ported) ----
 function loadCalSyncStatus(){var el=$('calSyncStatus');if(!el)return;fetch(CS,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'get_feeds',code:CODE})}).then(function(r){return r.json();}).then(function(r){el=$('calSyncStatus');if(!el)return;if(!r||!r.ok){el.textContent='';return;}if(!(r.google_ics||r.apple_ics)){el.innerHTML='⚪ Not connected — set up sync to block your outside appointments.';el.style.color='var(--ink3)';return;}var when=r.last_synced?(' · last synced '+esc(new Date(r.last_synced).toLocaleDateString())):'';el.innerHTML='🟢 Connected — '+r.busy_count+' busy block'+(r.busy_count===1?'':'s')+' imported'+when;el.style.color='var(--green)';}).catch(function(){});}
