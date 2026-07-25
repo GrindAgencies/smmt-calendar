@@ -432,28 +432,62 @@ function calEventsFor(dstr){
   evs.sort(function(a,b){return t2min(a.time)-t2min(b.time);});
   return evs;
 }
-function renderCal(){
-  var start=new Date(todayStr()+'T12:00:00Z');start.setUTCDate(start.getUTCDate()+CALWEEK*3);
-  var days=[];for(var i=0;i<3;i++){var d=new Date(start.getTime());d.setUTCDate(d.getUTCDate()+i);days.push(d.toISOString().slice(0,10));}
-  var s0=new Date(days[0]+'T12:00:00Z'),s2=new Date(days[2]+'T12:00:00Z');
-  var label=s0.toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'})+' – '+s2.toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'})+(CALWEEK===0?' · Next 3 days':'');
-  var h='<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px;flex-wrap:wrap"><div><h2 style="font-size:19px;font-weight:800;margin:0;letter-spacing:-.02em">Your calendar</h2><div style="font-size:12.5px;color:var(--ink3);margin-top:2px">'+esc(label)+' · your appointments only</div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="calnav" onclick="CALWEEK--;render()">‹ Prev</button><button class="calnav" onclick="CALWEEK=0;render()">Today</button><button class="calnav" onclick="CALWEEK++;render()">Next ›</button><button class="qbtn" style="margin:0" onclick="setTab(\'book\')">+ Book</button></div></div>';
-  $('view').innerHTML=h+'<div id="calWrap"><div class="spin">Loading your calendar…</div></div>';
-  loadCompanyEvents(days[0],days[2],function(){paintCalWeek(days);});
+var CALMONTH=0,CALEV=[],CALBYDATE={};
+var CALIMPORT="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/cal-import";
+function calPt(iso){var d=new Date(iso);return {date:new Intl.DateTimeFormat('en-CA',{timeZone:'America/Los_Angeles',year:'numeric',month:'2-digit',day:'2-digit'}).format(d),time:d.toLocaleTimeString('en-US',{timeZone:'America/Los_Angeles',hour:'numeric',minute:'2-digit'})};}
+function loadCalEvents(cb){
+  fetch(CALS,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'list',code:CODE})}).then(function(r){return r.json();}).then(function(r){
+    CALEV=((r&&r.events)||[]).filter(function(e){return (e.status||'')==='active'&&e.start_time;});
+    CALBYDATE={};CALEV.forEach(function(e){var p=calPt(e.start_time);e._date=p.date;e._time=p.time;(CALBYDATE[p.date]=CALBYDATE[p.date]||[]).push(e);});
+    cb&&cb();
+  }).catch(function(){CALEV=[];CALBYDATE={};cb&&cb();});
 }
-function paintCalWeek(days){
-  var h='<div class="calgrid" style="grid-template-columns:repeat('+days.length+',minmax(0,1fr))">';
-  days.forEach(function(ds){
-    var d=new Date(ds+'T12:00:00Z');var wname=d.toLocaleDateString('en-US',{weekday:'short',timeZone:'UTC'});var dn=d.getUTCDate();
-    var isToday=ds===todayStr();var evs=calEventsFor(ds);
-    h+='<div class="calday'+(isToday?' today':'')+'"><div class="calhd"><span class="calw">'+(isToday?'Today':wname)+'</span><span class="cald">'+dn+'</span></div>';
-    if(!evs.length){h+='<div class="calempty">Nothing scheduled</div>';}
-    evs.forEach(function(e){var canX=(e.status==='booked'||e.status==='confirmed'||e.status==='pending');
-      h+='<div class="calev" style="position:relative"><span onclick="openCalEvent(\''+e.id+'\')" style="display:block;cursor:pointer;padding-right:14px"><span class="cdot" style="background:'+statusColor(e.status)+'"></span><b>'+esc(e.time)+'</b> '+esc(e.title||'')+'<div class="csub">'+esc(e.sub||'')+(e.role==='trainer'?' · client':'')+(e.status&&e.status!=='booked'&&e.status!=='confirmed'?' · '+esc(e.status):'')+'</div></span>'+(canX?'<a class="calx" onclick="quickCancel(\''+e.id+'\')" title="Cancel">✕</a>':'')+'</div>';});
-    h+='</div>';
-  });
-  h+='</div><div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:16px;font-size:11.5px;color:var(--ink3)"><span><span class="cdot" style="background:var(--accent)"></span>Booked</span><span><span class="cdot" style="background:var(--green)"></span>Confirmed</span><span><span class="cdot" style="background:var(--gold)"></span>Pending</span><span><span class="cdot" style="background:var(--red)"></span>Canceled · completed</span></div>';
-  var el=$('calWrap');if(el)el.innerHTML=h;
+function dayItems(ds){
+  var out=[];
+  calEventsFor(ds).forEach(function(e){out.push({kind:'internal',id:e.id,time:e.time,title:e.title,sub:e.sub,status:e.status});});
+  (CALBYDATE[ds]||[]).forEach(function(e){out.push({kind:'calendly',uuid:e.event_uuid,time:e._time,title:(e.invitee_name||'Client'),sub:(e.event_type_name||e.name||''),join:e.join_url,name:e.event_type_name||e.name,email:e.invitee_email,start:e.start_time});});
+  out.sort(function(a,b){return t2min(a.time)-t2min(b.time);});
+  return out;
+}
+function renderCal(){
+  var mf=monthFirst(CALMONTH);var gs=new Date(mf);gs.setUTCDate(1-mf.getUTCDay());
+  var from=gs.toISOString().slice(0,10);var ge=new Date(gs);ge.setUTCDate(gs.getUTCDate()+41);var to=ge.toISOString().slice(0,10);
+  var mlabel=mf.toLocaleDateString('en-US',{month:'long',year:'numeric',timeZone:'UTC'});
+  var h='<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px;flex-wrap:wrap"><div><h2 style="font-size:20px;font-weight:800;margin:0;letter-spacing:-.02em">'+esc(mlabel)+'</h2><div style="font-size:12.5px;color:var(--ink3);margin-top:2px">Your bookings + Calendly appointments · tap a day to see it or import</div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="calnav" onclick="CALMONTH--;render()">‹</button><button class="calnav" onclick="CALMONTH=0;render()">Today</button><button class="calnav" onclick="CALMONTH++;render()">›</button><button class="qbtn" style="margin:0" onclick="setTab(\'book\')">+ Book</button></div></div>';
+  $('view').innerHTML=h+'<div id="calWrap"><div class="spin">Loading your calendar…</div></div>';
+  loadCompanyEvents(from,to,function(){loadCalEvents(function(){paintCalMonth();});});
+}
+function paintCalMonth(){
+  var mf=monthFirst(CALMONTH);var mon=mf.getUTCMonth();var gs=new Date(mf);gs.setUTCDate(1-mf.getUTCDay());
+  var h='<div class="mdowrow">'+['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(function(x){return '<div class="mdow">'+x+'</div>';}).join('')+'</div><div class="mgrid">';
+  for(var i=0;i<42;i++){var d=new Date(gs);d.setUTCDate(gs.getUTCDate()+i);var ds=d.toISOString().slice(0,10);
+    var inMonth=d.getUTCMonth()===mon;var isToday=ds===todayStr();var items=dayItems(ds);
+    var chips=items.slice(0,3).map(function(it){var col=it.kind==='calendly'?'var(--gold)':statusColor(it.status);return '<div class="mchip" style="border-left:3px solid '+col+'">'+esc(it.time)+' '+esc((it.title||'').slice(0,16))+'</div>';}).join('');
+    h+='<div class="mcell'+(inMonth?'':' out')+(isToday?' today':'')+'" onclick="openCalDay(\''+ds+'\')"><div class="mnum">'+d.getUTCDate()+'</div>'+chips+(items.length>3?'<div class="mmore">+'+(items.length-3)+' more</div>':'')+'</div>';
+  }
+  var el=$('calWrap');if(el)el.innerHTML=h+'</div><div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:14px;font-size:11.5px;color:var(--ink3)"><span><span class="cdot" style="background:var(--accent)"></span>Your booking</span><span><span class="cdot" style="background:var(--gold)"></span>Calendly appt</span><span><span class="cdot" style="background:var(--green)"></span>Confirmed</span><span><span class="cdot" style="background:var(--red)"></span>Canceled</span></div>';
+}
+function openCalDay(ds){
+  var items=dayItems(ds);
+  var body=items.length?items.map(function(it){
+    if(it.kind==='internal'){
+      return '<div class="apt" style="cursor:pointer" onclick="$(\'bkOv\').classList.remove(\'on\');openCalEvent(\''+it.id+'\')"><div style="min-width:0"><div style="font-weight:700;font-size:14px">'+esc(it.time)+' · '+esc(it.title||'')+'</div><div style="font-size:12px;color:var(--ink3)">'+esc(it.sub||'')+(it.status?(' · '+esc(it.status)):'')+'</div></div></div>';
+    }
+    var jn=it.join?'<a class="qbtn" href="'+esc(it.join)+'" target="_blank" rel="noopener" style="text-decoration:none">Join</a>':'';
+    return '<div class="apt"><div style="min-width:0"><div style="font-weight:700;font-size:14px">'+esc(it.time)+' · '+esc(it.title||'')+' <span style="font-size:9.5px;color:var(--gold);font-weight:900;letter-spacing:.03em">CALENDLY</span></div><div style="font-size:12px;color:var(--ink3)">'+esc(it.sub||'')+'</div></div><div style="margin-left:auto;display:flex;gap:6px">'+jn+'<button class="qbtn" onclick="importCal(\''+esc(it.uuid)+'\',this)">Import</button></div></div>';
+  }).join(''):'<div style="color:var(--ink3);padding:16px 2px">Nothing on this day.</div>';
+  $('bkDrawer').innerHTML='<h3>'+prettyDate(ds)+'</h3><p class="dsub">Your appointments · Calendly appts can be imported into the platform</p>'+body+'<div class="dact" style="margin-top:16px;gap:8px;flex-wrap:wrap"><button class="go" onclick="$(\'bkOv\').classList.remove(\'on\');startBookAt(\''+ds+'\')">+ Book a trainer</button><button class="x can" onclick="$(\'bkOv\').classList.remove(\'on\')">Close</button></div>';
+  $('bkOv').classList.add('on');
+}
+function importCal(uuid,btn){
+  var e=CALEV.filter(function(x){return x.event_uuid===uuid;})[0];if(!e)return;
+  if(btn){btn.disabled=true;btn.textContent='Importing…';}
+  fetch(CALIMPORT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'import',code:CODE,name:NAME,event_uuid:e.event_uuid,event_type_name:e.event_type_name||e.name,start_time:e.start_time,invitee_name:e.invitee_name,invitee_email:e.invitee_email,join_url:e.join_url})}).then(function(r){return r.json();}).then(function(r){
+    if(!r||!r.ok){if(btn){btn.disabled=false;btn.textContent='Import';}toast((r&&r.error)||'Import failed');return;}
+    if(btn){btn.textContent=r.already?'Already imported':'Imported ✓';}
+    toast(r.already?'Already on your calendar':'Imported to your calendar ✓');
+    loadMy(function(){});
+  }).catch(function(){if(btn){btn.disabled=false;btn.textContent='Import';}toast('Network error');});
 }
 function openCalEvent(id){
   var b=MYB.filter(function(x){return x.id===id;})[0];var role='agent';
