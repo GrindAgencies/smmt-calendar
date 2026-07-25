@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-07-25T16:30:14.769Z",
+  "timestamp": "2026-07-25T16:46:09.336Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -22,9 +22,9 @@
     },
     {
       "status": "M",
-      "path": "ops.html"
+      "path": "org.html"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\nb0f8b44 Update HANDOFF.json\n5f76d47 My Team rebuilt on the single-source hierarchy engine (org-api)\nae4ccd9 Update HANDOFF.json\n74bc624 Update HANDOFF.json\n140af55 Scheduler Calendar tab: 30-day month view + Calendly appointments + click-a-day import"
+  "context_notes": "Recent commits:\nc52cc4b Ops platform scoping: also scope New Business + Bookings by baseshop\n29a4fa6 Update HANDOFF.json\nf91e02a Per-baseshop Ops platform: 0001-0005 scope the dashboard to a baseshop (Standard master unchanged)\nb0f8b44 Update HANDOFF.json\n5f76d47 My Team rebuilt on the single-source hierarchy engine (org-api)"
 }
