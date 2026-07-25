@@ -181,7 +181,7 @@ tbody tr{cursor:pointer;}tbody tr:hover{background:var(--bg);}
   <div class="fg"><label>How did this sale come to you?</label><select id="f_source"><option value="">Select source</option><option>Warm Market</option><option>Referral</option><option>Lead — Purchased</option><option>Lead — Free</option><option>Social Media</option><option>Client of a Client</option><option>Cross-sell</option><option>Other</option></select></div>
   <label class="chk"><input type="checkbox" id="f_writingoff"> Writing agent not on The Standard</label>
   <label class="chk" id="splitToggle"><input type="checkbox" id="f_splitflag" onchange="document.getElementById('splitWrap').style.display=this.checked?'block':'none'"> Split this sale with another agent</label>
-  <div id="splitWrap" style="display:none"><div class="fg" style="margin-top:8px"><label>Split agent</label><input id="f_split" placeholder="Split agent name"></div></div>
+  <div id="splitWrap" style="display:none"><div class="fg" style="margin-top:8px"><label>Split agent (name or code)</label><input id="f_split" placeholder="e.g. Courtney Whitbey or H1772" oninput="updSplitShare()"></div><div class="fg" style="margin-top:8px"><label>Your share of this sale (%)</label><input id="f_splitpct" type="number" min="0" max="100" value="50" oninput="updSplitShare()"></div><div id="splitShareHint" style="font-size:12px;color:var(--muted,#6e6e73);margin-top:7px;line-height:1.45"></div></div>
   <div class="sec-l">Policy Details</div>
   <div class="frow"><div class="fg"><label>Carrier *</label><input id="f_carrier" placeholder="Type or select a carrier" list="carriers"><datalist id="carriers"><option>American National</option><option>American Equity</option><option>Americo</option><option>Ethos</option><option>Foresters</option><option>Mutual of Omaha</option><option>National Life Group</option><option>North American</option><option>F&G</option><option>Corebridge</option></datalist></div><div class="fg"><label>Product</label><select id="f_product"><option value="">Select product</option><option>Term Life</option><option>IUL</option><option>Whole Life</option><option>Final Expense</option><option>GUL</option><option>Annuity — FIA</option><option>Annuity — MYGA</option><option>Other</option></select></div></div>
   <div class="frow"><div class="fg"><label>State</label><input id="f_state" maxlength="2" placeholder="CA" style="text-transform:uppercase"></div><div class="fg"><label>Policy #</label><input id="f_polnum" placeholder="Optional"></div><div class="fg"><label>Carrier code</label><input id="f_ccode" placeholder="Optional"></div></div>
@@ -359,16 +359,20 @@ function loadRecos(){
 }
 function findP(id){return POLICIES.filter(function(p){return p.id===id;})[0];}
 /* ===== Split coordination: a split policy appears for BOTH the writer and the split partner ===== */
+function myShare(p){return (p.my_share_pct!=null?Number(p.my_share_pct):(p.split_pct!=null?Number(p.split_pct):50));}
 function splitLabel(p){
-  if(p.split_role==='received')return ' · 🤝 split from '+esc(p.agent_name||'agent');
-  if(p.split_flag)return ' · 🤝 split'+(p.split_agent?(' w/ '+esc(p.split_agent)):'');
+  var mine=myShare(p);
+  if(p.split_role==='received')return ' · 🤝 split from '+esc(p.agent_name||'agent')+' · your '+mine+'%';
+  if(p.split_flag)return ' · 🤝 split w/ '+esc(p.split_agent||'agent')+' · '+mine+'/'+(100-mine);
   return '';
 }
 function splitCol(p){
-  if(p.split_role==='received')return '<span class="stpill" style="background:#e8f0ff;color:#1e40af" title="This sale was written by '+esc(p.agent_name||'')+' and split with you">↩ from '+esc(p.agent_name||'—')+'</span>';
-  if(p.split_agent)return esc(p.split_agent);
+  var mine=myShare(p);
+  if(p.split_role==='received')return '<span class="stpill" style="background:#e8f0ff;color:#1e40af" title="Written by '+esc(p.agent_name||'')+', split with you — your share '+mine+'%">↩ '+esc(p.agent_name||'—')+' · '+mine+'%</span>';
+  if(p.split_flag)return '<span class="stpill" style="background:#eef7ee;color:#1a7f47" title="You wrote it, split with '+esc(p.split_agent||'')+'">'+esc(p.split_agent||'—')+' · '+mine+'/'+(100-mine)+'</span>';
   return '<span class="muted">—</span>';
 }
+function updSplitShare(){var el=$('splitShareHint');if(!el)return;var pct=Math.max(0,Math.min(100,Number(($('f_splitpct')||{}).value)||0));var other=(($('f_split')||{}).value||'').trim()||'your partner';el.innerHTML='You keep <b>'+pct+'%</b> · '+esc(other)+' gets <b>'+(100-pct)+'%</b>. This stays <b>one policy</b> — it shows once for each of you, never doubled.';}
 
 function load(){
   var q={action:'newbiz_list',business_type:BIZ};
@@ -391,7 +395,7 @@ function fillForm(p){
   STATUS=p.status||'pending';renderStatusGrid();
   var set=function(i,v){$(i).value=(v==null?'':v);};
   set('f_client',p.client_name);set('f_phone',p.phone);set('f_email',p.email);set('f_gender',p.gender);set('f_dob',(p.dob||'').slice(0,10));
-  set('f_source',p.source);$('f_writingoff').checked=!!p.writing_off;$('f_splitflag').checked=!!p.split_flag;$('splitWrap').style.display=p.split_flag?'block':'none';set('f_split',p.split_agent);
+  set('f_source',p.source);$('f_writingoff').checked=!!p.writing_off;$('f_splitflag').checked=!!p.split_flag;$('splitWrap').style.display=p.split_flag?'block':'none';set('f_split',p.split_agent);set('f_splitpct',p.split_pct!=null?p.split_pct:50);updSplitShare();
   set('f_carrier',p.carrier);set('f_product',p.product);set('f_state',p.state);set('f_polnum',p.policy_number);set('f_ccode',p.carrier_code);
   set('f_cov',p.coverage);set('f_prem',p.annual_premium);set('f_monthly',p.monthly_contribution);set('f_lump',p.lump_sum_contribution);set('f_contract',p.contract_pct);
   set('f_written',(p.date_written||'').slice(0,10));set('f_draft',(p.first_draft_date||'').slice(0,10));set('f_notes',p.notes);
@@ -401,11 +405,14 @@ function fillForm(p){
   calcComm();
 }
 function suitVis(){$('suitToggle').style.display=(BIZ==='annuity')?'flex':'none';}
-function clearForm(){STATUS='pending';['f_client','f_phone','f_email','f_gender','f_dob','f_source','f_split','f_carrier','f_product','f_state','f_polnum','f_ccode','f_cov','f_prem','f_monthly','f_lump','f_notes','f_paidout','f_trmonths','f_trstatus','f_cbtype','f_cbamt','f_cbdate','f_cbnote'].forEach(function(i){$(i).value='';});$('f_contract').value='80';$('f_writingoff').checked=false;$('f_splitflag').checked=false;$('f_suit').checked=false;$('splitWrap').style.display='none';$('f_written').value=ptToday();suitVis();renderStatusGrid();calcComm();}
+function clearForm(){STATUS='pending';['f_client','f_phone','f_email','f_gender','f_dob','f_source','f_split','f_carrier','f_product','f_state','f_polnum','f_ccode','f_cov','f_prem','f_monthly','f_lump','f_notes','f_paidout','f_trmonths','f_trstatus','f_cbtype','f_cbamt','f_cbdate','f_cbnote'].forEach(function(i){$(i).value='';});$('f_contract').value='80';$('f_writingoff').checked=false;$('f_splitflag').checked=false;$('f_suit').checked=false;$('splitWrap').style.display='none';if($('f_splitpct'))$('f_splitpct').value='50';$('f_written').value=ptToday();suitVis();renderStatusGrid();calcComm();}
 function openNew(){EDIT=null;$('mTitle').textContent='New Sale';$('mSub').textContent='Log a fresh app to track through to commission.';$('mDel').classList.add('hide');$('saveBtn').textContent='Save Sale';clearForm();$('ov').classList.add('on');}
-function openEdit(p){if(!p)return;EDIT=p;var own=canEdit(p);$('mTitle').textContent=own?'Edit Sale':'View Sale';$('mSub').textContent=(p.agent_name||'')+(OPS?' · Operations edit':'');$('mDel').classList.toggle('hide',!own);$('saveBtn').textContent=own?'Save Changes':'Close';fillForm(p);$('ov').classList.add('on');}
+function openEdit(p){if(!p)return;EDIT=p;var own=canEdit(p);$('mTitle').textContent=own?'Edit Sale':'View Sale';
+  var sub=(p.agent_name||'')+(OPS?' · Operations edit':'');
+  if(p.split_flag){var mine=myShare(p);sub='🤝 Split · '+esc(p.agent_name||'writer')+' '+mine+'% + '+esc(p.split_agent||'partner')+' '+(100-mine)+'%'+(p.split_role==='received'?' · shared with you':'');}
+  $('mSub').innerHTML=sub;$('mDel').classList.toggle('hide',!own);$('saveBtn').textContent=own?'Save Changes':'Close';fillForm(p);$('ov').classList.add('on');}
 function closeModal(){$('ov').classList.remove('on');}
-function collect(){var v=function(i){return $(i).value.trim();};return {client_name:v('f_client'),phone:v('f_phone'),email:v('f_email'),gender:v('f_gender'),dob:v('f_dob'),source:v('f_source'),status:STATUS,business_type:BIZ,writing_off:$('f_writingoff').checked,split_flag:$('f_splitflag').checked,split_agent:v('f_split'),carrier:v('f_carrier'),product:v('f_product'),state:v('f_state'),policy_number:v('f_polnum'),carrier_code:v('f_ccode'),coverage:v('f_cov'),annual_premium:v('f_prem'),monthly_contribution:v('f_monthly'),lump_sum_contribution:v('f_lump'),contract_pct:v('f_contract'),advance_pct:'100',date_written:v('f_written'),first_draft_date:v('f_draft'),notes:v('f_notes'),
+function collect(){var v=function(i){return $(i).value.trim();};return {client_name:v('f_client'),phone:v('f_phone'),email:v('f_email'),gender:v('f_gender'),dob:v('f_dob'),source:v('f_source'),status:STATUS,business_type:BIZ,writing_off:$('f_writingoff').checked,split_flag:$('f_splitflag').checked,split_agent:v('f_split'),split_pct:v('f_splitpct'),carrier:v('f_carrier'),product:v('f_product'),state:v('f_state'),policy_number:v('f_polnum'),carrier_code:v('f_ccode'),coverage:v('f_cov'),annual_premium:v('f_prem'),monthly_contribution:v('f_monthly'),lump_sum_contribution:v('f_lump'),contract_pct:v('f_contract'),advance_pct:'100',date_written:v('f_written'),first_draft_date:v('f_draft'),notes:v('f_notes'),
   paid_out_date:v('f_paidout'),trailing_months:v('f_trmonths'),trailing_status:v('f_trstatus'),
   chargeback_type:v('f_cbtype'),chargeback_amount:v('f_cbamt'),chargeback_date:v('f_cbdate'),chargeback_note:v('f_cbnote'),
   suitability_ok:$('f_suit').checked};}
