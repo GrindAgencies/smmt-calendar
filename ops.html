@@ -168,10 +168,10 @@ select.cellin{cursor:pointer;min-width:140px;-webkit-appearance:none;appearance:
     <h1>Operations Tracker</h1>
     <p>Licensing · New Business · Fast Start</p>
     <input id="gName" placeholder="Your name" autocomplete="name">
-    <input id="gCode" placeholder="Operations code (0000–4) or your GFI code" autocomplete="off">
+    <input id="gCode" placeholder="Operations code (0000–0005) or your GFI code" autocomplete="off">
     <button class="gbtn" id="gBtn">Enter →</button>
     <div class="gmsg" id="gMsg"></div>
-    <div class="ghint"><b>Operations staff</b> (0000–0004) view &amp; edit everything.<br><b>MDs &amp; EMDs</b> sign in with their GFI code to view, add notes &amp; request edits.</div>
+    <div class="ghint"><b>0000</b> = Standard — the master platform (everyone). <b>0001–0005</b> = each baseshop's own Ops view (SMMT · Titans · SCAPED · Elevate · GRIND), scoped to that baseshop.<br><b>MDs &amp; EMDs</b> can also sign in with their GFI code (name required) to view, add notes &amp; request edits.</div>
     <a href="index.html" style="display:inline-block;margin-top:16px;color:var(--ink3,#8e8e93);font-size:13px;font-weight:600;text-decoration:none">← Back to Dashboard</a>
   </div>
 </div>
@@ -222,6 +222,8 @@ select.cellin{cursor:pointer;min-width:140px;-webkit-appearance:none;appearance:
 
 <script>
 var OD="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/ops-directory";
+var OPSPLAT="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/ops-platform";
+var BSSCOPE=null; /* null = master (Standard, everyone). Array of baseshop names = scoped per-baseshop Ops platform. */
 var CALS="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/calendly-sync";
 function calBody(extra){var b=extra||{};b.code=OPS?OPS.code:'';if(canEdit())b.token='2026';return b;}
 function calApi(b){return fetch(CALS,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();});}
@@ -241,7 +243,7 @@ function money(n){n=Math.round(Number(n)||0);return '$'+n.toLocaleString('en-US'
 function money2(n){n=Number(n)||0;if(n>=1e6)return '$'+(n/1e6).toFixed(2)+'M';if(n>=1e3)return '$'+(Math.round(n/100)/10)+'K';return '$'+Math.round(n);}
 function toggleTheme(){var d=document.documentElement.getAttribute('data-theme')==='dark';document.documentElement.setAttribute('data-theme',d?'light':'dark');try{localStorage.setItem('gfi_theme',d?'light':'dark');}catch(e){}}
 (function(){try{var t=localStorage.getItem('gfi_theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
-function signOut(){try{sessionStorage.removeItem('tsfg_ops');}catch(e){}OPS=null;$('app').classList.add('hide');$('gate').classList.remove('hide');$('gName').value='';$('gCode').value='';}
+function signOut(){try{sessionStorage.removeItem('tsfg_ops');sessionStorage.removeItem('tsfg_ops_bsscope');}catch(e){}OPS=null;BSSCOPE=null;$('app').classList.add('hide');$('gate').classList.remove('hide');$('gName').value='';$('gCode').value='';}
 function auth(extra){var b=extra||{};if(OPS&&OPS.role==='ops')b.token='2026';if(OPS)b.by_code=OPS.code;return b;}
 function canEdit(){return OPS&&OPS.role==='ops';}
 function api(body){return fetch(OD,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(function(r){return r.json();});}
@@ -251,13 +253,31 @@ function prettyDate(d){if(!d)return '';var p=String(d).split('-');if(p.length<3)
 /* ---- login ---- */
 function doLogin(){
   var name=$('gName').value.trim(),code=$('gCode').value.trim();var msg=$('gMsg');
-  if(!name){msg.textContent='Enter your name.';return;}
   if(!code){msg.textContent='Enter your code.';return;}
   msg.style.color='var(--ink3)';msg.textContent='Checking…';
+  /* NEW (additive): a 4-digit code may be a per-baseshop Ops platform (0001-0005) → scoped view.
+     0000 (Standard master), GFI codes, and names fall straight through to the existing login, unchanged. */
+  if(/^\d{4}$/.test(code)){
+    fetch(OPSPLAT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'login',code:code})}).then(function(r){return r.json();}).then(function(r){
+      if(r&&r.ok&&r.scope==='base'){
+        OPS={code:code,name:r.label,title:'Operations',role:'ops',can_edit:true,baseshops:r.bases||[]};
+        BSSCOPE=r.bases||[];
+        try{sessionStorage.setItem('tsfg_ops',JSON.stringify(OPS));sessionStorage.setItem('tsfg_ops_bsscope',JSON.stringify(BSSCOPE));}catch(e){}
+        showApp();return;
+      }
+      finishLogin(name,code,msg); /* 0000 master or non-base code → existing flow */
+    }).catch(function(){finishLogin(name,code,msg);});
+    return;
+  }
+  finishLogin(name,code,msg);
+}
+function finishLogin(name,code,msg){
+  if(!name){msg.style.color='var(--ink3)';msg.textContent='Enter your name.';return;}
   api({action:'ops_login',code:code,name:name}).then(function(r){
     if(!r||!r.ok){msg.style.color='var(--red)';msg.textContent=(r&&r.error)||'Could not sign in.';return;}
     OPS={code:r.ops.code,name:r.ops.name,title:r.ops.title,role:r.role,can_edit:r.can_edit,baseshops:r.ops.baseshops||[]};
-    try{sessionStorage.setItem('tsfg_ops',JSON.stringify(OPS));}catch(e){}
+    BSSCOPE=null;
+    try{sessionStorage.setItem('tsfg_ops',JSON.stringify(OPS));sessionStorage.removeItem('tsfg_ops_bsscope');}catch(e){}
     showApp();
   }).catch(function(){msg.style.color='var(--red)';msg.textContent='Network error — try again.';});
 }
@@ -266,7 +286,7 @@ $('gBtn').addEventListener('click',doLogin);
 
 function showApp(){
   $('gate').classList.add('hide');$('app').classList.remove('hide');
-  $('whoLbl').textContent=OPS.name+' · '+(OPS.title||'')+((OPS.baseshops&&OPS.baseshops.length)?(' · '+OPS.baseshops.join(' & ')):'');
+  $('whoLbl').textContent=(BSSCOPE?'🔒 ':'')+OPS.name+' · '+(OPS.title||'')+((BSSCOPE&&BSSCOPE.length)?(' · scoped to '+BSSCOPE.join(' & ')):((OPS.baseshops&&OPS.baseshops.length)?(' · '+OPS.baseshops.join(' & ')):''));
   $('roleChip').innerHTML=canEdit()?'<span class="rolechip ops">Operations · full edit</span>':'<span class="rolechip view">'+esc((OPS.role||'').toUpperCase())+' · view · notes · requests</span>';
   $('addBtn').classList.toggle('hide',!canEdit());
   $('dl_license_type').innerHTML=LICTYPES.map(function(o){return '<option value="'+esc(o)+'">';}).join('');
@@ -387,6 +407,7 @@ function renderNewbiz(){NBBOARD=(TAB==='gfi')?'gfi':'newbiz';NBLIVE=(TAB==='newb
     paintNewbiz();}).catch(function(){host.innerHTML='<div class="empty">Could not load.</div>';});}
 function nbToggleArch(){NBARCH=!NBARCH;renderNewbiz();}
 function nbFiltered(){var q=($('search').value||'').trim().toLowerCase();var a=NBT.slice();
+  if(BSSCOPE)a=a.filter(function(t){return BSSCOPE.indexOf((t.data||{}).baseshop)>=0;});
   if(q)a=a.filter(function(t){var s=[];var dd=t.data||{};for(var k in dd){if(k!=='_color')s.push(dd[k]);}return s.join(' ').toLowerCase().indexOf(q)>=0;});
   var k=NBSORT.k,d=NBSORT.dir;
   var col=NBCOLS.filter(function(c){return c.key===k;})[0];
@@ -453,7 +474,7 @@ var IFP=[],IFSORT={k:'date',dir:-1},IFTOTAL=0;
 function ifApi(){var b={};if(OPS&&OPS.role==='ops')b.token='2026';if(OPS)b.by_code=OPS.code;return fetch(IF_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();});}
 function renderInforce(){var host=$('inforceHost');if(!host)return;host.innerHTML='<div class="spin">Loading in-force policies…</div>';
   ifApi().then(function(r){if(!r||!r.ok){host.innerHTML='<div class="empty">Could not load in-force policies.</div>';return;}IFP=r.policies||[];IFTOTAL=r.total_ap||0;paintInforce();}).catch(function(){host.innerHTML='<div class="empty">Could not load in-force policies.</div>';});}
-function ifFiltered(){var q=($('search').value||'').trim().toLowerCase();var a=IFP.slice();if(q)a=a.filter(function(p){return (p.client+' '+p.agent+' '+p.carrier+' '+p.product+' '+(p.baseshop||'')).toLowerCase().indexOf(q)>=0;});
+function ifFiltered(){var q=($('search').value||'').trim().toLowerCase();var a=IFP.slice();if(BSSCOPE)a=a.filter(function(p){return BSSCOPE.indexOf(p.baseshop)>=0;});if(q)a=a.filter(function(p){return (p.client+' '+p.agent+' '+p.carrier+' '+p.product+' '+(p.baseshop||'')).toLowerCase().indexOf(q)>=0;});
   var k=IFSORT.k,d=IFSORT.dir;a.sort(function(x,y){var xv=x[k],yv=y[k];if(typeof xv==='number'&&typeof yv==='number')return (xv-yv)*d;xv=String(xv||'').toLowerCase();yv=String(yv||'').toLowerCase();return xv<yv?-d:xv>yv?d:0;});return a;}
 function ifSort(k){if(IFSORT.k===k)IFSORT.dir=-IFSORT.dir;else{IFSORT.k=k;IFSORT.dir=1;}paintInforce();}
 function paintInforce(){var host=$('inforceHost');if(!host)return;var rows=ifFiltered();
@@ -468,6 +489,7 @@ function ftApi(){var b={action:'ft_list'};if(OPS&&OPS.role==='ops')b.token='2026
 function renderFieldtraining(){var host=$('fieldtrainingHost');if(!host)return;host.innerHTML='<div class="spin">Loading field training…</div>';
   ftApi().then(function(r){if(!r||!r.ok){host.innerHTML='<div class="empty">Could not load field training. '+esc((r&&r.error)||'')+'</div>';return;}FTAGENTS=r.agents||[];FTTOTALS=r.totals||{};paintFieldtraining();}).catch(function(){host.innerHTML='<div class="empty">Could not load field training.</div>';});}
 function ftFiltered(){var q=($('search').value||'').trim().toLowerCase();var a=FTAGENTS.slice();
+  if(BSSCOPE)a=a.filter(function(x){return BSSCOPE.indexOf(x.baseshop)>=0;});
   if(q)a=a.filter(function(x){return ((x.agent_name||'')+' '+(x.agent_code||'')+' '+(x.baseshop||'')+' '+((x.trainer_list||[]).join(' '))).toLowerCase().indexOf(q)>=0;});
   var k=FTSORT.k,d=FTSORT.dir;a.sort(function(x,y){var xv=x[k],yv=y[k];if(typeof xv==='number'&&typeof yv==='number')return (xv-yv)*d;xv=String(xv||'').toLowerCase();yv=String(yv||'').toLowerCase();return xv<yv?-d:xv>yv?d:0;});return a;}
 function ftSort(k){if(FTSORT.k===k)FTSORT.dir=-FTSORT.dir;else{FTSORT.k=k;FTSORT.dir=(k==='agent_name'||k==='baseshop')?1:-1;}paintFieldtraining();}
@@ -568,6 +590,7 @@ function renderBookingsTable(){
 function apptStatus(){return (LICSTATUS&&LICSTATUS.length)?LICSTATUS[LICSTATUS.length-1]:null;}
 function filtered(){var q=($('search').value||'').trim().toLowerCase();var last=apptStatus();
   return ROWS.filter(function(r){
+    if(BSSCOPE&&BSSCOPE.indexOf(r.baseshop)<0)return false;
     if(TAB==='appointed'){if(!last||r.license_status!==last)return false;}
     else if(TAB==='licensing'){if(last&&r.license_status===last)return false;}
     if(!q)return true;
@@ -896,7 +919,7 @@ function openNotif(){
 
 $('ov').addEventListener('click',function(e){if(e.target===this)closeDrawer();});
 (function(){
-  try{var s=sessionStorage.getItem('tsfg_ops');if(s){OPS=JSON.parse(s);if(OPS&&OPS.code){showApp();return;}}}catch(e){}
+  try{var s=sessionStorage.getItem('tsfg_ops');if(s){OPS=JSON.parse(s);try{var bs=sessionStorage.getItem('tsfg_ops_bsscope');BSSCOPE=bs?JSON.parse(bs):null;}catch(e2){BSSCOPE=null;}if(OPS&&OPS.code){showApp();return;}}}catch(e){}
   var qc='',qn='';try{var q=new URLSearchParams(location.search);qc=q.get('code')||'';qn=q.get('name')||'';}catch(e){}
   if(!qc){try{qc=localStorage.getItem('tsfg_code')||'';qn=localStorage.getItem('tsfg_name')||'';}catch(e){}}
   if(qc)$('gCode').value=qc;if(qn)$('gName').value=qn;
