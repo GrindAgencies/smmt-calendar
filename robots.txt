@@ -1,0 +1,4 @@
+# The Standard Financial Group — internal agent platform.
+# Not a public website: keep out of search engines.
+User-agent: *
+Disallow: /
