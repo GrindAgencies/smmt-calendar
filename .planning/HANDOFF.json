@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-07-25T16:11:27.531Z",
+  "timestamp": "2026-07-25T16:17:52.715Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -19,8 +19,12 @@
     {
       "status": "M",
       "path": ".planning/HANDOFF.json"
+    },
+    {
+      "status": "M",
+      "path": "team.html"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\n74bc624 Update HANDOFF.json\n140af55 Scheduler Calendar tab: 30-day month view + Calendly appointments + click-a-day import\n4415165 Update HANDOFF.json\n29a0ba3 New Business split model: one policy, both agents, share-weighted (no doubling)\nac1e05f Org Chart: show profile photos on cards (faces across the platform)"
+  "context_notes": "Recent commits:\nae4ccd9 Update HANDOFF.json\n74bc624 Update HANDOFF.json\n140af55 Scheduler Calendar tab: 30-day month view + Calendly appointments + click-a-day import\n4415165 Update HANDOFF.json\n29a0ba3 New Business split model: one policy, both agents, share-weighted (no doubling)"
 }
