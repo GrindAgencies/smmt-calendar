@@ -194,10 +194,12 @@ const $=(id)=>document.getElementById(id);
 function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2100);}
 function initials(name){ const p=(name||'').trim().split(/\s+/).filter(x=>x&&x!=='&'); return (((p[0]||'')[0]||'')+((p[1]||'')[0]||'')).toUpperCase(); }
-function isMgr(lvl){ return /marketing director|executive|national vice|senior executive/i.test(lvl||''); }
-function levelChip(lvl){ const l=(lvl||'').toLowerCase();
-  if(/national vice/.test(l))return 'NVP'; if(/senior executive/.test(l))return 'SEVP';
-  if(/executive marketing/.test(l))return 'EMD'; if(/marketing director/.test(l))return 'MD';
+function isMgr(lvl){ var l=(lvl||'').toLowerCase().trim(); return /marketing director|executive|national vice|senior executive/.test(l)||l==='emd'||l==='md'||l==='nvp'||l==='sevp'; }
+function levelChip(lvl){ var l=(lvl||'').toLowerCase().trim();
+  if(l==='sevp'||/senior executive/.test(l))return 'SEVP';
+  if(l==='nvp'||/national vice/.test(l))return 'NVP';
+  if(l==='emd'||/executive marketing/.test(l))return 'EMD';
+  if(l==='md'||/marketing director/.test(l))return 'MD';
   if(/senior/.test(l))return 'Sr Assoc'; return ''; }
 
 function reindex(){
@@ -208,9 +210,9 @@ function reindex(){
 }
 function descendants(code){ const out=new Set(); (function w(c){ (KIDS[c]||[]).forEach(k=>{ if(!out.has(k)){out.add(k);w(k);} }); })(code); return out; }
 function colorClass(n){
-  const l=(n.level||'').toLowerCase();
-  if(/executive|national vice|senior executive/.test(l)) return 'c-exec';
-  if(/marketing director/.test(l)) return 'c-senior';
+  const l=(n.level||'').toLowerCase().trim();
+  if(/executive|national vice|senior executive/.test(l)||l==='emd'||l==='nvp'||l==='sevp') return 'c-exec';
+  if(/marketing director/.test(l)||l==='md') return 'c-senior';
   if(n.active) return 'c-green';
   if(n.days_inactive==null) return 'c-none';
   if(n.days_inactive<=45) return 'c-yellow';

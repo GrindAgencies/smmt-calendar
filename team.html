@@ -116,7 +116,12 @@ function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){retu
 function toast(m){var t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(function(){t.classList.remove('show');},2100);}
 function initials(n){var p=(n||'').trim().split(/\s+/).filter(function(x){return x&&x!=='&';});return (((p[0]||'')[0]||'')+((p[1]||'')[0]||'')).toUpperCase();}
 function actClass(n){if(n.active)return 'g';if(n.days_inactive==null)return 'n';if(n.days_inactive<=45)return 'y';return 'r';}
-function lvlBadge(lvl){var l=(lvl||'').toLowerCase();if(/executive|national vice|senior executive/.test(l))return '<span class="tbadge emd">EMD</span>';if(/marketing director/.test(l))return '<span class="tbadge md">MD</span>';return '';}
+function lvlBadge(lvl){var l=(lvl||'').toLowerCase().trim();var lab='';
+  if(l==='sevp'||/senior executive/.test(l))lab='SEVP';
+  else if(l==='nvp'||/national vice/.test(l))lab='NVP';
+  else if(l==='emd'||/executive marketing/.test(l))lab='EMD';
+  else if(l==='md'||/marketing director/.test(l))lab='MD';
+  if(!lab)return '';return '<span class="tbadge '+(lab==='MD'?'md':'emd')+'">'+lab+'</span>';}
 
 function load(code){
   VIEW=(code||CODE||'').toUpperCase();
