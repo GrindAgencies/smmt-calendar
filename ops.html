@@ -558,16 +558,32 @@ function nbColsSave(){var cols=NBCOLDRAFT.filter(function(c){return (c.label||''
   nbApi({action:'nb_set_columns',columns:cols}).then(function(r){if(!r||!r.ok){toast((r&&r.error)||'Could not save');return;}NBCOLS=r.columns||cols;if(NBSORT.k!=='__notes'&&!NBCOLS.some(function(c){return c.key===NBSORT.k;}))NBSORT.k=(NBCOLS[0]&&NBCOLS[0].key)||'client_name';toast('Columns saved ✓');closeDrawer();paintNewbiz();});}
 /* ---- Calendly Command Center ---- */
 var BOOKINGS=[];
+/* per-baseshop scoping for bookings — map each booking's CFT (agent_code) to a baseshop via the roster */
+function bkBsMap(){var m={};(ROWS||[]).forEach(function(r){if(r.code)m[String(r.code).toUpperCase()]=r.baseshop;});return m;}
+function scopedBookings(){if(!BSSCOPE)return BOOKINGS;var m=bkBsMap();return BOOKINGS.filter(function(b){return BSSCOPE.indexOf(m[String(b.agent_code||'').toUpperCase()])>=0;});}
+function computeBookingAnalytics(list){
+  var now=new Date();var tm=now.toISOString().slice(0,7);
+  var total=list.length,canceled=0,upcoming=0,active=0,thisMonth=0,byType={},byMonth={},byAgent={};
+  list.forEach(function(b){var isCan=(b.status==='canceled'||b.status==='cancelled');if(isCan)canceled++;else active++;
+    if(b.start_time){var st=new Date(b.start_time);if(st>=now&&!isCan)upcoming++;var mo=String(b.start_time).slice(0,7);byMonth[mo]=(byMonth[mo]||0)+1;if(mo===tm)thisMonth++;}
+    var ty=b.event_type_name||b.name||'Other';byType[ty]=(byType[ty]||0)+1;
+    var an=b.agent_name||b.agent_code||'';if(an){if(!byAgent[an])byAgent[an]={name:an,code:b.agent_code,count:0};byAgent[an].count++;}});
+  return {total:total,active:active,upcoming:upcoming,cancel_rate:total?Math.round(canceled*100/total):0,this_month:thisMonth,
+    by_type:Object.keys(byType).map(function(k){return {type:k,count:byType[k]};}).sort(function(a,b){return b.count-a.count;}),
+    by_month:Object.keys(byMonth).sort().map(function(k){return {month:k,count:byMonth[k]};}),
+    by_agent:Object.keys(byAgent).map(function(k){return byAgent[k];}).sort(function(a,b){return b.count-a.count;})};
+}
 function renderBookings(){
   var host=$('bookingsHost');if(!host)return;host.innerHTML='<div class="spin">Loading Calendly bookings…</div>';
   calApi(calBody({action:'analytics'})).then(function(r){var a=(r&&r.analytics)||{};
-    calApi(calBody({action:'bookings',limit:400})).then(function(rb){BOOKINGS=(rb&&rb.events)||[];paintBookings(a);})
+    calApi(calBody({action:'bookings',limit:(BSSCOPE?2000:400)})).then(function(rb){BOOKINGS=(rb&&rb.events)||[];paintBookings(a);})
       .catch(function(){paintBookings(a);});
   }).catch(function(){host.innerHTML='<div class="empty">Could not load bookings. Connect Calendly in your Profile.</div>';});
 }
 function bstat(n,l){return '<div class="stat"><div class="n">'+esc(String(n))+'</div><div class="l">'+esc(l)+'</div></div>';}
 function paintBookings(a){
   var host=$('bookingsHost');if(!host)return;
+  if(BSSCOPE){a=computeBookingAnalytics(scopedBookings());}
   var stats='<div class="cc-grid">'+bstat(a.total||0,'Total bookings')+bstat(a.active||0,'Active')+bstat(a.upcoming||0,'Upcoming')+bstat((a.cancel_rate||0)+'%','Cancel rate')+bstat(a.this_month||0,'This month')+'</div>';
   var types=(a.by_type||[]).slice(0,8);var mx=types.length?(types[0].count||1):1;
   var typePanel='<div class="cc-panel"><h3>Bookings by type</h3>'+(types.length?types.map(function(t){var pct=Math.max(3,Math.round(t.count*100/mx));return '<div class="bar-row"><span class="bl" title="'+esc(t.type)+'">'+esc(t.type)+'</span><span class="bt"><span style="width:'+pct+'%"></span></span><span class="bv">'+t.count+'</span></div>';}).join(''):'<div class="sub">No data</div>')+'</div>';
@@ -575,14 +591,14 @@ function paintBookings(a){
   var trendPanel='<div class="cc-panel"><h3>Monthly trend</h3><div class="trend">'+(months.length?months.map(function(m){var h=Math.max(4,Math.round(m.count*80/mmax));return '<div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end"><div class="tb" style="height:'+h+'px"><span class="tv">'+m.count+'</span></div><div class="tl">'+esc(m.month.slice(2))+'</div></div>';}).join(''):'<div class="sub">No data</div>')+'</div></div>';
   var agents=(a.by_agent||[]).slice(0,10);
   var agentPanel=(agents.length>1)?('<div class="cc-panel"><h3>Bookings by CFT</h3>'+agents.map(function(g){return '<div class="bar-row"><span class="bl">'+esc(g.name||g.code)+'</span><span class="bt"><span style="width:'+Math.max(3,Math.round(g.count*100/(agents[0].count||1)))+'%"></span></span><span class="bv">'+g.count+'</span></div>';}).join('')+'</div>'):'';
-  var up=BOOKINGS.filter(function(b){return b.start_time && new Date(b.start_time)>=new Date() && b.status!=='canceled' && b.status!=='cancelled';}).slice(0,12);
+  var up=scopedBookings().filter(function(b){return b.start_time && new Date(b.start_time)>=new Date() && b.status!=='canceled' && b.status!=='cancelled';}).slice(0,12);
   var feedPanel='<div class="cc-panel"><h3>Upcoming</h3>'+(up.length?up.map(function(b){return '<div class="feedrow"><div class="fd">'+esc(fmtDT(b.start_time))+'</div><div class="fn">'+esc(b.name||'')+(b.invitee_name?(' · '+esc(b.invitee_name)):'')+'</div>'+(b.join_url?('<a class="dbtn blue" style="padding:5px 11px;font-size:12px;text-decoration:none" href="'+esc(b.join_url)+'" target="_blank" rel="noopener">Join</a>'):'')+'</div>';}).join(''):'<div class="sub">No upcoming bookings.</div>')+'</div>';
   host.innerHTML=stats+'<div class="cc-2col">'+typePanel+trendPanel+'</div>'+agentPanel+feedPanel+'<div class="cc-panel"><h3>All bookings <span id="bkCount" style="color:var(--ink3);font-weight:700"></span></h3><div class="tablewrap" style="max-height:52vh;box-shadow:none"><table class="ptable" style="min-width:640px"><thead><tr><th>When</th><th>Type</th><th>Booked by</th><th>CFT</th><th>Status</th></tr></thead><tbody id="bkRows"></tbody></table></div></div>';
   renderBookingsTable();
 }
 function renderBookingsTable(){
   var q=($('search').value||'').trim().toLowerCase();
-  var rows=BOOKINGS.filter(function(b){if(!q)return true;return ((b.name||'')+' '+(b.invitee_name||'')+' '+(b.agent_name||'')+' '+(b.status||'')).toLowerCase().indexOf(q)>=0;});
+  var rows=scopedBookings().filter(function(b){if(!q)return true;return ((b.name||'')+' '+(b.invitee_name||'')+' '+(b.agent_name||'')+' '+(b.status||'')).toLowerCase().indexOf(q)>=0;});
   var el=$('bkRows');if(!el)return;
   el.innerHTML=rows.length?rows.slice(0,300).map(function(b){var canceled=(b.status==='canceled'||b.status==='cancelled');return '<tr><td>'+esc(fmtDT(b.start_time))+'</td><td>'+esc(b.name||'')+'</td><td>'+(b.invitee_name?esc(b.invitee_name):'<span class="sub">—</span>')+'</td><td>'+esc(b.agent_name||'')+'</td><td><span class="pill '+(canceled?'none':'lic')+'">'+esc(b.status||'')+'</span></td></tr>';}).join(''):'<tr><td colspan="5" class="empty">No matching bookings.</td></tr>';
   var c=$('bkCount');if(c)c.textContent='· '+rows.length;
