@@ -224,6 +224,7 @@ a{color:inherit;text-decoration:none;}.hide{display:none!important;}
 var TA="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/tracker-api";
 var AT="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/atlas-api";
 var AVP="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/av-prefs";
+var GOAUTH="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/google-oauth";
 var TZLIST=[['America/Los_Angeles','Pacific (PT)'],['America/Denver','Mountain (MT)'],['America/Phoenix','Arizona (no DST)'],['America/Chicago','Central (CT)'],['America/New_York','Eastern (ET)'],['America/Anchorage','Alaska (AKT)'],['Pacific/Honolulu','Hawaii (HT)'],['America/Puerto_Rico','Atlantic (AST)']];
 function tzLabel(tz){for(var i=0;i<TZLIST.length;i++)if(TZLIST[i][0]===tz)return TZLIST[i][1];return tz?tz.split('/').pop().replace(/_/g,' '):'';}
 function tzAbbrev(tz){var m={'America/Los_Angeles':'PT','America/Denver':'MT','America/Phoenix':'MST','America/Chicago':'CT','America/New_York':'ET','America/Anchorage':'AKT','Pacific/Honolulu':'HT','America/Puerto_Rico':'AST'};return m[tz]||'PT';}
@@ -541,15 +542,42 @@ function saveTimezone(){var me=myTrainerProfile();if(!me)return toast('Trainer p
     toast('Time zone saved');renderAvail();
   }).catch(function(){toast('Network error');});}
 function connectGoogle(){openCalSync();}
+/* ===== Google Calendar one-click connect ===== */
+function gcalRender(st){var box=$('gcalBox');if(!box)return;
+  if(st&&st.connected){
+    box.innerHTML='<div style="display:flex;align-items:center;gap:11px;padding:13px 14px;border:1px solid var(--green,#1a9c52);border-radius:12px;background:rgba(26,156,82,.08)">'
+      +'<div style="font-size:24px">🟢</div>'
+      +'<div style="flex:1;min-width:0"><div style="font-weight:800;font-size:14px">Google Calendar connected</div><div style="font-size:12px;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(st.email||'')+(st.last_sync_at?(' · synced '+esc(new Date(st.last_sync_at).toLocaleDateString())):'')+'</div></div>'
+      +'<button onclick="resyncGoogle()" style="border:1px solid var(--line2);background:var(--panel);color:var(--ink);font-weight:700;font-size:12px;padding:7px 11px;border-radius:9px;cursor:pointer">Resync</button>'
+      +'<button onclick="disconnectGoogle()" style="border:none;background:transparent;color:var(--red);font-weight:700;font-size:12px;padding:7px 6px;cursor:pointer">Disconnect</button>'
+      +'</div>';
+  }else{
+    box.innerHTML='<button onclick="connectGoogleCal(this)" style="width:100%;border:none;padding:13px;border-radius:12px;font-weight:800;font-size:14.5px;background:var(--accent);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px"><span style="font-size:18px">📅</span> Connect Google Calendar — 1 click</button>'
+      +'<div style="font-size:11.5px;color:var(--ink3);margin-top:8px;line-height:1.45">One tap, then choose your Google account and press <b>Allow</b>. We only read your <b>busy times</b> to block bookings — never your event details, and we can\'t change anything.<br><span style="color:var(--gold)">First time:</span> Google shows a <b>“not verified”</b> notice (it’s our own new app) — tap <b>Advanced → Continue</b>, then <b>Allow</b>.</div>';
+  }}
+function loadGcal(){if(!CODE)return;var box=$('gcalBox');if(box)box.innerHTML='<div class="spin" style="padding:10px">Checking Google…</div>';
+  fetch(GOAUTH,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'status',code:CODE})}).then(function(r){return r.json();}).then(gcalRender).catch(function(){var b=$('gcalBox');if(b)b.innerHTML='';});}
+function connectGoogleCal(btn){if(btn){btn.disabled=true;btn.textContent='Opening Google…';}
+  fetch(GOAUTH,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'auth_url',code:CODE})}).then(function(r){return r.json();}).then(function(r){
+    if(!r||!r.ok||!r.url){toast('Could not start Google connect');loadGcal();return;}
+    var w=window.open(r.url,'gcal','width=520,height=700');if(!w){window.location.href=r.url;}
+  }).catch(function(){toast('Network error');loadGcal();});}
+function resyncGoogle(){toast('Syncing your Google calendar…');
+  fetch(GOAUTH,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'sync',code:CODE})}).then(function(r){return r.json();}).then(function(r){toast(r&&r.ok?('Synced — '+(r.busy_blocks||0)+' busy block'+((r.busy_blocks===1)?'':'s')+' imported'):'Sync failed');loadGcal();}).catch(function(){toast('Network error');});}
+function disconnectGoogle(){if(!confirm('Disconnect Google Calendar? Your Google busy times will no longer block bookings.'))return;
+  fetch(GOAUTH,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'disconnect',code:CODE})}).then(function(r){return r.json();}).then(function(){toast('Google Calendar disconnected');loadGcal();}).catch(function(){toast('Network error');});}
+window.addEventListener('message',function(ev){try{if(ev&&ev.data&&ev.data.source==='google-oauth'){setTimeout(loadGcal,700);}}catch(e){}});
 function loadCalSyncStatus(){var el=$('calSyncStatus');if(!el)return;fetch(CS,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'get_feeds',code:CODE})}).then(function(r){return r.json();}).then(function(r){el=$('calSyncStatus');if(!el)return;if(!r||!r.ok){el.textContent='';return;}if(!(r.google_ics||r.apple_ics)){el.innerHTML='⚪ Not connected — set up sync to block your outside appointments.';el.style.color='var(--ink3)';return;}var when=r.last_synced?(' · last synced '+esc(new Date(r.last_synced).toLocaleDateString())):'';el.innerHTML='🟢 Connected — '+r.busy_count+' busy block'+(r.busy_count===1?'':'s')+' imported'+when;el.style.color='var(--green,#1a9c52)';}).catch(function(){});}
 function openCalSync(){
   fetch(CS,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'get_feeds',code:CODE})}).then(function(r){return r.json();}).then(function(r){r=r||{};
-    $('bkDrawer').innerHTML='<h3>Calendar Sync</h3><p class="dsub">Import your outside appointments so no one double-books you. Read-only — we never change your calendar.</p>'
+    $('bkDrawer').innerHTML='<h3>Calendar Sync</h3><p class="dsub">Connect your calendar so no one can double-book you. Read-only — we never change your calendar.</p>'
+      +'<div id="gcalBox" style="margin-bottom:8px"><div class="spin" style="padding:10px">Checking Google…</div></div>'
+      +'<details style="margin:6px 0 4px"><summary style="cursor:pointer;font-weight:700;font-size:12.5px;color:var(--ink2);padding:6px 0">Other calendars (Apple, Outlook, or paste an iCal link)</summary>'
       +'<div style="padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--panel);margin-bottom:12px"><label style="'+_LST+'">Google Calendar — secret iCal address</label><input id="cs_google" style="'+_IST+'" value="'+esc(r.google_ics||'')+'" placeholder="https://calendar.google.com/calendar/ical/…/basic.ics"><div style="font-size:11.5px;color:var(--ink3);margin-top:7px;line-height:1.4">Google Calendar → <b>Settings</b> → click your calendar → <b>Integrate calendar</b> → copy the <b>Secret address in iCal format</b>. This already includes your Calendly events.</div></div>'
       +'<div style="padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--panel);margin-bottom:12px"><label style="'+_LST+'">Apple Calendar — public link (optional)</label><input id="cs_apple" style="'+_IST+'" value="'+esc(r.apple_ics||'')+'" placeholder="webcal://… or https://…ics"><div style="font-size:11.5px;color:var(--ink3);margin-top:7px;line-height:1.4">On Mac: right-click the calendar → <b>Share Calendar</b> → tick <b>Public Calendar</b> → copy the link.</div></div>'
-      +'<div id="cs_msg" style="font-size:12.5px;font-weight:700;color:var(--ink3);min-height:16px"></div>'
-      +'<div class="dact" style="margin-top:12px;gap:8px"><button class="go" id="cs_save" onclick="saveCalSync()">Save &amp; sync</button><button class="x can" onclick="$(\'bkOv\').classList.remove(\'on\')">Close</button></div>';
-    $('bkOv').classList.add('on');
+      +'</details><div id="cs_msg" style="font-size:12.5px;font-weight:700;color:var(--ink3);min-height:16px"></div>'
+      +'<div class="dact" style="margin-top:12px;gap:8px"><button class="go" id="cs_save" onclick="saveCalSync()">Save &amp; sync link</button><button class="x can" onclick="$(\'bkOv\').classList.remove(\'on\')">Close</button></div>';
+    $('bkOv').classList.add('on');loadGcal();
   }).catch(function(){toast('Could not open sync setup');});
 }
 function saveCalSync(){
