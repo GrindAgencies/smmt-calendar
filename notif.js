@@ -179,3 +179,40 @@
     }
   }catch(e){}
 })();
+
+/* ===== Native app push registration (added 2026-07-24) =====
+   When the site runs INSIDE the Capacitor iOS/Android app, register the device
+   for push and store its token in Supabase (device_tokens). No-op in a browser.
+   Actual push SENDING is phase 2 — needs the Apple .p8 push key. */
+(function(){
+  try{
+    var C = window.Capacitor;
+    if(!C || !C.isNativePlatform || !C.isNativePlatform()) return;      // browser => skip
+    var Push = C.Plugins && C.Plugins.PushNotifications;
+    if(!Push) return;
+
+    function saveToken(token){
+      try{
+        var base = (window.SUPABASE_URL || 'https://bmfqxtocxkjhsgfnndlo.supabase.co');
+        var key  = window.SUPABASE_KEY; if(!key) return;
+        var code = localStorage.getItem('tsfg_code') || null;
+        var name = localStorage.getItem('tsfg_name') || null;
+        fetch(base + '/rest/v1/device_tokens?on_conflict=token', {
+          method:'POST',
+          headers:{ 'apikey':key, 'Authorization':'Bearer '+key,
+                    'Content-Type':'application/json',
+                    'Prefer':'resolution=merge-duplicates,return=minimal' },
+          body: JSON.stringify({ token:token, platform:(C.getPlatform&&C.getPlatform())||'ios',
+                                 agent_code:code, agent_name:name, last_seen:new Date().toISOString() })
+        }).catch(function(){});
+      }catch(e){}
+    }
+
+    Push.addListener('registration', function(t){ if(t&&t.value) saveToken(t.value); });
+    Push.addListener('registrationError', function(){});
+    Push.checkPermissions().then(function(p){
+      if(p.receive === 'granted'){ Push.register(); }
+      else { Push.requestPermissions().then(function(r){ if(r.receive==='granted') Push.register(); }); }
+    }).catch(function(){});
+  }catch(e){}
+})();
