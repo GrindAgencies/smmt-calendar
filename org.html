@@ -58,8 +58,8 @@ a{color:inherit}
 .card{position:relative;display:flex;flex-direction:column;align-items:center;gap:5px;width:140px;border:1px solid #ececf0;border-top-width:4px;border-radius:14px;background:linear-gradient(170deg,#ffffff,#fbfbfd);padding:12px 10px 12px;box-shadow:0 3px 12px rgba(0,0,0,.3);transition:border-color .14s,transform .1s,opacity .14s;user-select:none;-webkit-user-select:none;}
 .card:hover{border-color:#4a3f1c;}
 .card.dim{opacity:.3;}
-.av{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:15px;color:#fbfbfd;box-shadow:inset 0 0 0 2px rgba(255,255,255,.15);overflow:hidden;}
-.av img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
+.av{position:relative;width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:15px;color:#fbfbfd;box-shadow:inset 0 0 0 2px rgba(255,255,255,.15);overflow:hidden;}
+.av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%;}
 .nm{font-weight:800;font-size:13px;color:#1d1d1f;line-height:1.15;text-align:center;cursor:pointer;}
 .nm:hover{text-decoration:underline;text-decoration-color:#7fb0e6;text-underline-offset:2px;}
 .cmeta{display:flex;align-items:center;gap:5px;flex-wrap:wrap;justify-content:center;}
@@ -184,7 +184,7 @@ input,textarea,select{border-radius:12px;}
 
 <script>
 const ORGAPI="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/org-api";
-const AVAPI="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/av-prefs"; // reserved
+const AVATAR="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/avatar";
 let CODE="", NAME="";
 try{ CODE=(localStorage.getItem('tsfg_code')||'').toUpperCase(); NAME=localStorage.getItem('tsfg_name')||''; }catch(e){}
 let NODES=[], byCode={}, KIDS={}, ROOTS=[], UNASSIGNED=[];
@@ -224,7 +224,7 @@ function renderNode(code){
   const cc=colorClass(n); const dim=(SEARCH&&!nameHit(n))?' dim':'';
   const lc=levelChip(n.level);
   let c='<div class="card '+cc+dim+'" data-id="'+esc(code)+'">';
-  c+='<div class="av '+cc+'">'+(n.photo?('<img src="'+esc(n.photo)+'" alt="">'):esc(initials(n.name)))+'</div>';
+  c+='<div class="av '+cc+'">'+(n.has_photo?('<img src="'+AVATAR+'?code='+encodeURIComponent(code)+'" alt="" loading="lazy" onerror="this.remove()">'):'')+esc(initials(n.name))+'</div>';
   c+='<div class="nm" onclick="openInfo(event,\''+esc(code)+'\')">'+esc(n.name)+'</div>';
   c+='<div class="cmeta">';
   if(lc){ const rc=(cc==='c-exec'||cc==='c-senior')?cc:''; c+='<span class="role '+rc+'" '+(rc?'':'style="background:#eef0f4;color:#5c5c66;border:1px solid #d7d7de"')+'>'+lc+'</span>'; }
