@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-07-25T05:54:51.796Z",
+  "timestamp": "2026-07-25T06:22:55.432Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -19,8 +19,12 @@
     {
       "status": "M",
       "path": ".planning/HANDOFF.json"
+    },
+    {
+      "status": "M",
+      "path": "newbusiness.html"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\ndd6ad22 Merge branch 'main' of https://github.com/GrindAgencies/smmt-calendar\n454cde9 Update HANDOFF.json\n8ba2864 Swap PWA/home-screen icons to the gold Grind emblem (app icon brand match)\n51d8b5e Native push registration: register device + store APNs/FCM token in device_tokens when running inside Capacitor app (no-op in browser)\nd9d7e6f Profile photo upload: resize/compress in-browser so any phone photo saves"
+  "context_notes": "Recent commits:\nac1e05f Org Chart: show profile photos on cards (faces across the platform)\n89747f4 Org Chart rebuilt on the single-source hierarchy engine (org-api)\nbc8296c Merge branch 'main' of https://github.com/GrindAgencies/smmt-calendar\n0a1e660 Update HANDOFF.json\n57d31c9 Add privacy policy page (required for App Store submission)"
 }
