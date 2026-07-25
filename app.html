@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>The Standard — App</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#0b0f1a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="The Standard">
+<style>
+  :root{ --bg:#0b0f1a; --panel:rgba(255,255,255,.045); --panel-b:rgba(255,255,255,.09);
+    --ink:#f5f6fa; --ink2:#aab0c0; --gold:#c99a2e; --gold2:#e4be6e; --accent:#5b6cff;
+    --font:'Inter',-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',system-ui,sans-serif; }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;height:100%;}
+  body{ font-family:var(--font); color:var(--ink);
+    background:
+      radial-gradient(1100px 600px at 50% -10%, rgba(201,154,46,.10), transparent 60%),
+      radial-gradient(900px 700px at 100% 110%, rgba(91,108,255,.10), transparent 55%),
+      var(--bg);
+    min-height:100%; padding:calc(env(safe-area-inset-top) + 22px) 20px calc(env(safe-area-inset-bottom) + 26px);
+    -webkit-font-smoothing:antialiased; }
+  header{ display:flex; align-items:center; gap:12px; margin:6px 2px 26px; }
+  .mark{ width:44px;height:44px;border-radius:13px;border:1.5px solid var(--gold);
+    display:flex;align-items:center;justify-content:center;color:var(--gold2);
+    font-weight:800;font-size:17px;letter-spacing:.5px;background:rgba(201,154,46,.06); }
+  .brand{line-height:1.05;}
+  .brand b{display:block;font-size:17px;font-weight:800;letter-spacing:.2px;}
+  .brand span{font-size:12px;color:var(--ink2);}
+  h1{font-size:15px;font-weight:600;color:var(--ink2);margin:0 2px 14px;}
+  .grid{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .tile{ appearance:none;-webkit-appearance:none;text-align:left;cursor:pointer;
+    border:1px solid var(--panel-b); background:var(--panel); color:inherit;
+    border-radius:20px; padding:18px 16px 16px; min-height:132px;
+    display:flex; flex-direction:column; justify-content:space-between; gap:10px;
+    transition:transform .12s ease, border-color .12s ease, background .12s ease; }
+  .tile:active{ transform:scale(.97); border-color:var(--gold); background:rgba(201,154,46,.07); }
+  .tile .ic{ font-size:30px; line-height:1; }
+  .tile .tl{ font-size:16.5px; font-weight:750; letter-spacing:.1px; }
+  .tile .sb{ font-size:12px; color:var(--ink2); margin-top:2px; }
+  .full{ display:block; text-align:center; margin:26px auto 0; padding:13px;
+    color:var(--ink2); font-size:13.5px; text-decoration:none; border-radius:14px;
+    border:1px solid var(--panel-b); background:var(--panel); }
+  .full:active{ border-color:var(--gold); }
+  .badge{ display:inline-block;min-width:8px;height:8px;border-radius:50%;background:var(--accent);
+    margin-left:6px;vertical-align:middle; }
+</style>
+</head>
+<body>
+  <header>
+    <div class="mark">TS</div>
+    <div class="brand"><b>The Standard</b><span>Financial Group</span></div>
+  </header>
+  <h1>Welcome — what do you need?</h1>
+  <div class="grid">
+    <button class="tile" onclick="location.href='teamhub.html'">
+      <div class="ic">💬</div>
+      <div><div class="tl">Team Hub</div><div class="sb">Chat, channels &amp; recognition</div></div>
+    </button>
+    <button class="tile" onclick="location.href='newbusiness.html'">
+      <div class="ic">🧾</div>
+      <div><div class="tl">New Business</div><div class="sb">Log &amp; track your policies</div></div>
+    </button>
+    <button class="tile" onclick="location.href='calendar.html'">
+      <div class="ic">📅</div>
+      <div><div class="tl">Scheduler</div><div class="sb">Book trainings &amp; appointments</div></div>
+    </button>
+    <button class="tile" onclick="openNotifs()">
+      <div class="ic">🔔</div>
+      <div><div class="tl">Notifications</div><div class="sb">Your alerts &amp; mentions</div></div>
+    </button>
+  </div>
+  <a class="full" href="index.html">Open the full platform →</a>
+
+  <script>
+    // Notifications tile opens the shared bell panel (injected by notif.js)
+    function openNotifs(){
+      var b=document.querySelector('.ntf-btn');
+      if(b){ b.click(); }
+      else { location.href='index.html'; } // fallback if bell not ready
+    }
+    // register the service worker directly too (belt + braces; notif.js also does it)
+    if('serviceWorker' in navigator){
+      window.addEventListener('load',function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); });
+    }
+  </script>
+  <script defer src="notif.js"></script>
+</body>
+</html>

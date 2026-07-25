@@ -159,3 +159,23 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
   else start();
 })();
+
+/* ===== PWA install support (added 2026-07-18) =====
+   One place wires "Add to Home Screen" for every page that loads notif.js.
+   Injects the manifest + Apple meta tags and registers the service worker. */
+(function(){
+  try{
+    var head=document.head||document.getElementsByTagName('head')[0]; if(!head)return;
+    function meta(n,c){ if(!document.querySelector('meta[name="'+n+'"]')){var m=document.createElement('meta');m.name=n;m.content=c;head.appendChild(m);} }
+    function link(rel,href){ if(!document.querySelector('link[rel="'+rel+'"]')){var l=document.createElement('link');l.rel=rel;l.href=href;head.appendChild(l);} }
+    link('manifest','manifest.json');
+    link('apple-touch-icon','apple-touch-icon.png');
+    meta('theme-color','#0b0f1a');
+    meta('apple-mobile-web-app-capable','yes');
+    meta('apple-mobile-web-app-status-bar-style','black-translucent');
+    meta('apple-mobile-web-app-title','The Standard');
+    if('serviceWorker' in navigator){
+      window.addEventListener('load',function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); });
+    }
+  }catch(e){}
+})();
