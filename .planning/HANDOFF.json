@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-07-27T05:02:58.405Z",
+  "timestamp": "2026-07-27T05:17:24.608Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -19,8 +19,12 @@
     {
       "status": "M",
       "path": ".planning/HANDOFF.json"
+    },
+    {
+      "status": "M",
+      "path": "roadmap.html"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\n404a63c My Tracker V2 (Phase 3): Ops Roadmap Level Builder — no-code progression editor\necaa44b Merge branch 'main' of https://github.com/GrindAgencies/smmt-calendar\n9ac877d Update HANDOFF.json\n550b4b0 Scheduler My Schedule: New Appointment button (CFT+) — instant self-booking with title via sched-ext\nd427a85 Update HANDOFF.json"
+  "context_notes": "Recent commits:\nf12c506 Merge branch 'main' of https://github.com/GrindAgencies/smmt-calendar\n3201481 Update HANDOFF.json\n404a63c My Tracker V2 (Phase 3): Ops Roadmap Level Builder — no-code progression editor\n1938eae Dashboard leaderboard: widen cards + full names (no truncation) for recognition\necaa44b Merge branch 'main' of https://github.com/GrindAgencies/smmt-calendar"
 }
