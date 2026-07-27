@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-07-27T15:37:25.260Z",
+  "timestamp": "2026-07-27T23:29:11.978Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -19,12 +19,8 @@
     {
       "status": "M",
       "path": ".planning/HANDOFF.json"
-    },
-    {
-      "status": "M",
-      "path": "newbusiness.html"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\ne7bd6ea Update HANDOFF.json\nbbeca40 New Business: fix split commission double-counting\nbd93ea4 Update HANDOFF.json\nd501df9 Ops: cashflow control now lives on the agent profile card\n7e470d1 Merge branch 'main' of https://github.com/GrindAgencies/smmt-calendar"
+  "context_notes": "Recent commits:\nda54608 Update HANDOFF.json\n2380bed New Business: optional partner contract % for splits (each side at its own rate)\ne7bd6ea Update HANDOFF.json\nbbeca40 New Business: fix split commission double-counting\nbd93ea4 Update HANDOFF.json"
 }
