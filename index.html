@@ -394,7 +394,7 @@ button{font-family:inherit;cursor:pointer;}
       <button class="tb-toggle" onclick="toggleSidebar()" aria-label="Menu">${ICON.menu}</button>
       <div class="tb-search">${ICON.search}<input type="text" placeholder="Search agents, leads, resources…" onkeydown="if(event.key==='Enter')location.href='marketing.html'"></div>
       <div class="tb-spacer"></div>
-      <div class="ctx"><button id="ctxMe" class="on" onclick="setCtx('me')">Personal</button><button id="ctxShop" onclick="setCtx('shop')">Baseshop</button><button id="ctxOrg" onclick="setCtx('org')">Hierarchy</button></div>
+      <div class="ctx"><button id="ctxMe" class="on" onclick="setCtx('me')">Personal</button><button id="ctxTeam" onclick="setCtx('team')">Team</button><button id="ctxShop" onclick="setCtx('shop')">Baseshop</button><button id="ctxOrg" onclick="setCtx('org')">Hierarchy</button></div>
       <button class="tb-ic" onclick="toggleTheme()" aria-label="Theme" id="themeBtn">${ICON.moon}</button>
       <button class="tb-ic" aria-label="Notifications" onclick="location.href='dashboard.html'">${ICON.bell}<span class="dot"></span></button>
     </div>
@@ -694,10 +694,11 @@ function loadData(){
 }
 
 /* ---------- CONTEXT TOGGLE ---------- */
-function setCtx(c){CTX=c;$('ctxMe').classList.toggle('on',c==='me');$('ctxShop').classList.toggle('on',c==='shop');var o=$('ctxOrg');if(o)o.classList.toggle('on',c==='org');renderSnapshot();renderPerf();loadLeaderboard();}
+function setCtx(c){CTX=c;$('ctxMe').classList.toggle('on',c==='me');$('ctxShop').classList.toggle('on',c==='shop');var o=$('ctxOrg');if(o)o.classList.toggle('on',c==='org');var tm=$('ctxTeam');if(tm)tm.classList.toggle('on',c==='team');renderSnapshot();renderPerf();loadLeaderboard();}
 
 /* ---------- LEADERBOARD (live, game-like) ---------- */
 var LB="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/leaderboard-api";
+var TB="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/team-board";
 var HUB="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/hub-api";
 var HUBAV={},LBDATA=null,LBPREV={},LBSCOPEPREV=null,LBLAST=0,LBPOLL=null,LBSYNCT=null,LBCHAMPSEEN={},LBPERIOD='month';
 function setPeriod(p){LBPERIOD=p;LBPREV={};LBCHAMPSEEN={};var bs=document.querySelectorAll('.lbper button');for(var i=0;i<bs.length;i++)bs[i].classList.toggle('on',bs[i].getAttribute('data-p')===p);loadLeaderboard();}
@@ -726,12 +727,12 @@ function lbEsc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){re
 function lbVal(v,m){return m?money2(v):String(v);}
 function fmtFull(n,money){n=Math.round(Number(n)||0);return money?('$'+n.toLocaleString('en-US')):String(n);}
 function lbAv(code,name){var u=HUBAV[(code||'').toUpperCase()];if(u)return '<img src="'+u+'" alt="" style="width:100%;height:100%;object-fit:cover">';return lbEsc(initials(name));}
-function scopeFromCtx(){return CTX==='me'?'personal':(CTX==='shop'?'baseshop':'hierarchy');}
+function scopeFromCtx(){return CTX==='me'?'personal':(CTX==='team'?'team':(CTX==='shop'?'baseshop':'hierarchy'));}
 function loadAvatars(){fetch(HUB,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'hub_avatars'})}).then(function(r){return r.json();}).then(function(r){var m=(r&&r.avatars)||{};var out={};Object.keys(m).forEach(function(k){out[k.toUpperCase()]=m[k];});HUBAV=out;var sa=$('sideAv');if(sa&&HUBAV[(CODE||'').toUpperCase()])sa.innerHTML='<img src="'+HUBAV[(CODE||'').toUpperCase()]+'" alt="" style="width:100%;height:100%;object-fit:cover">';if(LBDATA)renderLeaderboard(LBDATA);}).catch(function(){});}
 function loadLeaderboard(){
   var scope=scopeFromCtx();var host=$('lbGrid');
   if(LBSCOPEPREV!==scope){LBPREV={};LBSCOPEPREV=scope;LBCHAMPSEEN={};}
-  fetch(LB,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'board',code:CODE,scope:scope,period:LBPERIOD})})
+  fetch(scope==='team'?TB:LB,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(scope==='team'?{code:CODE,period:LBPERIOD}:{action:'board',code:CODE,scope:scope,period:LBPERIOD})})
     .then(function(r){return r.json();}).then(function(r){if(!r||!r.ok){if(host&&!LBDATA)host.innerHTML='<div class="lb-empty" style="grid-column:1/-1">Leaderboard unavailable right now.</div>';return;}LBDATA=r;renderLeaderboard(r);LBLAST=Date.now();paintSynced();})
     .catch(function(){if(host&&!LBDATA)host.innerHTML='<div class="lb-empty" style="grid-column:1/-1">Leaderboard unavailable right now.</div>';});
 }
@@ -744,7 +745,7 @@ function lbCaptureRects(){var m={},host=$('lbGrid');if(!host)return m;var els=ho
 function lbPlayFlip(oldR){if(!oldR||(window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches))return;var host=$('lbGrid');if(!host)return;var els=host.querySelectorAll('[data-rowkey]');for(var i=0;i<els.length;i++){(function(el){var k=el.getAttribute('data-rowkey');if(oldR[k]==null)return;var d=oldR[k]-el.getBoundingClientRect().top;if(Math.abs(d)<1)return;el.style.transform='translateY('+d+'px)';el.style.transition='none';requestAnimationFrame(function(){requestAnimationFrame(function(){el.style.transition='transform .55s cubic-bezier(.2,.8,.2,1)';el.style.transform='';});});})(els[i]);}}
 function renderLeaderboard(r){
   var host=$('lbGrid');if(!host)return;var meCode=(CODE||'').toUpperCase();var _oldR=lbCaptureRects();
-  var lbl=$('lbCtxLbl');if(lbl)lbl.textContent=(r.scope==='personal'?'Your standing':(r.scope==='baseshop'?('Baseshop · '+r.base):'Whole company'))+' · '+r.month;
+  var lbl=$('lbCtxLbl');if(lbl)lbl.textContent=(r.scope==='personal'?'Your standing':(r.scope==='team'?('Your team · all levels · '+(r.team_size||0)+' members'):(r.scope==='baseshop'?('Baseshop · '+r.base):'Whole company')))+' · '+r.month;
   if(r.scope==='personal'){var _g=$('lbGrid');if(_g)_g.style.gridTemplateColumns='repeat(auto-fit,minmax(345px,1fr))';
     host.innerHTML=LBMETRICS.map(function(m){
       var b=(r.boards&&r.boards[m.key])||{value:0,rank_company:0,of_company:0,rank_base:0,of_base:0,leader:null};
