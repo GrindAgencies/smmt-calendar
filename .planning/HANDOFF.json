@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-07-27T05:31:04.512Z",
+  "timestamp": "2026-07-27T05:49:17.590Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -22,17 +22,9 @@
     },
     {
       "status": "M",
-      "path": "org.html"
-    },
-    {
-      "status": "M",
       "path": "roadmap.html"
-    },
-    {
-      "status": "M",
-      "path": "team.html"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\na60d1a0 Merge branch 'main' of https://github.com/GrindAgencies/smmt-calendar\n4494725 Update HANDOFF.json\ncb76596 My Tracker: full video-game gameboard — winding trail, world regions, character piece\n6d2c40a Scheduler: EMDs in trainer dropdown (manual-time via sched-ext), appointment title on staff-book, baseshop-specific trainings, EMD/MD team color-coding\n014e754 Scheduler: custom appointments — 'Your appointments' section with Edit/Delete; dedupes from trainer list; still shows in calendar (via sched-ext)"
+  "context_notes": "Recent commits:\nde78081 Update HANDOFF.json\nb1e85f0 My Tracker gameboard: climb UP, full-screen, per-world art, parallax, sound, customization + combined Team/Org tab\na60d1a0 Merge branch 'main' of https://github.com/GrindAgencies/smmt-calendar\n4494725 Update HANDOFF.json\ncb76596 My Tracker: full video-game gameboard — winding trail, world regions, character piece"
 }
