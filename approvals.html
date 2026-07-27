@@ -38,12 +38,12 @@
 <body>
 <div class="wrap">
   <header><div class="mark">TS</div><h1>Access Approvals</h1></header>
-  <div class="sub">Operations · approve new agents requesting platform access</div>
+  <div class="sub">Operations &amp; EMDs · approve new agents requesting platform access</div>
 
   <div id="gate" class="gate">
-    <h2>Operations sign-in</h2>
-    <p>Enter your Operations code to manage access requests.</p>
-    <input id="opsCode" placeholder="Ops code" autocomplete="off">
+    <h2>Sign in to approve</h2>
+    <p>Enter your <b>Operations code</b> — or your <b>EMD GFI code</b> to approve when Ops is busy.</p>
+    <input id="opsCode" placeholder="Ops or EMD code" autocomplete="off">
     <button class="btn pri" onclick="opsIn()">Enter →</button>
     <div class="err" id="gErr"></div>
   </div>
@@ -60,15 +60,23 @@
 
 <script>
 var API="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/access-api";
-var TOKEN="2026", OPS="", FILTER="pending";
+var OPS="", FILTER="pending", APPROVER_BY="";
 function $(id){return document.getElementById(id);}
 function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
-function api(b){b.token=TOKEN;return fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();}).catch(function(){return{ok:false};});}
+function isOps(c){return /^000[0-5]$/.test(c);}
+/* Ops codes carry the master token; EMD GFI codes authorize by their code (server checks base-owner / contract level). */
+function api(b){var c=(OPS||'').toUpperCase();if(isOps(c))b.token='2026';if(c)b.approver=c;return fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();}).catch(function(){return{ok:false};});}
+function enterConsole(){ $('gate').style.display='none'; $('console').style.display='block'; }
 function opsIn(){
   var c=($('opsCode').value||'').trim().toUpperCase();
-  if(!/^000[0-4]$/.test(c)){ $('gErr').textContent='That is not a valid Operations code.'; return; }
-  OPS=c; try{sessionStorage.setItem('tsfg_ops',c);}catch(e){}
-  $('gate').style.display='none'; $('console').style.display='block'; load();
+  if(!c){ $('gErr').textContent='Enter your Ops or EMD code.'; return; }
+  $('gErr').textContent='Checking…';
+  OPS=c;
+  api({action:'whoami'}).then(function(r){
+    if(!r||!r.ok||!r.can_approve){ OPS=''; $('gErr').textContent='That code can’t approve access. Use an Operations code or an EMD GFI code.'; return; }
+    APPROVER_BY=r.by||''; try{sessionStorage.setItem('tsfg_approver',c);}catch(e){}
+    $('gErr').textContent=''; enterConsole(); load();
+  });
 }
 function setFilter(f){FILTER=f;document.querySelectorAll('.tab').forEach(function(t){t.classList.toggle('on',t.getAttribute('data-f')===f);});load();}
 function fmt(ts){ if(!ts)return 'no request time'; try{return new Date(ts).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});}catch(e){return ts;} }
@@ -94,11 +102,25 @@ function card(a){
     '<div class="meta">Upline: '+up+(contact?('<br>'+contact):'')+'<br>Requested: '+fmt(a.access_requested_at)+(a.access_decided_by?('<br>Decided by '+esc(a.access_decided_by)):'')+'</div>'+acts+'</div>';
 }
 function decide(code,decision){
-  api({action:'set',code:code,decision:decision,by:('Ops '+OPS)}).then(function(r){
+  var b={action:'set',code:code,decision:decision};
+  if(isOps((OPS||'').toUpperCase()))b.by='Ops '+OPS; /* EMDs: server stamps their name + (EMD) */
+  api(b).then(function(r){
     if(r&&r.ok){ load(); } else { alert((r&&r.error)||'Could not update.'); }
   });
 }
-(function(){ try{var c=sessionStorage.getItem('tsfg_ops'); if(c&&/^000[0-4]$/.test(c)){ OPS=c; $('gate').style.display='none'; $('console').style.display='block'; load(); }}catch(e){} })();
+/* Auto-enter: ?code=XXXX (one-click from the Ops dashboard) or a remembered approver code. Server decides authorization. */
+(function(){
+  try{
+    var qp=new URLSearchParams(location.search);
+    var c=(qp.get('code')||qp.get('approver')||sessionStorage.getItem('tsfg_approver')||'').trim().toUpperCase();
+    if(!c)return;
+    OPS=c;
+    api({action:'whoami'}).then(function(r){
+      if(r&&r.ok&&r.can_approve){ APPROVER_BY=r.by||''; try{sessionStorage.setItem('tsfg_approver',c);}catch(e){} enterConsole(); load(); }
+      else { OPS=''; }
+    });
+  }catch(e){}
+})();
 </script>
 </body>
 </html>

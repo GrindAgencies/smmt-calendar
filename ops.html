@@ -50,6 +50,17 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);-web
 .stat .l{font-size:11px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em;margin-top:4px}
 .reqbanner{border:1.5px solid var(--gold-dp);background:var(--goldsoft);border-radius:14px;padding:13px 16px;margin-bottom:18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:13.5px;font-weight:700}
 .reqbanner button{margin-left:auto;border:none;background:var(--gold);color:#fff;font-weight:800;font-size:12.5px;padding:8px 14px;border-radius:9px;cursor:pointer;font-family:inherit}
+/* access-approval notification — deliberately loud & easy to find */
+.accessbanner{display:flex;align-items:center;gap:14px;flex-wrap:wrap;border-radius:16px;padding:15px 18px;margin-bottom:16px;background:linear-gradient(100deg,#ff5b5b,#ff3b30);color:#fff;box-shadow:0 8px 22px rgba(255,59,48,.32);animation:abpulse 2.4s ease-in-out infinite}
+@keyframes abpulse{0%,100%{box-shadow:0 8px 22px rgba(255,59,48,.30)}50%{box-shadow:0 8px 30px rgba(255,59,48,.55)}}
+.accessbanner .ab-ic{font-size:26px;line-height:1;filter:drop-shadow(0 2px 3px rgba(0,0,0,.25))}
+.accessbanner .ab-tx{display:flex;flex-direction:column;min-width:0;line-height:1.3}
+.accessbanner .ab-tx b{font-size:15px;font-weight:900}
+.accessbanner .ab-tx span{font-size:12.5px;opacity:.92;font-weight:600}
+.accessbanner .ab-cnt{background:rgba(255,255,255,.25);border-radius:999px;min-width:26px;height:26px;padding:0 9px;display:inline-flex;align-items:center;justify-content:center;font-weight:900;font-size:14px}
+.accessbanner .ab-btn{margin-left:auto;background:#fff;color:#d1453b;font-weight:900;font-size:13.5px;padding:10px 18px;border-radius:11px;text-decoration:none;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.15)}
+.accessbanner .ab-btn:hover{background:#fff5f5}
+@media(prefers-reduced-motion:reduce){.accessbanner{animation:none}}
 .togglebar{display:inline-flex;background:var(--panel);border:1px solid var(--line2);border-radius:13px;padding:4px;gap:3px;box-shadow:var(--shadow-sm);flex-wrap:wrap}
 .tgl{border:none;background:none;font-family:inherit;font-weight:800;font-size:13.5px;color:var(--ink3);padding:10px 18px;border-radius:10px;cursor:pointer;white-space:nowrap}
 .tgl.on{background:linear-gradient(135deg,var(--gold),var(--gold-dp));color:#fff}
@@ -188,6 +199,7 @@ select.cellin{cursor:pointer;min-width:140px;-webkit-appearance:none;appearance:
     <button class="signout" onclick="signOut()">Sign out</button>
   </div>
   <div class="wrap">
+    <div id="accessBanner"></div>
     <div class="stat-grid" id="statGrid"></div>
     <div id="reqBanner"></div>
     <div class="tglrow">
@@ -225,6 +237,7 @@ select.cellin{cursor:pointer;min-width:140px;-webkit-appearance:none;appearance:
 var OD="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/ops-directory";
 var OPSPLAT="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/ops-platform";
 var ROADMAP="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/roadmap-api";
+var ACCESS="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/access-api";
 var BSSCOPE=null; /* null = master (Standard, everyone). Array of baseshop names = scoped per-baseshop Ops platform. */
 var CALS="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/calendly-sync";
 function calBody(extra){var b=extra||{};b.code=OPS?OPS.code:'';if(canEdit())b.token='2026';return b;}
@@ -298,7 +311,7 @@ function showApp(){
     '<a class="tile" href="newbusiness.html"><div class="ti">💰</div><div class="tt">New Business</div><div class="td">Full policy ledger</div></a>'+
     '<a class="tile" href="index.html"><div class="ti">🏆</div><div class="tt">Leaderboard</div><div class="td">Company standings</div></a>'+
     '<a class="tile" href="calendar.html"><div class="ti">🗓️</div><div class="tt">Scheduler</div><div class="td">Bookings & availability</div></a>'+'</div>'):'';
-  loadOverview();loadTracker();setupNotif();
+  loadOverview();loadTracker();setupNotif();renderAccessBanner();
 }
 
 /* ---- overview ---- */
@@ -381,6 +394,18 @@ function loadTracker(){
   }).catch(function(){$('tableHost').innerHTML='<div class="empty">Could not load the tracker.</div>';});
 }
 function renderReqBanner(n){var host=$('reqBanner');if(!host)return;host.innerHTML=(canEdit()&&n>0)?('<div class="reqbanner">✏️ '+n+' edit request'+(n===1?'':'s')+' from leaders awaiting review<button onclick="openRequests()">Review requests</button></div>'):'';}
+/* access-approval notification — one glance, one click. Shows for Ops and any EMD (server authorizes). */
+function renderAccessBanner(){
+  var host=$('accessBanner');if(!host||!OPS||!OPS.code)return;
+  var b={action:'pending_count',approver:OPS.code};if(OPS.role==='ops')b.token='2026';
+  fetch(ACCESS,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();}).then(function(r){
+    if(!r||!r.ok||!r.can_approve||!r.pending_count){host.innerHTML='';return;}
+    var n=r.pending_count;
+    host.innerHTML='<div class="accessbanner"><span class="ab-ic">🔐</span><span class="ab-cnt">'+n+'</span>'
+      +'<div class="ab-tx"><b>'+n+' new agent'+(n===1?'':'s')+' awaiting access approval</b><span>Approve so they can get into the platform</span></div>'
+      +'<a class="ab-btn" href="approvals.html?code='+encodeURIComponent(OPS.code)+'">Review &amp; approve →</a></div>';
+  }).catch(function(){host.innerHTML='';});
+}
 function setTab(t){TAB=t;['licensing','newbiz','faststart','bookings','appointed','inforce','gfi','fieldtraining','teamhub'].forEach(function(x){var b=$('tg_'+x);if(b)b.classList.toggle('on',x===t);});
   var isB=(t==='bookings'),isNB=(t==='newbiz'||t==='gfi'),isIF=(t==='inforce'),isTH=(t==='teamhub'),isFT=(t==='fieldtraining');
   var tw=$('tableWrap'),bh=$('bookingsHost'),nh=$('newbizHost'),ifh=$('inforceHost'),thh=$('teamhubHost'),fth=$('fieldtrainingHost'),sb=$('search'),ab=$('addBtn');
