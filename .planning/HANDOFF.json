@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-07-27T04:43:16.302Z",
+  "timestamp": "2026-07-27T04:51:31.368Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -15,7 +15,12 @@
   "blockers": [],
   "human_actions_pending": [],
   "decisions": [],
-  "uncommitted_files": [],
+  "uncommitted_files": [
+    {
+      "status": "M",
+      "path": ".planning/HANDOFF.json"
+    }
+  ],
   "next_action": null,
-  "context_notes": "Recent commits:\neccf6c7 Merge branch 'main' of https://github.com/GrindAgencies/smmt-calendar\n91be86b Update HANDOFF.json\n11dc122 My Tracker V2 (Phase 2): visual Journey Map (roadmap.html) on the progression engine\nc8581ff Scheduler: add Calendly / Direct-to-tracker booking mode chooser (Quick Schedule + Book tab); Calendly opens agent's own link, shows on both schedules\n4ca6c50 Update HANDOFF.json"
+  "context_notes": "Recent commits:\n7890ce5 My Tracker V2: roadmap FULLY REPLACES the tracker tab + game-board animations\n25aea57 Update HANDOFF.json\neccf6c7 Merge branch 'main' of https://github.com/GrindAgencies/smmt-calendar\n91be86b Update HANDOFF.json\n11dc122 My Tracker V2 (Phase 2): visual Journey Map (roadmap.html) on the progression engine"
 }
