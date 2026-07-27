@@ -127,6 +127,10 @@ body.drawer .scrim{display:block;}
 .cbtn:hover{background:var(--bg);color:var(--ink);}.cbtn svg{width:19px;height:19px;}
 .cbtn.send{background:var(--accent);color:#fff;}.cbtn.send:hover{background:var(--accent2);}
 .chips{display:flex;gap:7px;margin-bottom:9px;flex-wrap:wrap;}
+.botsec{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:12px;background:var(--panel2);}
+.botname{font-weight:800;font-size:14px;margin-bottom:8px;}
+.botrow{display:flex;align-items:center;gap:9px;font-size:13.5px;margin-bottom:6px;font-weight:600;}
+.botrow input{width:auto;}
 .chip{border:1px solid var(--line2);background:var(--panel);border-radius:999px;padding:6px 12px;font-size:12.5px;font-weight:700;color:var(--ink2);cursor:pointer;display:inline-flex;gap:5px;align-items:center;}
 .chip:hover{border-color:var(--accent);color:var(--accent);}
 .chip.rec{color:var(--gold);border-color:rgba(201,154,46,.4);}
@@ -185,6 +189,7 @@ body.drawer .scrim{display:block;}
   <button class="tic" data-drop="avIn" onclick="document.getElementById('avIn').click()" title="Set your photo">📷</button>
   <input type="file" id="avIn" class="hide" accept="image/*" onchange="onAvatar(event)">
   <button class="tic" onclick="toggleMod()" id="modBtn" title="Moderator">🔒</button>
+  <button class="tic" onclick="openBotCfg()" id="botCfgBtn" title="Baseshop bot settings" style="display:none">🤖</button>
   <button class="tic" onclick="toggleTheme()" id="themeBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg></button>
 </header>
 
@@ -233,12 +238,19 @@ body.drawer .scrim{display:block;}
   <div class="fg" id="chMembersWrap" style="display:none"><label>Invite members</label><div id="chMembers" class="mempick"></div></div>
   <div class="mact2"><button onclick="document.getElementById('chOv').classList.remove('on')">Cancel</button><button class="go" onclick="createChannel()">Create</button></div>
 </div></div>
+<div class="ov" id="botOv"><div class="modal" style="max-width:540px">
+  <h3>🤖 Baseshop Bot Settings</h3>
+  <div style="font-size:12.5px;color:var(--ink3);margin-bottom:14px">Control what Stuart highlights in your baseshop channels. Company-wide trainings stay managed by Operations.</div>
+  <div id="botCfgBody"><div class="spin">Loading…</div></div>
+  <div class="mact2"><button onclick="document.getElementById('botOv').classList.remove('on')">Close</button></div>
+</div></div>
 <!-- profile modal -->
 <div class="ov" id="pfOv"><div class="modal" id="pfBody"></div></div>
 <div class="toast" id="toast"></div>
 
 <script>
 var HUB="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/hub-api";
+var BOTS="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/bots-cron";
 var HUBOPS="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/hub-ops";
 var OPSMODE=false,OPSTOKEN='',OPSDMS=[];
 (function(){try{var q=new URLSearchParams(location.search);if(q.get('ops')==='1'){OPSMODE=true;OPSTOKEN='2026';}}catch(e){}})();
@@ -438,6 +450,21 @@ function sendRecognition(){
 
 /* channels */
 function openNewChannel(){$('chName').value='';$('chPriv').checked=false;$('chMembersWrap').style.display='none';fillMembers();$('chOv').classList.add('on');}
+function syncBotBtn(){var b=document.getElementById('botCfgBtn');if(!b)return;var ok=ACC&&(ACC.role==='ops'||ACC.scope==='super'||ACC.scope==='base_owner');b.style.display=ok?'':'none';}
+function openBotCfg(){var ov=document.getElementById('botOv');if(!ov)return;ov.classList.add('on');document.getElementById('botCfgBody').innerHTML='<div class="spin">Loading…</div>';fetch(BOTS,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'get',code:CODE,token:MODTOKEN})}).then(function(r){return r.json();}).then(renderBotCfg).catch(function(){document.getElementById('botCfgBody').textContent='Could not load bot settings.';});}
+function renderBotCfg(r){if(!r||!r.ok){document.getElementById('botCfgBody').textContent='Could not load.';return;}var cfg=r.config||{};var bases=r.editable||[];var h='';
+  if(r.hierarchy_editable){var he=r.hierarchy||{};h+='<div class="botsec"><div class="botname">🏢 Company / Hierarchy · #main</div><label class="botrow"><input type="checkbox" '+(he.announce===false?'':'checked')+' onchange="saveBot(&quot;__hierarchy__&quot;,{announce:this.checked})"> Auto-post company training reminders (as Operations)</label></div>';}
+  if(!bases.length&&!r.hierarchy_editable){h+='<div style="color:var(--ink3);font-size:13px">You do not have a baseshop to manage yet.</div>';}
+  bases.forEach(function(b){var lb=b.toLowerCase();var c=cfg[lb]||{};var hls=(Array.isArray(c.highlights)?c.highlights:[]).join('\n');
+    h+='<div class="botsec"><div class="botname">📣 '+esc(b)+' · Stuart</div>'
+     +'<label class="botrow"><input type="checkbox" '+(c.announce===false?'':'checked')+' onchange="saveBot(&quot;'+esc(b)+'&quot;,{announce:this.checked})"> Stuart posts in '+esc(b)+' announcements</label>'
+     +'<label class="botrow"><input type="checkbox" '+(c.mirror_company===false?'':'checked')+' onchange="saveBot(&quot;'+esc(b)+'&quot;,{mirror_company:this.checked})"> Include company training reminders</label>'
+     +'<div style="margin-top:8px"><label style="font-size:11px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.04em">Daily highlights (one per line)</label>'
+     +'<textarea id="hl_'+lb+'" style="width:100%;min-height:70px;margin-top:5px;border:1px solid var(--line2);border-radius:10px;background:var(--panel);color:var(--ink);padding:9px;font-family:inherit;font-size:13.5px;resize:vertical" placeholder="e.g. Baseshop goal: 10 apps this week">'+esc(hls)+'</textarea>'
+     +'<button class="go" style="margin-top:7px;padding:8px 14px" onclick="saveHighlights(&quot;'+esc(b)+'&quot;,&quot;'+lb+'&quot;)">Save highlights</button></div></div>';});
+  document.getElementById('botCfgBody').innerHTML=h;}
+function saveBot(base,patch){fetch(BOTS,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'set',code:CODE,token:MODTOKEN,baseshop:base,config:patch})}).then(function(r){return r.json();}).then(function(r){toast((r&&r.ok)?'Saved':((r&&r.error)||'Save failed'));}).catch(function(){toast('Network error');});}
+function saveHighlights(base,lb){var el=document.getElementById('hl_'+lb);var arr=((el&&el.value)||'').split('\n').map(function(x){return x.trim();}).filter(Boolean);saveBot(base,{highlights:arr});}
 function fillMembers(){var host=$('chMembers');if(!host)return;var list=ROSTER.filter(function(m){return m.code!==CODE;});host.innerHTML=list.length?list.map(function(m){return '<label class="memrow"><input type="checkbox" value="'+m.code+'"> '+esc(m.name)+' <span style="color:var(--ink3)">('+m.code+')</span></label>';}).join(''):'<div style="color:var(--ink3);font-size:12px;padding:6px">No teammates found yet.</div>';}
 function createChannel(){var n=$('chName').value.trim();if(!n){toast('Name it');return;}var priv=$('chPriv').checked;var mem=[].slice.call(document.querySelectorAll('#chMembers input:checked')).map(function(x){return x.value;});h({action:'hub_createchannel',name:n,private:priv,members:mem,code:CODE,by:NAME}).then(function(r){if(r&&r.ok){$('chOv').classList.remove('on');$('chName').value='';$('chPriv').checked=false;$('chMembersWrap').style.display='none';loadChannels();toast(priv?'Private channel created \ud83d\udd12':'Channel created');if(r.id){CHAN=r.id;renderHead();loadMsgs(true);}}else toast((r&&r.error)||'Could not create');});}
 /* profile settings + roster */
@@ -446,7 +473,7 @@ function loadRoster(){h({action:'hub_roster'}).then(function(r){ROSTER=(r&&r.mem
 function openProfileSettings(){$('psAv').innerHTML=avatarInner(CODE,NAME,'');$('psName').value=NAME;var open=function(){h({action:'hub_profile',code:CODE}).then(function(r){var pf=(r&&r.profile)||{};$('psTitle').value=pf.title||'';$('psEmail').value=pf.email||'';$('psPhone').value=pf.phone||'';$('psCal').value=pf.cal_link||'';var sel=$('psDirect');sel.innerHTML='<option value="">\u2014 Select your direct upline \u2014</option>'+ROSTER.filter(function(m){return m.code!==CODE;}).map(function(m){return '<option value="'+m.code+'"'+(pf.direct_to===m.code?' selected':'')+'>'+esc(m.name)+' ('+m.code+')</option>';}).join('');});$('psOv').classList.add('on');};if(!ROSTER.length){h({action:'hub_roster'}).then(function(r){ROSTER=(r&&r.members)||[];open();});}else open();}
 function saveProfile(){var sel=$('psDirect');var dc=sel.value;var dn=dc?sel.options[sel.selectedIndex].text.replace(/\s*\([^)]*\)\s*$/,'').trim():'';h({action:'hub_setprofile',code:CODE,title:$('psTitle').value.trim(),email:$('psEmail').value.trim(),phone:$('psPhone').value.trim(),cal_link:$('psCal').value.trim(),direct_to:dc,direct_to_name:dn}).then(function(r){if(r&&r.ok){$('psOv').classList.remove('on');toast('Profile saved \u2713');loadRoster();}else toast((r&&r.error)||'Could not save');});}
 function deleteChannel(){if(CHAN.indexOf('c_')!==0)return;if(!confirm('Delete this channel for everyone? This cannot be undone.'))return;h({action:'hub_deletechannel',id:CHAN,code:CODE,token:MODTOKEN||''}).then(function(r){if(r&&r.ok){toast('Channel deleted');CHAN='main';loadChannels();renderHead();loadMsgs(true);}else toast((r&&r.error)||'Could not delete');});}
-function loadChannels(){var call=OPSMODE?hops({action:'channels',name:NAME}):h({action:'hub_channels',code:CODE});call.then(function(r){CHANNELS=(r&&r.channels)||[];if(r&&r.access){ACC=r.access;}if(CHAN.indexOf('dm:')!==0&&!CHANNELS.some(function(c){return c.id===CHAN;})){CHAN='main';renderHead();loadMsgs(true);}renderRooms();});}
+function loadChannels(){var call=OPSMODE?hops({action:'channels',name:NAME}):h({action:'hub_channels',code:CODE});call.then(function(r){CHANNELS=(r&&r.channels)||[];if(r&&r.access){ACC=r.access;}syncBotBtn();if(CHAN.indexOf('dm:')!==0&&!CHANNELS.some(function(c){return c.id===CHAN;})){CHAN='main';renderHead();loadMsgs(true);}renderRooms();});}
 
 /* search */
 function doSearch(){var q=$('hq').value.trim();if(!q){return;}h({action:'hub_search',q:q}).then(function(r){var arr=(r&&r.messages)||[];if(!arr.length){toast('No matches');return;}MSGS=arr.slice().reverse();$('chead').innerHTML='<div class="ci">🔎</div><div><div class="cn">Search: “'+esc(q)+'”</div><div class="cs">'+arr.length+' results · click a channel to return</div></div>';LASTID=0;renderMsgs(true);});}
@@ -480,12 +507,12 @@ function heartbeat(){var st=(Date.now()-lastActivity>600000)?'away':'active';if(
   if(OPSMODE){
     var q=new URLSearchParams(location.search);
     CODE=(q.get('code')||'OPS').toUpperCase();NAME=q.get('name')||'Operations';
-    ACC={mod:true,role:'ops',licensed:true};MODTOKEN=OPSTOKEN;var mb=$('modBtn');if(mb)mb.textContent='🛡️';
+    ACC={mod:true,role:'ops',licensed:true};MODTOKEN=OPSTOKEN;syncBotBtn();var mb=$('modBtn');if(mb)mb.textContent='🛡️';
     loadOpsDMs();
   } else {
     try{CODE=localStorage.getItem('tsfg_code');NAME=localStorage.getItem('tsfg_name')||'';}catch(e){}
     if(!CODE){location.href='index.html';return;}
-    h({action:'hub_access',code:CODE}).then(function(r){if(r&&r.access){ACC=r.access;if(ACC.mod)$('modBtn').textContent='🛡️';}});
+    h({action:'hub_access',code:CODE}).then(function(r){if(r&&r.access){ACC=r.access;if(ACC.mod)$('modBtn').textContent='🛡️';}syncBotBtn();});
   }
   MEMBERS[CODE]=NAME;
   loadChannels();renderHead();loadMsgs(true);heartbeat();loadAvatars();loadEmblems();loadRoster();
