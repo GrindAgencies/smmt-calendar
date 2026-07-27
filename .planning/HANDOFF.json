@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-07-27T04:40:47.813Z",
+  "timestamp": "2026-07-27T04:43:16.302Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -15,16 +15,7 @@
   "blockers": [],
   "human_actions_pending": [],
   "decisions": [],
-  "uncommitted_files": [
-    {
-      "status": "M",
-      "path": ".planning/HANDOFF.json"
-    },
-    {
-      "status": "??",
-      "path": "roadmap.html"
-    }
-  ],
+  "uncommitted_files": [],
   "next_action": null,
-  "context_notes": "Recent commits:\n4ca6c50 Update HANDOFF.json\ne89c942 Org Chart / My Team: recognize EMD/MD/NVP/SEVP abbreviations as manager levels\nc52cc4b Ops platform scoping: also scope New Business + Bookings by baseshop\n29a4fa6 Update HANDOFF.json\nf91e02a Per-baseshop Ops platform: 0001-0005 scope the dashboard to a baseshop (Standard master unchanged)"
+  "context_notes": "Recent commits:\neccf6c7 Merge branch 'main' of https://github.com/GrindAgencies/smmt-calendar\n91be86b Update HANDOFF.json\n11dc122 My Tracker V2 (Phase 2): visual Journey Map (roadmap.html) on the progression engine\nc8581ff Scheduler: add Calendly / Direct-to-tracker booking mode chooser (Quick Schedule + Book tab); Calendly opens agent's own link, shows on both schedules\n4ca6c50 Update HANDOFF.json"
 }
