@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-07-27T06:21:39.746Z",
+  "timestamp": "2026-07-27T06:44:39.369Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -19,8 +19,16 @@
     {
       "status": "M",
       "path": ".planning/HANDOFF.json"
+    },
+    {
+      "status": "M",
+      "path": "roadmap-builder.html"
+    },
+    {
+      "status": "M",
+      "path": "roadmap.html"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\nfd8b5b5 Merge branch 'main' of https://github.com/GrindAgencies/smmt-calendar\n59da78c Update HANDOFF.json\n5b408c7 My Tracker: level-up cinematic + CoD rank-up + live team race + fog-of-war gates\nb728290 Leaderboard: full-width central card + larger fonts (hero 33px, names 16.5px, values 16px, bigger rows/avatars); top 10\nff72b83 Update HANDOFF.json"
+  "context_notes": "Recent commits:\n8658cab My Tracker: 9-rank emblem ladder + Black Ops rank-up + world music + piece skins\nca34257 Update HANDOFF.json\nfd8b5b5 Merge branch 'main' of https://github.com/GrindAgencies/smmt-calendar\n59da78c Update HANDOFF.json\n5b408c7 My Tracker: level-up cinematic + CoD rank-up + live team race + fog-of-war gates"
 }
