@@ -25,7 +25,7 @@ body{padding-left:var(--tsfg-side);padding-top:60px;}
 .tsfg-title{font-weight:800;font-size:17px;}
 .tsfg-ic{width:38px;height:38px;border-radius:11px;border:1px solid var(--line2);background:#fff;color:var(--ink2);display:flex;align-items:center;justify-content:center;cursor:pointer;}.tsfg-ic svg{width:18px;height:18px;}
 @media(max-width:860px){body{padding-left:0;}.tsfg-side{transform:translateX(-100%);box-shadow:0 20px 60px rgba(0,0,0,.25);}body.tsfg-drawer .tsfg-side{transform:none;}.tsfg-top{left:0;}}
-.wrap{max-width:820px;margin:0 auto;padding:20px 16px 90px;}
+.wrap{max-width:none;margin:0 auto;padding:18px 22px 100px;}
 /* HUD */
 .hud{position:relative;overflow:hidden;border-radius:22px;padding:20px;color:#fff;background:linear-gradient(135deg,#3a2f6b,#5b6cff 55%,#7c8bff);box-shadow:0 14px 40px rgba(91,108,255,.28);}
 .hud .row{display:flex;align-items:center;gap:15px;}
@@ -121,8 +121,13 @@ body{padding-left:var(--tsfg-side);padding-top:60px;}
 .wband{position:relative;overflow:hidden;}
 .wband::after{content:'';position:absolute;right:-20px;top:-30px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.12);}
 /* ===== VIDEO-GAME BOARD ===== */
-.board{position:relative;margin:10px auto 0;max-width:620px;}
+.board{position:relative;margin:14px 0 0;width:100%;max-width:none;}
 .gboard{position:relative;width:100%;}
+.gmotif{position:absolute;font-size:30px;opacity:.42;z-index:0;pointer-events:none;transform:translateY(var(--par2,0));transition:transform .08s linear;filter:saturate(1.15);}
+.gscene{transform:translateY(var(--par1,0));}
+.hudctrl{position:absolute;top:12px;right:14px;display:flex;gap:7px;z-index:4;}
+.hbtn{width:36px;height:36px;border-radius:11px;border:none;background:rgba(255,255,255,.18);color:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.hbtn:hover{background:rgba(255,255,255,.3);}
 .gregion{position:absolute;left:-8px;right:-8px;border-radius:30px;z-index:0;box-shadow:inset 0 0 0 1px rgba(0,0,0,.04);overflow:hidden;}
 .gflag{position:absolute;top:10px;left:50%;transform:translateX(-50%);display:inline-flex;align-items:center;gap:7px;color:#fff;font-weight:900;font-size:13px;padding:7px 15px;border-radius:99px;box-shadow:0 6px 16px rgba(0,0,0,.22);white-space:nowrap;z-index:2;}
 .gflag span{font-size:16px;}
@@ -170,8 +175,7 @@ svg.gpath{position:absolute;inset:0;z-index:1;pointer-events:none;}
   <a class="side-link" href="calendar.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9h18M8 3v3M16 3v3"/></svg><span>Scheduler</span></a>
   <a class="side-link" href="newbusiness.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg><span>New Business</span></a>
   <a class="side-link on" href="roadmap.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span>My Tracker</span></a>
-  <a class="side-link" href="team.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>My Team</span></a>
-  <a class="side-link" href="org.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="5" rx="1.5"/><rect x="3" y="16" width="6" height="5" rx="1.5"/><rect x="15" y="16" width="6" height="5" rx="1.5"/><path d="M12 8v4M6 16v-2h12v2"/></svg><span>Org Chart</span></a>
+  <a class="side-link" href="team.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Team &amp; Org</span></a>
   <a class="side-link" href="ops.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="6" rx="1"/><rect x="12" y="7" width="3" height="10" rx="1"/><rect x="17" y="13" width="3" height="4" rx="1"/></svg><span>Ops Dashboard</span></a>
   <div class="tsfg-foot"><a class="side-link" href="#" onclick="tsfgSignOut();return false;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg><span>Sign out</span></a></div>
 </aside>
@@ -223,7 +227,7 @@ function render(){
   var w=worldById(PLAYER.current_world);
   var xn=xpToNext();
   var rank=PLAYER.contract_level||(PLAYER.pathway?(PLAYER.pathway.charAt(0).toUpperCase()+PLAYER.pathway.slice(1)):'Rookie Broker');
-  var h='<div class="hud"><div class="row">'+avImg(PLAYER.has_photo?PLAYER.code:'',PLAYER.name,'av')
+  var h='<div class="hud"><div class="hudctrl"><button class="hbtn" id="muteBtn" onclick="toggleMute()" title="Sound">'+(MUTED?'🔇':'🔊')+'</button><button class="hbtn" onclick="openCustomize()" title="Customize your piece">🎨</button></div><div class="row">'+avImg(PLAYER.has_photo?PLAYER.code:'',PLAYER.name,'av')
     +'<div style="min-width:0"><div class="nm">'+esc(PLAYER.name||'Broker')+'</div><div class="sub">'+esc(w.icon+' '+w.name)+' · '+esc(rank)+'</div></div>'
     +'<div class="streak"><div class="f">🔥</div><div class="n">'+(PLAYER.streak||0)+'</div><div class="l">day streak</div></div></div>'
     +'<div class="xpwrap"><div class="xprow"><span>'+esc(xn.label)+'</span><span>'+PLAYER.xp+' XP</span></div><div class="xpbar"><span style="width:'+xn.pct+'%"></span></div></div>'
@@ -241,14 +245,31 @@ function render(){
   h+='<div class="sechead">Your journey board</div><div class="board">'+buildBoard()+'</div>';
   $('wrap').innerHTML=h;
   FIRST=false;JUSTID='';
+  initParallax();
   if(wasFirst)setTimeout(scrollToCurrent,540);else scrollToCurrent();
 }
 function pathThrough(pts){if(!pts.length)return '';var d='M '+pts[0].x+' '+pts[0].y;for(var i=1;i<pts.length;i++){var a=pts[i-1],b=pts[i];var my=(a.y+b.y)/2;d+=' C '+a.x+' '+my+' '+b.x+' '+my+' '+b.x+' '+b.y;}return d;}
-function pieceHtml(){return '<span class="gpiece">'+(PLAYER.has_photo?('<img src="'+AVATAR+'?code='+encodeURIComponent(PLAYER.code)+'" alt="" onerror="this.remove()">'):('<span class="gpini">'+esc(initials(PLAYER.name))+'</span>'))+'</span>';}
+function pieceHtml(){return '<span class="gpiece" style="border-color:'+(FRAME||'#ffd24a')+'">'+(PLAYER.has_photo?('<img src="'+AVATAR+'?code='+encodeURIComponent(PLAYER.code)+'" alt="" onerror="this.remove()">'):('<span class="gpini">'+esc(initials(PLAYER.name))+'</span>'))+'</span>';}
+var THEMES={rookie:['🌱','🌿','🍃','🐛'],foundation:['🏠','🏡','🌳','🪵'],momentum:['⛰️','🌄','☀️','🦅'],producer:['🚀','☁️','⭐','🛰️'],builder:['⚙️','🔧','🔨','🏗️'],elite:['🏔️','✨','👑','💎']};
+function worldScene(w){var em=THEMES[w.id]||['✨','⭐','🌟','☁️'];var spots=[[10,22],[85,32],[24,56],[74,70],[48,13],[15,84]];var m='';for(var i=0;i<spots.length;i++){m+='<span class="gmotif" style="left:'+spots[i][0]+'%;top:'+spots[i][1]+'%">'+em[i%em.length]+'</span>';}return '<div class="gscene" style="color:'+w.color+'"></div>'+m;}
+/* sound (WebAudio, self-contained) */
+var AC=null,MUTED=false;try{MUTED=localStorage.getItem('tsfg_sound')==='off';}catch(e){}
+function actx(){if(!AC){try{AC=new (window.AudioContext||window.webkitAudioContext)();}catch(e){AC=null;}}return AC;}
+function tone(f,st,dur,vol,type){var c=actx();if(!c)return;var o=c.createOscillator(),g=c.createGain();o.type=type||'sine';o.frequency.value=f;o.connect(g);g.connect(c.destination);var t=c.currentTime+st;g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(vol||0.14,t+0.02);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);o.start(t);o.stop(t+dur+0.03);}
+function sfx(kind){if(MUTED)return;try{if(kind==='level'){[523,659,784,1047].forEach(function(f,i){tone(f,i*0.09,0.32,0.16,'triangle');});}else if(kind==='check'){tone(880,0,0.10,0.07);}else if(kind==='unlock'){tone(392,0,0.16,0.12,'triangle');tone(587,0.09,0.22,0.12,'triangle');}}catch(e){}}
+function toggleMute(){MUTED=!MUTED;try{localStorage.setItem('tsfg_sound',MUTED?'off':'on');}catch(e){}var b=$('muteBtn');if(b)b.textContent=MUTED?'🔇':'🔊';if(!MUTED)sfx('check');}
+/* piece customization */
+var FRAME='';try{FRAME=localStorage.getItem('tsfg_piece_frame')||'';}catch(e){}
+var FRAMES=['#ffd24a','#5b6cff','#34c759','#ff2d55','#af52de','#ff9f0a','#00c7be'];
+function openCustomize(){var sw=FRAMES.map(function(c){var on=(FRAME===c||(!FRAME&&c==='#ffd24a'));return '<span onclick="setFrame(\''+c+'\')" style="display:inline-block;width:36px;height:36px;border-radius:50%;background:'+c+';margin:5px;cursor:pointer;border:3px solid '+(on?'#fff':'transparent')+';box-shadow:0 0 0 1px rgba(0,0,0,.15)"></span>';}).join('');$('sheet').innerHTML='<div class="sh-h"><div class="sh-ic" style="background:#5b6cff">🎨</div><div style="min-width:0"><h3>Customize your piece</h3><div class="d">Pick your game-piece color</div></div><button class="sh-x" onclick="closeSheet()">✕</button></div><div style="text-align:center;padding:18px 0 6px">'+sw+'</div>';$('ov').classList.add('on');}
+function setFrame(c){FRAME=c;try{localStorage.setItem('tsfg_piece_frame',c);}catch(e){}closeSheet();render();toast('Piece updated ✓');}
+/* parallax scenery */
+var PARALLAX_ON=false;
+function initParallax(){if(PARALLAX_ON)return;if(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;PARALLAX_ON=true;var tick=false;window.addEventListener('scroll',function(){if(tick)return;tick=true;requestAnimationFrame(function(){var b=document.querySelector('.gboard');if(b){var y=window.scrollY||window.pageYOffset||0;b.style.setProperty('--par1',(y*0.05)+'px');b.style.setProperty('--par2',(-y*0.08)+'px');}tick=false;});},{passive:true});}
 function buildBoard(){
   var L=PLAYER.levels;if(!L.length)return '<div class="hint" style="padding:30px;text-align:center;color:var(--ink3)">Your board is being set up.</div>';
-  var TOP=82,SP=132,BOT=150,XL=26,XR=74;
-  var pos=L.map(function(l,n){return {x:(n%2===0?XL:XR),y:TOP+n*SP};});
+  var TOP=110,SP=142,BOT=170,XL=18,XR=82;
+  var pos=L.map(function(l,n){return {x:(n%2===0?XL:XR),y:TOP+(L.length-1-n)*SP};}); /* n=0 at the BOTTOM → the broker climbs UP */
   var H=TOP+(L.length-1)*SP+BOT;
   var activeIdx=-1;L.forEach(function(l,n){if(l.status==='active'&&activeIdx<0)activeIdx=n;});if(activeIdx<0)activeIdx=L.length-1;
   var full=pathThrough(pos);var trav=pathThrough(pos.slice(0,activeIdx+1));
@@ -256,8 +277,9 @@ function buildBoard(){
   var regHtml='';
   WORLDS.slice().sort(function(a,b){return (a.order||0)-(b.order||0);}).forEach(function(w){
     var idxs=[];L.forEach(function(l,n){if(l.world===w.id)idxs.push(n);});if(!idxs.length)return;
-    var y0=Math.max(0,pos[idxs[0]].y-SP*0.62),y1=pos[idxs[idxs.length-1]].y+SP*0.62;
-    regHtml+='<div class="gregion" style="top:'+y0+'px;height:'+(y1-y0)+'px;background:linear-gradient(165deg,'+w.color+'26,'+w.color+'0a)"><div class="gscene" style="color:'+w.color+'"></div><div class="gflag" style="background:linear-gradient(135deg,'+w.color+'dd,'+w.color+')"><span>'+esc(w.icon)+'</span>'+esc(w.name)+'</div></div>';
+    var ys=idxs.map(function(n){return pos[n].y;});
+    var y0=Math.max(0,Math.min.apply(null,ys)-SP*0.62),y1=Math.max.apply(null,ys)+SP*0.62;
+    regHtml+='<div class="gregion" style="top:'+y0+'px;height:'+(y1-y0)+'px;background:linear-gradient(180deg,'+w.color+'2e,'+w.color+'0a 55%,'+w.color+'18)">'+worldScene(w)+'<div class="gflag" style="background:linear-gradient(135deg,'+w.color+'dd,'+w.color+')"><span>'+esc(w.icon)+'</span>'+esc(w.name)+'</div></div>';
   });
   var svg='<svg class="gpath" viewBox="0 0 100 '+H+'" preserveAspectRatio="none" width="100%" height="'+H+'"><defs><linearGradient id="travg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe89a"/><stop offset="1" stop-color="#c99a2e"/></linearGradient></defs>'
     +'<path d="'+full+'" fill="none" stroke="#d3d3dc" stroke-width="10" stroke-linecap="round" vector-effect="non-scaling-stroke" stroke-dasharray="0.5 16"/>'
@@ -273,7 +295,7 @@ function buildBoard(){
       +'<div class="gtwrap">'+tile+(l.status!=='active'?'<span class="gnum">'+(n+1)+'</span>':'')+'</div>'
       +'<div class="glabel"><div class="gln">'+esc(l.name)+'</div>'+(l.total?'<div class="glm">'+l.completed+'/'+l.total+'</div>':'')+'</div></div>';
   }).join('');
-  var fx=(L.length%2===0?XL:XR),fy=TOP+(L.length-1)*SP+BOT*0.5;
+  var fx=((L.length-1)%2===0?XL:XR),fy=Math.max(30,TOP-78);
   var finish='<div class="gfinish" style="left:'+fx+'%;top:'+fy+'px">🏆<div class="gfl">The Standard</div></div>';
   return '<div class="gboard" style="height:'+H+'px">'+regHtml+svg+finish+nodes+'</div>';
 }
@@ -323,8 +345,8 @@ function toggleChallenge(id){
       if(justCompleted)JUSTID=PLAYER.current_level; /* avatar lands on its new tile */
       render();
       if(openId){var still=PLAYER.levels.filter(function(x){return x.id===openId;})[0];if(still&&still.status!=='locked')openLevel(openId);else closeSheet();}
-      if(justCompleted){closeSheet();celebrate(justCompleted);}
-      else if(!wasDone)toast('+25 XP');
+      if(justCompleted){closeSheet();celebrate(justCompleted);sfx('level');}
+      else if(!wasDone){toast('+25 XP');sfx('check');}
       // refresh nearby quietly
       fetch(ROADMAP,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'nearby',code:CODE})}).then(function(r){return r.json();}).then(function(n){if(n&&n.ok){NEARBY=n;}});
     }
