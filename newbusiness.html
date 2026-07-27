@@ -180,8 +180,8 @@ tbody tr{cursor:pointer;}tbody tr:hover{background:var(--bg);}
   <div class="sec-l">Sale Source</div>
   <div class="fg"><label>How did this sale come to you?</label><select id="f_source"><option value="">Select source</option><option>Warm Market</option><option>Referral</option><option>Lead — Purchased</option><option>Lead — Free</option><option>Social Media</option><option>Client of a Client</option><option>Cross-sell</option><option>Other</option></select></div>
   <label class="chk"><input type="checkbox" id="f_writingoff"> Writing agent not on The Standard</label>
-  <label class="chk" id="splitToggle"><input type="checkbox" id="f_splitflag" onchange="document.getElementById('splitWrap').style.display=this.checked?'block':'none'"> Split this sale with another agent</label>
-  <div id="splitWrap" style="display:none"><div class="fg" style="margin-top:8px"><label>Split agent (name or code)</label><input id="f_split" placeholder="e.g. Courtney Whitbey or H1772" oninput="updSplitShare()"></div><div class="fg" style="margin-top:8px"><label>Your share of this sale (%)</label><input id="f_splitpct" type="number" min="0" max="100" value="50" oninput="updSplitShare()"></div><div id="splitShareHint" style="font-size:12px;color:var(--muted,#6e6e73);margin-top:7px;line-height:1.45"></div></div>
+  <label class="chk" id="splitToggle"><input type="checkbox" id="f_splitflag" onchange="document.getElementById('splitWrap').style.display=this.checked?'block':'none';calcComm()"> Split this sale with another agent</label>
+  <div id="splitWrap" style="display:none"><div class="fg" style="margin-top:8px"><label>Split agent (name or code)</label><input id="f_split" placeholder="e.g. Courtney Whitbey or H1772" oninput="updSplitShare()"></div><div class="fg" style="margin-top:8px"><label>Your share of this sale (%)</label><input id="f_splitpct" type="number" min="0" max="100" value="50" oninput="updSplitShare();calcComm()"></div><div id="splitShareHint" style="font-size:12px;color:var(--muted,#6e6e73);margin-top:7px;line-height:1.45"></div></div>
   <div class="sec-l">Policy Details</div>
   <div class="frow"><div class="fg"><label>Carrier *</label><input id="f_carrier" placeholder="Type or select a carrier" list="carriers"><datalist id="carriers"><option>American National</option><option>American Equity</option><option>Americo</option><option>Ethos</option><option>Foresters</option><option>Mutual of Omaha</option><option>National Life Group</option><option>North American</option><option>F&G</option><option>Corebridge</option></datalist></div><div class="fg"><label>Product</label><select id="f_product"><option value="">Select product</option><option>Term Life</option><option>IUL</option><option>Whole Life</option><option>Final Expense</option><option>GUL</option><option>Annuity — FIA</option><option>Annuity — MYGA</option><option>Other</option></select></div></div>
   <div class="frow"><div class="fg"><label>State</label><input id="f_state" maxlength="2" placeholder="CA" style="text-transform:uppercase"></div><div class="fg"><label>Policy #</label><input id="f_polnum" placeholder="Optional"></div><div class="fg"><label>Carrier code</label><input id="f_ccode" placeholder="Optional"></div></div>
@@ -189,7 +189,7 @@ tbody tr{cursor:pointer;}tbody tr:hover{background:var(--bg);}
   <div class="frow"><div class="fg"><label>Coverage amount *</label><input id="f_cov" type="number" inputmode="decimal" placeholder="$" oninput="calcComm()"><div class="hint">For annuities, enter the total annuity amount</div></div><div class="fg"><label>Target premium *</label><input id="f_prem" type="number" inputmode="decimal" placeholder="$" oninput="calcComm()"></div></div>
   <div class="frow"><div class="fg"><label>Monthly contribution *</label><input id="f_monthly" type="number" inputmode="decimal" min="0" placeholder="$ (enter 0 if none)"><div class="hint">Required · enter 0 if there is none</div></div><div class="fg"><label>Lump sum contribution *</label><input id="f_lump" type="number" inputmode="decimal" min="0" placeholder="$ (enter 0 if none)"><div class="hint">Required · enter 0 if there is none</div></div></div>
   <div class="frow"><div class="fg"><label>Your contract % *</label><input id="f_contract" type="number" inputmode="decimal" placeholder="80" oninput="calcComm()"><div class="hint">Your comp rate at the carrier · all business is 100% advance</div></div></div>
-  <div class="commbox"><div class="cl">Expected Commission</div><div class="cv" id="commOut">$0</div></div>
+  <div class="commbox"><div class="cl" id="commLbl">Expected Commission</div><div class="cv" id="commOut">$0</div></div>
   <div class="sec-l">Dates</div>
   <div class="frow"><div class="fg"><label>Date written *</label><input id="f_written" type="date"></div><div class="fg"><label>First draft date</label><input id="f_draft" type="date"></div></div>
   <label class="chk" id="suitToggle" style="display:none"><input type="checkbox" id="f_suit"> ✅ Annuity suitability reviewed &amp; on file</label>
@@ -298,9 +298,10 @@ function windowed(){return POLICIES.filter(inWindow);}
 function renderKpis(){
   var rows=windowed();
   var sum=function(arr,k){return arr.reduce(function(t,r){return t+(Number(r[k])||0);},0);};
+  var sumf=function(arr,fn){return arr.reduce(function(t,r){return t+(Number(fn(r))||0);},0);};
   var openR=rows.filter(function(r){return r.status!=='closed';});
   var byB=function(b){return rows.filter(function(r){return bucket(r.status)===b;});};
-  var cards=[['AP Submitted',moneyK(sum(openR,'annual_premium')),'blue'],['Pending Comm.',moneyK(sum(byB('pending'),'expected_commission')),'gold'],['Approved AP',moneyK(sum(byB('approved'),'annual_premium')),'green'],['In Force',moneyK(sum(byB('paid'),'annual_premium')),'green'],['Paid Comm.',moneyK(sum(byB('paid'),'expected_commission')),'gold'],['Chargebacks',moneyK(sum(rows,'chargeback_amount')),'red'],['Closed AP',moneyK(sum(byB('closed'),'annual_premium')),'red'],['Total Coverage',moneyK(sum(openR,'coverage')),'blue']];
+  var cards=[['AP Submitted',moneyK(sumf(openR,myAp)),'blue'],['Pending Comm.',moneyK(sumf(byB('pending'),myComm)),'gold'],['Approved AP',moneyK(sumf(byB('approved'),myAp)),'green'],['In Force',moneyK(sumf(byB('paid'),myAp)),'green'],['Paid Comm.',moneyK(sumf(byB('paid'),myComm)),'gold'],['Chargebacks',moneyK(sum(rows,'chargeback_amount')),'red'],['Closed AP',moneyK(sumf(byB('closed'),myAp)),'red'],['Total Coverage',moneyK(sum(openR,'coverage')),'blue']];
   $('kpis').innerHTML=cards.map(function(c){return '<div class="kpi '+c[2]+'"><div class="kl">'+c[0]+'</div><div class="kv">'+c[1]+'</div></div>';}).join('');
   var cnt=function(b){return byB(b).length;};
   var stages=[['submitted','Submitted',openR.length,'M9 3h6v4H9zM7 7h10v13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1z'],['pending','Pending',cnt('pending'),'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 2'],['approved','Approved',cnt('approved'),'M20 6 9 17l-5-5'],['paid','Paid Out',cnt('paid'),'M3 10.5 12 4l9 6.5V20H3zM9 20v-6h6v6'],['closed','Closed',cnt('closed'),'M18 6 6 18M6 6l12 12']];
@@ -332,7 +333,7 @@ function render(){
       '<td class="muted">'+esc(d||'—')+'</td><td>'+esc(p.state||'—')+'</td><td>'+esc(p.carrier||'—')+cbadge+'</td>'+
       '<td class="muted">'+esc(p.policy_number||'—')+'</td><td>'+esc(p.product||'—')+'</td>'+
       '<td>'+splitCol(p)+'</td>'+
-      '<td class="r"><div class="prem">'+money(p.annual_premium)+'</div><div class="premc">'+(p.expected_commission!=null?('~'+money(p.expected_commission)+' comm'):'annual')+'</div></td>'+
+      '<td class="r"><div class="prem">'+money(myAp(p))+(p.split_flag?' <span style="font-size:10px;color:var(--muted,#8a8a8e);font-weight:600">('+myShare(p)+'%)</span>':'')+'</div><div class="premc">'+(myComm(p)!=null?('~'+money(myComm(p))+' comm'):'annual')+'</div></td>'+
       '<td class="r"><div class="rowact">'+(canEdit(p)?'<button class="iconb" title="Edit" onclick="event.stopPropagation();openEdit(findP('+p.id+'))">✏️</button>':'')+'</div></td>';
     tb.appendChild(tr);
   });
@@ -359,7 +360,9 @@ function loadRecos(){
 }
 function findP(id){return POLICIES.filter(function(p){return p.id===id;})[0];}
 /* ===== Split coordination: a split policy appears for BOTH the writer and the split partner ===== */
-function myShare(p){return (p.my_share_pct!=null?Number(p.my_share_pct):(p.split_pct!=null?Number(p.split_pct):50));}
+function myShare(p){return p.split_flag?(p.my_share_pct!=null?Number(p.my_share_pct):(p.split_pct!=null?Number(p.split_pct):50)):100;}
+function myAp(p){return (p.my_ap!=null)?Number(p.my_ap):Math.round((Number(p.annual_premium)||0)*(myShare(p)/100));}
+function myComm(p){if(p.my_commission!=null)return Number(p.my_commission);if(p.expected_commission==null)return null;return Math.round(Number(p.expected_commission)*(myShare(p)/100));}
 function splitLabel(p){
   var mine=myShare(p);
   if(p.split_role==='received')return ' · 🤝 split from '+esc(p.agent_name||'agent')+' · your '+mine+'%';
@@ -390,7 +393,11 @@ function renderStatusGrid(){
     return '<button class="stbtn'+(STATUS===s[0]?' on':'')+'" onclick="STATUS=\''+s[0]+'\';renderStatusGrid()">'+s[1]+'</button>';
   }).join('');
 }
-function calcComm(){var prem=Number($('f_prem').value)||0;var c=Number($('f_contract').value);var comm=(!isNaN(c))?Math.round(prem*(c/100)):0;$('commOut').textContent=money(comm);}
+function calcComm(){var prem=Number($('f_prem').value)||0;var c=Number($('f_contract').value);
+  var share=1;if($('f_splitflag')&&$('f_splitflag').checked){var sp=Number(($('f_splitpct')||{}).value);if(!isNaN(sp))share=Math.max(0,Math.min(100,sp))/100;}
+  var comm=(!isNaN(c))?Math.round(prem*(c/100)*share):0;
+  $('commOut').textContent=money(comm);
+  var lbl=$('commLbl');if(lbl)lbl.textContent=(share<1)?('Your Commission · '+Math.round(share*100)+'% of this sale'):'Expected Commission';}
 function fillForm(p){
   STATUS=p.status||'pending';renderStatusGrid();
   var set=function(i,v){$(i).value=(v==null?'':v);};
