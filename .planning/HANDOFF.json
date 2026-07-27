@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-07-27T06:18:19.938Z",
+  "timestamp": "2026-07-27T06:21:39.746Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -22,5 +22,5 @@
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\n5b408c7 My Tracker: level-up cinematic + CoD rank-up + live team race + fog-of-war gates\nff72b83 Update HANDOFF.json\n5c21e6c My Tracker: living-board motion pass + Cashflow endgame scene\na7ab103 Merge branch 'main' of https://github.com/GrindAgencies/smmt-calendar\nc245dd7 Update HANDOFF.json"
+  "context_notes": "Recent commits:\nfd8b5b5 Merge branch 'main' of https://github.com/GrindAgencies/smmt-calendar\n59da78c Update HANDOFF.json\n5b408c7 My Tracker: level-up cinematic + CoD rank-up + live team race + fog-of-war gates\nb728290 Leaderboard: full-width central card + larger fonts (hero 33px, names 16.5px, values 16px, bigger rows/avatars); top 10\nff72b83 Update HANDOFF.json"
 }
