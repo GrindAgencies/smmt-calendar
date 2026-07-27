@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-07-27T05:49:17.590Z",
+  "timestamp": "2026-07-27T05:59:13.880Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -26,5 +26,5 @@
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\nde78081 Update HANDOFF.json\nb1e85f0 My Tracker gameboard: climb UP, full-screen, per-world art, parallax, sound, customization + combined Team/Org tab\na60d1a0 Merge branch 'main' of https://github.com/GrindAgencies/smmt-calendar\n4494725 Update HANDOFF.json\ncb76596 My Tracker: full video-game gameboard — winding trail, world regions, character piece"
+  "context_notes": "Recent commits:\na7ab103 Merge branch 'main' of https://github.com/GrindAgencies/smmt-calendar\nc245dd7 Update HANDOFF.json\n1bbfbfe My Tracker: Halo/Destiny sci-fi backdrops + team tokens panel\nd429248 Dashboard: add Team scope (cumulative all-levels roll-up via team-board) — 4th block Personal/Team/Baseshop/Hierarchy; leaderboard sums each person's full downline\na134d89 Dashboard: one central leaderboard with 5 metric buttons (Direct partners / Submitted premium / Field trainings / Licensed agents / Net licensed) for Baseshop + Hierarchy; +licensed metric via leaderboard-api v9"
 }
