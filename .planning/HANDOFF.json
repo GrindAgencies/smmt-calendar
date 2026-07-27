@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-07-25T16:46:09.336Z",
+  "timestamp": "2026-07-27T04:40:47.813Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -21,10 +21,10 @@
       "path": ".planning/HANDOFF.json"
     },
     {
-      "status": "M",
-      "path": "org.html"
+      "status": "??",
+      "path": "roadmap.html"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\nc52cc4b Ops platform scoping: also scope New Business + Bookings by baseshop\n29a4fa6 Update HANDOFF.json\nf91e02a Per-baseshop Ops platform: 0001-0005 scope the dashboard to a baseshop (Standard master unchanged)\nb0f8b44 Update HANDOFF.json\n5f76d47 My Team rebuilt on the single-source hierarchy engine (org-api)"
+  "context_notes": "Recent commits:\n4ca6c50 Update HANDOFF.json\ne89c942 Org Chart / My Team: recognize EMD/MD/NVP/SEVP abbreviations as manager levels\nc52cc4b Ops platform scoping: also scope New Business + Bookings by baseshop\n29a4fa6 Update HANDOFF.json\nf91e02a Per-baseshop Ops platform: 0001-0005 scope the dashboard to a baseshop (Standard master unchanged)"
 }
