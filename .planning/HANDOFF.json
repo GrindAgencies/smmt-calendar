@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-07-27T05:59:13.880Z",
+  "timestamp": "2026-07-27T06:18:19.938Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -19,12 +19,8 @@
     {
       "status": "M",
       "path": ".planning/HANDOFF.json"
-    },
-    {
-      "status": "M",
-      "path": "roadmap.html"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\na7ab103 Merge branch 'main' of https://github.com/GrindAgencies/smmt-calendar\nc245dd7 Update HANDOFF.json\n1bbfbfe My Tracker: Halo/Destiny sci-fi backdrops + team tokens panel\nd429248 Dashboard: add Team scope (cumulative all-levels roll-up via team-board) — 4th block Personal/Team/Baseshop/Hierarchy; leaderboard sums each person's full downline\na134d89 Dashboard: one central leaderboard with 5 metric buttons (Direct partners / Submitted premium / Field trainings / Licensed agents / Net licensed) for Baseshop + Hierarchy; +licensed metric via leaderboard-api v9"
+  "context_notes": "Recent commits:\n5b408c7 My Tracker: level-up cinematic + CoD rank-up + live team race + fog-of-war gates\nff72b83 Update HANDOFF.json\n5c21e6c My Tracker: living-board motion pass + Cashflow endgame scene\na7ab103 Merge branch 'main' of https://github.com/GrindAgencies/smmt-calendar\nc245dd7 Update HANDOFF.json"
 }
