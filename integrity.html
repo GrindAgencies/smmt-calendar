@@ -1,0 +1,99 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Roll-up Integrity — The Standard</title>
+<style>
+  :root{--bg:#0b0f1a;--panel:#11172a;--panel2:#161d33;--ink:#e8ecf3;--ink2:#9aa3b7;--ink3:#6b7488;--line:#20283d;--gold:#c99a2e;--accent:#5b6cff;--red:#e0533d;--amber:#e0a13d;--green:#1a9c52;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,system-ui,Inter,sans-serif;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:840px;margin:0 auto;padding:28px 18px 80px;}
+  .mono{font-family:Georgia,serif;color:var(--gold);font-weight:700;letter-spacing:.5px;font-size:14px;}
+  h1{font-size:23px;margin:6px 0 4px;}
+  .sub{color:var(--ink2);font-size:13.5px;margin-bottom:22px;line-height:1.5;}
+  input{width:100%;max-width:260px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--ink);font-size:15px;outline:none;font-family:inherit;}
+  button{border:none;border-radius:12px;font-weight:700;font-size:14px;padding:12px 20px;cursor:pointer;font-family:inherit;}
+  .primary{background:var(--accent);color:#fff;}
+  .ghost{background:var(--panel);color:var(--ink2);border:1px solid var(--line);}
+  .chips{display:flex;gap:9px;flex-wrap:wrap;margin:18px 0 22px;}
+  .chip{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:11px 14px;min-width:96px;}
+  .chip .n{font-size:22px;font-weight:900;letter-spacing:-.02em;}
+  .chip .l{font-size:11px;color:var(--ink3);font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-top:2px;}
+  .chip.red .n{color:var(--red);} .chip.amber .n{color:var(--amber);} .chip.gold .n{color:var(--gold);}
+  .grp{margin:26px 0 8px;font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:10px;}
+  .card .top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .card .nm{font-weight:800;font-size:15px;}
+  .card .cd{font-size:11.5px;color:var(--ink3);font-weight:700;}
+  .badge{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;padding:3px 8px;border-radius:999px;margin-left:auto;}
+  .b-mismatch{background:rgba(224,83,61,.15);color:#ff8c78;} .b-orphan{background:rgba(224,83,61,.15);color:#ff8c78;}
+  .b-unplaceable{background:rgba(224,161,61,.15);color:var(--amber);} .b-not_in_org{background:rgba(107,116,136,.18);color:var(--ink2);}
+  .b-quit_upline{background:rgba(224,83,61,.15);color:#ff8c78;} .b-no_direct_to{background:rgba(107,116,136,.18);color:var(--ink2);}
+  .issue{font-size:13px;color:var(--ink2);margin-top:7px;line-height:1.45;}
+  .issue b{color:var(--ink);}
+  .rel{display:flex;gap:16px;flex-wrap:wrap;margin-top:9px;font-size:12px;color:var(--ink3);}
+  .rel b{color:var(--ink2);font-weight:700;}
+  .empty{color:var(--ink3);text-align:center;padding:30px;}
+  .foot{color:var(--ink3);font-size:12px;margin-top:26px;line-height:1.5;}
+</style></head><body>
+<div class="wrap">
+  <div class="mono">THE STANDARD · OPERATIONS</div>
+  <h1>Roll-up Integrity Check</h1>
+  <div class="sub">Finds agents whose production may be attributed to the wrong upline in the Team / Hierarchy roll-ups. Read-only — fix the flagged agents' <b>direct upline</b> or add them to the org chart in the tracker, then re-scan.</div>
+
+  <div id="gate">
+    <label style="display:block;font-size:12px;font-weight:700;color:var(--ink2);margin-bottom:6px">Operations passcode</label>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <input id="tok" type="password" placeholder="Enter passcode" onkeydown="if(event.key==='Enter')run()">
+      <button class="primary" onclick="run()">Run scan</button>
+    </div>
+    <div id="err" style="color:var(--red);font-size:13px;font-weight:600;margin-top:10px"></div>
+  </div>
+
+  <div id="report" style="display:none">
+    <div id="summary"></div>
+    <div style="margin:6px 0 4px"><button class="ghost" onclick="run()">↻ Re-scan</button></div>
+    <div id="list"></div>
+    <div class="foot" id="foot"></div>
+  </div>
+</div>
+<script>
+var API="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/integrity-check";
+var TOK="";
+function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+var GRP={mismatch:'⚠️ Wrong upline (misattributed)',orphan:'⛔ No upline at all',unplaceable:'⚠️ Recruited but not in the tree',quit_upline:'⛔ Upline has quit',not_in_org:'➕ Not on the org chart',no_direct_to:'· Missing direct-recruit tag'};
+var ORDER=['mismatch','orphan','unplaceable','quit_upline','not_in_org','no_direct_to'];
+function run(){
+  var t=document.getElementById('tok'); if(t&&t.value)TOK=t.value;
+  document.getElementById('err').textContent='';
+  fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:TOK})})
+    .then(function(r){return r.json();}).then(function(r){
+      if(!r||!r.ok){document.getElementById('err').textContent=(r&&r.error==='unauthorized')?'Wrong passcode.':'Scan failed — try again.';return;}
+      render(r);
+    }).catch(function(){document.getElementById('err').textContent='Network error — try again.';});
+}
+function render(r){
+  document.getElementById('gate').style.display='none';
+  document.getElementById('report').style.display='block';
+  var c=r.counts||{};
+  function chip(k,l,cls){var n=c[k]||0;return '<div class="chip '+(n?cls:'')+'"><div class="n">'+n+'</div><div class="l">'+l+'</div></div>';}
+  document.getElementById('summary').innerHTML='<div class="chips">'
+    +'<div class="chip"><div class="n">'+r.flagged_count+'</div><div class="l">Flagged</div></div>'
+    +chip('mismatch','Wrong upline','red')+chip('orphan','Orphans','red')
+    +chip('unplaceable','Unplaceable','amber')+chip('not_in_org','Not on chart','')
+    +chip('quit_upline','Quit upline','red')+'</div>';
+  // group
+  var byType={}; (r.flagged||[]).forEach(function(f){var t=f.issues[0].type;(byType[t]=byType[t]||[]).push(f);});
+  var html='';
+  ORDER.forEach(function(t){var arr=byType[t]; if(!arr||!arr.length)return;
+    html+='<div class="grp">'+GRP[t]+' · '+arr.length+'</div>';
+    arr.forEach(function(f){
+      html+='<div class="card"><div class="top"><span class="nm">'+esc(f.name)+'</span><span class="cd">'+esc(f.code)+(f.baseshop?(' · '+esc(f.baseshop)):'')+'</span><span class="badge b-'+t+'">'+t.replace(/_/g,' ')+'</span></div>';
+      f.issues.forEach(function(i){html+='<div class="issue">'+esc(i.detail)+'</div>';});
+      html+='<div class="rel"><span>Rolls up to: <b>'+esc(f.upline)+'</b></span><span>Direct recruit: <b>'+esc(f.direct_to)+'</b></span></div></div>';
+    });
+  });
+  document.getElementById('list').innerHTML=html||'<div class="empty">✅ No integrity issues found — every agent rolls up correctly.</div>';
+  document.getElementById('foot').textContent='Scanned '+(r.agent_total||0)+' agents · '+(r.org_nodes||0)+' on the org chart · root: '+(r.root||'—')+' · '+new Date(r.scanned_at).toLocaleString();
+}
+</script>
+</body></html>
