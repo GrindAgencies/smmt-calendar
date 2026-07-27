@@ -224,6 +224,7 @@ select.cellin{cursor:pointer;min-width:140px;-webkit-appearance:none;appearance:
 <script>
 var OD="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/ops-directory";
 var OPSPLAT="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/ops-platform";
+var ROADMAP="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/roadmap-api";
 var BSSCOPE=null; /* null = master (Standard, everyone). Array of baseshop names = scoped per-baseshop Ops platform. */
 var CALS="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/calendly-sync";
 function calBody(extra){var b=extra||{};b.code=OPS?OPS.code:'';if(canEdit())b.token='2026';return b;}
@@ -819,6 +820,12 @@ function paintAgent(r){
   h+='<div class="dsec"><h4>🚀 Fast Start</h4><div style="font-size:13px;color:var(--ink2);display:flex;gap:16px;flex-wrap:wrap"><span>Pathway: <b>'+esc(a.pathway||'—')+'</b></span><span>Onboarding: <b>'+pct+'%</b></span><span>Steps: <b>'+(a.steps_done||0)+'</b></span></div><div style="margin-top:10px;display:flex;gap:14px;font-size:12.5px;font-weight:700"><span>'+(m.licensed?'✅':'⬜')+' Licensed</span><span>'+(m.first_sale?'✅':'⬜')+' First sale</span><span>'+(m.first_recruit?'✅':'⬜')+' First recruit</span></div></div>';
   var pols=r.policies||[];
   h+='<div class="dsec"><h4>💰 New Business ('+pols.length+')</h4>'+(pols.length?pols.map(function(p){return '<div class="polrow"><div class="pt">'+esc(p.client_name||'—')+' · '+money(p.annual_premium)+'</div><div class="pm"><span>'+esc(((p.carrier||'')+(p.product?(' · '+p.product):''))||'—')+'</span><span>'+esc(p.status||'')+'</span><span>'+esc(p.submitted_date||'')+'</span></div></div>';}).join(''):'<div class="sub">No policies submitted yet.</div>')+'</div>';
+  if(canEdit())h+='<div class="dsec"><h4>💵 Cashflow <span style="color:var(--ink3);font-weight:700;text-transform:none;letter-spacing:0">· drives My Tracker &amp; posts Team Hub recognition</span></h4>'
+    +'<div class="frow"><div class="fg"><label>Current career cashflow ($)</label><input id="e_cashflow" type="number" step="5000" min="0" placeholder="loading…" style="font-weight:700;font-size:15px"></div>'
+    +'<div class="fg"><label>Recognition</label><label style="display:flex;align-items:center;gap:7px;font-size:12.5px;padding-top:9px;cursor:pointer"><input type="checkbox" id="e_cf_ann" checked> Announce milestone to Team Hub</label></div></div>'
+    +'<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><button class="dbtn" onclick="opsCashSave(\''+esc(a.code)+'\')">Update cashflow</button><span class="sub" id="cfBoard"></span></div>'
+    +'<div class="sub" id="cfMsg" style="margin-top:7px;min-height:15px"></div>'
+    +'<div class="sub" style="margin-top:6px;line-height:1.5">Their piece climbs to the matching $ tile on My Tracker (past $20K it’s number-driven). Crossing a $5K step posts recognition; majors — $50K ⌚ · $100K 💍 · $250K 💰 · $500K 💎 · $1M 👑 — post a big celebration.</div></div>';
   if(canEdit())h+='<div style="display:flex;align-items:center;gap:10px;margin:10px 0 6px"><label style="font-size:12.5px;font-weight:700;color:var(--ink2)">Row highlight</label><input type="color" value="'+((a.custom&&a.custom.__rowcolor)||'#ffffff')+'" onchange="setRowColor(\''+esc(a.code)+'\',this.value)" style="width:44px;height:30px;border:1px solid var(--line);border-radius:8px;cursor:pointer;padding:2px"><span onclick="setRowColor(\''+esc(a.code)+'\',\'\')" style="cursor:pointer;color:var(--ink3);font-size:12.5px">Clear</span></div>';
   if(canEdit())h+='<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><button class="dbtn" onclick="saveAgent(\''+esc(a.code)+'\')">Save field changes</button><button class="dbtn ghost" onclick="closeDrawer()">Close</button><button class="dbtn" style="background:var(--red);margin-left:auto" onclick="removeAgentMenu(\''+esc(a.code)+'\')">Remove agent…</button></div>';
   else h+='<div><button class="dbtn blue" onclick="requestEdit(\''+esc(a.code)+'\')">✏️ Request a field edit</button></div>';
@@ -829,7 +836,25 @@ function paintAgent(r){
   var rq=r.requests||[];
   if(rq.length)h+='<div class="dsec"><h4>Edit requests</h4>'+rq.map(function(q){return '<div class="reqitem"><div class="rq">'+esc(q.field||'General')+' · <span style="color:'+(q.status==='pending'?'var(--amber)':'var(--green)')+'">'+esc(q.status)+'</span></div><div class="rm">'+esc(q.note||'')+' — '+esc(q.by_name||q.by_code)+'</div></div>';}).join('')+'</div>';
   h+='</div>';$('drawer').innerHTML=h;
+  if(canEdit())opsCashLoad(a.code);
 }
+function opsCashLoad(code){var i=$('e_cashflow');if(!i)return;
+  fetch(ROADMAP,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'player',code:code})}).then(function(r){return r.json();}).then(function(d){
+    if(!$('e_cashflow'))return;
+    if(!d||!d.ok||!d.player){$('e_cashflow').placeholder='—';return;}
+    var p=d.player;$('e_cashflow').value=Number(p.cashflow)||0;
+    var cur=(p.levels||[]).filter(function(l){return l.id===p.current_level;})[0];
+    var b=$('cfBoard');if(b)b.innerHTML='Board: <b>'+esc(cur?cur.name:'—')+'</b> · rank '+((p.rank_index||0)+1);
+  }).catch(function(){if($('e_cashflow'))$('e_cashflow').placeholder='—';});}
+function opsCashSave(code){var el=$('e_cashflow');if(!el)return;var amt=Math.max(0,Math.round(Number(el.value)||0));var ann=($('e_cf_ann')||{}).checked!==false;
+  var m=$('cfMsg');if(m){m.style.color='var(--ink3)';m.textContent='Saving…';}
+  fetch(ROADMAP,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'set_cashflow',token:'2026',code:code,amount:amt,recognize:ann})}).then(function(r){return r.json();}).then(function(d){
+    if(!d||!d.ok){if(m){m.style.color='var(--red)';m.textContent=(d&&d.error)||'Save failed';}return;}
+    var txt='✓ Set to $'+Number(d.cashflow).toLocaleString()+' (was $'+Number(d.old).toLocaleString()+').';
+    if(d.posted)txt+=' 🎉 Recognition posted to Team Hub'+(d.milestone?' — $'+Number(d.milestone).toLocaleString()+' milestone!':'')+'.';
+    else if(amt>d.old)txt+=' (no new $5K milestone — no post.)';
+    if(m){m.style.color='var(--green)';m.textContent=txt;}toast('Cashflow updated ✓');opsCashLoad(code);
+  }).catch(function(){if(m){m.style.color='var(--red)';m.textContent='Network error';}});}
 function canModNote(n){return canEdit()||(OPS&&(OPS.code||'').toUpperCase()===(n.by_code||'').toUpperCase());}
 function notesHtml(notes){
   if(!notes.length)return '<div class="sub">No notes yet.</div>';
