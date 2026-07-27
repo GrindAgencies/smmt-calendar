@@ -283,6 +283,10 @@ button{font-family:inherit;cursor:pointer;}
 .lb-val.bump{animation:lbbump .55s ease;}
 @keyframes lbbump{0%{transform:scale(1);}40%{transform:scale(1.16);color:var(--green);}100%{transform:scale(1);}}
 .lb-card{transition:transform .2s cubic-bezier(.2,.8,.2,1),box-shadow .2s;}
+.lb-metric-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;}
+.lb-mtab{border:1px solid var(--line);background:var(--panel-2);color:var(--ink-2);font-weight:700;font-size:12.5px;padding:9px 13px;border-radius:11px;cursor:pointer;white-space:nowrap;}
+.lb-mtab.on{background:var(--accent);color:#fff;border-color:var(--accent);}
+.lb-central{max-width:760px;}
 .lb-card:hover{transform:translateY(-3px);box-shadow:var(--shadow);}
 .lbper{display:inline-flex;background:var(--panel);border:1px solid var(--line-2);border-radius:10px;padding:2px;gap:2px;box-shadow:var(--shadow-sm);}
 .lbper button{border:none;background:none;padding:5px 12px;border-radius:8px;font-size:12px;font-weight:800;color:var(--ink-2);cursor:pointer;font-family:inherit;transition:.15s;}
@@ -390,7 +394,7 @@ button{font-family:inherit;cursor:pointer;}
       <button class="tb-toggle" onclick="toggleSidebar()" aria-label="Menu">${ICON.menu}</button>
       <div class="tb-search">${ICON.search}<input type="text" placeholder="Search agents, leads, resources…" onkeydown="if(event.key==='Enter')location.href='marketing.html'"></div>
       <div class="tb-spacer"></div>
-      <div class="ctx"><button id="ctxMe" class="on" onclick="setCtx('me')">Personal</button><button id="ctxShop" onclick="setCtx('shop')">Baseshop</button><button id="ctxOrg" onclick="setCtx('org')">Hierarchy</button></div>
+      <div class="ctx"><button id="ctxMe" class="on" onclick="setCtx('me')">Personal</button><button id="ctxTeam" onclick="setCtx('team')">Team</button><button id="ctxShop" onclick="setCtx('shop')">Baseshop</button><button id="ctxOrg" onclick="setCtx('org')">Hierarchy</button></div>
       <button class="tb-ic" onclick="toggleTheme()" aria-label="Theme" id="themeBtn">${ICON.moon}</button>
       <button class="tb-ic" aria-label="Notifications" onclick="location.href='dashboard.html'">${ICON.bell}<span class="dot"></span></button>
     </div>
@@ -690,10 +694,11 @@ function loadData(){
 }
 
 /* ---------- CONTEXT TOGGLE ---------- */
-function setCtx(c){CTX=c;$('ctxMe').classList.toggle('on',c==='me');$('ctxShop').classList.toggle('on',c==='shop');var o=$('ctxOrg');if(o)o.classList.toggle('on',c==='org');renderSnapshot();renderPerf();loadLeaderboard();}
+function setCtx(c){CTX=c;$('ctxMe').classList.toggle('on',c==='me');$('ctxShop').classList.toggle('on',c==='shop');var o=$('ctxOrg');if(o)o.classList.toggle('on',c==='org');var tm=$('ctxTeam');if(tm)tm.classList.toggle('on',c==='team');renderSnapshot();renderPerf();loadLeaderboard();}
 
 /* ---------- LEADERBOARD (live, game-like) ---------- */
 var LB="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/leaderboard-api";
+var TB="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/team-board";
 var HUB="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/hub-api";
 var HUBAV={},LBDATA=null,LBPREV={},LBSCOPEPREV=null,LBLAST=0,LBPOLL=null,LBSYNCT=null,LBCHAMPSEEN={},LBPERIOD='month';
 function setPeriod(p){LBPERIOD=p;LBPREV={};LBCHAMPSEEN={};var bs=document.querySelectorAll('.lbper button');for(var i=0;i<bs.length;i++)bs[i].classList.toggle('on',bs[i].getAttribute('data-p')===p);loadLeaderboard();}
@@ -710,21 +715,24 @@ function fireConfetti(){
   (function fr(){var el=Date.now()-t0;ctx.clearRect(0,0,c.width,c.height);for(var i=0;i<P.length;i++){var p=P[i];p.x+=p.vx;p.y+=p.vy;p.vy+=.06;p.rot+=p.vr;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.rot);ctx.globalAlpha=Math.max(0,1-el/2900);ctx.fillStyle=p.col;ctx.fillRect(-p.r/2,-p.r/2,p.r,p.r*.62);ctx.restore();}if(el<2900)requestAnimationFrame(fr);else ctx.clearRect(0,0,c.width,c.height);})();
 }
 var LBMETRICS=[
- {key:'recruiter',title:'Business Partners',sub:'New partners this period',ic:'🤝',money:false},
- {key:'premium',title:'Premium Submitted',sub:'AP submitted this period',ic:'💰',money:true},
- {key:'net_licenses',title:'Net Licenses',sub:'Team at $1K+ business',ic:'🎫',money:false},
- {key:'trainings',title:'Field Trainings Ran',sub:'Trainings completed',ic:'🏋️',money:false}
+ {key:'recruiter',title:'Direct Business Partners',sub:'New partners this period',ic:'🤝',money:false},
+ {key:'premium',title:'Submitted Premium',sub:'AP submitted this period',ic:'💰',money:true},
+ {key:'trainings',title:'Field Trainings Booked',sub:'Trainings this period',ic:'🏋️',money:false},
+ {key:'licensed',title:'Licensed Agents',sub:'Licensed on the team',ic:'🎫',money:false},
+ {key:'net_licenses',title:'Net Licensed Agents',sub:'Team at $1K+ business',ic:'🏅',money:false}
 ];
+var LBMETRIC='recruiter';
+function setLbMetric(k){LBMETRIC=k;if(LBDATA)renderLeaderboard(LBDATA);}
 function lbEsc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
 function lbVal(v,m){return m?money2(v):String(v);}
 function fmtFull(n,money){n=Math.round(Number(n)||0);return money?('$'+n.toLocaleString('en-US')):String(n);}
 function lbAv(code,name){var u=HUBAV[(code||'').toUpperCase()];if(u)return '<img src="'+u+'" alt="" style="width:100%;height:100%;object-fit:cover">';return lbEsc(initials(name));}
-function scopeFromCtx(){return CTX==='me'?'personal':(CTX==='shop'?'baseshop':'hierarchy');}
+function scopeFromCtx(){return CTX==='me'?'personal':(CTX==='team'?'team':(CTX==='shop'?'baseshop':'hierarchy'));}
 function loadAvatars(){fetch(HUB,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'hub_avatars'})}).then(function(r){return r.json();}).then(function(r){var m=(r&&r.avatars)||{};var out={};Object.keys(m).forEach(function(k){out[k.toUpperCase()]=m[k];});HUBAV=out;var sa=$('sideAv');if(sa&&HUBAV[(CODE||'').toUpperCase()])sa.innerHTML='<img src="'+HUBAV[(CODE||'').toUpperCase()]+'" alt="" style="width:100%;height:100%;object-fit:cover">';if(LBDATA)renderLeaderboard(LBDATA);}).catch(function(){});}
 function loadLeaderboard(){
   var scope=scopeFromCtx();var host=$('lbGrid');
   if(LBSCOPEPREV!==scope){LBPREV={};LBSCOPEPREV=scope;LBCHAMPSEEN={};}
-  fetch(LB,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'board',code:CODE,scope:scope,period:LBPERIOD})})
+  fetch(scope==='team'?TB:LB,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(scope==='team'?{code:CODE,period:LBPERIOD}:{action:'board',code:CODE,scope:scope,period:LBPERIOD})})
     .then(function(r){return r.json();}).then(function(r){if(!r||!r.ok){if(host&&!LBDATA)host.innerHTML='<div class="lb-empty" style="grid-column:1/-1">Leaderboard unavailable right now.</div>';return;}LBDATA=r;renderLeaderboard(r);LBLAST=Date.now();paintSynced();})
     .catch(function(){if(host&&!LBDATA)host.innerHTML='<div class="lb-empty" style="grid-column:1/-1">Leaderboard unavailable right now.</div>';});
 }
@@ -737,8 +745,8 @@ function lbCaptureRects(){var m={},host=$('lbGrid');if(!host)return m;var els=ho
 function lbPlayFlip(oldR){if(!oldR||(window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches))return;var host=$('lbGrid');if(!host)return;var els=host.querySelectorAll('[data-rowkey]');for(var i=0;i<els.length;i++){(function(el){var k=el.getAttribute('data-rowkey');if(oldR[k]==null)return;var d=oldR[k]-el.getBoundingClientRect().top;if(Math.abs(d)<1)return;el.style.transform='translateY('+d+'px)';el.style.transition='none';requestAnimationFrame(function(){requestAnimationFrame(function(){el.style.transition='transform .55s cubic-bezier(.2,.8,.2,1)';el.style.transform='';});});})(els[i]);}}
 function renderLeaderboard(r){
   var host=$('lbGrid');if(!host)return;var meCode=(CODE||'').toUpperCase();var _oldR=lbCaptureRects();
-  var lbl=$('lbCtxLbl');if(lbl)lbl.textContent=(r.scope==='personal'?'Your standing':(r.scope==='baseshop'?('Baseshop · '+r.base):'Whole company'))+' · '+r.month;
-  if(r.scope==='personal'){
+  var lbl=$('lbCtxLbl');if(lbl)lbl.textContent=(r.scope==='personal'?'Your standing':(r.scope==='team'?('Your team · all levels · '+(r.team_size||0)+' members'):(r.scope==='baseshop'?('Baseshop · '+r.base):'Whole company')))+' · '+r.month;
+  if(r.scope==='personal'){var _g=$('lbGrid');if(_g)_g.style.gridTemplateColumns='repeat(auto-fit,minmax(345px,1fr))';
     host.innerHTML=LBMETRICS.map(function(m){
       var b=(r.boards&&r.boards[m.key])||{value:0,rank_company:0,of_company:0,rank_base:0,of_base:0,leader:null};
       var prev=LBPREV[m.key];var fr=(prev&&prev.__you!=null)?prev.__you:0;
@@ -755,22 +763,25 @@ function renderLeaderboard(r){
     host.querySelectorAll('.lb-you-val[data-to]').forEach(animateVal);
     return;
   }
-  host.innerHTML=LBMETRICS.map(function(m){
-    var b=(r.boards&&r.boards[m.key])||{top:[],me:{rank:0,value:0},total:0};var top=b.top||[];var prev=LBPREV[m.key];
-    if(!top.length)return '<div class="card lb-card">'+lbHead(m)+'<div class="lb-empty">No entries yet this month.</div></div>';
+  host.style.gridTemplateColumns='1fr';
+  var sel=LBMETRIC;if(!LBMETRICS.some(function(x){return x.key===sel;}))sel='recruiter';
+  var m=LBMETRICS.filter(function(x){return x.key===sel;})[0];
+  var b=(r.boards&&r.boards[sel])||{top:[],me:{rank:0,value:0},total:0};var top=b.top||[];var prev=LBPREV[sel];
+  var tabs='<div class="lb-metric-tabs">'+LBMETRICS.map(function(x){return '<button class="lb-mtab'+(x.key===sel?' on':'')+'" onclick="setLbMetric(\''+x.key+'\')">'+x.ic+' '+lbEsc(x.title)+'</button>';}).join('')+'</div>';
+  var bodyHTML;
+  if(!top.length){bodyHTML='<div class="lb-empty">No entries yet this '+(LBPERIOD==='year'?'year':(LBPERIOD==='week'?'week':'month'))+'.</div>';}
+  else{
     var max=top[0].value||1;var champ=top[0];var cc=(champ.code||'').toUpperCase();var champMe=(cc===meCode);
     var cfr=(prev&&prev[cc])?prev[cc].value:0;var flash=(prev&&prev.__champ&&prev.__champ!==cc)?' lb-champ-flash':'';
     var hero='<div class="lb-hero'+flash+'"><div class="lb-sheen"></div><span class="lb-crown">👑</span><div class="lb-av-hero">'+lbAv(champ.code,champ.name)+'</div><div class="lb-hero-meta"><div class="lb-hero-name"><span class="lb-nametext">'+lbEsc(champ.name)+(champMe?' · You':'')+'</span>'+miniEmb(champ.emb)+deltaChip(prev,cc,1)+'</div><div class="lb-hero-base">'+lbEsc(champ.baseshop||'')+' · Leader</div></div><div class="lb-hero-val" data-to="'+champ.value+'" data-from="'+cfr+'" data-money="'+(m.money?1:0)+'">'+fmtFull(champ.value,m.money)+'</div></div>';
-    var rest=top.slice(1,3).map(function(t){var rank=t.rank;var pct=Math.max(6,Math.round((t.value/max)*100));var code=(t.code||'').toUpperCase();var meRow=(code===meCode);var badge=rank===2?'🥈':rank===3?'🥉':rank;var changed=(prev&&prev[code]&&prev[code].value!==t.value);return '<div class="lb-row'+(rank===2?' silver':rank===3?' bronze':'')+(meRow?' me':'')+'" data-rowkey="'+m.key+':'+code+'"><span class="lb-rank">'+badge+'</span><span class="lb-av-sm">'+lbAv(t.code,t.name)+'</span><span class="lb-name"><span class="lb-nametext">'+lbEsc(t.name)+(meRow?' <b>· You</b>':'')+'</span>'+miniEmb(t.emb)+deltaChip(prev,code,rank)+'</span><span class="lb-bar"><span style="width:'+pct+'%"></span></span><span class="lb-val'+(changed?' bump':'')+'">'+lbVal(t.value,m.money)+'</span></div>';}).join('');
+    var rest=top.slice(1,10).map(function(t){var rank=t.rank;var pct=Math.max(6,Math.round((t.value/max)*100));var code=(t.code||'').toUpperCase();var meRow=(code===meCode);var badge=rank===2?'🥈':rank===3?'🥉':rank;var changed=(prev&&prev[code]&&prev[code].value!==t.value);return '<div class="lb-row'+(rank===2?' silver':rank===3?' bronze':'')+(meRow?' me':'')+'" data-rowkey="'+sel+':'+code+'"><span class="lb-rank">'+badge+'</span><span class="lb-av-sm">'+lbAv(t.code,t.name)+'</span><span class="lb-name"><span class="lb-nametext">'+lbEsc(t.name)+(meRow?' <b>· You</b>':'')+'</span>'+miniEmb(t.emb)+deltaChip(prev,code,rank)+'</span><span class="lb-bar"><span style="width:'+pct+'%"></span></span><span class="lb-val'+(changed?' bump':'')+'">'+lbVal(t.value,m.money)+'</span></div>';}).join('');
     var youRow='';
-    if(b.me&&b.me.rank>3){youRow='<div class="lb-row me you-out" data-rowkey="'+m.key+':'+meCode+'"><span class="lb-rank">'+b.me.rank+'</span><span class="lb-av-sm">'+lbAv(CODE,NAME)+'</span><span class="lb-name"><span class="lb-nametext"><b>You</b></span></span><span class="lb-bar"><span style="width:'+Math.max(6,Math.round((b.me.value/max)*100))+'%"></span></span><span class="lb-val">'+lbVal(b.me.value,m.money)+'</span></div>';}
-    return '<div class="card lb-card">'+lbHead(m)+hero+'<div class="lb-list">'+rest+youRow+'</div></div>';
-  }).join('');
-  LBMETRICS.forEach(function(m){var b=(r.boards&&r.boards[m.key])||{top:[]};var mp={};(b.top||[]).forEach(function(t){mp[(t.code||'').toUpperCase()]={rank:t.rank,value:t.value};});if(b.top&&b.top[0])mp.__champ=(b.top[0].code||'').toUpperCase();LBPREV[m.key]=mp;});
+    if(b.me&&b.me.rank>10){youRow='<div class="lb-row me you-out" data-rowkey="'+sel+':'+meCode+'"><span class="lb-rank">'+b.me.rank+'</span><span class="lb-av-sm">'+lbAv(CODE,NAME)+'</span><span class="lb-name"><span class="lb-nametext"><b>You</b></span></span><span class="lb-bar"><span style="width:'+Math.max(6,Math.round((b.me.value/max)*100))+'%"></span></span><span class="lb-val">'+lbVal(b.me.value,m.money)+'</span></div>';}
+    bodyHTML=hero+'<div class="lb-list">'+rest+youRow+'</div>';
+  }
+  host.innerHTML='<div class="card lb-card lb-central">'+tabs+lbHead(m)+bodyHTML+'</div>';
+  var mp={};(top||[]).forEach(function(t){mp[(t.code||'').toUpperCase()]={rank:t.rank,value:t.value};});if(top&&top[0])mp.__champ=(top[0].code||'').toUpperCase();LBPREV[sel]=mp;
   host.querySelectorAll('.lb-hero-val[data-to]').forEach(animateVal);
-  var seen={},newWin=false;
-  LBMETRICS.forEach(function(m){var b=(r.boards&&r.boards[m.key])||{top:[]};var t=b.top&&b.top[0];if(t&&(t.code||'').toUpperCase()===meCode){seen[m.key]=true;if(!LBCHAMPSEEN[m.key])newWin=true;}});
-  LBCHAMPSEEN=seen;if(newWin)fireConfetti();
   lbPlayFlip(_oldR);
 }
 
