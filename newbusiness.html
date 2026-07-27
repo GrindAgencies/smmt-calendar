@@ -181,7 +181,7 @@ tbody tr{cursor:pointer;}tbody tr:hover{background:var(--bg);}
   <div class="fg"><label>How did this sale come to you?</label><select id="f_source"><option value="">Select source</option><option>Warm Market</option><option>Referral</option><option>Lead — Purchased</option><option>Lead — Free</option><option>Social Media</option><option>Client of a Client</option><option>Cross-sell</option><option>Other</option></select></div>
   <label class="chk"><input type="checkbox" id="f_writingoff"> Writing agent not on The Standard</label>
   <label class="chk" id="splitToggle"><input type="checkbox" id="f_splitflag" onchange="document.getElementById('splitWrap').style.display=this.checked?'block':'none';calcComm()"> Split this sale with another agent</label>
-  <div id="splitWrap" style="display:none"><div class="fg" style="margin-top:8px"><label>Split agent (name or code)</label><input id="f_split" placeholder="e.g. Courtney Whitbey or H1772" oninput="updSplitShare()"></div><div class="fg" style="margin-top:8px"><label>Your share of this sale (%)</label><input id="f_splitpct" type="number" min="0" max="100" value="50" oninput="updSplitShare();calcComm()"></div><div id="splitShareHint" style="font-size:12px;color:var(--muted,#6e6e73);margin-top:7px;line-height:1.45"></div></div>
+  <div id="splitWrap" style="display:none"><div class="fg" style="margin-top:8px"><label>Split agent (name or code)</label><input id="f_split" placeholder="e.g. Courtney Whitbey or H1772" oninput="updSplitShare()"></div><div class="frow" style="margin-top:8px"><div class="fg"><label>Your share of this sale (%)</label><input id="f_splitpct" type="number" min="0" max="100" value="50" oninput="updSplitShare();calcComm()"></div><div class="fg"><label>Partner's contract % (optional)</label><input id="f_partner_contract" type="number" inputmode="decimal" placeholder="defaults to your rate" oninput="calcComm()"><div class="hint">Their comp rate — used for their side of the split</div></div></div><div id="splitShareHint" style="font-size:12px;color:var(--muted,#6e6e73);margin-top:7px;line-height:1.45"></div></div>
   <div class="sec-l">Policy Details</div>
   <div class="frow"><div class="fg"><label>Carrier *</label><input id="f_carrier" placeholder="Type or select a carrier" list="carriers"><datalist id="carriers"><option>American National</option><option>American Equity</option><option>Americo</option><option>Ethos</option><option>Foresters</option><option>Mutual of Omaha</option><option>National Life Group</option><option>North American</option><option>F&G</option><option>Corebridge</option></datalist></div><div class="fg"><label>Product</label><select id="f_product"><option value="">Select product</option><option>Term Life</option><option>IUL</option><option>Whole Life</option><option>Final Expense</option><option>GUL</option><option>Annuity — FIA</option><option>Annuity — MYGA</option><option>Other</option></select></div></div>
   <div class="frow"><div class="fg"><label>State</label><input id="f_state" maxlength="2" placeholder="CA" style="text-transform:uppercase"></div><div class="fg"><label>Policy #</label><input id="f_polnum" placeholder="Optional"></div><div class="fg"><label>Carrier code</label><input id="f_ccode" placeholder="Optional"></div></div>
@@ -189,7 +189,7 @@ tbody tr{cursor:pointer;}tbody tr:hover{background:var(--bg);}
   <div class="frow"><div class="fg"><label>Coverage amount *</label><input id="f_cov" type="number" inputmode="decimal" placeholder="$" oninput="calcComm()"><div class="hint">For annuities, enter the total annuity amount</div></div><div class="fg"><label>Target premium *</label><input id="f_prem" type="number" inputmode="decimal" placeholder="$" oninput="calcComm()"></div></div>
   <div class="frow"><div class="fg"><label>Monthly contribution *</label><input id="f_monthly" type="number" inputmode="decimal" min="0" placeholder="$ (enter 0 if none)"><div class="hint">Required · enter 0 if there is none</div></div><div class="fg"><label>Lump sum contribution *</label><input id="f_lump" type="number" inputmode="decimal" min="0" placeholder="$ (enter 0 if none)"><div class="hint">Required · enter 0 if there is none</div></div></div>
   <div class="frow"><div class="fg"><label>Your contract % *</label><input id="f_contract" type="number" inputmode="decimal" placeholder="80" oninput="calcComm()"><div class="hint">Your comp rate at the carrier · all business is 100% advance</div></div></div>
-  <div class="commbox"><div class="cl" id="commLbl">Expected Commission</div><div class="cv" id="commOut">$0</div></div>
+  <div class="commbox"><div class="cl" id="commLbl">Expected Commission</div><div class="cv" id="commOut">$0</div><div id="commPartner" style="display:none;font-size:12.5px;font-weight:700;color:#1a9c52;margin-top:6px"></div></div>
   <div class="sec-l">Dates</div>
   <div class="frow"><div class="fg"><label>Date written *</label><input id="f_written" type="date"></div><div class="fg"><label>First draft date</label><input id="f_draft" type="date"></div></div>
   <label class="chk" id="suitToggle" style="display:none"><input type="checkbox" id="f_suit"> ✅ Annuity suitability reviewed &amp; on file</label>
@@ -394,15 +394,24 @@ function renderStatusGrid(){
   }).join('');
 }
 function calcComm(){var prem=Number($('f_prem').value)||0;var c=Number($('f_contract').value);
-  var share=1;if($('f_splitflag')&&$('f_splitflag').checked){var sp=Number(($('f_splitpct')||{}).value);if(!isNaN(sp))share=Math.max(0,Math.min(100,sp))/100;}
-  var comm=(!isNaN(c))?Math.round(prem*(c/100)*share):0;
+  var split=$('f_splitflag')&&$('f_splitflag').checked;
+  var sp=split?Math.max(0,Math.min(100,Number(($('f_splitpct')||{}).value)||0)):100;
+  var comm=(!isNaN(c))?Math.round(prem*(c/100)*(sp/100)):0;
   $('commOut').textContent=money(comm);
-  var lbl=$('commLbl');if(lbl)lbl.textContent=(share<1)?('Your Commission · '+Math.round(share*100)+'% of this sale'):'Expected Commission';}
+  var lbl=$('commLbl');if(lbl)lbl.textContent=split?('Your Commission · '+sp+'% of this sale'):'Expected Commission';
+  var pel=$('commPartner');
+  if(pel){
+    if(split){var praw=Number($('f_partner_contract').value);var pr=isNaN(praw)?c:praw;var defd=isNaN(praw);
+      var pcomm=(!isNaN(pr))?Math.round(prem*((100-sp)/100)*(pr/100)):0;
+      pel.textContent='🤝 Partner earns ~'+money(pcomm)+' · '+(100-sp)+'% at '+(isNaN(pr)?'—':pr)+'%'+(defd?' (your rate)':'');
+      pel.style.display='block';}
+    else pel.style.display='none';
+  }}
 function fillForm(p){
   STATUS=p.status||'pending';renderStatusGrid();
   var set=function(i,v){$(i).value=(v==null?'':v);};
   set('f_client',p.client_name);set('f_phone',p.phone);set('f_email',p.email);set('f_gender',p.gender);set('f_dob',(p.dob||'').slice(0,10));
-  set('f_source',p.source);$('f_writingoff').checked=!!p.writing_off;$('f_splitflag').checked=!!p.split_flag;$('splitWrap').style.display=p.split_flag?'block':'none';set('f_split',p.split_agent);set('f_splitpct',p.split_pct!=null?p.split_pct:50);updSplitShare();
+  set('f_source',p.source);$('f_writingoff').checked=!!p.writing_off;$('f_splitflag').checked=!!p.split_flag;$('splitWrap').style.display=p.split_flag?'block':'none';set('f_split',p.split_agent);set('f_splitpct',p.split_pct!=null?p.split_pct:50);set('f_partner_contract',p.partner_contract_pct!=null?p.partner_contract_pct:'');updSplitShare();
   set('f_carrier',p.carrier);set('f_product',p.product);set('f_state',p.state);set('f_polnum',p.policy_number);set('f_ccode',p.carrier_code);
   set('f_cov',p.coverage);set('f_prem',p.annual_premium);set('f_monthly',p.monthly_contribution);set('f_lump',p.lump_sum_contribution);set('f_contract',p.contract_pct);
   set('f_written',(p.date_written||'').slice(0,10));set('f_draft',(p.first_draft_date||'').slice(0,10));set('f_notes',p.notes);
@@ -412,14 +421,14 @@ function fillForm(p){
   calcComm();
 }
 function suitVis(){$('suitToggle').style.display=(BIZ==='annuity')?'flex':'none';}
-function clearForm(){STATUS='pending';['f_client','f_phone','f_email','f_gender','f_dob','f_source','f_split','f_carrier','f_product','f_state','f_polnum','f_ccode','f_cov','f_prem','f_monthly','f_lump','f_notes','f_paidout','f_trmonths','f_trstatus','f_cbtype','f_cbamt','f_cbdate','f_cbnote'].forEach(function(i){$(i).value='';});$('f_contract').value='80';$('f_writingoff').checked=false;$('f_splitflag').checked=false;$('f_suit').checked=false;$('splitWrap').style.display='none';if($('f_splitpct'))$('f_splitpct').value='50';$('f_written').value=ptToday();suitVis();renderStatusGrid();calcComm();}
+function clearForm(){STATUS='pending';['f_client','f_phone','f_email','f_gender','f_dob','f_source','f_split','f_partner_contract','f_carrier','f_product','f_state','f_polnum','f_ccode','f_cov','f_prem','f_monthly','f_lump','f_notes','f_paidout','f_trmonths','f_trstatus','f_cbtype','f_cbamt','f_cbdate','f_cbnote'].forEach(function(i){$(i).value='';});$('f_contract').value='80';$('f_writingoff').checked=false;$('f_splitflag').checked=false;$('f_suit').checked=false;$('splitWrap').style.display='none';if($('f_splitpct'))$('f_splitpct').value='50';$('f_written').value=ptToday();suitVis();renderStatusGrid();calcComm();}
 function openNew(){EDIT=null;$('mTitle').textContent='New Sale';$('mSub').textContent='Log a fresh app to track through to commission.';$('mDel').classList.add('hide');$('saveBtn').textContent='Save Sale';clearForm();$('ov').classList.add('on');}
 function openEdit(p){if(!p)return;EDIT=p;var own=canEdit(p);$('mTitle').textContent=own?'Edit Sale':'View Sale';
   var sub=(p.agent_name||'')+(OPS?' · Operations edit':'');
   if(p.split_flag){var mine=myShare(p);sub='🤝 Split · '+esc(p.agent_name||'writer')+' '+mine+'% + '+esc(p.split_agent||'partner')+' '+(100-mine)+'%'+(p.split_role==='received'?' · shared with you':'');}
   $('mSub').innerHTML=sub;$('mDel').classList.toggle('hide',!own);$('saveBtn').textContent=own?'Save Changes':'Close';fillForm(p);$('ov').classList.add('on');}
 function closeModal(){$('ov').classList.remove('on');}
-function collect(){var v=function(i){return $(i).value.trim();};return {client_name:v('f_client'),phone:v('f_phone'),email:v('f_email'),gender:v('f_gender'),dob:v('f_dob'),source:v('f_source'),status:STATUS,business_type:BIZ,writing_off:$('f_writingoff').checked,split_flag:$('f_splitflag').checked,split_agent:v('f_split'),split_pct:v('f_splitpct'),carrier:v('f_carrier'),product:v('f_product'),state:v('f_state'),policy_number:v('f_polnum'),carrier_code:v('f_ccode'),coverage:v('f_cov'),annual_premium:v('f_prem'),monthly_contribution:v('f_monthly'),lump_sum_contribution:v('f_lump'),contract_pct:v('f_contract'),advance_pct:'100',date_written:v('f_written'),first_draft_date:v('f_draft'),notes:v('f_notes'),
+function collect(){var v=function(i){return $(i).value.trim();};return {client_name:v('f_client'),phone:v('f_phone'),email:v('f_email'),gender:v('f_gender'),dob:v('f_dob'),source:v('f_source'),status:STATUS,business_type:BIZ,writing_off:$('f_writingoff').checked,split_flag:$('f_splitflag').checked,split_agent:v('f_split'),split_pct:v('f_splitpct'),partner_contract_pct:v('f_partner_contract'),carrier:v('f_carrier'),product:v('f_product'),state:v('f_state'),policy_number:v('f_polnum'),carrier_code:v('f_ccode'),coverage:v('f_cov'),annual_premium:v('f_prem'),monthly_contribution:v('f_monthly'),lump_sum_contribution:v('f_lump'),contract_pct:v('f_contract'),advance_pct:'100',date_written:v('f_written'),first_draft_date:v('f_draft'),notes:v('f_notes'),
   paid_out_date:v('f_paidout'),trailing_months:v('f_trmonths'),trailing_status:v('f_trstatus'),
   chargeback_type:v('f_cbtype'),chargeback_amount:v('f_cbamt'),chargeback_date:v('f_cbdate'),chargeback_note:v('f_cbnote'),
   suitability_ok:$('f_suit').checked};}
