@@ -360,7 +360,7 @@ function render(keepScroll){
     +'<div style="min-width:0"><div class="nm">'+esc(PLAYER.name||'Broker')+'</div><div class="sub">'+esc(w.icon+' '+w.name)+' · '+esc(RANKS[ri].label)+'</div></div>'
     +'<div class="streak"><div class="f">🔥</div><div class="n">'+(PLAYER.streak||0)+'</div><div class="l">day streak</div></div></div>'
     +'<div class="xpwrap"><div class="xprow"><span>'+esc(xn.label)+'</span><span>'+PLAYER.xp+' XP</span></div><div class="xpbar"><span style="width:'+xn.pct+'%"></span></div></div>'
-    +'<div class="chips"><span class="chip">Level '+PLAYER.level_index+' / '+PLAYER.total_levels+'</span><span class="chip">'+PLAYER.pct+'% complete</span><span class="chip">'+PLAYER.done_challenges+' challenges done</span></div></div>';
+    +'<div class="chips"><span class="chip">Level '+PLAYER.level_index+' / '+PLAYER.total_levels+'</span>'+((PLAYER.cashflow>0)?'<span class="chip" style="background:rgba(255,210,74,.22);color:#ffe6a6">💵 $'+Number(PLAYER.cashflow).toLocaleString()+' cashflow</span>':'')+'<span class="chip">'+PLAYER.pct+'% complete</span><span class="chip">'+PLAYER.done_challenges+' challenges done</span></div></div>';
 
   // nearby
   var nc=[];

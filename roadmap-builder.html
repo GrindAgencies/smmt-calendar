@@ -75,7 +75,24 @@ button,input,select,textarea{font-family:inherit;}
     <div class="sp"></div>
     <a class="btn gh" href="roadmap.html" target="_blank" rel="noopener">Preview map ↗</a>
     <a class="btn gh" href="ops.html">← Operations</a>
+    <button class="btn gh" id="cashTab" onclick="toggleCash(true)">💵 Cashflow</button>
+    <button class="btn gh" id="buildTab" onclick="toggleCash(false)" style="display:none">🗺️ Levels</button>
     <button class="btn pri" id="saveBtn" onclick="save()">Publish changes</button>
+  </div>
+  <div class="wrap" id="cashpanel" style="display:none">
+    <div class="sec"><h2>💵 Cashflow &amp; Recognition</h2>
+      <div class="settings" style="flex-direction:column;align-items:stretch;gap:14px">
+        <div class="fld"><label>Agent</label><input id="cfAgent" list="agentlist" placeholder="Type a name or code…" oninput="cfPick()" autocomplete="off"><datalist id="agentlist"></datalist></div>
+        <div id="cfInfo" class="hint">Pick an agent to see their current cashflow and rank.</div>
+        <div id="cfEdit" style="display:none;gap:14px;flex-wrap:wrap;align-items:flex-end">
+          <div class="fld"><label>Current cashflow ($)</label><input type="number" id="cfAmt" step="5000" min="0" style="width:150px;font-size:15px"></div>
+          <label style="display:flex;align-items:center;gap:7px;font-size:13px;padding-bottom:9px;cursor:pointer"><input type="checkbox" id="cfAnnounce" checked> Announce milestone to Team Hub</label>
+          <button class="btn pri" id="cfSaveBtn" onclick="cfSave()">Update cashflow →</button>
+        </div>
+        <div id="cfResult" class="hint" style="min-height:16px"></div>
+      </div>
+      <div class="hint" style="margin-top:12px;line-height:1.55">Cashflow drives each broker’s <b>Cashflow world</b> on My Tracker — set the number and their piece climbs to the matching tile (past $20K it’s fully number-driven). Crossing a <b>$5K step</b> posts recognition to the Team Hub; crossing a <b>major milestone</b> ($50K ⌚ · $100K 💍 · $250K 💰 · $500K 💎 · $1M 👑) posts a big celebration.</div>
+    </div>
   </div>
   <div class="wrap" id="body"><div class="hint" style="padding:40px;text-align:center">Loading roadmap…</div></div>
 </div>
@@ -84,7 +101,8 @@ button,input,select,textarea{font-family:inherit;}
 <script>
 var API="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/roadmap-api";
 var EMB="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/emblem-api";
-var TOKEN="",CFG=null,EMBLEMS=[],DIRTY=false;
+var HUB="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/hub-api";
+var TOKEN="",CFG=null,EMBLEMS=[],DIRTY=false,ROSTER=[],CFCODE="";
 var $=function(id){return document.getElementById(id);};
 function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
 function toast(m){var t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(function(){t.classList.remove('show');},2200);}
@@ -103,6 +121,33 @@ function load(){
     render();
   }).catch(function(){$('body').innerHTML='<div class="hint" style="padding:40px;text-align:center">Network error.</div>';});
   fetch(EMB,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'get',code:'C1991'})}).then(function(r){return r.json();}).then(function(d){EMBLEMS=(d&&d.catalog)||[];}).catch(function(){});
+  fetch(HUB,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'hub_roster'})}).then(function(r){return r.json();}).then(function(d){
+    ROSTER=(d&&d.members)||[];var dl=$('agentlist');if(dl)dl.innerHTML=ROSTER.map(function(m){return '<option value="'+esc(m.name)+' ('+esc(m.code)+')"></option>';}).join('');
+  }).catch(function(){});
+}
+/* ===== Cashflow & Recognition console ===== */
+function toggleCash(on){$('cashpanel').style.display=on?'block':'none';$('body').style.display=on?'none':'block';$('cashTab').style.display=on?'none':'inline-block';$('buildTab').style.display=on?'inline-block':'none';$('saveBtn').style.display=on?'none':'inline-block';}
+function cfParseCode(v){var m=/\(([^)]+)\)\s*$/.exec(v||'');if(m)return m[1].trim().toUpperCase();var t=(v||'').trim().toUpperCase();var hit=ROSTER.filter(function(x){return (x.code||'').toUpperCase()===t;})[0];return hit?hit.code.toUpperCase():'';}
+function cfPick(){var code=cfParseCode($('cfAgent').value);if(!code){$('cfEdit').style.display='none';$('cfInfo').textContent='Pick an agent to see their current cashflow and rank.';CFCODE='';return;}
+  CFCODE=code;$('cfInfo').textContent='Loading '+code+'…';$('cfResult').textContent='';
+  fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'player',code:code})}).then(function(r){return r.json();}).then(function(d){
+    if(!d||!d.ok||!d.player){$('cfEdit').style.display='none';$('cfInfo').textContent='Could not load '+code+'.';return;}
+    var p=d.player;var cf=Number(p.cashflow)||0;
+    var cur=(p.levels||[]).filter(function(l){return l.id===p.current_level;})[0];
+    $('cfInfo').innerHTML='<b style="color:var(--ink)">'+esc(p.name)+'</b> · '+esc(p.contract_level||'—')+' · Rank '+(p.rank_index+1)+'<br>Current cashflow: <b style="color:var(--gold)">$'+cf.toLocaleString()+'</b> · Board: '+esc(cur?cur.name:'—')+' ('+p.level_index+'/'+p.total_levels+')';
+    $('cfAmt').value=cf;$('cfEdit').style.display='flex';
+  }).catch(function(){$('cfInfo').textContent='Network error.';});
+}
+function cfSave(){if(!CFCODE){toast('Pick an agent first');return;}var amt=Math.max(0,Math.round(Number($('cfAmt').value)||0));var ann=$('cfAnnounce').checked;
+  var b=$('cfSaveBtn');b.disabled=true;b.textContent='Saving…';$('cfResult').textContent='';
+  fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'set_cashflow',token:TOKEN,code:CFCODE,amount:amt,recognize:ann})}).then(function(r){return r.json();}).then(function(d){
+    b.disabled=false;b.textContent='Update cashflow →';
+    if(!d||!d.ok){$('cfResult').textContent=(d&&d.error)||'Save failed';return;}
+    var msg='✓ Cashflow set to $'+Number(d.cashflow).toLocaleString()+' (was $'+Number(d.old).toLocaleString()+').';
+    if(d.posted)msg+=' 🎉 Recognition posted to Team Hub'+(d.milestone?' — $'+Number(d.milestone).toLocaleString()+' milestone!':'')+'.';
+    else if(amt>d.old)msg+=' (no new $5K milestone crossed — no post.)';
+    $('cfResult').style.color='var(--green)';$('cfResult').textContent=msg;toast('Cashflow updated ✓');cfPick();
+  }).catch(function(){b.disabled=false;b.textContent='Update cashflow →';$('cfResult').textContent='Network error';});
 }
 function worldOpts(sel){return '<option value="all"'+(sel==='all'||!sel?' selected':'')+'>Everyone</option><option value="builder"'+(sel==='builder'?' selected':'')+'>Builder only</option><option value="producer"'+(sel==='producer'?' selected':'')+'>Producer only</option>';}
 
