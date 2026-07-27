@@ -287,6 +287,11 @@ button{font-family:inherit;cursor:pointer;}
 .lb-mtab{border:1px solid var(--line);background:var(--panel-2);color:var(--ink-2);font-weight:700;font-size:14px;padding:11px 16px;border-radius:11px;cursor:pointer;white-space:nowrap;}
 .lb-mtab.on{background:var(--accent);color:#fff;border-color:var(--accent);}
 .lb-central{max-width:none;}
+.lb-champ-ribbon{position:absolute;top:12px;right:14px;background:linear-gradient(135deg,#e6c25a,#c99a2e);color:#241803;font-weight:900;font-size:11px;letter-spacing:.06em;padding:5px 11px;border-radius:999px;z-index:2;box-shadow:0 3px 12px rgba(201,154,46,.55);}
+.lb-celebrate{display:flex;align-items:center;gap:9px;background:linear-gradient(135deg,rgba(201,154,46,.18),rgba(91,108,255,.10));border:1px solid rgba(201,154,46,.42);color:var(--ink);font-size:14.5px;font-weight:600;padding:12px 16px;border-radius:14px;margin-bottom:16px;}
+.lb-celebrate b{color:var(--gold);font-weight:800;}
+.lb-tie{margin-top:14px;text-align:center;font-size:12px;color:var(--ink-3);}
+.lb-hero .lb-cc{width:22px;height:22px;font-size:13px;box-shadow:0 0 0 2px rgba(201,154,46,.35);}
 .lb-card:hover{transform:translateY(-3px);box-shadow:var(--shadow);}
 .lbper{display:inline-flex;background:var(--panel);border:1px solid var(--line-2);border-radius:10px;padding:2px;gap:2px;box-shadow:var(--shadow-sm);}
 .lbper button{border:none;background:none;padding:5px 12px;border-radius:8px;font-size:12px;font-weight:800;color:var(--ink-2);cursor:pointer;font-family:inherit;transition:.15s;}
@@ -773,14 +778,17 @@ function renderLeaderboard(r){
   else{
     var max=top[0].value||1;var champ=top[0];var cc=(champ.code||'').toUpperCase();var champMe=(cc===meCode);
     var cfr=(prev&&prev[cc])?prev[cc].value:0;var flash=(prev&&prev.__champ&&prev.__champ!==cc)?' lb-champ-flash':'';
-    var hero='<div class="lb-hero'+flash+'"><div class="lb-sheen"></div><span class="lb-crown">👑</span><div class="lb-av-hero">'+lbAv(champ.code,champ.name)+'</div><div class="lb-hero-meta"><div class="lb-hero-name"><span class="lb-nametext">'+lbEsc(champ.name)+(champMe?' · You':'')+'</span>'+miniEmb(champ.emb)+deltaChip(prev,cc,1)+'</div><div class="lb-hero-base">'+lbEsc(champ.baseshop||'')+' · Leader</div></div><div class="lb-hero-val" data-to="'+champ.value+'" data-from="'+cfr+'" data-money="'+(m.money?1:0)+'">'+fmtFull(champ.value,m.money)+'</div></div>';
+    var hero='<div class="lb-hero'+flash+'"><div class="lb-sheen"></div><span class="lb-crown">👑</span><span class="lb-champ-ribbon">🏆 CHAMPION</span><div class="lb-av-hero">'+lbAv(champ.code,champ.name)+'</div><div class="lb-hero-meta"><div class="lb-hero-name"><span class="lb-nametext">'+lbEsc(champ.name)+(champMe?' · You':'')+'</span>'+miniEmb(champ.emb)+deltaChip(prev,cc,1)+'</div><div class="lb-hero-base">'+lbEsc(champ.baseshop||'')+' · Leader</div></div><div class="lb-hero-val" data-to="'+champ.value+'" data-from="'+cfr+'" data-money="'+(m.money?1:0)+'">'+fmtFull(champ.value,m.money)+'</div></div>';
     var rest=top.slice(1,10).map(function(t){var rank=t.rank;var pct=Math.max(6,Math.round((t.value/max)*100));var code=(t.code||'').toUpperCase();var meRow=(code===meCode);var badge=rank===2?'🥈':rank===3?'🥉':rank;var changed=(prev&&prev[code]&&prev[code].value!==t.value);return '<div class="lb-row'+(rank===2?' silver':rank===3?' bronze':'')+(meRow?' me':'')+'" data-rowkey="'+sel+':'+code+'"><span class="lb-rank">'+badge+'</span><span class="lb-av-sm">'+lbAv(t.code,t.name)+'</span><span class="lb-name"><span class="lb-nametext">'+lbEsc(t.name)+(meRow?' <b>· You</b>':'')+'</span>'+miniEmb(t.emb)+deltaChip(prev,code,rank)+'</span><span class="lb-bar"><span style="width:'+pct+'%"></span></span><span class="lb-val'+(changed?' bump':'')+'">'+lbVal(t.value,m.money)+'</span></div>';}).join('');
     var youRow='';
     if(b.me&&b.me.rank>10){youRow='<div class="lb-row me you-out" data-rowkey="'+sel+':'+meCode+'"><span class="lb-rank">'+b.me.rank+'</span><span class="lb-av-sm">'+lbAv(CODE,NAME)+'</span><span class="lb-name"><span class="lb-nametext"><b>You</b></span></span><span class="lb-bar"><span style="width:'+Math.max(6,Math.round((b.me.value/max)*100))+'%"></span></span><span class="lb-val">'+lbVal(b.me.value,m.money)+'</span></div>';}
-    bodyHTML=hero+'<div class="lb-list">'+rest+youRow+'</div>';
+    var celeb='<div class="lb-celebrate">🎉 <b>'+lbEsc(champ.name)+'</b> leads '+lbEsc(m.title)+' — chasing the 🏆 Champion emblem</div>';
+    var tie='<div class="lb-tie">Emblems show rank &amp; achievements earned · win a category to claim the 🏆 Champion emblem</div>';
+    bodyHTML=celeb+hero+'<div class="lb-list">'+rest+youRow+'</div>'+tie;
   }
   host.innerHTML='<div class="card lb-card lb-central">'+tabs+lbHead(m)+bodyHTML+'</div>';
   var mp={};(top||[]).forEach(function(t){mp[(t.code||'').toUpperCase()]={rank:t.rank,value:t.value};});if(top&&top[0])mp.__champ=(top[0].code||'').toUpperCase();LBPREV[sel]=mp;
+  if(top.length){if(!window.LBCELEB)window.LBCELEB={};if(champMe&&LBCELEB[sel]!==cc){fireConfetti();toast('🎉 You lead '+m.title+'!');}LBCELEB[sel]=cc;}
   host.querySelectorAll('.lb-hero-val[data-to]').forEach(animateVal);
   lbPlayFlip(_oldR);
 }
