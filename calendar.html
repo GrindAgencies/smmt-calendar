@@ -203,7 +203,7 @@ a{color:inherit;text-decoration:none;}.hide{display:none!important;}
   <header class="top">
     <button class="menu" onclick="drawer(true)"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
     <div class="gsearch" onclick="openSpot()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input id="gsi" placeholder="Search trainers, appointments, trainings…" onfocus="openSpot()"><kbd>⌘K</kbd></div>
-    <button class="qbtn" onclick="quickSchedule()"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Quick Schedule</button>
+    <button class="qbtn" onclick="chooseBookMode('quick')"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Quick Schedule</button>
     <button id="profileBtn" onclick="openProfile()" title="Your profile" style="display:flex;align-items:center;gap:8px;margin-left:8px;border:1px solid var(--line2);background:var(--panel);border-radius:12px;padding:6px 11px;font-weight:700;font-size:13.5px;color:var(--ink);white-space:nowrap;cursor:pointer"><span id="profileAv" style="width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800"></span><span id="profileName">Profile</span></button>
   </header>
   <div class="content">
@@ -721,6 +721,7 @@ function aptRow(b){var col=avColor(b.trainer_name);
 function renderBook(){
   if(!SELDATE)SELDATE=todayStr();
   var h='<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap"><div style="font-size:12.5px;color:var(--ink3)">Booking a training for yourself? Use the steps below. Booking a client appointment for someone else?</div><button class="qbtn" style="margin:0" onclick="openStaffBook()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Book for a client</button></div>';
+  h+='<button onclick="openMyCalendly()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:9px;border:1px solid rgba(201,154,46,.45);background:rgba(201,154,46,.10);color:var(--gold);font-weight:800;font-size:14px;padding:13px;border-radius:13px;margin-bottom:16px;font-family:inherit;cursor:pointer">\ud83d\udcc5 Book via Calendly \u2014 automatic, shows on both schedules</button>';
   h+='<div class="bstep"><div class="lbl">1 · Pick a date</div><div class="dstrip" id="dstrip"></div></div>';
   h+='<div class="bstep"><div class="lbl">2 · Training type</div><div class="catrow" id="catrow"></div></div>';
   h+='<div class="bstep"><div class="lbl">3 · Available times</div><div id="timesWrap"><div class="spin">Loading availability…</div></div></div>';
@@ -804,6 +805,28 @@ function quickSchedule(){
     if(keys.length){SELDATE=ds;SELTIME=keys[0];setTab('book');(function(dd,tt){loadDayBooked(dd,function(){renderTimes();pickTime(tt);});})(ds,keys[0]);toast('Earliest opening: '+shortDate(ds)+' at '+keys[0]);return;}}
   toast('No open trainer times in the next 2 weeks.');
 }
+
+/* === Booking mode: Calendly vs Direct-to-tracker (added 2026-07-25) === */
+function myCalendlyLink(){return (PROFILE&&PROFILE.calendly)||(myTrainerProfile()&&myTrainerProfile().calendly)||'';}
+function openMyCalendly(){
+  if($('bkOv'))$('bkOv').classList.remove('on');
+  var link=myCalendlyLink();
+  if(!link){if(confirm('You haven’t added your Calendly link yet.\n\nAdd it in your Profile so clients can book you automatically?'))setTab('me');return;}
+  window.open(link,'_blank','noopener');
+  toast('Opening your Calendly — the booking shows on both your Calendly and here.');
+}
+function bookDirect(origin){if($('bkOv'))$('bkOv').classList.remove('on');if(origin==='quick')quickSchedule();else setTab('book');}
+function chooseBookMode(origin){
+  var ov=$('bkOv'),dr=$('bkDrawer');if(!ov||!dr){return bookDirect(origin);}
+  var hasCal=!!myCalendlyLink();
+  var B='display:flex;align-items:center;gap:12px;width:100%;text-align:left;border-radius:14px;padding:15px;font-family:inherit;margin-bottom:11px;border:1px solid var(--line2);cursor:pointer';
+  dr.innerHTML='<h3>How do you want to book?</h3><p class="dsub">Send it through your Calendly for automatic booking, or log it straight into the tracker — either way it shows on both schedules.</p>'
+   +'<button onclick="openMyCalendly()" style="'+B+';background:var(--accent);color:#fff;border-color:var(--accent)"><span style="font-size:22px">📅</span><span><span style="display:block;font-weight:800;font-size:15px">Book via Calendly</span><span style="display:block;font-size:12px;opacity:.85">Opens your Calendly'+(hasCal?'':' · add your link first')+'</span></span></button>'
+   +'<button onclick="bookDirect(\''+origin+'\')" style="'+B+';background:var(--panel2);color:var(--ink)"><span style="font-size:22px">📝</span><span><span style="display:block;font-weight:800;font-size:15px">Direct to tracker</span><span style="display:block;font-size:12px;opacity:.75">Log the appointment in the app</span></span></button>'
+   +'<div style="text-align:center;margin-top:8px"><button onclick="$(\'bkOv\').classList.remove(\'on\')" style="border:none;background:none;color:var(--ink3);font-weight:700;font-size:14px;padding:8px 16px;font-family:inherit;cursor:pointer">Cancel</button></div>';
+  ov.classList.add('on');
+}
+
 function confirmBook(encName){var name=decodeURIComponent(encName);var c=TRAINERS.filter(function(x){return x.name===name;})[0];if(!c||!SELDATE||!SELTIME){toast('Pick a date and time first.');return;}
   var col=avColor(name);
   $('bkDrawer').innerHTML='<h3>Confirm your training</h3><p class="dsub">Review and confirm — takes one tap.</p>'+
