@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Roadmap Level Builder — Operations</title>
+<link rel="icon" href="logo.png">
+<style>
+*{box-sizing:border-box}
+:root{--bg:#0f1117;--panel:#181b23;--panel2:#1f232d;--ink:#eceef3;--ink2:#9aa1ad;--ink3:#6b7280;--line:#2a2f3a;--line2:#353b48;--accent:#5b6cff;--gold:#e0b84a;--green:#34c759;--red:#ff453a;}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;-webkit-font-smoothing:antialiased;}
+button,input,select,textarea{font-family:inherit;}
+/* gate */
+.gate{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;}
+.gcard{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:34px 30px;max-width:380px;width:100%;text-align:center;}
+.gcard .b{font-size:44px;}.gcard h1{font-size:21px;margin:10px 0 4px;font-weight:900;}.gcard p{color:var(--ink2);font-size:13.5px;margin:0 0 18px;}
+.gcard input{width:100%;padding:13px 15px;border-radius:12px;border:1px solid var(--line2);background:var(--panel2);color:var(--ink);font-size:16px;text-align:center;letter-spacing:.1em;}
+.gcard button{width:100%;margin-top:12px;padding:13px;border:none;border-radius:12px;background:var(--accent);color:#fff;font-weight:800;font-size:15px;cursor:pointer;}
+.gmsg{color:var(--red);font-size:12.5px;min-height:16px;margin-top:8px;font-weight:600;}
+/* app */
+.app{display:none;}.app.on{display:block;}
+.top{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:12px;padding:12px 18px;background:rgba(15,17,23,.9);backdrop-filter:blur(14px);border-bottom:1px solid var(--line);flex-wrap:wrap;}
+.top .ttl{font-weight:900;font-size:17px;}.top .ttl span{color:var(--accent);}
+.top .sp{flex:1;}
+.btn{border:1px solid var(--line2);background:var(--panel2);color:var(--ink);font-weight:700;font-size:13px;padding:9px 14px;border-radius:10px;cursor:pointer;}
+.btn:hover{border-color:var(--accent);}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:#fff;}
+.btn.pri:disabled{opacity:.5;cursor:default;}
+.btn.gh{background:transparent;}
+.wrap{max-width:1000px;margin:0 auto;padding:22px 18px 90px;}
+.sec{margin-top:26px;}
+.sec h2{font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:.05em;color:var(--ink2);margin:0 0 12px;}
+.settings{display:flex;gap:12px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;}
+.fld{display:flex;flex-direction:column;gap:5px;}
+.fld label{font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink3);font-weight:800;}
+.fld input,.fld select,.fld textarea{background:var(--panel2);border:1px solid var(--line2);border-radius:9px;color:var(--ink);padding:9px 11px;font-size:13.5px;}
+.fld input[type=number]{width:110px;}.fld input[type=color]{width:46px;height:38px;padding:2px;cursor:pointer;}
+.wcard{border:1px solid var(--line);border-left-width:5px;border-radius:14px;background:var(--panel);padding:14px 16px;margin-bottom:10px;}
+.wcard .r1{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;}
+.icoin{width:56px;text-align:center;font-size:18px;}
+.mini{border:none;background:var(--panel2);color:var(--ink2);width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:800;}
+.mini:hover{color:var(--ink);}
+.mini.del:hover{color:var(--red);}
+.lvl{border:1px solid var(--line);border-radius:14px;background:var(--panel);padding:14px 16px;margin-bottom:10px;}
+.lvl.hidden{opacity:.55;}
+.lvl .lh{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.lvl .lh .idpill{font-size:10.5px;font-family:ui-monospace,Menlo,monospace;color:var(--ink3);background:var(--panel2);padding:3px 8px;border-radius:7px;}
+.lvl .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:11px;}
+@media(max-width:680px){.lvl .grid{grid-template-columns:1fr;}}
+.chwrap{margin-top:11px;border-top:1px dashed var(--line2);padding-top:11px;}
+.chwrap .ct{font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink3);font-weight:800;margin-bottom:7px;}
+.chip{display:inline-flex;align-items:center;gap:7px;background:var(--panel2);border:1px solid var(--line2);border-radius:99px;padding:5px 8px 5px 11px;font-size:12.5px;margin:0 6px 6px 0;}
+.chip .x{cursor:pointer;color:var(--ink3);font-weight:900;}.chip .x:hover{color:var(--red);}
+.chip .id{font-family:ui-monospace,Menlo,monospace;font-size:10px;color:var(--ink3);}
+.addch{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:4px;}
+.addch input,.addch select{background:var(--panel2);border:1px solid var(--line2);border-radius:9px;color:var(--ink);padding:8px 10px;font-size:12.5px;}
+.hint{font-size:11.5px;color:var(--ink3);}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#eceef3;color:#0f1117;padding:11px 18px;border-radius:12px;font-size:13.5px;font-weight:700;opacity:0;pointer-events:none;transition:.2s;z-index:99;}.toast.show{opacity:1;}
+.badge{font-size:10px;font-weight:800;padding:2px 7px;border-radius:99px;}
+.badge.b{background:rgba(175,82,222,.18);color:#c99bf0;}.badge.p{background:rgba(255,159,10,.18);color:#ffbe5c;}.badge.hard{background:rgba(255,69,58,.18);color:#ff8a80;}
+</style>
+</head>
+<body>
+<div class="gate" id="gate"><div class="gcard">
+  <div class="b">🗺️</div><h1>Roadmap Level Builder</h1><p>Build the broker journey — no code. Standard Operations master only.</p>
+  <input id="gcode" placeholder="Operations master code" autocomplete="off" onkeydown="if(event.key==='Enter')enter()">
+  <button onclick="enter()">Open Builder →</button>
+  <div class="gmsg" id="gmsg"></div>
+  <a href="ops.html" style="display:inline-block;margin-top:14px;color:var(--ink3);font-size:12.5px;text-decoration:none">← Back to Operations</a>
+</div></div>
+
+<div class="app" id="app">
+  <div class="top">
+    <div class="ttl">🗺️ Roadmap <span>Level Builder</span></div>
+    <div class="sp"></div>
+    <a class="btn gh" href="roadmap.html" target="_blank" rel="noopener">Preview map ↗</a>
+    <a class="btn gh" href="ops.html">← Operations</a>
+    <button class="btn pri" id="saveBtn" onclick="save()">Publish changes</button>
+  </div>
+  <div class="wrap" id="body"><div class="hint" style="padding:40px;text-align:center">Loading roadmap…</div></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+var API="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/roadmap-api";
+var EMB="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/emblem-api";
+var TOKEN="",CFG=null,EMBLEMS=[],DIRTY=false;
+var $=function(id){return document.getElementById(id);};
+function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+function toast(m){var t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(function(){t.classList.remove('show');},2200);}
+function markDirty(){DIRTY=true;var b=$('saveBtn');if(b){b.textContent='Publish changes •';}}
+function slug(s){return (s||'').toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'').slice(0,40);}
+
+function enter(){
+  var c=($('gcode').value||'').trim();
+  if(c==='0000'||c==='2026'){TOKEN='2026';$('gate').style.display='none';$('app').classList.add('on');load();}
+  else{$('gmsg').textContent='Builder is for the Standard Operations master (0000).';}
+}
+function load(){
+  fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'config'})}).then(function(r){return r.json();}).then(function(d){
+    if(!d||!d.ok){$('body').innerHTML='<div class="hint" style="padding:40px;text-align:center">Could not load roadmap.</div>';return;}
+    CFG={version:d.version||1,xp_per_challenge:d.xp_per_challenge||25,xp_level_bonus:d.xp_level_bonus||100,worlds:d.worlds||[],levels:d.levels||[],labels:d.labels||{}};
+    render();
+  }).catch(function(){$('body').innerHTML='<div class="hint" style="padding:40px;text-align:center">Network error.</div>';});
+  fetch(EMB,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'get',code:'C1991'})}).then(function(r){return r.json();}).then(function(d){EMBLEMS=(d&&d.catalog)||[];}).catch(function(){});
+}
+function worldOpts(sel){return '<option value="all"'+(sel==='all'||!sel?' selected':'')+'>Everyone</option><option value="builder"'+(sel==='builder'?' selected':'')+'>Builder only</option><option value="producer"'+(sel==='producer'?' selected':'')+'>Producer only</option>';}
+
+function render(){
+  var h='';
+  // settings
+  h+='<div class="sec"><h2>XP Settings</h2><div class="settings">'
+    +'<div class="fld"><label>XP per challenge</label><input type="number" value="'+(CFG.xp_per_challenge)+'" onchange="CFG.xp_per_challenge=Number(this.value)||25;markDirty()"></div>'
+    +'<div class="fld"><label>Level-complete bonus XP</label><input type="number" value="'+(CFG.xp_level_bonus)+'" onchange="CFG.xp_level_bonus=Number(this.value)||100;markDirty()"></div>'
+    +'<div class="fld" style="justify-content:flex-end"><label>&nbsp;</label><span class="hint">Applies everywhere. A level can override the bonus below.</span></div>'
+    +'</div></div>';
+  // worlds
+  h+='<div class="sec"><h2>Worlds</h2>';
+  CFG.worlds.slice().sort(function(a,b){return (a.order||0)-(b.order||0);}).forEach(function(w){var i=CFG.worlds.indexOf(w);
+    h+='<div class="wcard" style="border-left-color:'+esc(w.color||'#5b6cff')+'"><div class="r1">'
+      +'<div class="fld icoin"><label>Icon</label><input value="'+esc(w.icon||'')+'" onchange="setW('+i+',\'icon\',this.value)" style="text-align:center"></div>'
+      +'<div class="fld" style="flex:1;min-width:140px"><label>World name</label><input value="'+esc(w.name||'')+'" onchange="setW('+i+',\'name\',this.value)"></div>'
+      +'<div class="fld"><label>Color</label><input type="color" value="'+esc(w.color||'#5b6cff')+'" onchange="setW('+i+',\'color\',this.value)"></div>'
+      +'<div class="fld"><label>Order</label><input type="number" style="width:70px" value="'+(w.order||0)+'" onchange="setW('+i+',\'order\',Number(this.value)||0)"></div>'
+      +'<div class="fld"><label>Who sees it</label><select onchange="setW('+i+',\'pathway\',this.value)">'+worldOpts(w.pathway)+'</select></div>'
+      +'<div class="fld"><label>&nbsp;</label><div><button class="mini" title="Move up" onclick="moveW('+i+',-1)">▲</button> <button class="mini" title="Move down" onclick="moveW('+i+',1)">▼</button> <button class="mini del" title="Delete world" onclick="delW('+i+')">🗑</button></div></div>'
+      +'</div></div>';
+  });
+  h+='<button class="btn" onclick="addW()">＋ Add world</button></div>';
+  // levels grouped by world
+  h+='<div class="sec"><h2>Levels</h2>';
+  CFG.worlds.slice().sort(function(a,b){return (a.order||0)-(b.order||0);}).forEach(function(w){
+    var lvls=CFG.levels.filter(function(l){return l.world===w.id;}).sort(function(a,b){return (a.order||0)-(b.order||0);});
+    h+='<div style="margin:14px 0 6px;font-weight:800;font-size:13.5px;color:'+esc(w.color)+'">'+esc((w.icon||'')+' '+w.name)+' <span class="hint">· '+lvls.length+' levels</span></div>';
+    lvls.forEach(function(l){h+=lvlCard(l);});
+    h+='<button class="btn gh" onclick="addLvl(\''+esc(w.id)+'\')" style="margin-top:2px">＋ Add level to '+esc(w.name)+'</button>';
+  });
+  h+='</div>';
+  $('body').innerHTML=h;
+}
+function lvlCard(l){
+  var i=CFG.levels.indexOf(l);
+  var chips=(l.challenges||[]).map(function(id){return '<span class="chip">'+esc(CFG.labels[id]||id)+' <span class="id">'+esc(id)+'</span><span class="x" onclick="delCh('+i+',\''+esc(id)+'\')">✕</span></span>';}).join('');
+  var badges=(l.pathway&&l.pathway!=='all'?'<span class="badge '+(l.pathway==='builder'?'b':'p')+'">'+l.pathway+'</span> ':'')+(l.difficulty==='hard'?'<span class="badge hard">⚡ hard</span> ':'')+(l.hidden?'<span class="badge" style="background:#333;color:#aaa">hidden</span>':'');
+  var opts=CFG.worlds.map(function(w){return '<option value="'+esc(w.id)+'"'+(w.id===l.world?' selected':'')+'>'+esc(w.name)+'</option>';}).join('');
+  var known=Object.keys(CFG.labels).sort();
+  return '<div class="lvl'+(l.hidden?' hidden':'')+'"><div class="lh"><b style="font-size:15px">'+esc(l.name||'(untitled)')+'</b> '+badges+'<span class="idpill">'+esc(l.id)+'</span>'
+    +'<span style="margin-left:auto"><button class="mini" onclick="moveLvl('+i+',-1)" title="Up">▲</button> <button class="mini" onclick="moveLvl('+i+',1)" title="Down">▼</button> <button class="mini" onclick="dupLvl('+i+')" title="Duplicate">⧉</button> <button class="mini" onclick="toggleHide('+i+')" title="Hide/show">'+(l.hidden?'👁':'🚫')+'</button> <button class="mini del" onclick="delLvl('+i+')" title="Delete">🗑</button></span></div>'
+    +'<div class="grid">'
+      +'<div class="fld"><label>Name</label><input value="'+esc(l.name||'')+'" onchange="setL('+i+',\'name\',this.value)"></div>'
+      +'<div class="fld"><label>World</label><select onchange="setL('+i+',\'world\',this.value)">'+opts+'</select></div>'
+      +'<div class="fld" style="grid-column:1/-1"><label>Description</label><input value="'+esc(l.desc||'')+'" onchange="setL('+i+',\'desc\',this.value)"></div>'
+      +'<div class="fld"><label>Order</label><input type="number" value="'+(l.order||0)+'" onchange="setL('+i+',\'order\',Number(this.value)||0)"></div>'
+      +'<div class="fld"><label>Who sees it</label><select onchange="setL('+i+',\'pathway\',this.value)">'+worldOpts(l.pathway)+'</select></div>'
+      +'<div class="fld"><label>Difficulty</label><select onchange="setL('+i+',\'difficulty\',this.value)"><option value=""'+(!l.difficulty?' selected':'')+'>Normal</option><option value="hard"'+(l.difficulty==='hard'?' selected':'')+'>Hard ⚡</option></select></div>'
+      +'<div class="fld"><label>Level-bonus XP override</label><input type="number" placeholder="default '+CFG.xp_level_bonus+'" value="'+(l.xp!=null&&l.xp!==''?l.xp:'')+'" onchange="setL('+i+',\'xp\',this.value===\'\'?null:Number(this.value))"></div>'
+      +'<div class="fld" style="grid-column:1/-1"><label>Reward emblem (optional)</label><input list="emblist" value="'+esc(l.reward_emblem||'')+'" placeholder="e.g. licensed" onchange="setL('+i+',\'reward_emblem\',this.value)"></div>'
+    +'</div>'
+    +'<div class="chwrap"><div class="ct">Challenges ('+((l.challenges||[]).length)+') — completing all = level done</div>'+chips
+      +'<div class="addch"><select id="pick_'+i+'"><option value="">— add an existing task —</option>'+known.map(function(id){return '<option value="'+esc(id)+'">'+esc(CFG.labels[id])+' ('+esc(id)+')</option>';}).join('')+'</select>'
+      +'<button class="btn gh" onclick="addExisting('+i+')">Add</button>'
+      +'<span class="hint">or new:</span><input id="nid_'+i+'" placeholder="new_task_id" style="width:130px"><input id="nlab_'+i+'" placeholder="Readable label" style="width:170px"><button class="btn gh" onclick="addNew('+i+')">Create</button></div>'
+    +'</div></div>';
+}
+/* mutations */
+function setW(i,k,v){CFG.worlds[i][k]=v;markDirty();if(k==='order'||k==='color'||k==='icon')render();}
+function moveW(i,d){var a=CFG.worlds.slice().sort(function(x,y){return (x.order||0)-(y.order||0);});var pos=a.indexOf(CFG.worlds[i]);var j=pos+d;if(j<0||j>=a.length)return;var t=a[pos].order;a[pos].order=a[j].order;a[j].order=t;markDirty();render();}
+function delW(i){var w=CFG.worlds[i];if(CFG.levels.some(function(l){return l.world===w.id;})){if(!confirm('This world has levels. Delete the world anyway? (levels stay but lose their world — reassign them.)'))return;}else if(!confirm('Delete world "'+w.name+'"?'))return;CFG.worlds.splice(i,1);markDirty();render();}
+function addW(){var name='New World';var id=slug(name)+'_'+(CFG.worlds.length+1);var maxo=CFG.worlds.reduce(function(m,w){return Math.max(m,w.order||0);},0);CFG.worlds.push({id:id,name:name,icon:'⭐',color:'#5b6cff',order:maxo+1,pathway:'all'});markDirty();render();}
+function setL(i,k,v){if(v===null)delete CFG.levels[i][k];else CFG.levels[i][k]=v;markDirty();if(k==='order'||k==='world'||k==='name'||k==='pathway'||k==='difficulty')render();}
+function moveLvl(i,d){var l=CFG.levels[i];var sib=CFG.levels.filter(function(x){return x.world===l.world;}).sort(function(a,b){return (a.order||0)-(b.order||0);});var pos=sib.indexOf(l);var j=pos+d;if(j<0||j>=sib.length)return;var t=sib[pos].order;sib[pos].order=sib[j].order;sib[j].order=t;markDirty();render();}
+function delLvl(i){if(!confirm('Delete level "'+(CFG.levels[i].name||CFG.levels[i].id)+'"? (Brokers'+String.fromCharCode(39)+' task progress is untouched.)'))return;CFG.levels.splice(i,1);markDirty();render();}
+function dupLvl(i){var l=JSON.parse(JSON.stringify(CFG.levels[i]));l.id=slug(l.name||'level')+'_copy'+Date.now().toString(36).slice(-4);l.name=(l.name||'Level')+' (copy)';l.order=(l.order||0)+1;CFG.levels.push(l);markDirty();render();}
+function toggleHide(i){CFG.levels[i].hidden=!CFG.levels[i].hidden;markDirty();render();}
+function addLvl(worldId){var maxo=CFG.levels.filter(function(l){return l.world===worldId;}).reduce(function(m,l){return Math.max(m,l.order||0);},0);var id='lvl_'+Date.now().toString(36).slice(-5);CFG.levels.push({id:id,world:worldId,order:maxo+1,name:'New Level',desc:'',challenges:[],pathway:'all'});markDirty();render();}
+function delCh(i,id){CFG.levels[i].challenges=(CFG.levels[i].challenges||[]).filter(function(x){return x!==id;});markDirty();render();}
+function addExisting(i){var sel=$('pick_'+i);var id=sel.value;if(!id)return;CFG.levels[i].challenges=CFG.levels[i].challenges||[];if(CFG.levels[i].challenges.indexOf(id)<0)CFG.levels[i].challenges.push(id);markDirty();render();}
+function addNew(i){var id=slug(($('nid_'+i).value||''));var lab=($('nlab_'+i).value||'').trim();if(!id||!lab){toast('Enter both a task id and a label');return;}CFG.labels[id]=lab;CFG.levels[i].challenges=CFG.levels[i].challenges||[];if(CFG.levels[i].challenges.indexOf(id)<0)CFG.levels[i].challenges.push(id);markDirty();render();}
+function save(){
+  if(!CFG)return;var b=$('saveBtn');b.disabled=true;b.textContent='Publishing…';
+  fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'save_config',token:TOKEN,config:CFG})}).then(function(r){return r.json();}).then(function(d){
+    b.disabled=false;
+    if(!d||!d.ok){b.textContent='Publish changes •';toast((d&&d.error)||'Save failed');return;}
+    DIRTY=false;b.textContent='Publish changes';toast('Published ✓ — live for every broker ('+d.saved+' levels)');
+  }).catch(function(){b.disabled=false;b.textContent='Publish changes •';toast('Network error');});
+}
+window.addEventListener('beforeunload',function(e){if(DIRTY){e.preventDefault();e.returnValue='';}});
+</script>
+<datalist id="emblist"></datalist>
+<script>
+// populate emblem datalist once loaded
+setInterval(function(){var dl=document.getElementById('emblist');if(dl&&EMBLEMS.length&&!dl.childNodes.length){dl.innerHTML=EMBLEMS.map(function(e){return '<option value="'+(e.id||'')+'">'+((e.name||e.id)||'')+'</option>';}).join('');}},700);
+</script>
+</body>
+</html>
