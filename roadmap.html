@@ -104,7 +104,23 @@ body{padding-left:var(--tsfg-side);padding-top:60px;}
 .confetti{position:fixed;top:-12px;width:10px;height:14px;z-index:1401;pointer-events:none;border-radius:2px;}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#1d1d1f;color:#fff;padding:11px 18px;border-radius:12px;font-size:13.5px;font-weight:700;opacity:0;pointer-events:none;transition:.2s;z-index:1500;}.toast.show{opacity:1;}
 .spin{text-align:center;color:var(--ink3);padding:50px;font-style:italic;}
-@media(prefers-reduced-motion:reduce){.node.active .dot{animation:none;}.xpbar>span{transition:none;}.celecard{animation:none;}.confetti{display:none!important;}}
+/* ===== game-board motion ===== */
+.node.pop{opacity:0;transform:translateY(16px) scale(.94);animation:nodein .5s cubic-bezier(.2,.85,.25,1) forwards;}
+@keyframes nodein{to{opacity:1;transform:none;}}
+.path .trail{position:absolute;left:50%;top:0;width:5px;transform:translateX(-50%);border-radius:99px;z-index:1;transition:height 1.1s cubic-bezier(.2,.8,.2,1);box-shadow:0 0 14px rgba(255,210,74,.55);}
+.dot.done{overflow:hidden;}
+.dot.done::after{content:'';position:absolute;inset:0;border-radius:50%;background:linear-gradient(120deg,transparent 32%,rgba(255,255,255,.6) 50%,transparent 68%);background-size:220% 220%;animation:shine 3.6s ease-in-out infinite;}
+.node.active .av3{animation:bob 2.4s ease-in-out infinite;}
+@keyframes bob{0%,100%{transform:translateY(0);}50%{transform:translateY(-5px);}}
+.node.justarrived .av3{animation:land .75s cubic-bezier(.2,1.5,.35,1);}
+@keyframes land{0%{transform:translateY(-52px) scale(.45);opacity:.3;}55%{transform:translateY(7px) scale(1.14);opacity:1;}100%{transform:none;}}
+@keyframes shine{0%,100%{background-position:160% 160%;}50%{background-position:-60% -60%;}}
+.node.reveal .dot{animation:reveal .6s ease;}
+@keyframes reveal{0%{transform:scale(.4) rotate(-10deg);opacity:.4;}60%{transform:scale(1.12);opacity:1;}100%{transform:none;}}
+.dot{position:relative;}
+.wband{position:relative;overflow:hidden;}
+.wband::after{content:'';position:absolute;right:-20px;top:-30px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.12);}
+@media(prefers-reduced-motion:reduce){.node.active .dot,.node.active .av3,.node.justarrived .av3,.node.reveal .dot,.dot.done::after{animation:none!important;}.node.pop{opacity:1;transform:none;animation:none;}.xpbar>span,.path .trail{transition:none;}.celecard{animation:none;}.confetti{display:none!important;}}
 </style>
 </head>
 <body>
@@ -115,13 +131,13 @@ body{padding-left:var(--tsfg-side);padding-top:60px;}
   <a class="side-link" href="teamhub.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H8l-4 4V5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z"/></svg><span>Team Hub</span></a>
   <a class="side-link" href="calendar.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9h18M8 3v3M16 3v3"/></svg><span>Scheduler</span></a>
   <a class="side-link" href="newbusiness.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg><span>New Business</span></a>
-  <a class="side-link on" href="checklist.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span>My Tracker</span></a>
+  <a class="side-link on" href="roadmap.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span>My Tracker</span></a>
   <a class="side-link" href="team.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>My Team</span></a>
   <a class="side-link" href="org.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="5" rx="1.5"/><rect x="3" y="16" width="6" height="5" rx="1.5"/><rect x="15" y="16" width="6" height="5" rx="1.5"/><path d="M12 8v4M6 16v-2h12v2"/></svg><span>Org Chart</span></a>
   <a class="side-link" href="ops.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="6" rx="1"/><rect x="12" y="7" width="3" height="10" rx="1"/><rect x="17" y="13" width="3" height="4" rx="1"/></svg><span>Ops Dashboard</span></a>
   <div class="tsfg-foot"><a class="side-link" href="#" onclick="tsfgSignOut();return false;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg><span>Sign out</span></a></div>
 </aside>
-<header class="tsfg-top"><button class="tsfg-ic" onclick="tsfgToggle()" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button><div class="tsfg-title">My Journey</div><div style="flex:1"></div><a class="tsfg-ic" href="checklist.html" title="Classic checklist" style="width:auto;padding:0 12px;font-size:12.5px;font-weight:700;gap:6px">📋 Classic</a></header>
+<header class="tsfg-top"><button class="tsfg-ic" onclick="tsfgToggle()" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button><div class="tsfg-title">My Journey</div><div style="flex:1"></div><a class="tsfg-ic" href="checklist.html?classic=1" title="Classic checklist" style="width:auto;padding:0 12px;font-size:12.5px;font-weight:700;gap:6px">📋 Classic</a></header>
 
 <div class="wrap" id="wrap"><div class="spin">Loading your journey…</div></div>
 
@@ -136,6 +152,8 @@ var AVATAR="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/avatar";
 var CODE="",NAME="";
 try{CODE=(localStorage.getItem('tsfg_code')||'').toUpperCase();NAME=localStorage.getItem('tsfg_name')||'';}catch(e){}
 var PLAYER=null,WORLDS=[],LABELS={},NEARBY={},AGENT=null,PROGRESS={},OPENLVL=null;
+var FIRST=true,JUSTID='';
+function scrollToCurrent(){var el=document.querySelector('.node.active');if(!el){var dn=document.querySelectorAll('.node.done');el=dn[dn.length-1];}if(el&&el.scrollIntoView){try{el.scrollIntoView({behavior:'smooth',block:'center'});}catch(e){try{el.scrollIntoView();}catch(_){}}}}
 var $=function(id){return document.getElementById(id);};
 function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
 function toast(m){var t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(function(){t.classList.remove('show');},2000);}
@@ -182,11 +200,14 @@ function render(){
 
   // path
   h+='<div class="sechead">Your path</div>';
+  var GI=0;var wasFirst=FIRST;
   WORLDS.slice().sort(function(a,b){return (a.order||0)-(b.order||0);}).forEach(function(wd){
     var lvls=PLAYER.levels.filter(function(l){return l.world===wd.id;});
     if(!lvls.length)return;
     var doneN=lvls.filter(function(l){return l.status==='done';}).length;
-    h+='<div class="world"><div class="wband" style="background:linear-gradient(135deg,'+wd.color+'cc,'+wd.color+')"><span class="wi">'+esc(wd.icon)+'</span><span class="wt">'+esc(wd.name)+'</span><span class="wc">'+doneN+'/'+lvls.length+'</span></div><div class="path">';
+    var fill=Math.round(doneN/lvls.length*100);
+    h+='<div class="world"><div class="wband" style="background:linear-gradient(135deg,'+wd.color+'cc,'+wd.color+')"><span class="wi">'+esc(wd.icon)+'</span><span class="wt">'+esc(wd.name)+'</span><span class="wc">'+doneN+'/'+lvls.length+'</span></div>'
+      +'<div class="path"><div class="trail" style="height:'+fill+'%;background:linear-gradient(180deg,'+wd.color+','+wd.color+')"></div>';
     lvls.forEach(function(l,i){
       var side=(i%2===1)?' r':'';
       var dotInner,cls;
@@ -195,12 +216,16 @@ function render(){
         dotInner='<span class="dot" style="background:'+wd.color+'">'+avImg(PLAYER.has_photo?PLAYER.code:'',PLAYER.name,'av3')+'</span>';}
       else {cls='locked';dotInner='<span class="dot">🔒</span>';}
       var meta=l.total?(l.completed+'/'+l.total+' challenges'):'';
-      h+='<div class="node '+cls+side+'" onclick="openLevel(\''+l.id+'\')"><div style="position:relative">'+dotInner+'</div>'
+      var pop=FIRST?' pop':'';var just=(l.status==='active'&&l.id===JUSTID)?' justarrived':'';
+      var delay=FIRST?(' style="animation-delay:'+(GI*0.045).toFixed(2)+'s"'):'';GI++;
+      h+='<div class="node '+cls+side+pop+just+'"'+delay+' onclick="openLevel(\''+l.id+'\')"><div style="position:relative">'+dotInner+'</div>'
         +'<div class="lbl"><div class="ln">'+esc(l.name)+'</div>'+(meta?'<div class="lm">'+meta+'</div>':'')+'</div></div>';
     });
     h+='</div></div>';
   });
   $('wrap').innerHTML=h;
+  FIRST=false;JUSTID='';
+  if(wasFirst)setTimeout(scrollToCurrent,480);else scrollToCurrent();
 }
 function nearCard(s,cls,tlabel){
   var lead=cls==='ahead'?('+'+(s.level_index-PLAYER.level_index)+' lvl'):(cls==='behind'?('-'+(PLAYER.level_index-s.level_index)+' lvl'):('Lvl '+s.level_index));
@@ -245,6 +270,7 @@ function toggleChallenge(id){
       var before={};PLAYER.levels.forEach(function(l){before[l.id]=l.status;});
       PLAYER=pd.player;LABELS=pd.labels||LABELS;WORLDS=pd.worlds||WORLDS;
       PLAYER.levels.forEach(function(l){if(l.status==='done'&&before[l.id]&&before[l.id]!=='done')justCompleted=l;});
+      if(justCompleted)JUSTID=PLAYER.current_level; /* avatar lands on its new tile */
       render();
       if(openId){var still=PLAYER.levels.filter(function(x){return x.id===openId;})[0];if(still&&still.status!=='locked')openLevel(openId);else closeSheet();}
       if(justCompleted){closeSheet();celebrate(justCompleted);}
