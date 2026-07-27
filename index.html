@@ -232,11 +232,11 @@ button{font-family:inherit;cursor:pointer;}
 .lb-crown{position:absolute;top:7px;left:11px;font-size:13px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.25));z-index:1;}
 .lb-av-hero{width:52px;height:52px;border-radius:50%;overflow:hidden;background:linear-gradient(135deg,var(--gold),#e6c874);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;flex:0 0 auto;box-shadow:0 5px 16px rgba(201,154,46,.42);border:2px solid rgba(255,255,255,.55);z-index:1;}
 .lb-hero-meta{flex:1;min-width:0;z-index:1;}
-.lb-hero-name{font-weight:800;font-size:15px;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.lb-hero-name{font-weight:800;font-size:15.5px;letter-spacing:-.01em;line-height:1.2;overflow-wrap:anywhere;}
 .lb-hero-base{font-size:10.5px;font-weight:800;color:var(--gold);text-transform:uppercase;letter-spacing:.05em;margin-top:1px;}
 .lb-hero-val{font-size:23px;font-weight:900;letter-spacing:-.03em;font-variant-numeric:tabular-nums;z-index:1;white-space:nowrap;}
 .lb-list{display:flex;flex-direction:column;gap:1px;}
-.lb-row{display:flex;align-items:center;gap:10px;padding:7px 6px;border-radius:10px;transition:background .15s;}
+.lb-row{display:flex;align-items:center;gap:10px;padding:9px 7px;border-radius:10px;transition:background .15s;}
 .lb-row.me{background:var(--accent-soft);}
 .lb-row.silver,.lb-row.bronze{position:relative;overflow:hidden;padding:8px 8px;margin-top:3px;}
 .lb-row.silver{background:linear-gradient(100deg,rgba(170,176,189,.17),transparent 70%);border:1px solid rgba(170,176,189,.30);}
@@ -247,9 +247,9 @@ button{font-family:inherit;cursor:pointer;}
 .lb-row.bronze::after{background:linear-gradient(105deg,transparent,rgba(255,255,255,.18),transparent);animation:lbsheen 8s ease-in-out infinite 1.2s;}
 .lb-rank{width:16px;text-align:center;font-size:12px;font-weight:800;color:var(--ink-3);font-variant-numeric:tabular-nums;flex:0 0 auto;}
 .lb-av-sm{width:28px;height:28px;border-radius:50%;overflow:hidden;background:linear-gradient(135deg,var(--accent),#8b9bff);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:10px;flex:0 0 auto;}
-.lb-name{flex:1;min-width:0;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.lb-name{flex:1;min-width:0;font-size:13.5px;font-weight:600;line-height:1.25;overflow-wrap:anywhere;}
 .lb-name b{color:var(--accent);}
-.lb-bar{width:60px;height:6px;border-radius:999px;background:var(--line);overflow:hidden;flex:0 0 auto;}
+.lb-bar{width:42px;height:6px;border-radius:999px;background:var(--line);overflow:hidden;flex:0 0 auto;}
 .lb-bar span{display:block;height:100%;background:linear-gradient(90deg,var(--accent),#8b9bff);border-radius:999px;transition:width .6s cubic-bezier(.2,.8,.2,1);}
 .lb-val{font-size:12.5px;font-weight:800;font-variant-numeric:tabular-nums;min-width:46px;text-align:right;flex:0 0 auto;}
 .lb-empty{padding:26px 16px;text-align:center;color:var(--ink-3);font-size:13px;border:1px dashed var(--line-2);border-radius:12px;}
@@ -417,7 +417,7 @@ button{font-family:inherit;cursor:pointer;}
             <span class="muted"><span id="lbCtxLbl">Loading…</span> · <span class="lb-synced" id="lbSynced"></span></span>
           </div>
         </div>
-        <div class="grid" id="lbGrid" style="grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:18px;"><div class="lb-skel"></div><div class="lb-skel"></div><div class="lb-skel"></div><div class="lb-skel"></div></div>
+        <div class="grid" id="lbGrid" style="grid-template-columns:repeat(auto-fit,minmax(345px,1fr));gap:18px;"><div class="lb-skel"></div><div class="lb-skel"></div><div class="lb-skel"></div><div class="lb-skel"></div></div>
       </section>
 
       <!-- QUICK ACTIONS -->
