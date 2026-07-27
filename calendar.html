@@ -229,7 +229,7 @@ var GOAUTH="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/google-oauth";
 var TZLIST=[['America/Los_Angeles','Pacific (PT)'],['America/Denver','Mountain (MT)'],['America/Phoenix','Arizona (no DST)'],['America/Chicago','Central (CT)'],['America/New_York','Eastern (ET)'],['America/Anchorage','Alaska (AKT)'],['Pacific/Honolulu','Hawaii (HT)'],['America/Puerto_Rico','Atlantic (AST)']];
 function tzLabel(tz){for(var i=0;i<TZLIST.length;i++)if(TZLIST[i][0]===tz)return TZLIST[i][1];return tz?tz.split('/').pop().replace(/_/g,' '):'';}
 function tzAbbrev(tz){var m={'America/Los_Angeles':'PT','America/Denver':'MT','America/Phoenix':'MST','America/Chicago':'CT','America/New_York':'ET','America/Anchorage':'AKT','Pacific/Honolulu':'HT','America/Puerto_Rico':'AST'};return m[tz]||'PT';}
-var CODE=null,NAME="",TRAINERS=[],TZ="America/Los_Angeles (PT)",MYB=[],MYT=[],TAB='me',CALWEEK=0;
+var CODE=null,NAME="",TRAINERS=[],TZ="America/Los_Angeles (PT)",MYB=[],MYT=[],MYAPPTS=[],TAB='me',CALWEEK=0;
 var PROFILE=null,OPS_BASE=null;
 var SELDATE=null,SELTIME=null,SELCAT='Field Training',DAYBOOKED=[];
 var CATS=['Field Training','New Agent Orientation','1-on-1 Coaching','Licensing Help','Phone Zone'];
@@ -279,7 +279,7 @@ function signOut(){try{localStorage.removeItem('tsfg_code');localStorage.removeI
   fetch(TA,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'cftavail'})}).then(function(r){return r.json();}).then(function(r){
     var v=r&&r.value;TRAINERS=(v&&Array.isArray(v.cfts))?v.cfts:[];if(v&&v.tz)TZ=v.tz;
     revealAvailTab();loadProfile();
-    loadSched(function(){loadMy(function(){loadMyTrainer(function(){render();if(_urlTab)setTab(_urlTab);});});});
+    loadSched(function(){loadMy(function(){loadMyTrainer(function(){loadMyAppts(function(){render();if(_urlTab)setTab(_urlTab);});});});});
   }).catch(function(){TRAINERS=[];render();});
   document.addEventListener('keydown',function(e){if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();openSpot();}if(e.key==='Escape'){closeSpot();$('bkOv').classList.remove('on');}});
 })();
@@ -816,18 +816,25 @@ function openMyCalendly(){
   toast('Opening your Calendly — the booking shows on both your Calendly and here.');
 }
 function bookDirect(origin){if($('bkOv'))$('bkOv').classList.remove('on');if(origin==='quick')quickSchedule();else setTab('book');}
-/* === New appointment (My Schedule, CFT+ instant) 2026-07-25 === */
+/* === Custom appointments (My Schedule) — create / edit / delete 2026-07-25 === */
+var EDIT_APPT=null;
 function canNewAppt(){var lv=((PROFILE&&PROFILE.contract_level)||'').toUpperCase();return !!myTrainerProfile()||['CFT','MD','EMD','SMD','SEMD'].indexOf(myRole())>=0||['MD','EMD','SMD','SEMD'].indexOf(lv)>=0;}
 function to12(hhmm){var m=(hhmm||'').split(':');if(m.length<2)return hhmm;var h=parseInt(m[0],10),mi=m[1];var ap=h>=12?'PM':'AM';var h12=h%12;if(h12===0)h12=12;return h12+':'+mi+' '+ap;}
-function openNewAppt(){
+function from12(s){var m=(s||'').match(/(\d+):(\d+)\s*(AM|PM)/i);if(!m)return '';var h=parseInt(m[1],10)%12;if(/pm/i.test(m[3]))h+=12;return (h<10?'0':'')+h+':'+m[2];}
+function loadMyAppts(cb){fetch(AT.replace('atlas-api','sched-ext'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'my_appts',code:CODE})}).then(function(r){return r.json();}).then(function(r){MYAPPTS=(r&&r.appts)||[];cb&&cb();}).catch(function(){cb&&cb();});}
+function myApptRow(b){var col=avColor(b.title||b.agent_name||'');var extra=(b.agent_name&&b.title&&b.agent_name!==b.title)?(' · '+esc(b.agent_name)):'';return '<div class="apt"><div class="tav" style="width:42px;height:42px;font-size:16px;background:'+(b.color||col)+'">📌</div><div style="flex:1;min-width:0"><div style="font-weight:700;font-size:14.5px">'+esc(b.title||b.agent_name||'Appointment')+'</div><div style="font-size:12.5px;color:var(--ink3)">'+prettyDate(b.date)+' · '+esc(b.time)+' PT'+extra+'</div></div><div style="display:flex;gap:8px;margin-left:auto"><button class="x" onclick="openNewAppt(\''+b.id+'\')">Edit</button><button class="x can" onclick="delAppt(\''+b.id+'\')">Delete</button></div></div>';}
+function openNewAppt(id){
+  EDIT_APPT=null;var a=null;
+  if(id){a=MYAPPTS.filter(function(x){return String(x.id)===String(id);})[0];if(a)EDIT_APPT=id;}
   var dr=$('bkDrawer'),ov=$('bkOv');if(!dr||!ov)return;
-  dr.innerHTML='<h3>New appointment</h3><p class="dsub">Adds it straight to your schedule instantly — no approval needed.</p>'
-   +'<div style="'+_FST+'"><label style="'+_LST+'">Title *</label><input id="na_title" style="'+_IST+'" placeholder="e.g. Client review — Johnson"></div>'
-   +'<div style="'+_FST+'"><label style="'+_LST+'">With <span style="color:var(--ink3);font-weight:400">· optional</span></label><input id="na_with" style="'+_IST+'" placeholder="Client or person"></div>'
-   +'<div style="display:flex;gap:10px"><div style="'+_FST+';flex:1"><label style="'+_LST+'">Date *</label><input id="na_date" type="date" value="'+todayStr()+'" style="'+_IST+'"></div>'
-   +'<div style="'+_FST+';flex:1"><label style="'+_LST+'">Time *</label><input id="na_time" type="time" value="10:00" style="'+_IST+'"></div></div>'
-   +'<div style="'+_FST+'"><label style="'+_LST+'">Notes <span style="color:var(--ink3);font-weight:400">· optional</span></label><textarea id="na_notes" style="'+_IST+';min-height:54px;resize:vertical"></textarea></div>'
-   +'<div class="dact"><button onclick="$(\'bkOv\').classList.remove(\'on\')">Cancel</button><button class="go" id="naBtn" onclick="doNewAppt()">Add to my schedule</button></div>'
+  var title=a?(a.title||''):'';var wth=(a&&a.agent_name&&a.agent_name!==a.title)?a.agent_name:'';var d=a?a.date:todayStr();var tm=a?from12(a.time):'10:00';var notes=a?(a.notes||''):'';
+  dr.innerHTML='<h3>'+(a?'Edit appointment':'New appointment')+'</h3><p class="dsub">Adds it straight to your schedule and your calendar — instantly.</p>'
+   +'<div style="'+_FST+'"><label style="'+_LST+'">Title *</label><input id="na_title" style="'+_IST+'" value="'+esc(title)+'" placeholder="e.g. Client review — Johnson"></div>'
+   +'<div style="'+_FST+'"><label style="'+_LST+'">With <span style="color:var(--ink3);font-weight:400">· optional</span></label><input id="na_with" style="'+_IST+'" value="'+esc(wth)+'" placeholder="Client or person"></div>'
+   +'<div style="display:flex;gap:10px"><div style="'+_FST+';flex:1"><label style="'+_LST+'">Date *</label><input id="na_date" type="date" value="'+esc(d)+'" style="'+_IST+'"></div>'
+   +'<div style="'+_FST+';flex:1"><label style="'+_LST+'">Time *</label><input id="na_time" type="time" value="'+esc(tm||'10:00')+'" style="'+_IST+'"></div></div>'
+   +'<div style="'+_FST+'"><label style="'+_LST+'">Notes <span style="color:var(--ink3);font-weight:400">· optional</span></label><textarea id="na_notes" style="'+_IST+';min-height:54px;resize:vertical">'+esc(notes)+'</textarea></div>'
+   +'<div class="dact"><button onclick="$(\'bkOv\').classList.remove(\'on\')">Cancel</button><button class="go" id="naBtn" onclick="doNewAppt()">'+(a?'Save changes':'Add to my schedule')+'</button></div>'
    +'<div id="naErr" style="color:var(--red);font-size:12.5px;font-weight:600;margin-top:8px;text-align:center"></div>';
   ov.classList.add('on');
 }
@@ -836,11 +843,20 @@ function doNewAppt(){
   var title=$('na_title').value.trim(),wth=$('na_with').value.trim(),d=$('na_date').value,t=$('na_time').value,notes=$('na_notes').value.trim();
   if(!title){e.textContent='Give it a title.';return;}
   if(!d||!t){e.textContent='Pick a date and time.';return;}
-  var btn=$('naBtn');btn.disabled=true;btn.textContent='Adding…';
-  fetch(AT.replace('atlas-api','sched-ext'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'create_appt',code:CODE,title:title,with:wth,date:d,time:to12(t),notes:notes})}).then(function(r){return r.json();}).then(function(r){
-    if(!r||!r.ok){btn.disabled=false;btn.textContent='Add to my schedule';e.textContent=(r&&r.error)||'Could not add.';return;}
-    toast('Added: '+title);$('bkOv').classList.remove('on');loadMyTrainer(function(){render();});
-  }).catch(function(){btn.disabled=false;btn.textContent='Add to my schedule';e.textContent='Network error — try again.';});
+  var btn=$('naBtn');btn.disabled=true;btn.textContent=EDIT_APPT?'Saving…':'Adding…';
+  var payload={action:EDIT_APPT?'update_appt':'create_appt',code:CODE,title:title,with:wth,date:d,time:to12(t),notes:notes};
+  if(EDIT_APPT)payload.id=EDIT_APPT;
+  fetch(AT.replace('atlas-api','sched-ext'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).then(function(r){return r.json();}).then(function(r){
+    if(!r||!r.ok){btn.disabled=false;btn.textContent=EDIT_APPT?'Save changes':'Add to my schedule';e.textContent=(r&&r.error)||'Could not save.';return;}
+    toast(EDIT_APPT?'Appointment updated':'Added: '+title);EDIT_APPT=null;$('bkOv').classList.remove('on');loadMyAppts(function(){loadMyTrainer(function(){render();});});
+  }).catch(function(){btn.disabled=false;btn.textContent=EDIT_APPT?'Save changes':'Add to my schedule';e.textContent='Network error — try again.';});
+}
+function delAppt(id){
+  if(!confirm('Delete this appointment? This cannot be undone.'))return;
+  fetch(AT.replace('atlas-api','sched-ext'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'delete_appt',code:CODE,id:id})}).then(function(r){return r.json();}).then(function(r){
+    if(!r||!r.ok){toast((r&&r.error)||'Could not delete');return;}
+    toast('Appointment deleted');loadMyAppts(function(){loadMyTrainer(function(){render();});});
+  }).catch(function(){toast('Network error');});
 }
 function chooseBookMode(origin){
   var ov=$('bkOv'),dr=$('bkDrawer');if(!ov||!dr){return bookDirect(origin);}
@@ -1057,10 +1073,12 @@ function renderMe(){var t=todayStr();
   var naBtn=canNewAppt()?'<button onclick="openNewAppt()" style="border:none;background:var(--accent);color:#fff;font-weight:700;font-size:12.5px;padding:8px 13px;border-radius:10px;cursor:pointer;white-space:nowrap">+ New appointment</button>':'';
   var isUp=function(b){return (b.status==='booked'||b.status==='confirmed'||b.status==='pending')&&b.date>=t;};
   var up=MYB.filter(isUp);var past=MYB.filter(function(b){return !isUp(b);});
-  var myTrain=MYT.filter(isUp);
+  var myTrain=MYT.filter(function(b){return isUp(b)&&!MYAPPTS.some(function(x){return String(x.id)===String(b.id);});});
+  var myAppt=MYAPPTS.filter(function(b){return b.date>=t&&(b.status||'')!=='canceled';});
   var pendCount=myTrain.filter(function(b){return b.status==='pending';}).length;
   var h='<div id="myCalendly"></div>';
   h+='<div class="sec"><div class="sech"><h2>Upcoming appointments</h2><div style="display:flex;gap:8px;align-items:center">'+naBtn+'<a onclick="setTab(\'book\')">Book another →</a></div></div>'+(up.length?up.map(aptRow).join(''):'<div class="empty">Nothing on the books — tap Book a Trainer to schedule.</div>')+'</div>';
+  if(myAppt.length){h+='<div class="sec"><div class="sech"><h2>Your appointments</h2><span style="font-size:12px;color:var(--ink3)">'+myAppt.length+' upcoming</span></div>'+myAppt.map(myApptRow).join('')+'</div>';}
   if(myTrain.length){h+='<div class="sec"><div class="sech"><h2>Sessions you\'re training</h2><span style="font-size:12px;color:var(--ink3)">'+myTrain.length+' upcoming'+(pendCount?' · '+pendCount+' to approve':'')+'</span></div><div style="font-size:12.5px;color:var(--ink3);margin:0 2px 10px">'+(pendCount?'Approve or decline pending requests below.':'Your upcoming sessions.')+'</div>'+myTrain.map(trainerAptRow).join('')+'</div>';}
   var toReview=MYT.filter(function(b){return (b.status==='booked'||b.status==='confirmed')&&isPastBk(b);});
   if(toReview.length){h+='<div class="sec"><div class="sech"><h2>Sessions to review</h2><span style="font-size:12px;color:var(--gold);font-weight:700">'+toReview.length+'</span></div><div style="font-size:12.5px;color:var(--ink3);margin:0 2px 10px">These have passed — mark each Completed or No-show. No-shows trigger a follow-up.</div>'+toReview.map(trainerAptRow).join('')+'</div>';}
