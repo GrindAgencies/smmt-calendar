@@ -304,12 +304,15 @@ function paintModal(t){
   h+='<div class="fg" style="margin-bottom:4px"><input id="t_client_add" list="dl_clients" placeholder="Add a client (from submissions)" onchange="addLink(\'client_names\',this)"></div><div class="chips" id="chips_clients"></div>';
   // tags
   h+='<div class="sec-l">Tags</div><div class="fg" style="margin-bottom:4px"><input id="t_tag_add" placeholder="Add a tag + Enter" onkeydown="if(event.key===\'Enter\'){event.preventDefault();addTag(this);}"></div><div class="chips" id="chips_tags"></div>';
+  if(EDIT){h+='<div class="sec-l">Notes <span style="text-transform:none;font-weight:600;color:var(--ink3)">· timestamped detail log for backfill</span></div>'
+    +'<div class="fg" style="margin-bottom:6px"><textarea id="tn_input" rows="2" placeholder="Add a note — details, updates, context…"></textarea></div><button class="dbtn ghost" style="padding:8px 15px;font-size:13px" onclick="addTaskNote()">＋ Add note</button>'
+    +'<div id="tn_list" style="margin-top:12px"></div>';}
   h+='<div class="mact"><button class="dbtn" onclick="saveTask()">'+(EDIT?'Save task':'Create task')+'</button><button class="dbtn ghost" onclick="closeModal()">Cancel</button>'+(EDIT&&OPS?'<button class="dbtn danger" style="margin-left:auto" onclick="delTask(\''+EDIT.id+'\')">Delete</button>':'')+'</div>';
   // datalists
   h+='<datalist id="dl_agents">'+ROSTER.map(function(a){return '<option value="'+esc(a.name)+' ('+esc(a.code)+')">';}).join('')+'</datalist>';
   h+='<datalist id="dl_clients">'+CLIENTS.map(function(c){return '<option value="'+esc(c)+'">';}).join('')+'</datalist>';
   h+='<datalist id="dl_cats"></datalist>';
-  $('modal').innerHTML=h;renderChips();
+  $('modal').innerHTML=h;renderChips();if(EDIT)renderTaskNotes(EDIT.notes);
   var cs=$('fCategory');if(cs)$('dl_cats').innerHTML=Array.prototype.slice.call(cs.options).slice(1).map(function(o){return '<option value="'+esc(o.value)+'">';}).join('');
   $('ov').classList.add('on');
 }
@@ -333,6 +336,12 @@ function renderChips(){
   $('chips_clients').innerHTML=DRAFT.client_names.map(function(c){return '<span class="chip">'+esc(c)+'<span class="x" onclick="rmLink(\'client_names\',\''+esc(c).replace(/'/g,"\\'")+'\')">✕</span></span>';}).join('');
   $('chips_tags').innerHTML=DRAFT.tags.map(function(g){return '<span class="chip">#'+esc(g)+'<span class="x" onclick="rmLink(\'tags\',\''+esc(g).replace(/'/g,"\\'")+'\')">✕</span></span>';}).join('');
 }
+function tnTime(iso){try{return new Date(iso).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});}catch(e){return '';}}
+function renderTaskNotes(notes){var el=$('tn_list');if(!el)return;notes=notes||[];
+  el.innerHTML=notes.length?notes.map(function(n){return '<div style="border-top:1px solid var(--line);padding:9px 0"><div style="font-size:13.5px;white-space:pre-wrap;line-height:1.45">'+esc(n.text)+'</div><div style="font-size:11px;color:var(--ink3);margin-top:4px">'+esc(n.by_name||n.by_code||'')+' · '+esc(tnTime(n.ts))+' <a onclick="delTaskNote(\''+esc(n.id)+'\')" style="color:var(--red);cursor:pointer;margin-left:6px;font-weight:700">delete</a></div></div>';}).join(''):'<div style="font-size:12.5px;color:var(--ink3)">No notes yet — add details as they come in.</div>';}
+function addTaskNote(){if(!EDIT)return;var t=($('tn_input').value||'').trim();if(!t){toast('Write a note first');return;}
+  apiCall({action:'add_note',id:EDIT.id,text:t}).then(function(r){if(r&&r.ok){EDIT.notes=r.notes;$('tn_input').value='';renderTaskNotes(r.notes);toast('Note added ✓');}else toast((r&&r.error)||'Could not add note');});}
+function delTaskNote(nid){if(!EDIT)return;apiCall({action:'del_note',id:EDIT.id,note_id:nid}).then(function(r){if(r&&r.ok){EDIT.notes=r.notes;renderTaskNotes(r.notes);toast('Note deleted');}else toast((r&&r.error)||'Could not delete');});}
 function closeModal(){$('ov').classList.remove('on');}
 function saveTask(){
   var title=($('t_title').value||'').trim();if(!title){toast('Enter a title');return;}

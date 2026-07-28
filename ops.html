@@ -87,6 +87,9 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);-web
 .obot-foot{padding:10px;border-top:1px solid var(--line);display:flex;gap:8px;align-items:flex-end;background:var(--panel)}
 .obot-foot textarea{flex:1;resize:none;border:1px solid var(--line2);border-radius:11px;padding:9px 11px;font-family:inherit;font-size:13.5px;background:var(--panel2);color:var(--ink);max-height:110px;outline:none}
 .obot-send{border:none;background:var(--gold);color:#fff;width:38px;height:38px;border-radius:11px;cursor:pointer;font-size:15px;flex:0 0 auto}
+.agsec-caret{display:inline-block;transition:transform .15s;color:var(--ink3);font-size:11px;margin-right:2px}
+.dsec.collapsible>h4{cursor:pointer;user-select:none}
+.dsec.collapsible>h4:hover{color:var(--accent)}
 .tgl{border:none;background:none;font-family:inherit;font-weight:800;font-size:13.5px;color:var(--ink3);padding:10px 18px;border-radius:10px;cursor:pointer;white-space:nowrap}
 .tgl.on{background:linear-gradient(135deg,var(--gold),var(--gold-dp));color:#fff}
 .tglrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
@@ -754,6 +757,23 @@ function setRowColor(code,val){api(auth({action:'agent_update',code:code,custom_
   var row=ROWS.filter(function(x){return x.code===code;})[0];if(row){row.custom=row.custom||{};if(val)row.custom.__rowcolor=val;else delete row.custom.__rowcolor;}
   if(CUR&&CUR.agent&&CUR.agent.code===code){CUR.agent.custom=CUR.agent.custom||{};if(val)CUR.agent.custom.__rowcolor=val;else delete CUR.agent.custom.__rowcolor;}
   renderTab();toast('Row color saved ✓');});}
+/* 7-Day Fast Start standard — Ops manually checks off each step */
+var FS_STEPS=[['fs_exam','Exam scheduled'],['fs_day1','Day 1'],['fs_day2','Day 2'],['fs_ft1','Field training 1'],['fs_ft2','Field training 2'],['fs_ft3','Field training 3']];
+function fastStartChecklist(a){return '<div id="fsWrap">'+fsInner(a)+'</div>';}
+function fsInner(a){
+  var cu=a.custom||{};var done=FS_STEPS.filter(function(s){return !!cu[s[0]];}).length;var ro=!canEdit();
+  var boxes=FS_STEPS.map(function(s){var on=!!cu[s[0]];
+    return '<label style="display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;padding:7px 11px;border-radius:10px;cursor:'+(ro?'default':'pointer')+';background:'+(on?'rgba(26,156,82,.12)':'var(--panel2)')+';border:1px solid '+(on?'rgba(26,156,82,.4)':'var(--line2)')+';color:'+(on?'var(--green)':'var(--ink2)')+'"><input type="checkbox" '+(on?'checked ':'')+(ro?'disabled ':'')+'onchange="setFS(\''+esc(a.code)+'\',\''+s[0]+'\',this.checked)">'+esc(s[1])+'</label>';
+  }).join('');
+  return '<div style="margin-top:14px;border-top:1px dashed var(--line2);padding-top:12px"><div style="font-size:12.5px;font-weight:800;color:var(--ink2);margin-bottom:9px">📋 7-Day Fast Start Standard <span style="color:'+(done===FS_STEPS.length?'var(--green)':'var(--ink3)')+';font-weight:800">· '+done+'/'+FS_STEPS.length+(done===FS_STEPS.length?' complete ✓':'')+'</span></div><div style="display:flex;gap:8px;flex-wrap:wrap">'+boxes+'</div></div>';
+}
+function setFS(code,key,checked){
+  api(auth({action:'agent_update',code:code,custom_key:key,custom_val:checked?'1':''})).then(function(r){if(!r||!r.ok){toast((r&&r.error)||'Save failed');return;}
+    if(CUR&&CUR.agent&&CUR.agent.code===code){CUR.agent.custom=CUR.agent.custom||{};if(checked)CUR.agent.custom[key]='1';else delete CUR.agent.custom[key];}
+    var row=ROWS.filter(function(x){return x.code===code;})[0];if(row){row.custom=row.custom||{};if(checked)row.custom[key]='1';else delete row.custom[key];}
+    var lbl=FS_STEPS.filter(function(s){return s[0]===key;})[0];toast('Fast Start · '+(lbl?lbl[1]:key)+(checked?' ✓':' cleared'));
+    if(CUR&&CUR.agent&&CUR.agent.code===code&&$('fsWrap'))$('fsWrap').innerHTML=fsInner(CUR.agent);
+  });}
 function renderTab(){
   var cols=orderedCols(TAB);var rows=sortRows(filtered());var s=SORT[TAB];var CC=colColors(TAB);
   if(!ROWS.length){$('tableHost').innerHTML='<div class="spin">Loading…</div>';return;}
@@ -981,7 +1001,8 @@ function paintAgent(r){
   h+='<div class="dsec"><h4>👤 Contact</h4><div class="frow">'+fld('e_first','First name',a.first_name||a.name.split(' ')[0],ro)+fld('e_last','Last name',a.last_name||a.name.split(' ').slice(1).join(' '),ro)+'</div><div class="frow">'+fld('e_phone','Phone',r.phone,ro)+fld('e_email','Email',r.email,ro)+'</div><div class="fg"><label>Direct recruiter (from org chart)</label><input value="'+esc((r.direct_to_name||'—')+(r.direct_to?(' · '+r.direct_to):''))+'" readonly></div><div class="fg"><label>Contract level (promotion tracking)</label>'+(canEdit()?('<select onchange="setContract(\''+esc(a.code)+'\',this.value)" style="font-weight:700">'+CONTRACT_LEVELS.map(function(l){return '<option'+(a.contract_level===l?' selected':'')+'>'+esc(l)+'</option>';}).join('')+((CONTRACT_LEVELS.indexOf(a.contract_level)<0&&a.contract_level)?('<option selected>'+esc(a.contract_level)+'</option>'):'')+'</select>'):('<input value="'+esc(a.contract_level||'—')+'" readonly>'))+'</div></div>';
   h+='<div class="dsec"><h4>🎫 Licensing</h4><div class="frow">'+fld('e_base','Baseshop',a.baseshop,ro)+fld('e_state','State of record',a.state,ro,null,'dl_state')+'</div><div class="frow">'+fld('e_ica','ICA date',a.ica_date,ro)+fld('e_ltype','License type',a.license_type,ro,null,'dl_license_type')+'</div><div class="frow">'+fld('e_lnum','License #',a.license_number,ro)+fld('e_lstat','Progress / status',a.license_status,ro,LICSTATUS)+'</div></div>';
   var m=a.ms||{};var pct=Math.max(0,Math.min(100,a.pct||0));
-  h+='<div class="dsec"><h4>🚀 Fast Start</h4><div style="font-size:13px;color:var(--ink2);display:flex;gap:16px;flex-wrap:wrap"><span>Pathway: <b>'+esc(a.pathway||'—')+'</b></span><span>Onboarding: <b>'+pct+'%</b></span><span>Steps: <b>'+(a.steps_done||0)+'</b></span></div><div style="margin-top:10px;display:flex;gap:14px;font-size:12.5px;font-weight:700"><span>'+(m.licensed?'✅':'⬜')+' Licensed</span><span>'+(m.first_sale?'✅':'⬜')+' First sale</span><span>'+(m.first_recruit?'✅':'⬜')+' First recruit</span></div></div>';
+  h+='<div class="dsec"><h4>🚀 Fast Start</h4><div style="font-size:13px;color:var(--ink2);display:flex;gap:16px;flex-wrap:wrap"><span>Pathway: <b>'+esc(a.pathway||'—')+'</b></span><span>Onboarding: <b>'+pct+'%</b></span><span>Steps: <b>'+(a.steps_done||0)+'</b></span></div><div style="margin-top:10px;display:flex;gap:14px;font-size:12.5px;font-weight:700"><span>'+(m.licensed?'✅':'⬜')+' Licensed</span><span>'+(m.first_sale?'✅':'⬜')+' First sale</span><span>'+(m.first_recruit?'✅':'⬜')+' First recruit</span></div>'
+    +fastStartChecklist(a)+'</div>';
   var pols=r.policies||[];
   h+='<div class="dsec"><h4>💰 New Business ('+pols.length+')</h4>'+(pols.length?pols.map(function(p){return '<div class="polrow"><div class="pt">'+esc(p.client_name||'—')+' · '+money(p.annual_premium)+'</div><div class="pm"><span>'+esc(((p.carrier||'')+(p.product?(' · '+p.product):''))||'—')+'</span><span>'+esc(p.status||'')+'</span><span>'+esc(p.submitted_date||'')+'</span></div></div>';}).join(''):'<div class="sub">No policies submitted yet.</div>')+'</div>';
   h+='<div class="dsec"><h4>✅ Tasks <span style="color:var(--ink3);font-weight:700;text-transform:none;letter-spacing:0">· agent-facing · open · overdue · completed</span></h4><div id="agTasks"><div class="sub">Loading…</div></div>'
@@ -1008,8 +1029,24 @@ function paintAgent(r){
     h+='<div class="dsec" style="margin-top:26px;border-top:1px solid var(--line);padding-top:18px"><button class="dbtn blue" onclick="requestEdit(\''+esc(a.code)+'\')">✏️ Request a field edit</button></div>';
   }
   h+='</div>';$('drawer').innerHTML=h;
+  makeAgentSectionsCollapsible();
   if(canEdit())opsCashLoad(a.code);
   agTasksLoad(a.code);
+}
+/* collapse the agent-profile groupings from Licensing down; Contact (first) stays open. Click a header to expand. */
+function makeAgentSectionsCollapsible(){
+  var body=$('drawer').querySelector('.dbody');if(!body)return;
+  var secs=Array.prototype.slice.call(body.children).filter(function(el){return el.classList&&el.classList.contains('dsec');});
+  secs.forEach(function(sec,i){
+    var h=sec.querySelector('h4');if(!h)return;            // actions block has no h4 → stays visible
+    if(i===0)return;                                        // keep the first (Contact) fully expanded
+    var wrap=document.createElement('div');wrap.className='agsec-body';
+    while(h.nextSibling)wrap.appendChild(h.nextSibling);    // move everything after the header into a toggle body
+    sec.appendChild(wrap);wrap.style.display='none';
+    sec.classList.add('collapsible');
+    if(!h.querySelector('.agsec-caret'))h.insertAdjacentHTML('afterbegin','<span class="agsec-caret">▸</span>');
+    h.addEventListener('click',function(){var open=wrap.style.display==='none';wrap.style.display=open?'block':'none';var c=h.querySelector('.agsec-caret');if(c)c.style.transform=open?'rotate(90deg)':'';});
+  });
 }
 /* agent-profile Tasks section */
 function agTaskRow(t,code){
