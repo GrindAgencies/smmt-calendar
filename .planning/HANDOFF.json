@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-07-28T01:36:47.526Z",
+  "timestamp": "2026-07-28T03:53:21.303Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -19,8 +19,16 @@
     {
       "status": "M",
       "path": ".planning/HANDOFF.json"
+    },
+    {
+      "status": "M",
+      "path": "newbusiness.html"
+    },
+    {
+      "status": "M",
+      "path": "ops.html"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\n6aeff56 Approvals: add a way back to Operations (esp. the all-clear state)\n3a62bc5 Update HANDOFF.json\n801340f Ops: loud access-pending notification + EMD-level approvals\nf79aae0 Update HANDOFF.json\nda54608 Update HANDOFF.json"
+  "context_notes": "Recent commits:\n6b72d47 Update HANDOFF.json\n6aeff56 Approvals: add a way back to Operations (esp. the all-clear state)\n3a62bc5 Update HANDOFF.json\n801340f Ops: loud access-pending notification + EMD-level approvals\nf79aae0 Update HANDOFF.json"
 }
