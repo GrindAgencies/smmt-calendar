@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-07-28T16:53:34.466Z",
+  "timestamp": "2026-07-28T16:55:17.843Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -15,16 +15,7 @@
   "blockers": [],
   "human_actions_pending": [],
   "decisions": [],
-  "uncommitted_files": [
-    {
-      "status": "M",
-      "path": ".planning/HANDOFF.json"
-    },
-    {
-      "status": "M",
-      "path": "ops.html"
-    }
-  ],
+  "uncommitted_files": [],
   "next_action": null,
-  "context_notes": "Recent commits:\n25e8974 Update HANDOFF.json\n5243dfc Ops: Misc section on agent profile (shirt/shoe size, mailing address, allergies)\n0dde05e Update HANDOFF.json\n1d5a772 Update HANDOFF.json\n6b2e526 Tasks notes + unlimited bot + Fast Start checklist + collapsible agent sections"
+  "context_notes": "Recent commits:\n56ec2a7 Update HANDOFF.json\n4ef73e4 Ops: fix agent-create recruiter block + editable sign-in codes\n25e8974 Update HANDOFF.json\n5243dfc Ops: Misc section on agent profile (shirt/shoe size, mailing address, allergies)\n0dde05e Update HANDOFF.json"
 }
