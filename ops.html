@@ -67,6 +67,26 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);-web
 .togglebar .tgl.dragging{opacity:.45;box-shadow:0 6px 16px rgba(0,0,0,.2)}
 .togglebar.reordering{outline:2px dashed var(--gold);outline-offset:3px;border-radius:14px}
 .tabhint{font-size:11.5px;color:var(--ink3);margin:6px 2px 0;display:flex;align-items:center;gap:5px}
+/* Ops Assistant chat bubble */
+.obot-fab{position:fixed;right:20px;bottom:20px;z-index:300;width:58px;height:58px;border-radius:50%;border:none;cursor:pointer;background:linear-gradient(135deg,var(--gold),var(--gold-dp));color:#fff;font-size:25px;box-shadow:0 10px 28px rgba(0,0,0,.28);display:flex;align-items:center;justify-content:center;animation:obotpop .4s cubic-bezier(.2,1.4,.4,1)}
+@keyframes obotpop{0%{transform:scale(.4);opacity:0}100%{transform:scale(1);opacity:1}}
+.obot-fab.hide{display:none}
+.obot-panel{position:fixed;right:20px;bottom:88px;z-index:300;width:min(392px,calc(100vw - 32px));height:min(580px,calc(100vh - 130px));background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow-lg);display:none;flex-direction:column;overflow:hidden}
+.obot-panel.on{display:flex}
+.obot-hd{padding:13px 15px;background:linear-gradient(135deg,var(--gold),var(--gold-dp));color:#fff;display:flex;align-items:center;gap:9px}
+.obot-hd .t{font-weight:800;font-size:14.5px;line-height:1.1}.obot-hd .s{font-size:11px;opacity:.92}
+.obot-hd button{background:rgba(255,255,255,.2);border:none;color:#fff;height:28px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;padding:0 9px}
+.obot-body{flex:1;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:10px;background:var(--panel2)}
+.obot-msg{max-width:86%;padding:10px 12px;border-radius:14px;font-size:13.5px;line-height:1.45;white-space:pre-wrap;word-wrap:break-word}
+.obot-msg.u{align-self:flex-end;background:var(--accent);color:#fff;border-bottom-right-radius:4px}
+.obot-msg.a{align-self:flex-start;background:var(--panel);border:1px solid var(--line);border-bottom-left-radius:4px}
+.obot-msg.exec{align-self:flex-start;background:#e6f6ec;color:#1a7f47;font-weight:700;font-size:12.5px;border:1px solid #bfe6cc}
+.obot-quick{display:flex;gap:6px;flex-wrap:wrap;padding:0 12px 8px;background:var(--panel)}
+.obot-chip{border:1px solid var(--line2);background:var(--panel2);color:var(--ink2);font-size:11.5px;font-weight:700;padding:6px 10px;border-radius:999px;cursor:pointer}
+.obot-chip:hover{border-color:var(--gold);color:var(--ink)}
+.obot-foot{padding:10px;border-top:1px solid var(--line);display:flex;gap:8px;align-items:flex-end;background:var(--panel)}
+.obot-foot textarea{flex:1;resize:none;border:1px solid var(--line2);border-radius:11px;padding:9px 11px;font-family:inherit;font-size:13.5px;background:var(--panel2);color:var(--ink);max-height:110px;outline:none}
+.obot-send{border:none;background:var(--gold);color:#fff;width:38px;height:38px;border-radius:11px;cursor:pointer;font-size:15px;flex:0 0 auto}
 .tgl{border:none;background:none;font-family:inherit;font-weight:800;font-size:13.5px;color:var(--ink3);padding:10px 18px;border-radius:10px;cursor:pointer;white-space:nowrap}
 .tgl.on{background:linear-gradient(135deg,var(--gold),var(--gold-dp));color:#fff}
 .tglrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
@@ -236,6 +256,14 @@ select.cellin{cursor:pointer;min-width:140px;-webkit-appearance:none;appearance:
 
 <div class="ov" id="ov"><div class="drawer" id="drawer"></div></div>
 <div class="toast" id="toast"></div>
+<!-- Ops Assistant (Claude) -->
+<button class="obot-fab hide" id="obotFab" onclick="obotToggle(true)" title="Operations Assistant">💬</button>
+<div class="obot-panel" id="obotPanel">
+  <div class="obot-hd"><span style="font-size:19px">🤖</span><div style="min-width:0"><div class="t">Ops Assistant</div><div class="s">Ask · create tasks · onboard staff</div></div><button onclick="obotTeach()" title="Teach me a fact we should remember" style="margin-left:auto">🎓 Teach</button><button onclick="obotToggle(false)" title="Close">✕</button></div>
+  <div class="obot-body" id="obotBody"></div>
+  <div class="obot-quick" id="obotQuick"></div>
+  <div class="obot-foot"><textarea id="obotIn" rows="1" placeholder="Ask anything… (⏎ to send)" onkeydown="obotKey(event)"></textarea><button class="obot-send" onclick="obotSend()">➤</button></div>
+</div>
 <datalist id="dl_license_type"></datalist>
 <datalist id="dl_state"></datalist>
 <datalist id="dl_base"><option value="SUMMIT"><option value="GRIND"><option value="TITANS"><option value="STANDARD"></datalist>
@@ -320,6 +348,35 @@ function showApp(){
     '<a class="tile" href="index.html"><div class="ti">🏆</div><div class="tt">Leaderboard</div><div class="td">Company standings</div></a>'+
     '<a class="tile" href="calendar.html"><div class="ti">🗓️</div><div class="tt">Scheduler</div><div class="td">Bookings & availability</div></a>'+'</div>'):'';
   loadOverview();loadTracker();setupNotif();renderAccessBanner();initTabReorder();
+  var fab=$('obotFab');if(fab)fab.classList.toggle('hide',!canEdit());
+}
+/* ===== Ops Assistant (Claude-backed) ===== */
+var OBOT="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/ops-bot";
+var OBOTHIST=[],OBOTBUSY=false;
+function obotBody(b){b=b||{};if(canEdit())b.token='2026';if(OPS){b.code=OPS.code;b.name=OPS.name;}return b;}
+function obotToggle(open){$('obotPanel').classList.toggle('on',open);$('obotFab').classList.toggle('hide',open);if(open){if(!OBOTHIST.length)obotGreet();setTimeout(function(){$('obotIn').focus();},50);}}
+function obotGreet(){
+  var first=((OPS&&OPS.name)||'').split(' ')[0]||'there';
+  obotPush('a','Hi '+first+" — I'm your Ops Assistant. Ask me anything about the business or the software, and I can create tasks or toggle automations for you. New to Ops? Ask me to walk you through how we work.");
+  $('obotQuick').innerHTML=["What needs my attention today?","How many pending approvals?","How do commission splits work?","Onboard me — how does this business run?"].map(function(q){return '<span class="obot-chip" onclick="obotQuick(this)">'+esc(q)+'</span>';}).join('');
+}
+function obotQuick(el){$('obotIn').value=el.textContent;obotSend();}
+function obotPush(role,text){var b=$('obotBody');var d=document.createElement('div');d.className='obot-msg '+(role==='u'?'u':role==='exec'?'exec':'a');d.textContent=text;b.appendChild(d);b.scrollTop=b.scrollHeight;return d;}
+function obotKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();obotSend();}}
+function obotSend(){
+  if(OBOTBUSY)return;var v=($('obotIn').value||'').trim();if(!v)return;
+  $('obotIn').value='';obotPush('u',v);OBOTHIST.push({role:'user',content:v});
+  var typing=obotPush('a','…');OBOTBUSY=true;$('obotQuick').innerHTML='';
+  fetch(OBOT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(obotBody({action:'ask',q:v,history:OBOTHIST}))}).then(function(r){return r.json();}).then(function(r){
+    typing.remove();OBOTBUSY=false;
+    var ans=(r&&(r.answer))||'Sorry, I hit a snag — try again.';obotPush('a',ans);OBOTHIST.push({role:'assistant',content:ans});
+    if(r&&r.executed)obotPush('exec',r.executed);
+  }).catch(function(){typing.remove();OBOTBUSY=false;obotPush('a','Network hiccup — try again in a moment.');});
+}
+function obotTeach(){
+  var note=prompt('Teach the Ops Assistant a fact about how we work — it remembers this for everyone:');
+  if(!note||!note.trim())return;
+  fetch(OBOT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(obotBody({action:'add_knowledge',note:note.trim()}))}).then(function(r){return r.json();}).then(function(r){if(r&&r.ok){obotPush('exec','📚 Learned it — I’ll remember that for the whole Ops team.');}else{toast((r&&r.error)||'Could not save');}});
 }
 /* drag-to-reorder the table tabs; order persists per device */
 var TABDND=false;
