@@ -767,6 +767,21 @@ function fsInner(a){
   }).join('');
   return '<div style="margin-top:14px;border-top:1px dashed var(--line2);padding-top:12px"><div style="font-size:12.5px;font-weight:800;color:var(--ink2);margin-bottom:9px">📋 7-Day Fast Start Standard <span style="color:'+(done===FS_STEPS.length?'var(--green)':'var(--ink3)')+';font-weight:800">· '+done+'/'+FS_STEPS.length+(done===FS_STEPS.length?' complete ✓':'')+'</span></div><div style="display:flex;gap:8px;flex-wrap:wrap">'+boxes+'</div></div>';
 }
+/* Misc personal info — shirt/shoe size, mailing address, medical allergies (persisted per agent) */
+function miscSection(a){
+  var cu=a.custom||{};var ro=!canEdit();
+  function mfld(key,label,ph){var v=cu[key]||'';return '<div class="fg"><label>'+esc(label)+'</label><input value="'+esc(v)+'"'+(ro?' readonly':'')+' placeholder="'+esc(ph)+'" onchange="setMisc(\''+esc(a.code)+'\',\''+key+'\',this.value)"></div>';}
+  return '<div class="dsec"><h4>🎁 Misc</h4><div class="frow">'+mfld('misc_shirt','Shirt size','e.g. L · XL')+mfld('misc_shoe','Shoe size','e.g. 10.5')+'</div>'
+    +mfld('misc_address','Mailing address','Street, City, State ZIP')
+    +mfld('misc_allergies','Known medical allergies','e.g. penicillin, peanuts — or “none”')+'</div>';
+}
+function setMisc(code,key,val){
+  var v=(val||'').trim();
+  api(auth({action:'agent_update',code:code,custom_key:key,custom_val:v})).then(function(r){if(!r||!r.ok){toast((r&&r.error)||'Save failed');return;}
+    if(CUR&&CUR.agent&&CUR.agent.code===code){CUR.agent.custom=CUR.agent.custom||{};if(v)CUR.agent.custom[key]=v;else delete CUR.agent.custom[key];}
+    var row=ROWS.filter(function(x){return x.code===code;})[0];if(row){row.custom=row.custom||{};if(v)row.custom[key]=v;else delete row.custom[key];}
+    toast('Misc saved ✓');});
+}
 function setFS(code,key,checked){
   api(auth({action:'agent_update',code:code,custom_key:key,custom_val:checked?'1':''})).then(function(r){if(!r||!r.ok){toast((r&&r.error)||'Save failed');return;}
     if(CUR&&CUR.agent&&CUR.agent.code===code){CUR.agent.custom=CUR.agent.custom||{};if(checked)CUR.agent.custom[key]='1';else delete CUR.agent.custom[key];}
@@ -1003,6 +1018,7 @@ function paintAgent(r){
   var m=a.ms||{};var pct=Math.max(0,Math.min(100,a.pct||0));
   h+='<div class="dsec"><h4>🚀 Fast Start</h4><div style="font-size:13px;color:var(--ink2);display:flex;gap:16px;flex-wrap:wrap"><span>Pathway: <b>'+esc(a.pathway||'—')+'</b></span><span>Onboarding: <b>'+pct+'%</b></span><span>Steps: <b>'+(a.steps_done||0)+'</b></span></div><div style="margin-top:10px;display:flex;gap:14px;font-size:12.5px;font-weight:700"><span>'+(m.licensed?'✅':'⬜')+' Licensed</span><span>'+(m.first_sale?'✅':'⬜')+' First sale</span><span>'+(m.first_recruit?'✅':'⬜')+' First recruit</span></div>'
     +fastStartChecklist(a)+'</div>';
+  h+=miscSection(a);
   var pols=r.policies||[];
   h+='<div class="dsec"><h4>💰 New Business ('+pols.length+')</h4>'+(pols.length?pols.map(function(p){return '<div class="polrow"><div class="pt">'+esc(p.client_name||'—')+' · '+money(p.annual_premium)+'</div><div class="pm"><span>'+esc(((p.carrier||'')+(p.product?(' · '+p.product):''))||'—')+'</span><span>'+esc(p.status||'')+'</span><span>'+esc(p.submitted_date||'')+'</span></div></div>';}).join(''):'<div class="sub">No policies submitted yet.</div>')+'</div>';
   h+='<div class="dsec"><h4>✅ Tasks <span style="color:var(--ink3);font-weight:700;text-transform:none;letter-spacing:0">· agent-facing · open · overdue · completed</span></h4><div id="agTasks"><div class="sub">Loading…</div></div>'
