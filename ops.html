@@ -62,6 +62,11 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);-web
 .accessbanner .ab-btn:hover{background:#fff5f5}
 @media(prefers-reduced-motion:reduce){.accessbanner{animation:none}}
 .togglebar{display:inline-flex;background:var(--panel);border:1px solid var(--line2);border-radius:13px;padding:4px;gap:3px;box-shadow:var(--shadow-sm);flex-wrap:wrap}
+.togglebar .tgl{cursor:grab}
+.togglebar .tgl:active{cursor:grabbing}
+.togglebar .tgl.dragging{opacity:.45;box-shadow:0 6px 16px rgba(0,0,0,.2)}
+.togglebar.reordering{outline:2px dashed var(--gold);outline-offset:3px;border-radius:14px}
+.tabhint{font-size:11.5px;color:var(--ink3);margin:6px 2px 0;display:flex;align-items:center;gap:5px}
 .tgl{border:none;background:none;font-family:inherit;font-weight:800;font-size:13.5px;color:var(--ink3);padding:10px 18px;border-radius:10px;cursor:pointer;white-space:nowrap}
 .tgl.on{background:linear-gradient(135deg,var(--gold),var(--gold-dp));color:#fff}
 .tglrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
@@ -217,6 +222,7 @@ select.cellin{cursor:pointer;min-width:140px;-webkit-appearance:none;appearance:
       <button class="addbtn hide" id="addBtn" onclick="openAddMenu()">＋ Add</button>
       <input class="searchbar" id="search" placeholder="Search…" oninput="onSearch()">
     </div>
+    <div class="tabhint">⠿ Drag tabs to reorder — put what matters most first. <a onclick="resetTabOrder()" style="color:var(--accent);cursor:pointer;font-weight:700;margin-left:4px">Reset order</a></div>
     <div class="tablewrap" id="tableWrap"><div id="tableHost"><div class="spin">Loading tracker…</div></div></div>
     <div id="bookingsHost" class="hide"></div>
     <div id="newbizHost" class="hide"></div>
@@ -311,7 +317,24 @@ function showApp(){
     '<a class="tile" href="newbusiness.html"><div class="ti">💰</div><div class="tt">New Business</div><div class="td">Full policy ledger</div></a>'+
     '<a class="tile" href="index.html"><div class="ti">🏆</div><div class="tt">Leaderboard</div><div class="td">Company standings</div></a>'+
     '<a class="tile" href="calendar.html"><div class="ti">🗓️</div><div class="tt">Scheduler</div><div class="td">Bookings & availability</div></a>'+'</div>'):'';
-  loadOverview();loadTracker();setupNotif();renderAccessBanner();
+  loadOverview();loadTracker();setupNotif();renderAccessBanner();initTabReorder();
+}
+/* drag-to-reorder the table tabs; order persists per device */
+var TABDND=false;
+function tabBar(){return document.querySelector('.togglebar');}
+function applyTabOrder(){try{var raw=localStorage.getItem('tsfg_ops_taborder');if(!raw)return;var order=JSON.parse(raw);var bar=tabBar();if(!bar||!Array.isArray(order))return;order.forEach(function(t){var b=bar.querySelector('.tgl[data-tab="'+t+'"]');if(b)bar.appendChild(b);});}catch(e){}}
+function saveTabOrder(){try{var bar=tabBar();if(!bar)return;var order=Array.prototype.slice.call(bar.querySelectorAll('.tgl')).map(function(b){return b.getAttribute('data-tab');});localStorage.setItem('tsfg_ops_taborder',JSON.stringify(order));}catch(e){}}
+function resetTabOrder(){try{localStorage.removeItem('tsfg_ops_taborder');}catch(e){}location.reload();}
+function tabDropTarget(bar,x){var els=Array.prototype.slice.call(bar.querySelectorAll('.tgl:not(.dragging)'));var best=null,bestOff=-Infinity;els.forEach(function(el){var box=el.getBoundingClientRect();var off=x-(box.left+box.width/2);if(off<0&&off>bestOff){bestOff=off;best=el;}});return best;}
+function initTabReorder(){
+  if(TABDND)return;var bar=tabBar();if(!bar)return;TABDND=true;
+  Array.prototype.slice.call(bar.querySelectorAll('.tgl')).forEach(function(b){b.setAttribute('draggable','true');if(!b.getAttribute('data-tab'))b.setAttribute('data-tab',(b.id||'').replace('tg_',''));b.title='Drag to reorder · click to open';});
+  applyTabOrder();
+  var dragEl=null;
+  bar.addEventListener('dragstart',function(e){var t=e.target&&e.target.closest?e.target.closest('.tgl'):null;if(!t)return;dragEl=t;t.classList.add('dragging');bar.classList.add('reordering');try{e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',t.getAttribute('data-tab')||'');}catch(_){}});
+  bar.addEventListener('dragover',function(e){if(!dragEl)return;e.preventDefault();var after=tabDropTarget(bar,e.clientX);if(after==null)bar.appendChild(dragEl);else if(after!==dragEl)bar.insertBefore(dragEl,after);});
+  bar.addEventListener('drop',function(e){if(dragEl)e.preventDefault();});
+  bar.addEventListener('dragend',function(){if(dragEl){dragEl.classList.remove('dragging');}bar.classList.remove('reordering');dragEl=null;saveTabOrder();});
 }
 
 /* ---- overview ---- */
