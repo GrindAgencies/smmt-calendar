@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-07-28T17:16:49.329Z",
+  "timestamp": "2026-07-28T17:35:14.474Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -26,5 +26,5 @@
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\n5556357 Update HANDOFF.json\nf8b84c4 Update HANDOFF.json\n56ec2a7 Update HANDOFF.json\n4ef73e4 Ops: fix agent-create recruiter block + editable sign-in codes\n25e8974 Update HANDOFF.json"
+  "context_notes": "Recent commits:\n520a736 Update HANDOFF.json\nd5010d1 Scheduler: Book this time opens the trainer's Calendly + guest invites\n5556357 Update HANDOFF.json\nf8b84c4 Update HANDOFF.json\n56ec2a7 Update HANDOFF.json"
 }
