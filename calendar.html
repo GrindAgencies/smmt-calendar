@@ -883,28 +883,46 @@ function chooseBookMode(origin){
   ov.classList.add('on');
 }
 
+function calBookUrl(base,agentName,agentEmail,guests,dateStr){
+  if(!base)return '';var u=String(base).trim();if(!/^https?:\/\//.test(u))u='https://'+u;
+  var p=[];if(agentName)p.push('name='+encodeURIComponent(agentName));if(agentEmail)p.push('email='+encodeURIComponent(agentEmail));
+  if(guests)p.push('guests='+encodeURIComponent(guests));if(dateStr)p.push('month='+encodeURIComponent(String(dateStr).slice(0,7)));
+  return u+(p.length?((u.indexOf('?')>=0?'&':'?')+p.join('&')):'');
+}
+var _CFIN='width:100%;border:1px solid var(--line2);border-radius:9px;padding:8px 10px;font-size:13.5px;font-family:inherit;background:var(--panel);color:var(--ink)';
 function confirmBook(encName){var name=decodeURIComponent(encName);var c=TRAINERS.filter(function(x){return x.name===name;})[0];if(!c||!SELDATE||!SELTIME){toast('Pick a date and time first.');return;}
-  var col=avColor(name);
-  $('bkDrawer').innerHTML='<h3>Confirm your training</h3><p class="dsub">Review and confirm — takes one tap.</p>'+
+  var col=avColor(name);var hasCal=!!(c&&c.calendly);
+  $('bkDrawer').innerHTML='<h3>Confirm your training</h3><p class="dsub">Review, add guests, and confirm.</p>'+
     '<div style="display:flex;align-items:center;gap:13px;margin-bottom:8px"><div class="tav" style="background:'+col+'">'+initials(name)+'</div><div><div style="font-weight:800;font-size:16px">'+esc(name)+'</div><div style="font-size:12.5px;color:var(--ink3)">'+esc(roleLabel(c.role))+'</div></div></div>'+
     '<div class="confrow"><div class="cl">When</div><div class="cv">'+prettyDate(SELDATE)+'</div></div>'+
     '<div class="confrow"><div class="cl">Time</div><div class="cv">'+esc(SELTIME)+' · '+esc((TZ.split(" ")[0]||"PT"))+'</div></div>'+
     '<div class="confrow"><div class="cl">Type</div><div class="cv">'+esc(SELCAT)+'</div></div>'+
     '<div class="confrow"><div class="cl">Agent</div><div class="cv">'+esc(NAME||CODE)+'</div></div>'+
-    '<div class="dact"><button onclick="$(\'bkOv\').classList.remove(\'on\')">Back</button><button class="go" id="cbtn" onclick="doBook(\''+encodeURIComponent(name)+'\')">Confirm booking</button></div>';
+    '<div style="margin-top:10px"><label style="font-size:11.5px;font-weight:700;color:var(--ink2)">Your email</label><input id="bk_email" value="'+esc(PROFILE.email||'')+'" placeholder="you@email.com" style="'+_CFIN+';margin-top:4px"></div>'+
+    '<div style="margin-top:10px"><label style="font-size:11.5px;font-weight:700;color:var(--ink2)">Invite guests <span style="font-weight:500;color:var(--ink3)">· comma-separated emails</span></label><input id="bk_guests" placeholder="guest@email.com, other@email.com" style="'+_CFIN+';margin-top:4px"></div>'+
+    (hasCal?('<div style="font-size:11.5px;color:var(--gold-br,#b8891f);background:var(--goldsoft,rgba(201,154,46,.12));border-radius:10px;padding:9px 11px;margin-top:12px;line-height:1.45">📅 <b>'+esc(name.split(" ")[0])+' schedules on Calendly.</b> Confirming books it here <b>and</b> opens their Calendly to finalize the time &amp; send calendar invites to you &amp; any guests.</div>'):'')+
+    '<div class="dact"><button onclick="$(\'bkOv\').classList.remove(\'on\')">Back</button><button class="go" id="cbtn" onclick="doBook(\''+encodeURIComponent(name)+'\')">'+(hasCal?'Confirm &amp; open Calendly':'Confirm booking')+'</button></div>';
   $('bkOv').classList.add('on');
 }
 function doBook(encName){var name=decodeURIComponent(encName);var c=TRAINERS.filter(function(x){return x.name===name;})[0];if(!c)return;
   $('cbtn').disabled=true;$('cbtn').textContent='Booking…';
-  fetch(AT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'atlas_book',code:CODE,agent_name:NAME,trainer_name:name,trainer_calendly:c.calendly||'',category:SELCAT,date:SELDATE,time:SELTIME})}).then(function(r){return r.json();}).then(function(r){
-    if(r&&r.taken){toast(r.error||'That time was just taken.');$('bkOv').classList.remove('on');loadDayBooked(SELDATE,function(){SELTIME=null;$('trWrap').innerHTML='';renderTimes();});return;}
-    if(!r||!r.ok){toast((r&&r.error)||'Could not book.');$('cbtn').disabled=false;$('cbtn').textContent='Confirm booking';return;}
+  var email=($('bk_email')?($('bk_email').value||'').trim():'');var guests=($('bk_guests')?($('bk_guests').value||'').trim():'');
+  var hasCal=!!(c&&c.calendly);
+  /* open Calendly synchronously on the click so popup blockers don't stop it; fill URL after we know it's booked */
+  var calWin=hasCal?window.open('','_blank'):null;
+  var bkNotes=[(guests?('Guests: '+guests):''),(email?('Agent email: '+email):'')].filter(Boolean).join(' · ');
+  fetch(AT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'atlas_book',code:CODE,agent_name:NAME,trainer_name:name,trainer_calendly:c.calendly||'',category:SELCAT,date:SELDATE,time:SELTIME,notes:bkNotes,invitee_email:email,guests:guests})}).then(function(r){return r.json();}).then(function(r){
+    if(r&&r.taken){if(calWin)calWin.close();toast(r.error||'That time was just taken.');$('bkOv').classList.remove('on');loadDayBooked(SELDATE,function(){SELTIME=null;$('trWrap').innerHTML='';renderTimes();});return;}
+    if(!r||!r.ok){if(calWin)calWin.close();toast((r&&r.error)||'Could not book.');$('cbtn').disabled=false;$('cbtn').textContent='Confirm booking';return;}
     var b=r.booking;
+    var calUrl=hasCal?calBookUrl(c.calendly,NAME,email,guests,SELDATE):'';
+    if(calWin&&calUrl){try{calWin.location.href=calUrl;}catch(e){}}else if(calWin){try{calWin.close();}catch(e){}}
     $('bkDrawer').innerHTML='<div class="done"><div class="chk">✓</div><h3>You’re booked!</h3><p class="dsub">'+esc(name)+' · '+prettyDate(SELDATE)+' at '+esc(SELTIME)+' PT</p><div class="cnum">Confirmation '+esc(b.conf||'')+'</div>'+
-      '<div class="dact" style="margin-top:22px"><button class="go" onclick="finishBook()">Done</button></div>'+
+      (hasCal?('<div style="font-size:12px;color:var(--gold-br,#b8891f);margin-top:12px;line-height:1.45">📅 Calendly opened in a new tab to finalize &amp; send invites'+(guests?(' to your guests'):'')+'. It also shows here on the Scheduler.'+(calUrl?(' <a href="'+esc(calUrl)+'" target="_blank" rel="noopener" style="color:var(--accent);font-weight:700">Reopen Calendly</a>'):'')+'</div>'):'')+
+      '<div class="dact" style="margin-top:20px"><button class="go" onclick="finishBook()">Done</button></div>'+
       '<div style="font-size:11.5px;color:var(--ink3);margin-top:12px">Notification sent to '+esc(name.split(' ')[0])+'. You can cancel any time from My Schedule.</div></div>';
     loadMy(function(){});
-  }).catch(function(){toast('Network error — try again.');$('cbtn').disabled=false;$('cbtn').textContent='Confirm booking';});
+  }).catch(function(){if(calWin)calWin.close();toast('Network error — try again.');$('cbtn').disabled=false;$('cbtn').textContent='Confirm booking';});
 }
 function finishBook(){$('bkOv').classList.remove('on');SELTIME=null;setTab('me');}
 function cancelBk(id){if(!confirm('Cancel this appointment?'))return;fetch(AT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'atlas_setstatus',id:id,status:'canceled',code:CODE})}).then(function(r){return r.json();}).then(function(){toast('Appointment canceled');loadMy(function(){render();});});}
