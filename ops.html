@@ -198,6 +198,7 @@ select.cellin{cursor:pointer;min-width:140px;-webkit-appearance:none;appearance:
     <div><h1>Operations Tracker</h1><div class="who" id="whoLbl"></div></div>
     <span id="roleChip"></span>
     <a class="signout" href="index.html" title="Back to Dashboard" style="text-decoration:none;display:inline-flex;align-items:center;gap:5px;margin-left:auto">← Dashboard</a>
+    <a class="signout" href="tasks.html" title="Task Management" style="text-decoration:none;display:inline-flex;align-items:center;gap:5px">✅ Tasks</a>
     <a class="signout" href="roadmap-builder.html" title="Roadmap Level Builder — build the broker journey" style="text-decoration:none;display:inline-flex;align-items:center;gap:5px">🗺️ Roadmap Builder</a>
     <button class="iconbtn bell hide" id="bellBtn" onclick="openNotif()" title="Booking notifications">🔔<span class="badge hide" id="bellBadge">0</span></button>
     <button class="iconbtn" onclick="toggleTheme()" title="Theme">◐</button>
@@ -244,6 +245,7 @@ var OD="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/ops-directory";
 var OPSPLAT="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/ops-platform";
 var ROADMAP="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/roadmap-api";
 var ACCESS="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/access-api";
+var TASKAPI="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/task-api";
 var BSSCOPE=null; /* null = master (Standard, everyone). Array of baseshop names = scoped per-baseshop Ops platform. */
 var CALS="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/calendly-sync";
 function calBody(extra){var b=extra||{};b.code=OPS?OPS.code:'';if(canEdit())b.token='2026';return b;}
@@ -471,6 +473,7 @@ function nbSelectCell(t,col){var v=nbVal(t,col.key);var c=nbOptColor(col,v);retu
 function nbSelectPill(col,v){if(!v)return nbDash();var c=nbOptColor(col,v);var i=nbOptIndex(col,v);return '<span class="cpill" style="background:'+c+'22;color:'+c+'">'+esc((i>=0?(i+1)+'. ':'')+v)+'</span>';}
 function nbCell(t,col){var v=nbVal(t,col.key);var ed=NBEDIT&&!col.ro;var firstKey=NBCOLS[0]&&NBCOLS[0].key;
   if(col.type==='select')return ed?nbSelectCell(t,col):nbSelectPill(col,v);
+  if(col.key==='client'&&NBLIVE&&v)return '<button class="namebtn" onclick="openClient(\''+esc(String(v)).replace(/'/g,"\\'")+'\')" title="Open client profile">'+esc(v)+'</button><a onclick="openTicket(\''+t.id+'\')" title="Open policy ticket" style="cursor:pointer;color:var(--ink3);margin-left:7px;font-size:12px;text-decoration:none">📄</a>';
   if(col.key===firstKey)return '<a onclick="openTicket(\''+t.id+'\')" style="cursor:pointer;font-weight:800;color:var(--gold);text-decoration:none">'+(esc(v)||'—')+'</a>';
   if(ed)return '<input class="cellin"'+(col.type==='money'?' style="text-align:right"':'')+' value="'+esc(v)+'" placeholder="—" onchange="nbSet(\''+t.id+'\',\''+col.key+'\',this.value)">';
   return col.type==='money'?(esc(nbFmtMoney(v))||nbDash()):(esc(v)||nbDash());}
@@ -528,10 +531,12 @@ function ifFiltered(){var q=($('search').value||'').trim().toLowerCase();var a=I
   var k=IFSORT.k,d=IFSORT.dir;a.sort(function(x,y){var xv=x[k],yv=y[k];if(typeof xv==='number'&&typeof yv==='number')return (xv-yv)*d;xv=String(xv||'').toLowerCase();yv=String(yv||'').toLowerCase();return xv<yv?-d:xv>yv?d:0;});return a;}
 function ifSort(k){if(IFSORT.k===k)IFSORT.dir=-IFSORT.dir;else{IFSORT.k=k;IFSORT.dir=1;}paintInforce();}
 function paintInforce(){var host=$('inforceHost');if(!host)return;var rows=ifFiltered();
-  var cols=[['client','Client'],['agent','Writing Agent'],['baseshop','Baseshop'],['carrier','Carrier'],['product','Product'],['ap','Annual Premium'],['status_label','Status'],['date','Submitted']];
+  var cols=[['client','Client'],['agent','Writing Agent'],['baseshop','Baseshop'],['carrier','Carrier'],['product','Product'],['policy_number','Policy #'],['ap','Annual Premium'],['status_label','Status'],['date','Paid Out Date']];
   var head=cols.map(function(c){var ar=(IFSORT.k===c[0])?('<span class="sarrow on">'+(IFSORT.dir>0?'▲':'▼')+'</span>'):'<span class="sarrow">↕</span>';return '<th'+(c[0]==='ap'?' style="text-align:right"':'')+'><span class="thlbl" onclick="ifSort(\''+c[0]+'\')">'+esc(c[1])+ar+'</span></th>';}).join('');
-  var body=rows.length?rows.map(function(p){return '<tr><td style="font-weight:700">'+esc(p.client||'—')+'</td><td>'+esc(p.agent||'')+'</td><td>'+esc(p.baseshop||'')+'</td><td>'+esc(p.carrier||'')+'</td><td>'+esc(p.product||'')+'</td><td style="text-align:right;white-space:nowrap;font-weight:700">'+money(p.ap)+'</td><td><span class="cpill" style="background:#1a9c5222;color:#1a9c52">'+esc(p.status_label||'')+'</span></td><td style="white-space:nowrap">'+esc(cdFmt(p.date))+'</td></tr>';}).join(''):'<tr><td colspan="8" class="empty">No in-force policies yet.</td></tr>';
-  host.innerHTML='<div style="font-size:12.5px;color:var(--ink3,#8e8e93);margin:0 0 10px"><b style="color:var(--green)">'+rows.length+'</b> in-force '+(rows.length===1?'policy':'policies')+' · <b>'+money(IFTOTAL)+'</b> total annual premium · these are all active/paying policies (Policy Issued, Premium Drafted, Paid, Funds Received)</div><div class="tablewrap" style="overflow-x:auto"><table class="ptable" style="min-width:1000px"><thead><tr>'+head+'</tr></thead><tbody>'+body+'</tbody></table></div>';}
+  var body=rows.length?rows.map(function(p){return '<tr><td>'+clientLink(p.client)+'</td><td>'+esc(p.agent||'')+'</td><td>'+esc(p.baseshop||'')+'</td><td>'+esc(p.carrier||'')+'</td><td>'+esc(p.product||'')+'</td><td class="muted" style="white-space:nowrap">'+esc(p.policy_number||'—')+'</td><td style="text-align:right;white-space:nowrap;font-weight:700">'+money(p.ap)+'</td><td><span class="cpill" style="background:#1a9c5222;color:#1a9c52">'+esc(p.status_label||'')+'</span></td><td style="white-space:nowrap">'+esc(cdFmt(p.date))+'</td></tr>';}).join(''):'<tr><td colspan="9" class="empty">No paid-out policies yet.</td></tr>';
+  host.innerHTML='<div style="font-size:12.5px;color:var(--ink3,#8e8e93);margin:0 0 10px"><b style="color:var(--green)">'+rows.length+'</b> paid-out '+(rows.length===1?'policy':'policies')+' · <b>'+money(IFTOTAL)+'</b> total annual premium · <b>Paid Out only</b> — commissions confirmed received · click a client to open their profile &amp; add commission tickets</div><div class="tablewrap" style="overflow-x:auto"><table class="ptable" style="min-width:1050px"><thead><tr>'+head+'</tr></thead><tbody>'+body+'</tbody></table></div>';}
+/* clickable client name -> Client Profile (works from any policy tab) */
+function clientLink(name){var n=(name||'').trim();if(!n)return '<span style="font-weight:700">—</span>';return '<button class="namebtn" onclick="openClient(\''+esc(n).replace(/'/g,"\\'")+'\')" title="Open client profile">'+esc(n)+'</button>';}
 /* ===== Field Training tracker — live from calendar bookings ===== */
 var FT_URL="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/ops-fieldtraining";
 var FTAGENTS=[],FTTOTALS={},FTSORT={k:'completed',dir:-1};
@@ -855,6 +860,63 @@ function openAgent(code){
   api(auth({action:'agent_get',code:code})).then(function(r){if(!r||!r.ok){$('drawer').innerHTML='<div class="dbody"><div class="empty">Could not load agent.</div></div>';return;}CUR=r;paintAgent(r);});
 }
 function closeDrawer(){$('ov').classList.remove('on');CUR=null;}
+/* ===== Client Profile (keyed by name; opens from any policy tab) + commission tickets/tasks ===== */
+var CLIENT=null;
+function taskCall(b){b=b||{};if(canEdit())b.token='2026';if(OPS&&OPS.code){b.code=OPS.code;b.by_code=OPS.code;}return fetch(TASKAPI,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();}).catch(function(){return{ok:false};});}
+function openClient(name){
+  name=(name||'').trim();if(!name)return;CLIENT={name:name,policies:[],tasks:null};
+  $('drawer').innerHTML='<div class="dbody"><div class="spin">Loading client…</div></div>';$('ov').classList.add('on');
+  var pb={action:'nb_list'};if(canEdit())pb.token='2026';if(OPS)pb.by_code=OPS.code;
+  Promise.all([
+    fetch(NBFEED,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(pb)}).then(function(r){return r.json();}).catch(function(){return{};}),
+    taskCall({action:'for_client',name:name})
+  ]).then(function(res){
+    var tickets=((res[0]&&res[0].tickets)||[]).filter(function(t){return (t.data&&t.data.client||'').trim().toLowerCase()===name.toLowerCase();});
+    CLIENT.policies=tickets;CLIENT.tasks=res[1]&&res[1].ok?res[1]:{open:[],overdue:[],completed:[],counts:{open:0,overdue:0,completed:0}};
+    paintClient();
+  });
+}
+function paintClient(){
+  var name=CLIENT.name;var pols=CLIENT.policies;var tk=CLIENT.tasks||{open:[],overdue:[],completed:[]};
+  var totAp=pols.reduce(function(t,p){return t+(Number(p.data&&p.data.ap)||0);},0);
+  var h='<div class="dhd"><div><h3>🧾 '+esc(name)+'</h3><div class="sub">Client profile · '+pols.length+' polic'+(pols.length===1?'y':'ies')+' · '+money(totAp)+' AP</div></div><button class="x" onclick="closeDrawer()">✕</button></div><div class="dbody">';
+  // policies
+  h+='<div class="dsec"><h4>📄 Policies</h4>'+(pols.length?pols.map(function(t){var d=t.data||{};return '<div class="polrow"><div class="pt">'+esc(d.carrier||'—')+(d.product?(' · '+esc(d.product)):'')+' · '+money(d.ap)+'</div><div class="pm"><span>'+esc(d.agent||'')+'</span><span>'+esc(d.status||'')+'</span><span>#'+esc(d.policy_num||'—')+'</span></div></div>';}).join(''):'<div class="sub">No policies on record for this name.</div>')+'</div>';
+  // tasks / commission tickets
+  var overdue=tk.overdue||[],open=tk.open||[],done=tk.completed||[];
+  h+='<div class="dsec"><h4>✅ Tasks &amp; Commission Tickets <span style="color:var(--ink3);font-weight:700;text-transform:none;letter-spacing:0">· '+(overdue.length)+' overdue · '+(open.length)+' open · '+(done.length)+' done</span></h4>';
+  var rowsT=overdue.concat(open);
+  h+=rowsT.length?rowsT.map(clientTaskRow).join(''):'<div class="sub">No open tasks.</div>';
+  if(done.length)h+='<div class="sub" style="margin-top:10px;font-weight:700">Completed</div>'+done.slice(0,8).map(clientTaskRow).join('');
+  // add commission ticket / task
+  if(canEdit()||OPS){
+    var polOpts=pols.map(function(t){var d=t.data||{};return '<option value="'+esc(t.id)+'">'+esc((d.carrier||'policy')+' · '+(d.product||'')+' #'+(d.policy_num||t.id))+'</option>';}).join('');
+    h+='<div style="margin-top:14px;border-top:1px solid var(--line);padding-top:14px">'
+      +'<div class="fg"><label>New task / commission ticket</label><input id="ct_title" placeholder="e.g. Confirm commission received · chargeback follow-up"></div>'
+      +'<div class="frow"><div class="fg"><label>Type</label><select id="ct_cat"><option>Commission</option><option>Chargeback</option><option>Underwriting</option><option>Follow-up</option><option>Servicing</option><option value="">General</option></select></div>'
+      +'<div class="fg"><label>Priority</label><select id="ct_pri"><option value="medium">Medium</option><option value="high">High</option><option value="urgent">Urgent</option><option value="low">Low</option></select></div>'
+      +'<div class="fg"><label>Due</label><input id="ct_due" type="date"></div></div>'
+      +'<div class="fg"><label>Link a policy (optional)</label><select id="ct_pol"><option value="">— none —</option>'+polOpts+'</select></div>'
+      +'<div class="fg"><label>Assign to (optional agent code)</label><input id="ct_owner" placeholder="e.g. C1991 — leave blank for Ops"></div>'
+      +'<button class="dbtn" onclick="addClientTask()">＋ Add ticket</button></div>';
+  }
+  h+='</div>';$('drawer').innerHTML=h;
+}
+function clientTaskRow(t){
+  var done=t.status==='complete';
+  var pri='<span class="cpill" style="background:'+(t.priority==='urgent'?'#fbe6e4;color:#d0392b':t.priority==='high'?'#fdeede;color:#b5641f':'#eaecff;color:#4655cc')+'">'+esc(t.priority)+'</span>';
+  var due=t.due_date?(' · <span style="color:'+(t.overdue?'var(--red)':'var(--ink3)')+'">📅 '+esc(t.due_date)+(t.overdue?' overdue':'')+'</span>'):'';
+  return '<div class="polrow" style="display:flex;align-items:center;gap:10px"><div onclick="clientToggle(\''+t.id+'\','+(done?'false':'true')+')" title="'+(done?'Completed':'Mark complete')+'" style="cursor:pointer;width:22px;height:22px;flex:0 0 auto;border-radius:50%;border:2px solid '+(done?'var(--green)':'var(--line2)')+';background:'+(done?'var(--green)':'transparent')+';color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px">'+(done?'✓':'')+'</div><div style="flex:1;min-width:0"><div class="pt"'+(done?' style="text-decoration:line-through;color:var(--ink2)"':'')+'>'+esc(t.title)+'</div><div class="pm">'+pri+(t.category?(' · '+esc(t.category)):'')+due+(t.owner_name?(' · '+esc(t.owner_name)):'')+'</div></div></div>';
+}
+function clientToggle(id,mk){taskCall({action:'set_status',id:id,status:mk?'complete':'in_progress'}).then(function(r){if(r&&r.ok){toast('Task '+(mk?'completed ✓':'reopened'));openClient(CLIENT.name);}else toast('Could not update');});}
+function addClientTask(){
+  var title=($('ct_title').value||'').trim();if(!title){toast('Enter a title');return;}
+  var owner=($('ct_owner').value||'').trim().toUpperCase();
+  var b={action:'create',title:title,kind:'backoffice',category:$('ct_cat').value,priority:$('ct_pri').value,due_date:$('ct_due').value||'',client_names:[CLIENT.name]};
+  var pol=$('ct_pol').value;if(pol)b.policy_ids=[pol];
+  if(owner)b.owner_code=owner;
+  taskCall(b).then(function(r){if(r&&r.ok){toast('Ticket added ✓');openClient(CLIENT.name);}else toast((r&&r.error)||'Could not add');});
+}
 function fld(id,label,val,ro,opts,dl){
   var input=opts?('<select id="'+id+'"'+(ro?' disabled':'')+'>'+opts.map(function(o){return '<option'+(o===val?' selected':'')+'>'+esc(o)+'</option>';}).join('')+'</select>'):('<input id="'+id+'" value="'+esc(val||'')+'"'+(ro?' readonly':'')+(dl?' list="'+dl+'"':'')+'>');
   return '<div class="fg"><label>'+esc(label)+'</label>'+input+'</div>';
