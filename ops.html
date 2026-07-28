@@ -930,6 +930,9 @@ function paintAgent(r){
   h+='<div class="dsec"><h4>🚀 Fast Start</h4><div style="font-size:13px;color:var(--ink2);display:flex;gap:16px;flex-wrap:wrap"><span>Pathway: <b>'+esc(a.pathway||'—')+'</b></span><span>Onboarding: <b>'+pct+'%</b></span><span>Steps: <b>'+(a.steps_done||0)+'</b></span></div><div style="margin-top:10px;display:flex;gap:14px;font-size:12.5px;font-weight:700"><span>'+(m.licensed?'✅':'⬜')+' Licensed</span><span>'+(m.first_sale?'✅':'⬜')+' First sale</span><span>'+(m.first_recruit?'✅':'⬜')+' First recruit</span></div></div>';
   var pols=r.policies||[];
   h+='<div class="dsec"><h4>💰 New Business ('+pols.length+')</h4>'+(pols.length?pols.map(function(p){return '<div class="polrow"><div class="pt">'+esc(p.client_name||'—')+' · '+money(p.annual_premium)+'</div><div class="pm"><span>'+esc(((p.carrier||'')+(p.product?(' · '+p.product):''))||'—')+'</span><span>'+esc(p.status||'')+'</span><span>'+esc(p.submitted_date||'')+'</span></div></div>';}).join(''):'<div class="sub">No policies submitted yet.</div>')+'</div>';
+  h+='<div class="dsec"><h4>✅ Tasks <span style="color:var(--ink3);font-weight:700;text-transform:none;letter-spacing:0">· agent-facing · open · overdue · completed</span></h4><div id="agTasks"><div class="sub">Loading…</div></div>'
+    +((canEdit()||OPS)?('<div style="margin-top:12px;border-top:1px dashed var(--line2);padding-top:12px"><div class="fg"><label>Assign a task to '+esc((a.first_name||a.name||'this agent'))+'</label><input id="at_title" placeholder="e.g. Complete field training · call 5 leads"></div><div class="frow"><div class="fg"><label>Type</label><input id="at_cat" list="dl_taskcats" placeholder="e.g. Training, Activity"></div><div class="fg"><label>Priority</label><select id="at_pri"><option value="medium">Medium</option><option value="high">High</option><option value="urgent">Urgent</option><option value="low">Low</option></select></div><div class="fg"><label>Due</label><input id="at_due" type="date"></div></div><datalist id="dl_taskcats"><option>Training</option><option>Activity</option><option>Licensing</option><option>Follow-up</option><option>Onboarding</option></datalist><button class="dbtn" onclick="addAgentTask(\''+esc(a.code)+'\')">＋ Add task</button></div>'):'')
+    +'</div>';
   if(canEdit())h+='<div class="dsec"><h4>💵 Cashflow <span style="color:var(--ink3);font-weight:700;text-transform:none;letter-spacing:0">· drives My Tracker &amp; posts Team Hub recognition</span></h4>'
     +'<div class="frow"><div class="fg"><label>Current career cashflow ($)</label><input id="e_cashflow" type="number" step="5000" min="0" placeholder="loading…" style="font-weight:700;font-size:15px"></div>'
     +'<div class="fg"><label>Recognition</label><label style="display:flex;align-items:center;gap:7px;font-size:12.5px;padding-top:9px;cursor:pointer"><input type="checkbox" id="e_cf_ann" checked> Announce milestone to Team Hub</label></div></div>'
@@ -952,6 +955,34 @@ function paintAgent(r){
   }
   h+='</div>';$('drawer').innerHTML=h;
   if(canEdit())opsCashLoad(a.code);
+  agTasksLoad(a.code);
+}
+/* agent-profile Tasks section */
+function agTaskRow(t,code){
+  var done=t.status==='complete';
+  var pri='<span class="cpill" style="background:'+(t.priority==='urgent'?'#fbe6e4;color:#d0392b':t.priority==='high'?'#fdeede;color:#b5641f':t.priority==='low'?'#eef0f4;color:#5c6675':'#eaecff;color:#4655cc')+'">'+esc(t.priority)+'</span>';
+  var due=t.due_date?(' · <span style="color:'+(t.overdue?'var(--red)':'var(--ink3)')+'">📅 '+esc(t.due_date)+(t.overdue?' overdue':'')+'</span>'):'';
+  var links=(t.client_names||[]).length?(' · 🧾 '+esc(t.client_names[0])+((t.client_names.length>1)?(' +'+(t.client_names.length-1)):'')):'';
+  return '<div class="polrow" style="display:flex;align-items:center;gap:10px"><div onclick="agToggle(\''+t.id+'\','+(done?'false':'true')+',\''+esc(code)+'\')" title="'+(done?'Completed':'Mark complete')+'" style="cursor:pointer;width:22px;height:22px;flex:0 0 auto;border-radius:50%;border:2px solid '+(done?'var(--green)':'var(--line2)')+';background:'+(done?'var(--green)':'transparent')+';color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px">'+(done?'✓':'')+'</div><div style="flex:1;min-width:0"><div class="pt"'+(done?' style="text-decoration:line-through;color:var(--ink2)"':'')+'>'+esc(t.title)+'</div><div class="pm">'+pri+(t.category?(' · '+esc(t.category)):'')+due+links+'</div></div></div>';
+}
+function agTasksLoad(code){
+  if(!$('agTasks'))return;
+  taskCall({action:'for_agent',code:code}).then(function(r){
+    var host=$('agTasks');if(!host)return;
+    if(!r||!r.ok){host.innerHTML='<div class="sub">Could not load tasks.</div>';return;}
+    var overdue=r.overdue||[],open=r.open||[],done=r.completed||[];
+    var rows=overdue.concat(open);
+    var html='<div class="sub" style="margin-bottom:8px"><b style="color:var(--red)">'+overdue.length+'</b> overdue · <b>'+open.length+'</b> open · <b style="color:var(--green)">'+done.length+'</b> completed</div>';
+    html+=rows.length?rows.map(function(t){return agTaskRow(t,code);}).join(''):'<div class="sub">No open tasks.</div>';
+    if(done.length)html+='<div class="sub" style="margin-top:8px;font-weight:700">Recently completed</div>'+done.slice(0,6).map(function(t){return agTaskRow(t,code);}).join('');
+    host.innerHTML=html;
+  });
+}
+function agToggle(id,mk,code){taskCall({action:'set_status',id:id,status:mk?'complete':'in_progress'}).then(function(r){if(r&&r.ok){toast('Task '+(mk?'completed ✓':'reopened'));agTasksLoad(code);}else toast('Could not update');});}
+function addAgentTask(code){
+  var el=$('at_title');if(!el)return;var title=(el.value||'').trim();if(!title){toast('Enter a task title');return;}
+  var b={action:'create',title:title,kind:'agent',owner_code:code,agent_codes:[code],priority:($('at_pri')||{}).value||'medium',category:($('at_cat')||{}).value||'',due_date:($('at_due')||{}).value||''};
+  taskCall(b).then(function(r){if(r&&r.ok){toast('Task assigned ✓');el.value='';if($('at_due'))$('at_due').value='';agTasksLoad(code);}else toast((r&&r.error)||'Could not add');});
 }
 function opsCashLoad(code){var i=$('e_cashflow');if(!i)return;
   fetch(ROADMAP,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'player',code:code})}).then(function(r){return r.json();}).then(function(d){
