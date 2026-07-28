@@ -33,11 +33,19 @@
   .approve{background:var(--green);color:#fff;flex:1;} .deny{background:var(--panel);color:var(--red);border:1px solid var(--red);flex:1;} .undo{background:var(--panel2);color:var(--ink2);border:1px solid var(--line2);}
   .empty{text-align:center;color:var(--ink3);padding:44px 12px;font-size:14px;}
   .err{color:var(--red);font-size:12.5px;margin-top:8px;min-height:16px;}
+  header{justify-content:space-between;}
+  .backlink{margin-left:auto;color:var(--ink2);text-decoration:none;font-size:13px;font-weight:700;border:1px solid var(--line2);background:var(--panel);border-radius:999px;padding:7px 13px;white-space:nowrap;}
+  .backlink:hover{color:var(--ink);border-color:var(--ink3);}
+  .allclear{text-align:center;padding:40px 16px;}
+  .allclear .big{font-size:46px;}
+  .allclear h3{margin:10px 0 4px;font-size:18px;color:var(--ink);}
+  .allclear p{margin:0 0 18px;font-size:13.5px;color:var(--ink2);}
+  .backbtn{display:inline-block;background:var(--accent);color:#fff;font-weight:800;font-size:14px;padding:12px 22px;border-radius:12px;text-decoration:none;}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <header><div class="mark">TS</div><h1>Access Approvals</h1></header>
+  <header><div class="mark">TS</div><h1>Access Approvals</h1><a class="backlink" id="backTop" href="ops.html" style="display:none">← Operations</a></header>
   <div class="sub">Operations &amp; EMDs · approve new agents requesting platform access</div>
 
   <div id="gate" class="gate">
@@ -66,7 +74,7 @@ function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){retu
 function isOps(c){return /^000[0-5]$/.test(c);}
 /* Ops codes carry the master token; EMD GFI codes authorize by their code (server checks base-owner / contract level). */
 function api(b){var c=(OPS||'').toUpperCase();if(isOps(c))b.token='2026';if(c)b.approver=c;return fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();}).catch(function(){return{ok:false};});}
-function enterConsole(){ $('gate').style.display='none'; $('console').style.display='block'; }
+function enterConsole(){ $('gate').style.display='none'; $('console').style.display='block'; var bt=$('backTop'); if(bt)bt.style.display='inline-block'; }
 function opsIn(){
   var c=($('opsCode').value||'').trim().toUpperCase();
   if(!c){ $('gErr').textContent='Enter your Ops or EMD code.'; return; }
@@ -86,7 +94,12 @@ function load(){
     if(!r||!r.ok){ $('list').innerHTML='<div class="empty">Could not load ('+((r&&r.error)||'error')+').</div>'; return; }
     var pc=r.pending_count||0; var pcEl=$('pc'); if(pcEl){ pcEl.style.display=pc>0?'inline-block':'none'; pcEl.textContent=pc; }
     var rows=r.requests||[];
-    if(!rows.length){ $('list').innerHTML='<div class="empty">'+(FILTER==='pending'?'No pending requests — you\'re all caught up. 🎉':'Nothing here.')+'</div>'; return; }
+    if(!rows.length){
+      $('list').innerHTML=(FILTER==='pending')
+        ? '<div class="allclear"><div class="big">🎉</div><h3>All caught up!</h3><p>No agents are waiting for access approval.</p><a class="backbtn" href="ops.html">← Back to Operations</a></div>'
+        : '<div class="empty">Nothing here.</div>';
+      return;
+    }
     $('list').innerHTML=rows.map(card).join('');
   });
 }
