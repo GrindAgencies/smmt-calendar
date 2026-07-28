@@ -851,15 +851,20 @@ function paintAgent(r){
     +'<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><button class="dbtn" onclick="opsCashSave(\''+esc(a.code)+'\')">Update cashflow</button><span class="sub" id="cfBoard"></span></div>'
     +'<div class="sub" id="cfMsg" style="margin-top:7px;min-height:15px"></div>'
     +'<div class="sub" style="margin-top:6px;line-height:1.5">Their piece climbs to the matching $ tile on My Tracker (past $20K it’s number-driven). Crossing a $5K step posts recognition; majors — $50K ⌚ · $100K 💍 · $250K 💰 · $500K 💎 · $1M 👑 — post a big celebration.</div></div>';
-  if(canEdit())h+='<div style="display:flex;align-items:center;gap:10px;margin:10px 0 6px"><label style="font-size:12.5px;font-weight:700;color:var(--ink2)">Row highlight</label><input type="color" value="'+((a.custom&&a.custom.__rowcolor)||'#ffffff')+'" onchange="setRowColor(\''+esc(a.code)+'\',this.value)" style="width:44px;height:30px;border:1px solid var(--line);border-radius:8px;cursor:pointer;padding:2px"><span onclick="setRowColor(\''+esc(a.code)+'\',\'\')" style="cursor:pointer;color:var(--ink3);font-size:12.5px">Clear</span></div>';
-  if(canEdit())h+='<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><button class="dbtn" onclick="saveAgent(\''+esc(a.code)+'\')">Save field changes</button><button class="dbtn ghost" onclick="closeDrawer()">Close</button><button class="dbtn" style="background:var(--red);margin-left:auto" onclick="removeAgentMenu(\''+esc(a.code)+'\')">Remove agent…</button></div>';
-  else h+='<div><button class="dbtn blue" onclick="requestEdit(\''+esc(a.code)+'\')">✏️ Request a field edit</button></div>';
   // NOTES LOG
   h+='<div class="dsec" style="margin-top:26px"><h4>📝 Notes <span style="color:var(--ink3);font-weight:700;text-transform:none;letter-spacing:0">· timestamped log</span></h4>';
   h+='<div class="fg"><textarea id="noteInput" rows="2" placeholder="Add a note (saved with your name, role &amp; time)…"></textarea></div><button class="dbtn'+(canEdit()?'':' blue')+'" style="padding:9px 15px;font-size:13px" onclick="addNote(\''+esc(a.code)+'\')">Add note</button>';
   h+='<div id="notesList" style="margin-top:14px">'+notesHtml(r.notes||[])+'</div></div>';
   var rq=r.requests||[];
   if(rq.length)h+='<div class="dsec"><h4>Edit requests</h4>'+rq.map(function(q){return '<div class="reqitem"><div class="rq">'+esc(q.field||'General')+' · <span style="color:'+(q.status==='pending'?'var(--amber)':'var(--green)')+'">'+esc(q.status)+'</span></div><div class="rm">'+esc(q.note||'')+' — '+esc(q.by_name||q.by_code)+'</div></div>';}).join('')+'</div>';
+  // ACTIONS — pinned to the bottom of the profile
+  if(canEdit()){
+    h+='<div class="dsec" style="margin-top:26px;border-top:1px solid var(--line);padding-top:18px">'
+      +'<div style="display:flex;align-items:center;gap:10px;margin:0 0 12px"><label style="font-size:12.5px;font-weight:700;color:var(--ink2)">Row highlight</label><input type="color" value="'+((a.custom&&a.custom.__rowcolor)||'#ffffff')+'" onchange="setRowColor(\''+esc(a.code)+'\',this.value)" style="width:44px;height:30px;border:1px solid var(--line);border-radius:8px;cursor:pointer;padding:2px"><span onclick="setRowColor(\''+esc(a.code)+'\',\'\')" style="cursor:pointer;color:var(--ink3);font-size:12.5px">Clear</span></div>'
+      +'<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><button class="dbtn" onclick="saveAgent(\''+esc(a.code)+'\')">Save field changes</button><button class="dbtn ghost" onclick="closeDrawer()">Close</button><button class="dbtn" style="background:var(--red);margin-left:auto" onclick="removeAgentMenu(\''+esc(a.code)+'\')">Remove agent…</button></div></div>';
+  } else {
+    h+='<div class="dsec" style="margin-top:26px;border-top:1px solid var(--line);padding-top:18px"><button class="dbtn blue" onclick="requestEdit(\''+esc(a.code)+'\')">✏️ Request a field edit</button></div>';
+  }
   h+='</div>';$('drawer').innerHTML=h;
   if(canEdit())opsCashLoad(a.code);
 }
