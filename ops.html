@@ -890,13 +890,11 @@ function paintClient(){
   if(done.length)h+='<div class="sub" style="margin-top:10px;font-weight:700">Completed</div>'+done.slice(0,8).map(clientTaskRow).join('');
   // add commission ticket / task
   if(canEdit()||OPS){
-    var polOpts=pols.map(function(t){var d=t.data||{};return '<option value="'+esc(t.id)+'">'+esc((d.carrier||'policy')+' · '+(d.product||'')+' #'+(d.policy_num||t.id))+'</option>';}).join('');
     h+='<div style="margin-top:14px;border-top:1px solid var(--line);padding-top:14px">'
-      +'<div class="fg"><label>New task / commission ticket</label><input id="ct_title" placeholder="e.g. Confirm commission received · chargeback follow-up"></div>'
+      +'<div class="fg"><label>New task / commission ticket for '+esc(name)+'</label><input id="ct_title" placeholder="e.g. Confirm commission received · chargeback follow-up"></div>'
       +'<div class="frow"><div class="fg"><label>Type</label><select id="ct_cat"><option>Commission</option><option>Chargeback</option><option>Underwriting</option><option>Follow-up</option><option>Servicing</option><option value="">General</option></select></div>'
       +'<div class="fg"><label>Priority</label><select id="ct_pri"><option value="medium">Medium</option><option value="high">High</option><option value="urgent">Urgent</option><option value="low">Low</option></select></div>'
       +'<div class="fg"><label>Due</label><input id="ct_due" type="date"></div></div>'
-      +'<div class="fg"><label>Link a policy (optional)</label><select id="ct_pol"><option value="">— none —</option>'+polOpts+'</select></div>'
       +'<div class="fg"><label>Assign to (optional agent code)</label><input id="ct_owner" placeholder="e.g. C1991 — leave blank for Ops"></div>'
       +'<button class="dbtn" onclick="addClientTask()">＋ Add ticket</button></div>';
   }
@@ -913,7 +911,6 @@ function addClientTask(){
   var title=($('ct_title').value||'').trim();if(!title){toast('Enter a title');return;}
   var owner=($('ct_owner').value||'').trim().toUpperCase();
   var b={action:'create',title:title,kind:'backoffice',category:$('ct_cat').value,priority:$('ct_pri').value,due_date:$('ct_due').value||'',client_names:[CLIENT.name]};
-  var pol=$('ct_pol').value;if(pol)b.policy_ids=[pol];
   if(owner)b.owner_code=owner;
   taskCall(b).then(function(r){if(r&&r.ok){toast('Ticket added ✓');openClient(CLIENT.name);}else toast((r&&r.error)||'Could not add');});
 }

@@ -232,7 +232,6 @@ function nmeta(t){
   if(t.category)m.push('<span class="pill cat">'+esc(t.category)+'</span>');
   (t.agent_codes||[]).forEach(function(c){m.push('<span class="pill link">👤 '+esc(nameOf(c))+'</span>');});
   (t.client_names||[]).forEach(function(c){m.push('<span class="pill link">🧾 '+esc(c)+'</span>');});
-  if((t.policy_ids||[]).length)m.push('<span class="pill link">📄 '+t.policy_ids.length+' polic'+(t.policy_ids.length===1?'y':'ies')+'</span>');
   (t.tags||[]).forEach(function(g){m.push('<span class="pill tag">#'+esc(g)+'</span>');});
   return m.join('');
 }
@@ -301,18 +300,14 @@ function paintModal(t){
   h+='<div class="sec-l">Linked agents <span style="text-transform:none;font-weight:600;color:var(--ink3)">· they get the task</span></div>';
   h+='<div class="fg" style="margin-bottom:4px"><input id="t_agent_add" list="dl_agents" placeholder="Add an agent by name or code" onchange="addLink(\'agent_codes\',this)"></div><div class="chips" id="chips_agents"></div>';
   // linked clients
-  h+='<div class="sec-l">Linked clients</div>';
+  h+='<div class="sec-l">Linked clients <span style="text-transform:none;font-weight:600;color:var(--ink3)">· ties the task to their whole record</span></div>';
   h+='<div class="fg" style="margin-bottom:4px"><input id="t_client_add" list="dl_clients" placeholder="Add a client (from submissions)" onchange="addLink(\'client_names\',this)"></div><div class="chips" id="chips_clients"></div>';
-  // linked policies
-  h+='<div class="sec-l">Linked policies <span style="text-transform:none;font-weight:600;color:var(--ink3)">· back-office work</span></div>';
-  h+='<div class="fg" style="margin-bottom:4px"><input id="t_policy_add" list="dl_policies" placeholder="Add a policy (client · carrier)" onchange="addLink(\'policy_ids\',this)"></div><div class="chips" id="chips_policies"></div>';
   // tags
   h+='<div class="sec-l">Tags</div><div class="fg" style="margin-bottom:4px"><input id="t_tag_add" placeholder="Add a tag + Enter" onkeydown="if(event.key===\'Enter\'){event.preventDefault();addTag(this);}"></div><div class="chips" id="chips_tags"></div>';
   h+='<div class="mact"><button class="dbtn" onclick="saveTask()">'+(EDIT?'Save task':'Create task')+'</button><button class="dbtn ghost" onclick="closeModal()">Cancel</button>'+(EDIT&&OPS?'<button class="dbtn danger" style="margin-left:auto" onclick="delTask(\''+EDIT.id+'\')">Delete</button>':'')+'</div>';
   // datalists
   h+='<datalist id="dl_agents">'+ROSTER.map(function(a){return '<option value="'+esc(a.name)+' ('+esc(a.code)+')">';}).join('')+'</datalist>';
   h+='<datalist id="dl_clients">'+CLIENTS.map(function(c){return '<option value="'+esc(c)+'">';}).join('')+'</datalist>';
-  h+='<datalist id="dl_policies">'+POLICIES.map(function(p){return '<option value="'+esc(p.client+' · '+p.carrier+' ['+p.id+']')+'">';}).join('')+'</datalist>';
   h+='<datalist id="dl_cats"></datalist>';
   $('modal').innerHTML=h;renderChips();
   var cs=$('fCategory');if(cs)$('dl_cats').innerHTML=Array.prototype.slice.call(cs.options).slice(1).map(function(o){return '<option value="'+esc(o.value)+'">';}).join('');
@@ -336,7 +331,6 @@ function polLabel(id){var p=POLICIES.filter(function(x){return x.id===id;})[0];r
 function renderChips(){
   $('chips_agents').innerHTML=DRAFT.agent_codes.map(function(c){return '<span class="chip">'+esc(nameOf(c))+'<span class="x" onclick="rmLink(\'agent_codes\',\''+esc(c)+'\')">✕</span></span>';}).join('');
   $('chips_clients').innerHTML=DRAFT.client_names.map(function(c){return '<span class="chip">'+esc(c)+'<span class="x" onclick="rmLink(\'client_names\',\''+esc(c).replace(/'/g,"\\'")+'\')">✕</span></span>';}).join('');
-  $('chips_policies').innerHTML=DRAFT.policy_ids.map(function(id){return '<span class="chip">'+esc(polLabel(id))+'<span class="x" onclick="rmLink(\'policy_ids\',\''+esc(id)+'\')">✕</span></span>';}).join('');
   $('chips_tags').innerHTML=DRAFT.tags.map(function(g){return '<span class="chip">#'+esc(g)+'<span class="x" onclick="rmLink(\'tags\',\''+esc(g).replace(/'/g,"\\'")+'\')">✕</span></span>';}).join('');
 }
 function closeModal(){$('ov').classList.remove('on');}
