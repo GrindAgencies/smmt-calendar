@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-07-28T05:09:06.885Z",
+  "timestamp": "2026-07-28T05:14:12.064Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -19,16 +19,8 @@
     {
       "status": "M",
       "path": ".planning/HANDOFF.json"
-    },
-    {
-      "status": "M",
-      "path": "ops.html"
-    },
-    {
-      "status": "M",
-      "path": "tasks.html"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\n9b3d7ab Update HANDOFF.json\nc45e366 Update HANDOFF.json\n227ca4b Ops: status-driven task automations + Claude Ops Assistant chat bubble\nc1b72b3 Update HANDOFF.json\n53cc96b Tasks: drop \"Link to Policy\" — link to Client only"
+  "context_notes": "Recent commits:\n1d5a772 Update HANDOFF.json\n6b2e526 Tasks notes + unlimited bot + Fast Start checklist + collapsible agent sections\n9b3d7ab Update HANDOFF.json\nc45e366 Update HANDOFF.json\n227ca4b Ops: status-driven task automations + Claude Ops Assistant chat bubble"
 }
