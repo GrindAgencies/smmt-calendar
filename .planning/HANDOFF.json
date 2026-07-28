@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-07-28T16:08:45.756Z",
+  "timestamp": "2026-07-28T16:53:34.466Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -19,8 +19,12 @@
     {
       "status": "M",
       "path": ".planning/HANDOFF.json"
+    },
+    {
+      "status": "M",
+      "path": "ops.html"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\n5243dfc Ops: Misc section on agent profile (shirt/shoe size, mailing address, allergies)\n0dde05e Update HANDOFF.json\n1d5a772 Update HANDOFF.json\n6b2e526 Tasks notes + unlimited bot + Fast Start checklist + collapsible agent sections\n9b3d7ab Update HANDOFF.json"
+  "context_notes": "Recent commits:\n25e8974 Update HANDOFF.json\n5243dfc Ops: Misc section on agent profile (shirt/shoe size, mailing address, allergies)\n0dde05e Update HANDOFF.json\n1d5a772 Update HANDOFF.json\n6b2e526 Tasks notes + unlimited bot + Fast Start checklist + collapsible agent sections"
 }
