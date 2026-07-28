@@ -926,7 +926,7 @@ function openAddAgent(){
     '<div class="dsec"><h4>👤 Identity <span style="color:var(--ink3);font-weight:700;text-transform:none;letter-spacing:0">· * required</span></h4><div class="frow"><div class="fg"><label>First name *</label><input id="na_first"></div><div class="fg"><label>Last name *</label><input id="na_last"></div></div>'+
     '<div class="frow"><div class="fg"><label>Mobile phone *</label><input id="na_phone"></div><div class="fg"><label>Email *</label><input id="na_email" type="email"></div></div>'+
     '<div class="frow"><div class="fg"><label>Baseshop *</label><input id="na_base" list="dl_base"></div><div class="fg"><label>Contract level *</label><select id="na_level">'+CONTRACT_LEVELS.map(function(l){return '<option>'+esc(l)+'</option>';}).join('')+'</select></div></div>'+
-    '<div class="fg"><label>Direct recruiter — GFI code *</label><input id="na_direct" placeholder="e.g. C1991" style="text-transform:uppercase"></div></div>'+
+    '<div class="frow"><div class="fg"><label>Direct recruiter — GFI code</label><input id="na_direct" placeholder="e.g. C1991 (optional)" style="text-transform:uppercase"></div><div class="fg"><label>Sign-in code</label><input id="na_code" placeholder="auto-generated if blank" style="text-transform:uppercase"><div class="hint" style="font-size:11px;color:var(--ink3)">Their login code — leave blank to auto-assign</div></div></div></div>'+
     '<div class="dsec"><h4>🎫 Licensing</h4><div class="frow"><div class="fg"><label>State of record *</label><input id="na_state" list="dl_state"></div><div class="fg"><label>ICA date</label><input id="na_ica" type="date"></div></div>'+
     '<div class="frow"><div class="fg"><label>License type</label><input id="na_ltype" list="dl_license_type"></div><div class="fg"><label>Progress / status</label><select id="na_lstat">'+LICSTATUS.map(function(o){return '<option>'+esc(o)+'</option>';}).join('')+'</select></div></div></div>'+
     '<div id="na_msg" style="color:var(--red);font-size:12.5px;font-weight:700;min-height:16px"></div>'+
@@ -935,14 +935,15 @@ function openAddAgent(){
 }
 function doAddAgent(){
   var g=function(id){return ($(id).value||'').trim();};var msg=$('na_msg');
-  var req=[['na_first','First name'],['na_last','Last name'],['na_phone','Phone'],['na_email','Email'],['na_base','Baseshop'],['na_state','State'],['na_direct','Direct recruiter']];
+  var req=[['na_first','First name'],['na_last','Last name']];
   var miss=req.filter(function(f){return !g(f[0]);}).map(function(f){return f[1];});
   if(miss.length){msg.textContent='Required: '+miss.join(', ');return;}
   var btn=$('na_btn');btn.disabled=true;btn.textContent='Creating…';
-  api(auth({action:'add_agent',first_name:g('na_first'),last_name:g('na_last'),phone:g('na_phone'),email:g('na_email'),baseshop:g('na_base'),contract_level:$('na_level').value,direct_to:g('na_direct').toUpperCase(),state:g('na_state'),ica_date:g('na_ica'),license_type:g('na_ltype'),license_status:$('na_lstat').value})).then(function(r){
+  var cc=($('na_code')?($('na_code').value||'').trim().toUpperCase():'');
+  api(auth({action:'add_agent',first_name:g('na_first'),last_name:g('na_last'),phone:g('na_phone'),email:g('na_email'),baseshop:g('na_base'),contract_level:$('na_level').value,direct_to:g('na_direct').toUpperCase(),custom_code:cc,state:g('na_state'),ica_date:g('na_ica'),license_type:g('na_ltype'),license_status:$('na_lstat').value})).then(function(r){
     btn.disabled=false;btn.textContent='Create agent';
     if(!r||!r.ok){msg.textContent=(r&&r.error)||'Could not add.';return;}
-    toast('Added '+(r.name||'agent')+' · '+r.code);closeDrawer();loadTracker();
+    toast('Added '+(r.name||'agent')+' · '+r.code+(r.recruiter_unknown?' (recruiter code not on file — saved anyway)':''));closeDrawer();loadTracker();
   }).catch(function(){btn.disabled=false;btn.textContent='Create agent';msg.textContent='Network error.';});
 }
 
@@ -1013,7 +1014,7 @@ function fld(id,label,val,ro,opts,dl){
 function paintAgent(r){
   var a=r.agent;var ro=!canEdit();
   var h='<div class="dhd"><div><h3>'+esc(a.name)+'</h3><div class="sub">'+esc(a.code)+' · '+esc(a.contract_level)+' · '+esc(a.baseshop||'')+'</div></div><button class="x" onclick="closeDrawer()">✕</button></div><div class="dbody">';
-  h+='<div class="dsec"><h4>👤 Contact</h4><div class="frow">'+fld('e_first','First name',a.first_name||a.name.split(' ')[0],ro)+fld('e_last','Last name',a.last_name||a.name.split(' ').slice(1).join(' '),ro)+'</div><div class="frow">'+fld('e_phone','Phone',r.phone,ro)+fld('e_email','Email',r.email,ro)+'</div><div class="fg"><label>Direct recruiter (from org chart)</label><input value="'+esc((r.direct_to_name||'—')+(r.direct_to?(' · '+r.direct_to):''))+'" readonly></div><div class="fg"><label>Contract level (promotion tracking)</label>'+(canEdit()?('<select onchange="setContract(\''+esc(a.code)+'\',this.value)" style="font-weight:700">'+CONTRACT_LEVELS.map(function(l){return '<option'+(a.contract_level===l?' selected':'')+'>'+esc(l)+'</option>';}).join('')+((CONTRACT_LEVELS.indexOf(a.contract_level)<0&&a.contract_level)?('<option selected>'+esc(a.contract_level)+'</option>'):'')+'</select>'):('<input value="'+esc(a.contract_level||'—')+'" readonly>'))+'</div></div>';
+  h+='<div class="dsec"><h4>👤 Contact</h4><div class="frow">'+fld('e_first','First name',a.first_name||a.name.split(' ')[0],ro)+fld('e_last','Last name',a.last_name||a.name.split(' ').slice(1).join(' '),ro)+'</div><div class="frow">'+fld('e_phone','Phone',r.phone,ro)+fld('e_email','Email',r.email,ro)+'</div><div class="frow"><div class="fg"><label>Sign-in code (login) '+(canEdit()?'<span style="color:var(--ink3);font-weight:600;text-transform:none">· fix if wrong</span>':'')+'</label><div style="display:flex;gap:8px"><input value="'+esc(a.code)+'" readonly style="font-family:ui-monospace,Menlo,monospace;font-weight:800;letter-spacing:.05em">'+(canEdit()?'<button class="dbtn ghost" style="padding:8px 12px;white-space:nowrap" onclick="changeCode(\''+esc(a.code)+'\',\''+esc((a.name||"").replace(/\x27/g,""))+'\')">Change…</button>':'')+'</div></div>'+fld('e_recruit','Direct recruiter — GFI code',r.direct_to||'',!canEdit())+'</div><div class="fg"><label>Recruiter on file</label><input value="'+esc((r.direct_to_name||'—')+(r.direct_to?(' · '+r.direct_to):''))+'" readonly></div><div class="fg"><label>Contract level (promotion tracking)</label>'+(canEdit()?('<select onchange="setContract(\''+esc(a.code)+'\',this.value)" style="font-weight:700">'+CONTRACT_LEVELS.map(function(l){return '<option'+(a.contract_level===l?' selected':'')+'>'+esc(l)+'</option>';}).join('')+((CONTRACT_LEVELS.indexOf(a.contract_level)<0&&a.contract_level)?('<option selected>'+esc(a.contract_level)+'</option>'):'')+'</select>'):('<input value="'+esc(a.contract_level||'—')+'" readonly>'))+'</div></div>';
   h+='<div class="dsec"><h4>🎫 Licensing</h4><div class="frow">'+fld('e_base','Baseshop',a.baseshop,ro)+fld('e_state','State of record',a.state,ro,null,'dl_state')+'</div><div class="frow">'+fld('e_ica','ICA date',a.ica_date,ro)+fld('e_ltype','License type',a.license_type,ro,null,'dl_license_type')+'</div><div class="frow">'+fld('e_lnum','License #',a.license_number,ro)+fld('e_lstat','Progress / status',a.license_status,ro,LICSTATUS)+'</div></div>';
   var m=a.ms||{};var pct=Math.max(0,Math.min(100,a.pct||0));
   h+='<div class="dsec"><h4>🚀 Fast Start</h4><div style="font-size:13px;color:var(--ink2);display:flex;gap:16px;flex-wrap:wrap"><span>Pathway: <b>'+esc(a.pathway||'—')+'</b></span><span>Onboarding: <b>'+pct+'%</b></span><span>Steps: <b>'+(a.steps_done||0)+'</b></span></div><div style="margin-top:10px;display:flex;gap:14px;font-size:12.5px;font-weight:700"><span>'+(m.licensed?'✅':'⬜')+' Licensed</span><span>'+(m.first_sale?'✅':'⬜')+' First sale</span><span>'+(m.first_recruit?'✅':'⬜')+' First recruit</span></div>'
@@ -1129,7 +1130,20 @@ function deleteNote(id){
 function val(id){var e=$(id);return e?(e.value||'').trim():undefined;}
 function saveAgent(code){
   var b=auth({action:'agent_update',code:code,first_name:val('e_first'),last_name:val('e_last'),phone:val('e_phone'),email:val('e_email'),baseshop:val('e_base'),state:val('e_state'),ica_date:val('e_ica'),license_type:val('e_ltype'),license_number:val('e_lnum'),license_status:val('e_lstat')});
+  if($('e_recruit'))b.direct_to=(val('e_recruit')||'').toUpperCase();
   api(b).then(function(r){if(!r||!r.ok){toast((r&&r.error)||'Save failed');return;}toast('Saved ✓');closeDrawer();loadTracker();});
+}
+/* Operations: fix an agent's SIGN-IN code (cascades to policies, downline & org chart) */
+function changeCode(oldCode,name){
+  var nc=prompt('Change '+(name||'this agent')+"'s SIGN-IN code (their login).\nCascades to their policies, downline & org chart.\n\nCurrent: "+oldCode+'\nNew code:',oldCode);
+  if(nc===null)return;nc=(nc||'').trim().toUpperCase();
+  if(!nc||nc===oldCode)return;
+  if(!/^[A-Z0-9]{2,12}$/.test(nc)){toast('Code must be 2–12 letters/numbers');return;}
+  if(!confirm('Change sign-in code '+oldCode+' → '+nc+'?\n\nThe agent must log in with '+nc+' from now on. All their linked records will update.'))return;
+  api(auth({action:'change_code',code:oldCode,new_code:nc})).then(function(r){
+    if(!r||!r.ok){toast((r&&r.error)||'Could not change code');return;}
+    toast('Sign-in code changed: '+oldCode+' → '+nc+' ✓');closeDrawer();loadTracker();
+  });
 }
 function agName(code){return (CUR&&CUR.agent)?CUR.agent.name:code;}
 function removeAgentMenu(code){var nm=agName(code);
