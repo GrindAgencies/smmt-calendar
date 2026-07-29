@@ -116,6 +116,31 @@ a{color:inherit;text-decoration:none;}.hide{display:none!important;}
 .trow .ts{font-size:12.5px;color:var(--ink3);}
 .trow .zj{margin-left:auto;border:1px solid var(--line2);background:var(--panel);color:var(--accent);font-weight:700;font-size:12.5px;padding:9px 13px;border-radius:10px;white-space:nowrap;}
 .trow .zj:hover{background:var(--accent);color:#fff;border-color:var(--accent);}
+.wkshare{border:1px solid var(--line2);background:var(--panel);color:var(--accent);font-weight:800;font-size:12.5px;padding:8px 13px;border-radius:10px;cursor:pointer;white-space:nowrap}
+.wkshare:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+.wkstrip{display:flex;gap:7px;overflow-x:auto;padding:2px 2px 12px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.wkstrip::-webkit-scrollbar{display:none}
+.wkpill{flex:0 0 auto;min-width:60px;border:1px solid var(--line2);background:var(--panel);border-radius:14px;padding:9px 6px 8px;cursor:pointer;transition:transform .16s cubic-bezier(.2,.8,.2,1),border-color .16s,background .16s,box-shadow .16s;position:relative;display:flex;flex-direction:column;align-items:center;gap:1px}
+.wkpill:hover{transform:translateY(-2px);border-color:var(--accent)}
+.wkpill .wd{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3)}
+.wkpill .wn{font-size:18px;font-weight:800;line-height:1.05;color:var(--ink)}
+.wkpill .wl{font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:var(--ink3)}
+.wkpill.sel{border-color:var(--accent);background:var(--accent-soft);box-shadow:0 6px 16px var(--accent-soft);transform:translateY(-2px)}
+.wkpill.sel .wd,.wkpill.sel .wn{color:var(--accent)}
+.wkpill.today .wn{color:var(--accent)}
+.wkpill.today::after{content:'';position:absolute;top:6px;right:8px;width:6px;height:6px;border-radius:50%;background:var(--accent);animation:wkpulse 1.9s infinite}
+@keyframes wkpulse{0%{box-shadow:0 0 0 0 var(--accent-soft)}70%{box-shadow:0 0 0 7px transparent}100%{box-shadow:0 0 0 0 transparent}}
+.wkpanel{animation:wkfade .3s ease}
+@keyframes wkfade{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+.wkhead{display:flex;align-items:center;gap:9px;font-size:15px;font-weight:800;margin:4px 2px 12px;letter-spacing:-.01em}
+.wktoday{font-size:9.5px;font-weight:900;letter-spacing:.06em;color:#fff;background:var(--accent);padding:3px 7px;border-radius:6px}
+.wkcount{margin-left:auto;font-size:11.5px;font-weight:700;color:var(--ink3)}
+.wkempty{padding:22px 12px;text-align:center;color:var(--ink3);font-size:13px;border:1px dashed var(--line2);border-radius:14px}
+.trow.tin{animation:wkrow .36s ease both}
+@keyframes wkrow{from{opacity:0;transform:translateX(-9px)}to{opacity:1;transform:none}}
+.tshare{border:1px solid var(--line2);background:var(--panel);color:var(--ink2);font-weight:700;font-size:12.5px;padding:9px 12px;border-radius:10px;cursor:pointer;white-space:nowrap}
+.tshare:hover{border-color:var(--accent);color:var(--accent)}
+@media(prefers-reduced-motion:reduce){.wkpanel,.trow.tin,.wkpill.today::after{animation:none}}
 .apt{display:flex;align-items:center;gap:13px;padding:14px 16px;border:1px solid var(--line);border-radius:14px;background:var(--panel);box-shadow:var(--shadow-sm);margin-bottom:10px;}
 .apt .conf{font-size:11px;font-weight:800;color:var(--ink3);letter-spacing:.03em;}
 .apt .x{margin-left:auto;border:1px solid var(--line2);background:var(--panel);color:var(--ink2);font-weight:600;font-size:12px;padding:8px 12px;border-radius:10px;}
@@ -933,6 +958,38 @@ function trainerCard(c,tag){var av=trainerAvailToday(c);var no=nextOpening(c);va
 function roleLabel(r){return r==='EMD'?'Executive Marketing Director':(r==='MD'?'Marketing Director · Field Trainer':(r==='CFT'?'Certified Field Trainer':(r||'Trainer')));}
 function shortDate(dstr){if(dstr===todayStr())return 'Today';return new Date(dstr+'T12:00:00Z').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',timeZone:'UTC'});}
 function trainingRow(s){return '<div class="trow"><div class="ti"><div class="h">'+(s.h%12===0?12:s.h%12)+'</div><div class="ap">'+(s.h>=12?'PM':'AM')+'</div></div><div><div class="tt">'+esc(s.t)+'</div><div class="ts">'+fmtHM(s.h,s.m)+' PT · '+esc(s.host)+' · '+esc(s.zt)+'</div></div><a class="zj" href="'+s.z+'" target="_blank" rel="noopener">Join Zoom</a></div>';}
+/* ---- This week's trainings: weekday strip, opens on today, one-tap share ---- */
+var WD_FULL=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+var WD_SHORT=['SUN','MON','TUE','WED','THU','FRI','SAT'];
+var WEEK_ORDER=[1,2,3,4,5,6,0];
+var TRAINDAY=null;
+function todayWd(){return addDays(0).getUTCDay();}
+function trainRowShare(wd,i){var s=trainingsFor(wd)[i];if(!s)return '';
+  return '<div class="trow tin" style="animation-delay:'+(i*55)+'ms"><div class="ti"><div class="h">'+(s.h%12===0?12:s.h%12)+'</div><div class="ap">'+(s.h>=12?'PM':'AM')+'</div></div><div style="min-width:0"><div class="tt">'+esc(s.t)+'</div><div class="ts">'+fmtHM(s.h,s.m)+' PT · '+esc(s.host)+' · '+esc(s.zt)+'</div></div><div style="margin-left:auto;display:flex;gap:7px"><a class="zj" style="margin:0" href="'+s.z+'" target="_blank" rel="noopener">Join</a><button class="tshare" onclick="shareTrainingItem('+wd+','+i+')">Share</button></div></div>';}
+function wkInner(){
+  var tw=todayWd();
+  var strip=WD_SHORT.map(function(nm,wd){var cnt=trainingsFor(wd).length;
+    var cls='wkpill'+(wd===TRAINDAY?' sel':'')+(wd===tw?' today':'');
+    return '<button class="'+cls+'" onclick="selectTrainDay('+wd+')"><span class="wd">'+nm+'</span><span class="wn">'+(cnt||'·')+'</span><span class="wl">'+(cnt?(cnt===1?'session':'sessions'):'—')+'</span></button>';}).join('');
+  var ts=trainingsFor(TRAINDAY);var isToday=TRAINDAY===tw;
+  var head='<div class="wkhead">'+(isToday?'<span class="wktoday">TODAY</span> ':'')+WD_FULL[TRAINDAY]+'<span class="wkcount">'+ts.length+' training'+(ts.length===1?'':'s')+'</span></div>';
+  var rows=ts.length?ts.map(function(_,i){return trainRowShare(TRAINDAY,i);}).join(''):'<div class="wkempty">No trainings on '+WD_FULL[TRAINDAY]+' — enjoy the breather.</div>';
+  return '<div class="wkstrip">'+strip+'</div><div class="wkpanel">'+head+rows+'</div>';
+}
+function selectTrainDay(wd){TRAINDAY=wd;var m=$('wkMod');if(m)m.innerHTML=wkInner();}
+function renderWeekTrainings(){TRAINDAY=todayWd();
+  return '<div class="sec"><div class="sech"><h2>This week’s trainings</h2><button class="wkshare" onclick="shareWeek()">📤 Share schedule</button></div><div style="font-size:12.5px;color:var(--ink3);margin:0 2px 10px">Opens on today. Tap a day to see its lineup — <b>Share</b> any training to text a new broker the time + Zoom link in one tap.</div><div id="wkMod" class="wk">'+wkInner()+'</div></div>';}
+function shareTrainingItem(wd,i){var s=trainingsFor(wd)[i];if(!s)return;
+  var msg='📚 '+s.t+'\n🗓️ Every '+WD_FULL[wd]+' · '+fmtHM(s.h,s.m)+' PT\n👤 '+s.host+'\n🔗 Join Zoom: '+s.z+'\n('+s.zt+')\n\nHop on this one — see you there! 🙌';
+  doShare(s.t,msg);}
+function shareWeek(){var out='📅 This Week’s Trainings — The Standard\n';
+  WEEK_ORDER.forEach(function(wd){var ts=trainingsFor(wd);if(!ts.length)return;out+='\n'+WD_FULL[wd].toUpperCase()+'\n';ts.forEach(function(s){out+='• '+fmtHM(s.h,s.m)+' PT — '+s.t+' ('+s.host+')\n   '+s.z+'\n';});});
+  out+='\nNew here? Tap any link at training time to jump on Zoom. 🎯';
+  doShare('This Week’s Trainings',out);}
+function doShare(title,text){
+  if(navigator.share){navigator.share({title:title,text:text}).catch(function(){});return;}
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(function(){toast('Copied — paste to share with your broker 📋');},function(){window.prompt('Copy this to share:',text);});return;}
+  window.prompt('Copy this to share:',text);}
 function aptRow(b){var col=avColor(b.trainer_name);
   var right;
   if(b.status==='pending')right='<span class="tstat" style="margin-left:auto;background:var(--gold-soft);color:var(--gold)"><span class="d"></span>Pending approval</span><button class="x can" style="margin-left:8px" onclick="cancelBk(\''+b.id+'\')">Cancel</button>';
@@ -1338,10 +1395,8 @@ function renderMe(){var t=todayStr();
   if(myTrain.length){h+='<div class="sec"><div class="sech"><h2>Sessions you\'re training</h2><span style="font-size:12px;color:var(--ink3)">'+myTrain.length+' upcoming'+(pendCount?' · '+pendCount+' to approve':'')+'</span></div><div style="font-size:12.5px;color:var(--ink3);margin:0 2px 10px">'+(pendCount?'Approve or decline pending requests below.':'Your upcoming sessions.')+'</div>'+myTrain.map(trainerAptRow).join('')+'</div>';}
   var toReview=MYT.filter(function(b){return (b.status==='booked'||b.status==='confirmed')&&isPastBk(b);});
   if(toReview.length){h+='<div class="sec"><div class="sech"><h2>Sessions to review</h2><span style="font-size:12px;color:var(--gold);font-weight:700">'+toReview.length+'</span></div><div style="font-size:12.5px;color:var(--ink3);margin:0 2px 10px">These have passed — mark each Completed or No-show. No-shows trigger a follow-up.</div>'+toReview.map(trainerAptRow).join('')+'</div>';}
-  h+='<div class="sec"><div class="sech"><h2>This week’s trainings</h2></div>';
-  if(!trainingBaseshopOK()){h+='<div class="empty" style="padding:18px 14px">Your baseshop’s trainings will appear here once your EMD adds them to the scheduler.</div>';}
-  else{for(var i=0;i<7;i++){var dd=addDays(i);var w=dd.getUTCDay();var ts=trainingsFor(w);if(!ts.length)continue;h+='<div style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin:14px 2px 8px">'+(i===0?'Today':dd.toLocaleDateString('en-US',{weekday:'long',timeZone:'UTC'}))+'</div>'+ts.map(trainingRow).join('');}}
-  h+='</div>';
+  if(!trainingBaseshopOK()){h+='<div class="sec"><div class="sech"><h2>This week’s trainings</h2></div><div class="empty" style="padding:18px 14px">Your baseshop’s trainings will appear here once your EMD adds them to the scheduler.</div></div>';}
+  else{h+=renderWeekTrainings();}
   if(past.length)h+='<div class="sec"><div class="sech"><h2>Past &amp; canceled</h2></div>'+past.slice(0,10).map(aptRow).join('')+'</div>';
   $('view').innerHTML=h;loadMyCalendly();
 }
