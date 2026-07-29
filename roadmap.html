@@ -92,6 +92,12 @@ body{padding-left:var(--tsfg-side);padding-top:60px;}
 .ci.done .ck{background:var(--green);border-color:var(--green);}
 .ci .cn{font-size:14px;font-weight:600;}.ci.done .cn{color:var(--ink2);}
 .ci .cx{margin-left:auto;font-size:11px;font-weight:800;color:var(--gold);}
+.chl .ci.pend{background:rgba(234,179,8,.09);border-color:#e7c86a;}
+.ci.pend .ck{background:#eab308;border-color:#eab308;color:#3a2f00;}
+.cv-tag{display:inline-block;margin-left:8px;font-size:9.5px;font-weight:900;letter-spacing:.02em;padding:2px 7px;border-radius:99px;vertical-align:middle;}
+.cv-tag.ok{background:rgba(26,156,82,.16);color:#1a9c52;}
+.cv-tag.pend{background:rgba(234,179,8,.18);color:#a17d00;}
+.cv-tag.key{background:rgba(120,120,140,.14);color:var(--ink3);}
 .locknote{margin-top:14px;text-align:center;color:var(--ink3);font-size:13px;font-weight:600;padding:12px;background:#f2f2f5;border-radius:12px;}
 /* celebration */
 .cele{position:fixed;inset:0;z-index:1400;display:none;align-items:center;justify-content:center;background:rgba(10,8,20,.6);}
@@ -348,6 +354,7 @@ var TRACKER="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/tracker-api";
 var AVATAR="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/avatar";
 var OCCAPI="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/tracker-occupancy";
 var OCC={eligible:false,occupancy:{},counts:{}};
+var KEYS=new Set();
 var CODE="",NAME="";
 try{CODE=(localStorage.getItem('tsfg_code')||'').toUpperCase();NAME=localStorage.getItem('tsfg_name')||'';}catch(e){}
 var PLAYER=null,WORLDS=[],LABELS={},NEARBY={},AGENT=null,PROGRESS={},OPENLVL=null;
@@ -370,7 +377,7 @@ function load(){
     fetch(OCCAPI,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:CODE})}).then(function(r){return r.json();}).catch(function(){return {};})
   ]).then(function(res){
     var pd=res[0];if(!pd||!pd.ok){$('wrap').innerHTML='<div class="spin">Could not load your journey.</div>';return;}
-    PLAYER=pd.player;WORLDS=pd.worlds||[];LABELS=pd.labels||{};NEARBY=res[1]&&res[1].ok?res[1]:{};
+    PLAYER=pd.player;WORLDS=pd.worlds||[];LABELS=pd.labels||{};KEYS=new Set(pd.keys||[]);NEARBY=res[1]&&res[1].ok?res[1]:{};
     AGENT=(res[2]&&res[2].agent)||{};PROGRESS=(AGENT.progress&&typeof AGENT.progress==='object')?AGENT.progress:{};
     TEAM=(res[3]&&res[3].ok)?res[3]:null;
     OCC=(res[4]&&res[4].ok)?res[4]:{eligible:false,occupancy:{},counts:{}};
@@ -393,7 +400,7 @@ function render(keepScroll){
     +'<div style="min-width:0"><div class="nm">'+esc(PLAYER.name||'Broker')+'</div><div class="sub">'+esc(w.icon+' '+w.name)+' · '+esc(RANKS[ri].label)+'</div></div>'
     +'<div class="streak"><div class="f">🔥</div><div class="n">'+(PLAYER.streak||0)+'</div><div class="l">day streak</div></div></div>'
     +'<div class="xpwrap"><div class="xprow"><span>'+esc(xn.label)+'</span><span>'+PLAYER.xp+' XP</span></div><div class="xpbar"><span style="width:'+xn.pct+'%"></span></div></div>'
-    +'<div class="chips"><span class="chip">Level '+PLAYER.level_index+' / '+PLAYER.total_levels+'</span>'+((PLAYER.cashflow>0)?'<span class="chip" style="background:rgba(255,210,74,.22);color:#ffe6a6">💵 $'+Number(PLAYER.cashflow).toLocaleString()+' cashflow</span>':'')+'<span class="chip">'+PLAYER.pct+'% complete</span><span class="chip">'+PLAYER.done_challenges+' challenges done</span></div></div>';
+    +'<div class="chips"><span class="chip">Level '+PLAYER.level_index+' / '+PLAYER.total_levels+'</span>'+((PLAYER.cashflow>0)?'<span class="chip" style="background:rgba(255,210,74,.22);color:#ffe6a6">💵 $'+Number(PLAYER.cashflow).toLocaleString()+' cashflow</span>':'')+'<span class="chip">'+PLAYER.pct+'% complete</span><span class="chip">'+PLAYER.done_challenges+' challenges done</span>'+((PLAYER.pending_challenges>0)?'<span class="chip" style="background:rgba(234,179,8,.22);color:#ffe6a6">⏳ '+PLAYER.pending_challenges+' awaiting Ops</span>':'')+'</div></div>';
 
   // nearby
   var nc=[];
@@ -684,9 +691,12 @@ function openLevel(id){
   OPENLVL=l;var w=worldById(l.world);var locked=(l.status==='locked');
   var reward=l.reward_emblem?('<div class="reward">🏅 Completing this unlocks the <b>'+esc(l.reward_emblem.replace(/_/g,' '))+'</b> emblem</div>'):'';
   var chl=(l.challenges||[]).map(function(cid){
-    var done=!!PROGRESS[cid];
+    var claimed=!!PROGRESS[cid];var key=KEYS.has(cid);var verified=!!(PLAYER.verify&&PLAYER.verify[cid]);
+    var pending=key&&claimed&&!verified;
     var tap=locked?'':' onclick="toggleChallenge(\''+cid+'\')"';
-    return '<div class="ci'+(done?' done':'')+(locked?' lk':'')+'"'+tap+'><div class="ck">'+(done?'✓':(locked?'🔒':''))+'</div><div class="cn">'+esc(LABELS[cid]||cid)+'</div><div class="cx">+25 XP</div></div>';
+    var box=pending?'⏳':(claimed?'✓':(locked?'🔒':''));
+    var tag=verified?'<span class="cv-tag ok">Ops-verified ✓</span>':(pending?'<span class="cv-tag pend">Pending Ops</span>':(key?'<span class="cv-tag key">Needs Ops sign-off</span>':''));
+    return '<div class="ci'+(claimed&&!pending?' done':'')+(pending?' pend':'')+(locked?' lk':'')+'"'+tap+'><div class="ck">'+box+'</div><div class="cn">'+esc(LABELS[cid]||cid)+tag+'</div><div class="cx">+25 XP</div></div>';
   }).join('');
   $('sheet').innerHTML='<div class="sh-h"><div class="sh-ic" style="background:'+w.color+'">'+(l.status==='done'?'✓':(locked?'🔒':levelIcon(l)))+'</div>'
     +'<div style="min-width:0"><h3>'+esc(l.name)+'</h3><div class="d">'+esc(w.icon+' '+w.name)+(l.difficulty==='hard'?' · ⚡ Hard':'')+'</div></div><button class="sh-x" onclick="closeSheet()">✕</button></div>'
@@ -723,7 +733,7 @@ function toggleChallenge(id){
       render();
       if(openId){var still=PLAYER.levels.filter(function(x){return x.id===openId;})[0];if(still&&still.status!=='locked')openLevel(openId);else closeSheet();}
       if(justCompleted){var newWorld=(PLAYER.current_world&&PLAYER.current_world!==worldBefore)?worldById(PLAYER.current_world):null;closeSheet();celebrate(justCompleted,newWorld);}
-      else if(!wasDone){toast('+25 XP');sfx('check');}
+      else if(!wasDone){if(KEYS.has(id)){toast('Marked done — sent to Operations to verify ✓');sfx('check');}else{toast('+25 XP');sfx('check');}}
       // refresh nearby quietly
       fetch(ROADMAP,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'nearby',code:CODE})}).then(function(r){return r.json();}).then(function(n){if(n&&n.ok){NEARBY=n;}});
     }

@@ -61,6 +61,17 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);-web
 .accessbanner .ab-btn{margin-left:auto;background:#fff;color:#d1453b;font-weight:900;font-size:13.5px;padding:10px 18px;border-radius:11px;text-decoration:none;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.15)}
 .accessbanner .ab-btn:hover{background:#fff5f5}
 @media(prefers-reduced-motion:reduce){.accessbanner{animation:none}}
+.vq-agent{border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:12px;background:var(--panel,#fff)}
+.vq-h{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+.vq-h b{font-size:14.5px}
+.vq-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px dashed var(--line2)}
+.vq-nm{font-size:13.5px;font-weight:700}
+.vq-lv{font-size:11.5px;color:var(--ink3)}
+.vq-act{display:flex;gap:7px;flex:0 0 auto}
+.vq-ok,.vq-no{border:1px solid var(--line2);background:var(--panel,#fff);font-weight:800;font-size:12.5px;padding:8px 12px;border-radius:10px;cursor:pointer;white-space:nowrap}
+.vq-ok:hover{border-color:#1a9c52;color:#1a9c52}
+.vq-no:hover{border-color:var(--red);color:var(--red)}
+#agVerify .vq-row:first-of-type{border-top:none}
 .togglebar{display:inline-flex;background:var(--panel);border:1px solid var(--line2);border-radius:13px;padding:4px;gap:3px;box-shadow:var(--shadow-sm);flex-wrap:wrap}
 .togglebar .tgl{cursor:grab}
 .togglebar .tgl:active{cursor:grabbing}
@@ -229,6 +240,7 @@ select.cellin{cursor:pointer;min-width:140px;-webkit-appearance:none;appearance:
   </div>
   <div class="wrap">
     <div id="accessBanner"></div>
+    <div id="verifyBanner"></div>
     <div class="stat-grid" id="statGrid"></div>
     <div id="reqBanner"></div>
     <div class="tglrow">
@@ -350,7 +362,7 @@ function showApp(){
     '<a class="tile" href="newbusiness.html"><div class="ti">💰</div><div class="tt">New Business</div><div class="td">Full policy ledger</div></a>'+
     '<a class="tile" href="index.html"><div class="ti">🏆</div><div class="tt">Leaderboard</div><div class="td">Company standings</div></a>'+
     '<a class="tile" href="calendar.html"><div class="ti">🗓️</div><div class="tt">Scheduler</div><div class="td">Bookings & availability</div></a>'+'</div>'):'';
-  loadOverview();loadTracker();setupNotif();renderAccessBanner();initTabReorder();
+  loadOverview();loadTracker();setupNotif();renderAccessBanner();renderVerifyBanner();initTabReorder();
   var fab=$('obotFab');if(fab)fab.classList.toggle('hide',!canEdit());
 }
 /* ===== Ops Assistant (Claude-backed) ===== */
@@ -490,6 +502,59 @@ function renderAccessBanner(){
       +'<div class="ab-tx"><b>'+n+' new agent'+(n===1?'':'s')+' awaiting access approval</b><span>Approve so they can get into the platform</span></div>'
       +'<a class="ab-btn" href="approvals.html?code='+encodeURIComponent(OPS.code)+'">Review &amp; approve →</a></div>';
   }).catch(function(){host.innerHTML='';});
+}
+/* ===== Milestone verification (My Tracker two-way) ===== */
+function rmap(b){return fetch(ROADMAP,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();}).catch(function(){return{ok:false};});}
+function renderVerifyBanner(){
+  var host=$('verifyBanner');if(!host)return;if(!canEdit()){host.innerHTML='';return;}
+  rmap({action:'pending',token:'2026'}).then(function(r){
+    if(!r||!r.ok||!r.total_pending){host.innerHTML='';return;}
+    host.innerHTML='<div class="accessbanner" style="background:linear-gradient(100deg,#b98900,#e0a92e);box-shadow:0 8px 22px rgba(224,169,46,.32)"><span class="ab-ic">⏳</span><span class="ab-cnt">'+r.total_pending+'</span>'
+      +'<div class="ab-tx"><b>'+r.total_pending+' milestone'+(r.total_pending===1?'':'s')+' awaiting your sign-off</b><span>From '+r.count+' broker'+(r.count===1?'':'s')+' · verify to count it on their tracker</span></div>'
+      +'<a class="ab-btn" style="color:#8a6600;cursor:pointer" onclick="openVerifyQueue()">Review sign-offs →</a></div>';
+  });
+}
+function vqRow(code,p){return '<div class="vq-row" data-ch="'+esc(p.id)+'"><div style="min-width:0"><div class="vq-nm">'+esc(p.label)+'</div><div class="vq-lv">'+esc(p.level)+'</div></div><div class="vq-act"><button class="vq-ok" onclick="doVerify(\''+esc(code)+'\',\''+esc(p.id)+'\',\'verify\',this)">✓ Verify</button><button class="vq-no" onclick="doVerify(\''+esc(code)+'\',\''+esc(p.id)+'\',\'reject\',this)">✕ Reject</button></div></div>';}
+function openVerifyQueue(){
+  $('drawer').innerHTML='<div class="dbody"><div class="spin">Loading sign-offs…</div></div>';$('ov').classList.add('on');
+  rmap({action:'pending',token:'2026'}).then(function(r){
+    if(!r||!r.ok){$('drawer').innerHTML='<div class="dbody"><div class="empty">Could not load.</div></div>';return;}
+    var ag=r.agents||[];
+    var body='<div class="dbody"><h3 style="margin:0 0 4px">⏳ Milestones to verify</h3><p class="dsub" style="color:var(--ink3);font-size:13px;margin:0 0 14px">'+r.total_pending+' milestone'+(r.total_pending===1?'':'s')+' from '+ag.length+' broker'+(ag.length===1?'':'s')+' awaiting sign-off. Verifying counts it on their tracker; rejecting sends it back.</p>';
+    if(!ag.length)body+='<div class="empty" style="padding:24px;text-align:center">All caught up 🎉</div>';
+    ag.forEach(function(a){
+      body+='<div class="vq-agent" data-code="'+esc(a.code)+'"><div class="vq-h"><div style="min-width:0"><b>'+esc(a.name)+'</b> <span style="color:var(--ink3);font-size:12px">'+esc(a.code)+(a.contract_level?(' · '+esc(a.contract_level)):'')+'</span></div><button class="dbtn ghost" style="padding:6px 12px;font-size:12.5px;white-space:nowrap" onclick="verifyAgent(\''+esc(a.code)+'\',this)">Approve all</button></div>'
+        +a.pending.map(function(p){return vqRow(a.code,p);}).join('')+'</div>';
+    });
+    body+='<div class="dact" style="margin-top:16px"><button class="dbtn ghost" onclick="closeDrawer()">Close</button></div></div>';
+    $('drawer').innerHTML=body;
+  });
+}
+function doVerify(code,ch,decision,btn){
+  var row=(btn&&btn.closest)?btn.closest('.vq-row'):null;if(btn)btn.disabled=true;
+  rmap({action:'verify',token:'2026',code:code,challenge:ch,decision:decision,by:(OPS&&OPS.name)||'Operations'}).then(function(r){
+    if(!r||!r.ok){toast((r&&r.error)||'Could not update');if(btn)btn.disabled=false;return;}
+    if(row){var box=row.closest('.vq-agent');row.remove();if(box&&!box.querySelector('.vq-row'))box.remove();}
+    toast(decision==='reject'?'Sent back to broker':'Verified ✓');renderVerifyBanner();
+  });
+}
+function verifyAgent(code,btn){
+  var box=btn&&btn.closest?btn.closest('.vq-agent'):null;if(!box)return;
+  var chs=[].map.call(box.querySelectorAll('.vq-row'),function(el){return el.getAttribute('data-ch');});
+  if(!chs.length)return;btn.disabled=true;
+  rmap({action:'verify',token:'2026',code:code,challenges:chs,decision:'verify',by:(OPS&&OPS.name)||'Operations'}).then(function(r){
+    if(!r||!r.ok){toast('Could not approve');btn.disabled=false;return;}
+    box.remove();toast('Approved all ✓');renderVerifyBanner();
+  });
+}
+function loadAgentVerify(code){
+  var host=$('agVerify');if(!host||!canEdit())return;
+  rmap({action:'pending',token:'2026'}).then(function(r){
+    if(!r||!r.ok)return;var me=(r.agents||[]).filter(function(a){return a.code===code;})[0];
+    if(!me||!me.pending.length){host.style.display='none';host.innerHTML='';return;}
+    host.style.display='';
+    host.innerHTML='<h4>⏳ Milestones to verify <span style="color:var(--ink3);font-weight:700;text-transform:none;letter-spacing:0">· '+me.pending.length+' from their tracker</span></h4>'+me.pending.map(function(p){return vqRow(code,p);}).join('');
+  });
 }
 function setTab(t){TAB=t;['licensing','newbiz','faststart','bookings','appointed','inforce','gfi','fieldtraining','teamhub'].forEach(function(x){var b=$('tg_'+x);if(b)b.classList.toggle('on',x===t);});
   var isB=(t==='bookings'),isNB=(t==='newbiz'||t==='gfi'),isIF=(t==='inforce'),isTH=(t==='teamhub'),isFT=(t==='fieldtraining');
@@ -1031,6 +1096,8 @@ function paintAgent(r){
     +'<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><button class="dbtn" onclick="opsCashSave(\''+esc(a.code)+'\')">Update cashflow</button><span class="sub" id="cfBoard"></span></div>'
     +'<div class="sub" id="cfMsg" style="margin-top:7px;min-height:15px"></div>'
     +'<div class="sub" style="margin-top:6px;line-height:1.5">Their piece climbs to the matching $ tile on My Tracker (past $20K it’s number-driven). Crossing a $5K step posts recognition; majors — $50K ⌚ · $100K 💍 · $250K 💰 · $500K 💎 · $1M 👑 — post a big celebration.</div></div>';
+  // MILESTONE VERIFICATION (this agent's pending sign-offs)
+  if(canEdit())h+='<div class="dsec" id="agVerify" style="display:none"></div>';
   // NOTES LOG
   h+='<div class="dsec" style="margin-top:26px"><h4>📝 Notes <span style="color:var(--ink3);font-weight:700;text-transform:none;letter-spacing:0">· timestamped log</span></h4>';
   h+='<div class="fg"><textarea id="noteInput" rows="2" placeholder="Add a note (saved with your name, role &amp; time)…"></textarea></div><button class="dbtn'+(canEdit()?'':' blue')+'" style="padding:9px 15px;font-size:13px" onclick="addNote(\''+esc(a.code)+'\')">Add note</button>';
@@ -1048,6 +1115,7 @@ function paintAgent(r){
   h+='</div>';$('drawer').innerHTML=h;
   makeAgentSectionsCollapsible();
   if(canEdit())opsCashLoad(a.code);
+  if(canEdit())loadAgentVerify(a.code);
   agTasksLoad(a.code);
 }
 /* collapse the agent-profile groupings from Licensing down; Contact (first) stays open. Click a header to expand. */
