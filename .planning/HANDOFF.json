@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-07-29T04:34:48.220Z",
+  "timestamp": "2026-07-29T04:42:31.471Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -19,12 +19,8 @@
     {
       "status": "M",
       "path": ".planning/HANDOFF.json"
-    },
-    {
-      "status": "M",
-      "path": "calendar.html"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\n9ac9dc0 Update HANDOFF.json\nf901a8e Scheduler calendar: clean clickable time grid + manual appointments\n65f70d7 Update HANDOFF.json\n7c83a1a Calendar: full Google-Calendar-style unified Month · Week · Day views\ne133b1b Update HANDOFF.json"
+  "context_notes": "Recent commits:\n9604dfa My Schedule: simplify 'This week's trainings' into an animated weekday strip + one-tap share\n945a5b6 Update HANDOFF.json\n1d07919 My Schedule: replace all-upcoming Calendly list with a Today & Tomorrow day snapshot\n9ac9dc0 Update HANDOFF.json\nf901a8e Scheduler calendar: clean clickable time grid + manual appointments"
 }
