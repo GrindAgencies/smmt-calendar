@@ -1385,7 +1385,7 @@ function renderTrainers(){var rec=recommendTrainers();
 function renderMe(){var t=todayStr();
   var naBtn=canNewAppt()?'<button onclick="openNewAppt()" style="border:none;background:var(--accent);color:#fff;font-weight:700;font-size:12.5px;padding:8px 13px;border-radius:10px;cursor:pointer;white-space:nowrap">+ New appointment</button>':'';
   var isUp=function(b){return (b.status==='booked'||b.status==='confirmed'||b.status==='pending')&&b.date>=t;};
-  var up=MYB.filter(isUp);var past=MYB.filter(function(b){return !isUp(b);});
+  var up=MYB.filter(isUp);
   var myTrain=MYT.filter(function(b){return isUp(b)&&!MYAPPTS.some(function(x){return String(x.id)===String(b.id);});});
   var myAppt=MYAPPTS.filter(function(b){return b.date>=t&&(b.status||'')!=='canceled';});
   var pendCount=myTrain.filter(function(b){return b.status==='pending';}).length;
@@ -1397,7 +1397,6 @@ function renderMe(){var t=todayStr();
   if(toReview.length){h+='<div class="sec"><div class="sech"><h2>Sessions to review</h2><span style="font-size:12px;color:var(--gold);font-weight:700">'+toReview.length+'</span></div><div style="font-size:12.5px;color:var(--ink3);margin:0 2px 10px">These have passed — mark each Completed or No-show. No-shows trigger a follow-up.</div>'+toReview.map(trainerAptRow).join('')+'</div>';}
   if(!trainingBaseshopOK()){h+='<div class="sec"><div class="sech"><h2>This week’s trainings</h2></div><div class="empty" style="padding:18px 14px">Your baseshop’s trainings will appear here once your EMD adds them to the scheduler.</div></div>';}
   else{h+=renderWeekTrainings();}
-  if(past.length)h+='<div class="sec"><div class="sech"><h2>Past &amp; canceled</h2></div>'+past.slice(0,10).map(aptRow).join('')+'</div>';
   $('view').innerHTML=h;loadMyCalendly();
 }
 // === My Availability tab (trainer self-manage) ===
