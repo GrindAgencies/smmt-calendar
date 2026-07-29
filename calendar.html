@@ -202,13 +202,27 @@ a{color:inherit;text-decoration:none;}.hide{display:none!important;}
 .tg-cols{display:flex;flex:1;position:relative}
 .tg-col{flex:1;position:relative;border-right:1px solid var(--line)}
 .tg-col:last-child{border-right:none}
-.tg-line{border-top:1px solid var(--line);box-sizing:border-box}
-.tg-ev{position:absolute;left:3px;right:3px;border-radius:7px;padding:3px 6px;overflow:hidden;cursor:pointer;font-size:11px;line-height:1.25;box-shadow:0 1px 2px rgba(0,0,0,.08)}
-.tg-ev:hover{filter:brightness(1.04);z-index:2}
-.tg-ev .et{font-weight:800;font-variant-numeric:tabular-nums}
-.tg-ev .en{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tg-ev .ej{display:inline-block;margin-top:2px;font-size:10px;font-weight:800;color:var(--accent);text-decoration:none}
+.tg-cell{border-top:1px solid var(--line);box-sizing:border-box;padding:2px 3px;cursor:pointer;position:relative;transition:background .12s}
+.tg-cell.tg-empty:hover{background:var(--accent-soft)}
+.tg-cell.tg-empty:hover::after{content:'+';position:absolute;top:2px;right:5px;font-size:13px;font-weight:800;color:var(--accent);opacity:.6}
+.tg-chip{border-radius:7px;padding:4px 7px;font-size:11px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.tg-chip:hover{filter:brightness(1.03)}
+.tg-chip b{font-variant-numeric:tabular-nums}
+.tg-cal{font-size:8.5px;color:var(--gold);font-weight:900;letter-spacing:.03em}
+.tg-multi{display:flex;align-items:center;gap:6px;border-radius:7px;padding:5px 8px;font-size:11px;font-weight:700;background:var(--panel2,rgba(120,120,140,.1));border:1px solid var(--line2);cursor:pointer}
+.tg-multi:hover{border-color:var(--accent)}
+.tg-dots{display:inline-flex;gap:2px}
+.tg-dot{width:7px;height:7px;border-radius:50%;display:inline-block}
+.tg-cnt{color:var(--ink2)}
+.tg-tip{text-align:center;font-size:11.5px;color:var(--ink3);margin-top:10px}
 .tg-now{position:absolute;left:0;right:0;height:2px;background:var(--red);z-index:4;pointer-events:none}
+.ma-l{display:block;font-size:12px;font-weight:700;color:var(--ink2);margin-bottom:5px}
+.ma-in{width:100%;box-sizing:border-box;border:1px solid var(--line2);border-radius:11px;padding:11px 12px;font-size:14.5px;font-family:inherit;background:var(--panel);color:var(--ink);}
+.ma-in:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+textarea.ma-in{resize:vertical}
+.ma-sws{display:flex;gap:7px;align-items:center;height:44px}
+.ma-sw{width:26px;height:26px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0}
+.ma-sw.on{border-color:var(--ink);box-shadow:0 0 0 2px var(--panel),0 0 0 4px var(--ink)}
 .tg-now::before{content:'';position:absolute;left:-4px;top:-3px;width:8px;height:8px;border-radius:50%;background:var(--red)}
 .calhdr{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px;flex-wrap:wrap}
 .calctrls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
@@ -481,7 +495,7 @@ function weekStartYmd(off){var d=new Date(todayStr()+'T12:00:00Z');d.setUTCDate(
 function statusColor(s){return s==='confirmed'?'var(--green)':(s==='pending'?'var(--gold)':(s==='canceled'||s==='no_show'||s==='declined'?'var(--red)':'var(--accent)'));}
 function calEventsFor(dstr){
   var evs=[];var myname=(NAME||'').trim().toLowerCase();
-  MYB.forEach(function(b){if(b.date===dstr)evs.push({id:b.id,time:b.time,title:b.trainer_name,sub:b.category,status:b.status,color:b.color,role:'agent'});});
+  MYB.forEach(function(b){if(b.date===dstr)evs.push({id:b.id,time:b.time,title:(b.title||b.trainer_name||b.category),sub:b.category,status:b.status,color:b.color,role:'agent',source:b.source});});
   COMPANY_EV.forEach(function(b){if(b.date===dstr&&(b.trainer_name||'').trim().toLowerCase()===myname&&!MYB.some(function(x){return x.id===b.id;}))evs.push({id:b.id,time:b.time,title:(b.agent_name||'Client'),sub:b.category,status:b.status,color:b.color,role:'trainer'});});
   evs.sort(function(a,b){return t2min(a.time)-t2min(b.time);});
   return evs;
@@ -498,7 +512,7 @@ function loadCalEvents(cb){
 }
 function dayItems(ds){
   var out=[];
-  calEventsFor(ds).forEach(function(e){out.push({kind:'internal',id:e.id,time:e.time,title:e.title,sub:e.sub,status:e.status});});
+  calEventsFor(ds).forEach(function(e){out.push({kind:'internal',id:e.id,time:e.time,title:e.title,sub:e.sub,status:e.status,color:e.color,source:e.source});});
   (CALBYDATE[ds]||[]).forEach(function(e){out.push({kind:'calendly',uuid:e.event_uuid,time:e._time,title:(e.invitee_name||'Client'),sub:(e.event_type_name||e.name||''),join:e.join_url,name:e.event_type_name||e.name,email:e.invitee_email,start:e.start_time,end:e.end_time});});
   out.sort(function(a,b){return t2min(a.time)-t2min(b.time);});
   return out;
@@ -546,38 +560,88 @@ function paintMonth(){
   }
   var el=$('calWrap');if(el)el.innerHTML=h+'</div>'+calLegend();
 }
+var GSH=6,GEH=22; /* grid start/end hour (6a–10p) */
+function itColor(it){return it.color||(it.kind==='calendly'?'var(--gold)':statusColor(it.status));}
+function hourBucket(min){return Math.max(GSH,Math.min(GEH,Math.floor(min/60)));}
+function hourLabel(hh){return (hh===0?'12 AM':hh<12?hh+' AM':hh===12?'12 PM':(hh-12)+' PM');}
+/* Time grid: clean per-hour clickable cells (no overlapping blocks).
+   Empty cell → add appointment · cell with appts → expand that hour. */
 function paintTimeGrid(days){
-  var SH=6,EH=22,PX=48;var H=(EH-SH+1)*PX;var week=days.length>1;
-  var hrs='';for(var hh=SH;hh<=EH;hh++){var lab=(hh===0?'12 AM':hh<12?hh+' AM':hh===12?'12 PM':(hh-12)+' PM');hrs+='<div class="tg-lbl" style="height:'+PX+'px">'+(hh===SH?'':lab)+'</div>';}
-  var headrow=week?('<div class="tg-headrow"><div class="tg-corner"></div>'+days.map(function(ds){var dd=new Date(ds+'T12:00:00Z');return '<div class="tg-dh'+(ds===todayStr()?' today':'')+'"><div class="dow">'+dd.toLocaleDateString('en-US',{weekday:'short',timeZone:'UTC'})+'</div><div class="dn">'+dd.getUTCDate()+'</div></div>';}).join('')+'</div>'):'';
+  var SH=GSH,EH=GEH,PX=48;var week=days.length>1;
+  var hrs='';for(var hh=SH;hh<=EH;hh++){hrs+='<div class="tg-lbl" style="height:'+PX+'px">'+(hh===SH?'':hourLabel(hh))+'</div>';}
+  var headrow=week?('<div class="tg-headrow"><div class="tg-corner"></div>'+days.map(function(ds){var dd=new Date(ds+'T12:00:00Z');return '<div class="tg-dh'+(ds===todayStr()?' today':'')+'" onclick="openCalDay(\''+ds+'\')"><div class="dow">'+dd.toLocaleDateString('en-US',{weekday:'short',timeZone:'UTC'})+'</div><div class="dn">'+dd.getUTCDate()+'</div></div>';}).join('')+'</div>'):'';
   var cols=days.map(function(ds){
-    var lines='';for(var k=SH;k<=EH;k++)lines+='<div class="tg-line" style="height:'+PX+'px"></div>';
-    var items=dayItems(ds);
-    var evs=items.map(function(it){var md=itemMinDur(it);
-      var top=(Math.max(SH*60,Math.min(EH*60-10,md.min))-SH*60)/60*PX;
-      var hgt=Math.max(20,Math.min(EH*60-Math.max(SH*60,md.min),md.dur)/60*PX);
-      var col=it.color||(it.kind==='calendly'?'var(--gold)':statusColor(it.status));
-      var click=it.kind==='internal'?('openCalEvent(\''+it.id+'\')'):('openCalDay(\''+ds+'\')');
-      var join=(it.kind==='calendly'&&it.join)?'<a class="ej" href="'+esc(it.join)+'" target="_blank" rel="noopener" onclick="event.stopPropagation()">Join ↗</a>':'';
-      return '<div class="tg-ev" style="top:'+top+'px;height:'+hgt+'px;background:'+col+'22;border-left:3px solid '+col+'" onclick="'+click+'"><div class="et">'+esc(it.time)+(it.kind==='calendly'?' · CAL':'')+'</div><div class="en">'+esc(it.title||'')+'</div>'+(hgt>40?('<div class="en" style="color:var(--ink3)">'+esc((it.sub||'').slice(0,26))+'</div>'):'')+join+'</div>';
-    }).join('');
+    var items=dayItems(ds);var byHr={};
+    items.forEach(function(it){var h=hourBucket(itemMinDur(it).min);(byHr[h]=byHr[h]||[]).push(it);});
+    var cells='';
+    for(var hh=SH;hh<=EH;hh++){
+      var list=byHr[hh]||[];var inner='';
+      if(list.length===1){var it=list[0];var col=itColor(it);
+        inner='<div class="tg-chip" style="background:'+col+'22;border-left:3px solid '+col+'" onclick="event.stopPropagation();openCalHour(\''+ds+'\','+hh+')"><b>'+esc(it.time)+'</b> '+esc((it.title||'').slice(0,22))+(it.kind==='calendly'?' <span class="tg-cal">CAL</span>':'')+'</div>';
+      }else if(list.length>1){
+        var dots=list.slice(0,5).map(function(x){return '<span class="tg-dot" style="background:'+itColor(x)+'"></span>';}).join('');
+        inner='<div class="tg-multi" onclick="event.stopPropagation();openCalHour(\''+ds+'\','+hh+')"><span class="tg-dots">'+dots+'</span><span class="tg-cnt">'+list.length+' appts</span></div>';
+      }
+      cells+='<div class="tg-cell'+(inner?'':' tg-empty')+'" style="height:'+PX+'px" title="Add appointment" onclick="manualAdd(\''+ds+'\','+hh+')">'+inner+'</div>';
+    }
     var nowLine=(ds===todayStr())?(function(){var nm=nowMinPT();if(nm<SH*60||nm>EH*60)return '';return '<div class="tg-now" style="top:'+((nm-SH*60)/60*PX)+'px"></div>';})():'';
-    return '<div class="tg-col" onclick="if(event.target.classList.contains(\'tg-line\')||event.target.classList.contains(\'tg-col\'))startBookAt(\''+ds+'\')">'+lines+evs+nowLine+'</div>';
+    return '<div class="tg-col">'+cells+nowLine+'</div>';
   }).join('');
-  var el=$('calWrap');if(el)el.innerHTML='<div class="tg">'+headrow+'<div class="tg-scroll"><div class="tg-inner"><div class="tg-times">'+hrs+'</div><div class="tg-cols">'+cols+'</div></div></div></div>'+calLegend();
+  var el=$('calWrap');if(el)el.innerHTML='<div class="tg">'+headrow+'<div class="tg-scroll"><div class="tg-inner"><div class="tg-times">'+hrs+'</div><div class="tg-cols">'+cols+'</div></div></div></div><div class="tg-tip">Tap an empty slot to add an appointment · tap an appointment to expand it</div>'+calLegend();
   var sc=el&&el.querySelector('.tg-scroll');if(sc){var nm=nowMinPT();var toY=Math.max(0,((Math.max(SH*60,Math.min(EH*60,nm))-SH*60)/60*PX)-120);sc.scrollTop=toY||((8-SH)*PX);}
 }
-function openCalDay(ds){
-  var items=dayItems(ds);
-  var body=items.length?items.map(function(it){
+function aptRows(items){
+  return items.length?items.map(function(it){
     if(it.kind==='internal'){
-      return '<div class="apt" style="cursor:pointer" onclick="$(\'bkOv\').classList.remove(\'on\');openCalEvent(\''+it.id+'\')"><div style="min-width:0"><div style="font-weight:700;font-size:14px">'+esc(it.time)+' · '+esc(it.title||'')+'</div><div style="font-size:12px;color:var(--ink3)">'+esc(it.sub||'')+(it.status?(' · '+esc(it.status)):'')+'</div></div></div>';
+      var tag=(it.source==='manual')?' <span style="font-size:9.5px;color:var(--accent);font-weight:900;letter-spacing:.03em">PERSONAL</span>':'';
+      return '<div class="apt" style="cursor:pointer" onclick="$(\'bkOv\').classList.remove(\'on\');openCalEvent(\''+it.id+'\')"><div style="min-width:0"><div style="font-weight:700;font-size:14px">'+esc(it.time)+' · '+esc(it.title||'')+tag+'</div><div style="font-size:12px;color:var(--ink3)">'+esc(it.sub||'')+(it.status?(' · '+esc(it.status)):'')+'</div></div></div>';
     }
     var jn=it.join?'<a class="qbtn" href="'+esc(it.join)+'" target="_blank" rel="noopener" style="text-decoration:none">Join</a>':'';
     return '<div class="apt"><div style="min-width:0"><div style="font-weight:700;font-size:14px">'+esc(it.time)+' · '+esc(it.title||'')+' <span style="font-size:9.5px;color:var(--gold);font-weight:900;letter-spacing:.03em">CALENDLY</span></div><div style="font-size:12px;color:var(--ink3)">'+esc(it.sub||'')+'</div></div><div style="margin-left:auto;display:flex;gap:6px">'+jn+'<button class="qbtn" onclick="importCal(\''+esc(it.uuid)+'\',this)">Import</button></div></div>';
-  }).join(''):'<div style="color:var(--ink3);padding:16px 2px">Nothing on this day.</div>';
-  $('bkDrawer').innerHTML='<h3>'+prettyDate(ds)+'</h3><p class="dsub">Your appointments · Calendly appts can be imported into the platform</p>'+body+'<div class="dact" style="margin-top:16px;gap:8px;flex-wrap:wrap"><button class="go" onclick="$(\'bkOv\').classList.remove(\'on\');startBookAt(\''+ds+'\')">+ Book a trainer</button><button class="x can" onclick="$(\'bkOv\').classList.remove(\'on\')">Close</button></div>';
+  }).join(''):'<div style="color:var(--ink3);padding:16px 2px">Nothing here yet.</div>';
+}
+function openCalDay(ds){
+  var items=dayItems(ds);
+  $('bkDrawer').innerHTML='<h3>'+prettyDate(ds)+'</h3><p class="dsub">Your appointments · Calendly appts can be imported into the platform</p>'+aptRows(items)+'<div class="dact" style="margin-top:16px;gap:8px;flex-wrap:wrap"><button class="go" onclick="manualAdd(\''+ds+'\',null)">+ Add appointment</button><button class="x can" onclick="$(\'bkOv\').classList.remove(\'on\');startBookAt(\''+ds+'\')">Book a trainer</button><button class="x can" onclick="$(\'bkOv\').classList.remove(\'on\')">Close</button></div>';
   $('bkOv').classList.add('on');
+}
+function openCalHour(ds,hh){
+  var items=dayItems(ds).filter(function(it){return hourBucket(itemMinDur(it).min)===hh;});
+  $('bkDrawer').innerHTML='<h3>'+prettyDate(ds)+'</h3><p class="dsub">'+hourLabel(hh)+' – '+hourLabel(hh+1)+' · '+items.length+' appointment'+(items.length===1?'':'s')+'</p>'+aptRows(items)+'<div class="dact" style="margin-top:16px;gap:8px;flex-wrap:wrap"><button class="go" onclick="manualAdd(\''+ds+'\','+hh+')">+ Add at '+esc(hourLabel(hh))+'</button><button class="x can" onclick="openCalDay(\''+ds+'\')">Whole day</button><button class="x can" onclick="$(\'bkOv\').classList.remove(\'on\')">Close</button></div>';
+  $('bkOv').classList.add('on');
+}
+/* ---- Manually add an appointment to your own calendar ---- */
+var MA_COLOR='#6366f1';
+var MA_SWATCHES=[['#6366f1','Indigo'],['#16a34a','Green'],['#eab308','Gold'],['#ef4444','Red'],['#0ea5e9','Blue'],['#ec4899','Pink']];
+function maSlots(sel){var o='';for(var h=GSH;h<=GEH;h++){for(var m=0;m<60;m+=30){if(h===GEH&&m>0)break;var lab=(h===0?12:h<=12?h:h-12)+':'+(m<10?'0'+m:m)+' '+(h<12?'AM':'PM');o+='<option value="'+lab+'"'+(lab===sel?' selected':'')+'>'+lab+'</option>';}}return o;}
+function manualAdd(ds,hh){
+  MA_COLOR='#6366f1';
+  var def=(hh!=null)?((hh===0?12:hh<=12?hh:hh-12)+':00 '+(hh<12?'AM':'PM')):'9:00 AM';
+  var sw=MA_SWATCHES.map(function(c){return '<button type="button" class="ma-sw'+(c[0]===MA_COLOR?' on':'')+'" style="background:'+c[0]+'" data-c="'+c[0]+'" title="'+c[1]+'" onclick="maPick(this)"></button>';}).join('');
+  $('bkDrawer').innerHTML='<h3>Add appointment</h3><p class="dsub">Put anything on your calendar — a personal block, a client call, a reminder. Only you see it.</p>'+
+    '<label class="ma-l">Title</label><input id="ma_title" class="ma-in" placeholder="e.g. Client call — Jordan" maxlength="80">'+
+    '<div style="display:flex;gap:10px;margin-top:12px"><div style="flex:1"><label class="ma-l">Date</label><input id="ma_date" type="date" class="ma-in" value="'+ds+'"></div><div style="flex:1"><label class="ma-l">Start time</label><select id="ma_time" class="ma-in">'+maSlots(def)+'</select></div></div>'+
+    '<div style="display:flex;gap:10px;margin-top:12px"><div style="flex:1"><label class="ma-l">Length</label><select id="ma_dur" class="ma-in"><option value="15">15 min</option><option value="30">30 min</option><option value="60" selected>1 hour</option><option value="90">1.5 hours</option><option value="120">2 hours</option></select></div><div style="flex:1"><label class="ma-l">Color</label><div class="ma-sws">'+sw+'</div></div></div>'+
+    '<label class="ma-l" style="margin-top:12px">Notes / guests <span style="color:var(--ink3);font-weight:500">(optional)</span></label><textarea id="ma_notes" class="ma-in" rows="2" placeholder="Location, guests to invite, anything to remember"></textarea>'+
+    '<div class="dact" style="margin-top:18px"><button class="x can" onclick="$(\'bkOv\').classList.remove(\'on\')">Cancel</button><button class="go" id="ma_btn" onclick="saveManual()">Add to calendar</button></div>';
+  $('bkOv').classList.add('on');
+}
+function maPick(el){MA_COLOR=el.getAttribute('data-c');var ss=el.parentNode.querySelectorAll('.ma-sw');for(var i=0;i<ss.length;i++)ss[i].classList.remove('on');el.classList.add('on');}
+function saveManual(){
+  var title=($('ma_title').value||'').trim();if(!title){toast('Give it a title');$('ma_title').focus();return;}
+  var date=$('ma_date').value;var time=$('ma_time').value;var dur=+$('ma_dur').value;var notes=($('ma_notes').value||'').trim();
+  if(!date){toast('Pick a date');return;}
+  var b=$('ma_btn');b.disabled=true;b.textContent='Adding…';
+  fetch(AT.replace('atlas-api','book-manual'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'create',code:CODE,agent_name:NAME,title:title,date:date,time:time,duration_minutes:dur,notes:notes,color:MA_COLOR,category:'Personal'})}).then(function(r){return r.json();}).then(function(r){
+    if(!r||!r.ok){b.disabled=false;b.textContent='Add to calendar';toast((r&&r.error)||'Could not add');return;}
+    toast('Added to your calendar ✓');$('bkOv').classList.remove('on');loadMy(function(){if(TAB==='cal')renderCal();else render();});
+  }).catch(function(){b.disabled=false;b.textContent='Add to calendar';toast('Network error');});
+}
+function delManual(id){if(!confirm('Delete this appointment? This only removes it from your calendar.'))return;
+  fetch(AT.replace('atlas-api','book-manual'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'delete',code:CODE,id:id})}).then(function(r){return r.json();}).then(function(r){
+    if(!r||!r.ok){toast((r&&r.error)||'Could not delete');return;}
+    toast('Removed ✓');$('bkOv').classList.remove('on');loadMy(function(){if(TAB==='cal')renderCal();else render();});
+  }).catch(function(){toast('Network error');});
 }
 function importCal(uuid,btn){
   var e=CALEV.filter(function(x){return x.event_uuid===uuid;})[0];if(!e)return;
@@ -594,18 +658,23 @@ function openCalEvent(id){
   if(!b){b=(MYT.filter(function(x){return x.id===id;})[0])||(COMPANY_EV.filter(function(x){return x.id===id;})[0]);role='trainer';}
   if(!b)return;
   var C="';$('bkOv').classList.remove('on')";var acts='';
-  if(role==='agent'){if(b.status==='booked'||b.status==='confirmed'||b.status==='pending')acts='<button class="x can" onclick="quickCancel(\''+b.id+'\')'+C+'">✕ Cancel</button>';}
+  if(role==='agent'){if(b.source==='manual')acts='<button class="x can" onclick="delManual(\''+b.id+'\')'+C+'">✕ Delete</button>';else if(b.status==='booked'||b.status==='confirmed'||b.status==='pending')acts='<button class="x can" onclick="quickCancel(\''+b.id+'\')'+C+'">✕ Cancel</button>';}
   else{
     if(b.status==='pending')acts='<button class="go" style="background:var(--green-soft);color:#1a9c52" onclick="doApprove(\''+b.id+'\',\'approve\')'+C+'">Approve</button><button class="x can" onclick="doApprove(\''+b.id+'\',\'decline\')'+C+'">Decline</button>';
     else if((b.status==='booked'||b.status==='confirmed')&&isPastBk(b))acts='<button class="go" style="background:var(--green-soft);color:#1a9c52" onclick="doMark(\''+b.id+'\',\'completed\')'+C+'">Completed</button><button class="x can" onclick="doMark(\''+b.id+'\',\'no_show\')'+C+'">No-show</button>';
     else if(b.status==='booked'||b.status==='confirmed'){if(myRole()==='CFT'||isEmd())acts+='<button class="go" onclick="$(\'bkOv\').classList.remove(\'on\');openTransfer(\''+b.id+'\',\''+(isEmd()?'manager':'peer')+'\')">Transfer</button>';acts+='<button class="x can" onclick="quickCancel(\''+b.id+'\')'+C+'">✕ Cancel</button>';}
   }
+  var acell='<div class="dact" style="margin-top:20px">'+(acts||'<button class="go" onclick="$(\'bkOv\').classList.remove(\'on\')">Close</button>')+'</div>';
+  if(b.source==='manual'){
+    $('bkDrawer').innerHTML='<h3>'+esc(b.title||'Appointment')+' <span style="font-size:11px;color:var(--accent);font-weight:900;letter-spacing:.03em">PERSONAL</span></h3><p class="dsub">'+prettyDate(b.date)+' · '+esc(b.time)+' PT · '+(b.duration_minutes||60)+' min</p>'+
+      (b.notes?'<div class="confrow"><div class="cl">Notes</div><div class="cv" style="font-weight:500;white-space:pre-wrap">'+esc(b.notes)+'</div></div>':'')+acell;
+    $('bkOv').classList.add('on');return;
+  }
   var who=role==='trainer'?(b.agent_name||b.agent_code||'Client'):b.trainer_name;
   $('bkDrawer').innerHTML='<h3>'+esc(b.category||'Appointment')+'</h3><p class="dsub">'+prettyDate(b.date)+' · '+esc(b.time)+' PT</p>'+
     '<div class="confrow"><div class="cl">'+(role==='trainer'?'Client':'Trainer')+'</div><div class="cv">'+esc(who||'')+'</div></div>'+
     '<div class="confrow"><div class="cl">Status</div><div class="cv">'+esc(b.status)+'</div></div>'+
-    '<div class="confrow"><div class="cl">Confirmation</div><div class="cv">'+esc(b.conf||'')+'</div></div>'+
-    (acts?'<div class="dact" style="margin-top:20px">'+acts+'</div>':'<div class="dact" style="margin-top:20px"><button class="go" onclick="$(\'bkOv\').classList.remove(\'on\')">Close</button></div>');
+    '<div class="confrow"><div class="cl">Confirmation</div><div class="cv">'+esc(b.conf||'')+'</div></div>'+acell;
   $('bkOv').classList.add('on');
 }
 var CAL="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/cal-feed";
