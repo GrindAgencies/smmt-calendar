@@ -429,6 +429,8 @@ function loadEmds(cb){fetch(AT.replace('atlas-api','sched-ext'),{method:'POST',h
 function isEmdOnly(name){var inR=bTr().some(function(c){return c.name===name;});return !inR&&EMDS.some(function(e){return e.name===name;});}
 function emdCodeFor(name){var e=EMDS.filter(function(x){return x.name===name;})[0];return e?e.code:'';}
 function opsAll(){return TRAINERS.filter(isOps);}
+var OPS_CALENDLY="https://calendly.com/impactagency-ops/licensing"; /* Operations team books on Calendly */
+function opsCalendlyFor(c){return (c&&c.calendly)||OPS_CALENDLY;}
 function opsForMe(){var mine=(PROFILE&&Array.isArray(PROFILE.accessible_bases))?PROFILE.accessible_bases.map(function(b){return (b||'').toUpperCase();}):[];var myb=((PROFILE&&PROFILE.baseshop)||'').toUpperCase();return opsAll().filter(function(c){var bs=Array.isArray(c.baseshops)?c.baseshops:(c.baseshop?[c.baseshop]:[]);bs=bs.map(function(x){return (x||'').toUpperCase();});if(!bs.length)return true;if(myb&&bs.indexOf(myb)>=0)return true;for(var i=0;i<mine.length;i++)if(bs.indexOf(mine[i])>=0)return true;return false;});}
 function myRole(){var me=myTrainerProfile();return me?((me.role||'').toUpperCase()):'';}
 function isEmd(){return myRole()==='EMD';}
@@ -463,33 +465,28 @@ function renderOps(){
   }
 }
 function opsCard(c){
-  var col=avColor(c.name);var av=trainerAvailToday(c);var no=nextOpening(c);
+  var col=avColor(c.name);
   var bases=(Array.isArray(c.baseshops)?c.baseshops:(c.baseshop?[c.baseshop]:[])).join(' · ');
-  var status=av.length?('<span style="color:var(--green,#1a9c52);font-weight:800">'+av.length+' opening'+(av.length===1?'':'s')+' today</span>'):(no?('Next: '+shortDate(no.date)+' · '+no.time):'No openings in 2 weeks');
-  return '<div class="tcard"><div class="th"><div class="tav" style="background:'+col+'">'+initials(c.name)+'</div><div><div class="tn">'+esc(c.name)+'</div><div class="tr">Operations Team'+(bases?' · '+esc(bases):'')+'</div></div></div><div class="tmeta" style="margin:8px 0"><span class="m">'+status+'</span></div><button class="book" style="width:100%" onclick="openOpsBook(\''+encodeURIComponent(c.name)+'\')">Book Operations</button></div>';
+  return '<div class="tcard"><div class="th"><div class="tav" style="background:'+col+'">'+initials(c.name)+'</div><div><div class="tn">'+esc(c.name)+'</div><div class="tr">Operations Team'+(bases?' · '+esc(bases):'')+'</div></div></div><div class="tmeta" style="margin:8px 0"><span class="m">📅 Schedules on Calendly</span></div><button class="book" style="width:100%" onclick="openOpsBook(\''+encodeURIComponent(c.name)+'\')">Book Operations</button></div>';
 }
-var OPSSLOTS=[];
 function openOpsBook(encName){
-  var name=decodeURIComponent(encName);var c=opsAll().filter(function(x){return x.name===name;})[0];if(!c)return;OPSSLOTS=[];
-  $('bkDrawer').innerHTML='<h3>Book Operations</h3><p class="dsub">Book time with '+esc(name)+' — your hierarchy’s Operations team.</p>'+
-    '<div style="'+_FST+'"><label style="'+_LST+'">Date</label><select id="ob_date" style="'+_IST+'" onchange="opsDateChange()"><option value="">Loading…</option></select></div>'+
-    '<div style="'+_FST+'"><label style="'+_LST+'">Time (PT)</label><select id="ob_time" style="'+_IST+'"><option value="">Pick a date first</option></select></div>'+
-    '<div id="ob_msg" style="font-size:12.5px;font-weight:700;color:var(--ink3);min-height:16px"></div>'+
-    '<div class="dact" style="margin-top:12px;gap:8px"><button class="go" id="ob_btn" onclick="doOpsBook(\''+encodeURIComponent(name)+'\')">Book</button><button class="x can" onclick="$(\'bkOv\').classList.remove(\'on\')">Close</button></div>';
+  var name=decodeURIComponent(encName);var c=opsAll().filter(function(x){return x.name===name;})[0];if(!c)return;
+  $('bkDrawer').innerHTML='<h3>Book Operations</h3><p class="dsub">Operations schedules on Calendly. We’ll open their booking page with your details filled in.</p>'+
+    '<div style="display:flex;align-items:center;gap:13px;margin-bottom:12px"><div class="tav" style="background:'+avColor(name)+'">'+initials(name)+'</div><div><div style="font-weight:800;font-size:16px">'+esc(name)+'</div><div style="font-size:12.5px;color:var(--ink3)">Operations Team</div></div></div>'+
+    '<div style="'+_FST+'"><label style="'+_LST+'">Your email</label><input id="ob_email" value="'+esc((PROFILE&&PROFILE.email)||'')+'" placeholder="you@email.com" style="'+_IST+'"></div>'+
+    '<div style="'+_FST+'"><label style="'+_LST+'">Invite guests <span style="font-weight:500;color:var(--ink3)">· comma-separated emails</span></label><input id="ob_guests" placeholder="guest@email.com, other@email.com" style="'+_IST+'"></div>'+
+    '<div class="dact" style="margin-top:12px;gap:8px"><button class="go" onclick="doOpsBook(\''+encodeURIComponent(name)+'\')">Open Operations Calendly ↗</button><button class="x can" onclick="$(\'bkOv\').classList.remove(\'on\')">Close</button></div>';
   $('bkOv').classList.add('on');
-  fetch(AT+'?action=atlas_public_trainer&slug='+encodeURIComponent(slugify(name))).then(function(r){return r.json();}).then(function(r){OPSSLOTS=(r&&r.slots)||[];var ds=$('ob_date');if(!ds)return;if(!OPSSLOTS.length){ds.innerHTML='<option value="">No open dates in 2 weeks</option>';return;}ds.innerHTML='<option value="">Select a date…</option>'+OPSSLOTS.map(function(s){return '<option value="'+s.date+'">'+esc(prettyDate(s.date))+'</option>';}).join('');}).catch(function(){var ds=$('ob_date');if(ds)ds.innerHTML='<option value="">Could not load</option>';});
 }
-function opsDateChange(){var d=$('ob_date').value;var ts=$('ob_time');var day=OPSSLOTS.filter(function(s){return s.date===d;})[0];if(!day){ts.innerHTML='<option value="">—</option>';return;}ts.innerHTML='<option value="">Select a time…</option>'+day.times.map(function(t){return '<option value="'+esc(t)+'">'+esc(t)+' PT</option>';}).join('');}
 function doOpsBook(encName){
   var name=decodeURIComponent(encName);var c=opsAll().filter(function(x){return x.name===name;})[0];
-  var d=$('ob_date').value,t=$('ob_time').value;var msg=$('ob_msg'),btn=$('ob_btn');
-  if(!d||!t){msg.style.color='var(--red)';msg.textContent='Pick a date and time.';return;}
-  btn.disabled=true;msg.style.color='var(--ink3)';msg.textContent='Booking…';
-  fetch(AT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'atlas_book',code:CODE,agent_name:NAME,trainer_name:name,trainer_calendly:(c&&c.calendly)||'',category:'Operations',date:d,time:t})}).then(function(r){return r.json();}).then(function(r){
-    if(r&&r.taken){btn.disabled=false;msg.style.color='var(--red)';msg.textContent=r.error||'That time was just taken.';return;}
-    if(!r||!r.ok){btn.disabled=false;msg.style.color='var(--red)';msg.textContent=(r&&r.error)||'Could not book.';return;}
-    toast('Booked with '+name.split(' ')[0]+(r.pending?' — pending':''));$('bkOv').classList.remove('on');loadMyTrainer(function(){loadMy(function(){render();});});
-  }).catch(function(){btn.disabled=false;msg.style.color='var(--red)';msg.textContent='Network error — try again.';});
+  var email=($('ob_email')&&$('ob_email').value||'').trim();
+  var guests=($('ob_guests')&&$('ob_guests').value||'').trim();
+  var url=calBookUrl(opsCalendlyFor(c),NAME,email,guests,'');
+  if(!url){toast('No Operations Calendly is set.');return;}
+  window.open(url,'_blank','noopener');
+  toast('Opening Operations Calendly…');
+  $('bkOv').classList.remove('on');
 }
 function opsBtn(label,active,onclick){return '<button onclick="'+onclick+'" style="border:1px solid '+(active?'var(--accent)':'var(--line2)')+';background:'+(active?'var(--accent)':'var(--panel)')+';color:'+(active?'#fff':'var(--ink2)')+';border-radius:10px;padding:7px 13px;font-weight:700;font-size:12.5px;cursor:pointer">'+esc(label)+'</button>';}
 function paintOps(r){
