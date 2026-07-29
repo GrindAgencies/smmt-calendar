@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-07-29T03:51:43.131Z",
+  "timestamp": "2026-07-29T04:01:34.314Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -26,5 +26,5 @@
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\nb7a6e17 Update HANDOFF.json\n39f4b02 Update HANDOFF.json\n5103822 Update HANDOFF.json\n4f388f8 Scheduler: exact-slot Calendly deep-links via each trainer's token\n520a736 Update HANDOFF.json"
+  "context_notes": "Recent commits:\ne133b1b Update HANDOFF.json\n0f0bcab Scheduler: Calendly is the authority on availability (keeps internal booking)\nb7a6e17 Update HANDOFF.json\n39f4b02 Update HANDOFF.json\n5103822 Update HANDOFF.json"
 }
