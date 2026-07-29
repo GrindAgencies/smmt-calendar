@@ -223,6 +223,24 @@ textarea.ma-in{resize:vertical}
 .ma-sws{display:flex;gap:7px;align-items:center;height:44px}
 .ma-sw{width:26px;height:26px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0}
 .ma-sw.on{border-color:var(--ink);box-shadow:0 0 0 2px var(--panel),0 0 0 4px var(--ink)}
+.snap{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.snap-col{border:1px solid var(--line);border-radius:14px;background:var(--panel);padding:6px;box-shadow:var(--shadow-sm)}
+.snap-h{font-size:12.5px;padding:8px 8px 10px;border-bottom:1px solid var(--line);margin-bottom:6px;color:var(--ink3)}
+.snap-h b{color:var(--ink);font-size:14px;font-weight:800;margin-right:4px}
+.snap-appt{display:flex;gap:9px;padding:8px 9px;border-radius:9px;background:var(--panel2,rgba(120,120,140,.06));margin-bottom:5px;cursor:pointer}
+.snap-appt:hover{filter:brightness(1.03)}
+.snap-appt.snap-past{opacity:.45}
+.snap-t{font-size:11.5px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--ink2);padding-top:1px;min-width:58px}
+.snap-b{min-width:0}
+.snap-ti{font-size:13px;font-weight:700;line-height:1.25}
+.snap-s{font-size:11px;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.snap-gap{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;margin-bottom:5px;border:1px dashed var(--line2);border-radius:9px;cursor:pointer;transition:all .12s}
+.snap-gap:hover{border-color:var(--accent);background:var(--accent-soft)}
+.snap-free{font-size:11.5px;color:var(--ink3);font-weight:600}
+.snap-gap:hover .snap-free{color:var(--ink2)}
+.snap-add{font-size:11px;font-weight:800;color:var(--accent);white-space:nowrap}
+.snap-done{padding:16px 8px;text-align:center;font-size:12.5px;color:var(--ink3)}
+@media(max-width:560px){.snap{grid-template-columns:1fr}}
 .tg-now::before{content:'';position:absolute;left:-4px;top:-3px;width:8px;height:8px;border-radius:50%;background:var(--red)}
 .calhdr{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px;flex-wrap:wrap}
 .calctrls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
@@ -614,9 +632,10 @@ function openCalHour(ds,hh){
 var MA_COLOR='#6366f1';
 var MA_SWATCHES=[['#6366f1','Indigo'],['#16a34a','Green'],['#eab308','Gold'],['#ef4444','Red'],['#0ea5e9','Blue'],['#ec4899','Pink']];
 function maSlots(sel){var o='';for(var h=GSH;h<=GEH;h++){for(var m=0;m<60;m+=30){if(h===GEH&&m>0)break;var lab=(h===0?12:h<=12?h:h-12)+':'+(m<10?'0'+m:m)+' '+(h<12?'AM':'PM');o+='<option value="'+lab+'"'+(lab===sel?' selected':'')+'>'+lab+'</option>';}}return o;}
-function manualAdd(ds,hh){
+function manualAdd(ds,hh){maForm(ds,(hh!=null)?((hh===0?12:hh<=12?hh:hh-12)+':00 '+(hh<12?'AM':'PM')):'9:00 AM');}
+function manualAddMin(ds,min){var m=Math.max(GSH*60,Math.min(GEH*60,Math.round(min/30)*30));maForm(ds,minsToCanon(m));}
+function maForm(ds,def){
   MA_COLOR='#6366f1';
-  var def=(hh!=null)?((hh===0?12:hh<=12?hh:hh-12)+':00 '+(hh<12?'AM':'PM')):'9:00 AM';
   var sw=MA_SWATCHES.map(function(c){return '<button type="button" class="ma-sw'+(c[0]===MA_COLOR?' on':'')+'" style="background:'+c[0]+'" data-c="'+c[0]+'" title="'+c[1]+'" onclick="maPick(this)"></button>';}).join('');
   $('bkDrawer').innerHTML='<h3>Add appointment</h3><p class="dsub">Put anything on your calendar — a personal block, a client call, a reminder. Only you see it.</p>'+
     '<label class="ma-l">Title</label><input id="ma_title" class="ma-in" placeholder="e.g. Client call — Jordan" maxlength="80">'+
@@ -683,14 +702,47 @@ var EM="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/emblem-api";
 var CS="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/cal-sync";
 var CALS="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/calendly-sync";
 function calFmt(iso){if(!iso)return '';var d=new Date(iso);if(isNaN(d))return '';return d.toLocaleString('en-US',{weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});}
+/* Today + Tomorrow snapshot — a single-day view of your real day (bookings +
+   Calendly + personal), tied to the big calendar, with tap-to-fill open gaps. */
+var SNAP_OPEN=8*60, SNAP_CLOSE=20*60; /* the working window used for showing free time */
 function loadMyCalendly(){
   var host=$('myCalendly');if(!host)return;
-  fetch(CALS,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'list',code:CODE})}).then(function(r){return r.json();}).then(function(r){
-    host=$('myCalendly');if(!host)return;var evs=(r&&r.events)||[];
-    var up=evs.filter(function(b){return b.start_time && new Date(b.start_time)>=new Date() && b.status!=='canceled' && b.status!=='cancelled';}).sort(function(a,b){return new Date(a.start_time)-new Date(b.start_time);}).slice(0,12);
-    if(!up.length){host.innerHTML='';return;}
-    host.innerHTML='<div class="sec"><div class="sech"><h2>📅 Your Calendly bookings</h2><span style="font-size:12px;color:var(--ink3)">'+up.length+' upcoming</span></div>'+up.map(function(b){return '<div class="apt"><div style="min-width:0"><div style="font-weight:700;font-size:14px">'+esc(b.name||'Booking')+(b.invitee_name?(' · '+esc(b.invitee_name)):'')+'</div><div style="font-size:12px;color:var(--ink3)">'+esc(calFmt(b.start_time))+' PT</div></div>'+(b.join_url?('<a class="qbtn" style="margin-left:auto;text-decoration:none" href="'+esc(b.join_url)+'" target="_blank" rel="noopener">Join</a>'):'')+'</div>';}).join('')+'</div>';
-  }).catch(function(){});
+  var t=todayStr();var tmr=addDays(1).toISOString().slice(0,10);
+  loadCompanyEvents(t,tmr,function(){loadCalEvents(function(){renderDaySnapshot();});});
+}
+function snapAppt(it){
+  var col=itColor(it);var hh=hourBucket(itemMinDur(it).min);
+  var tag=it.kind==='calendly'?'<span class="tg-cal">CALENDLY</span>':(it.source==='manual'?'<span style="font-size:8.5px;color:var(--accent);font-weight:900;letter-spacing:.03em">PERSONAL</span>':'');
+  var past=it._past?' snap-past':'';
+  return '<div class="snap-appt'+past+'" style="border-left:3px solid '+col+'" onclick="openCalHour(\''+it._ds+'\','+hh+')"><div class="snap-t">'+esc(it.time)+'</div><div class="snap-b"><div class="snap-ti">'+esc(it.title||'')+' '+tag+'</div>'+(it.sub?('<div class="snap-s">'+esc(it.sub)+'</div>'):'')+'</div></div>';
+}
+function snapGap(ds,a,b){
+  return '<div class="snap-gap" onclick="manualAddMin(\''+ds+'\','+a+')"><span class="snap-free">Free '+esc(minsToCanon(a))+' – '+esc(minsToCanon(b))+'</span><span class="snap-add">+ Add</span></div>';
+}
+function daySnapshotRows(ds,isToday){
+  var now=nowMinPT();
+  var items=dayItems(ds).map(function(it){var md=itemMinDur(it);it._ds=ds;it._s=md.min;it._e=md.min+md.dur;it._past=isToday&&it._e<=now;return it;});
+  var lower=isToday?Math.max(SNAP_OPEN,Math.ceil(now/30)*30):SNAP_OPEN;
+  var rows='';var cursor=lower;
+  items.forEach(function(it){
+    if(it._past){rows+=snapAppt(it);cursor=Math.max(cursor,it._e);return;}
+    var gs=Math.max(cursor,lower);
+    if(it._s-gs>=30)rows+=snapGap(ds,gs,it._s);
+    rows+=snapAppt(it);cursor=Math.max(cursor,it._e);
+  });
+  var tail=Math.max(cursor,lower);
+  if(SNAP_CLOSE-tail>=30)rows+=snapGap(ds,tail,SNAP_CLOSE);
+  if(!items.length&&isToday&&now>SNAP_CLOSE)rows='<div class="snap-done">Day\'s a wrap 🎉</div>';
+  return rows||'<div class="snap-done">Nothing scheduled — tap a slot to add.</div>';
+}
+function renderDaySnapshot(){
+  var host=$('myCalendly');if(!host)return;
+  var t=todayStr();var tmr=addDays(1).toISOString().slice(0,10);
+  var td=new Date(t+'T12:00:00Z'),tm=new Date(tmr+'T12:00:00Z');
+  var col=function(ds,lab,dd,isToday){return '<div class="snap-col"><div class="snap-h"><b>'+lab+'</b> '+dd.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',timeZone:'UTC'})+'</div>'+daySnapshotRows(ds,isToday)+'</div>';};
+  host.innerHTML='<div class="sec"><div class="sech"><h2>📅 Today &amp; Tomorrow</h2><a onclick="setTab(\'cal\')">Full calendar →</a></div>'+
+    '<div style="font-size:12.5px;color:var(--ink3);margin:0 2px 12px">A snapshot of your day. Tap any <b>Free</b> slot to fill a gap; tap an appointment to open it. Future bookings live on the full calendar.</div>'+
+    '<div class="snap">'+col(t,'Today',td,true)+col(tmr,'Tomorrow',tm,false)+'</div></div>';
 }
 var PROFSUB='profile',EMBDATA=null,PROFILE_P=null;
 function openProfile(){location.href='profile.html?from=scheduler';}
