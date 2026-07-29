@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-07-28T17:45:36.632Z",
+  "timestamp": "2026-07-29T03:51:43.131Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -19,8 +19,12 @@
     {
       "status": "M",
       "path": ".planning/HANDOFF.json"
+    },
+    {
+      "status": "M",
+      "path": "calendar.html"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\n39f4b02 Update HANDOFF.json\n5103822 Update HANDOFF.json\n4f388f8 Scheduler: exact-slot Calendly deep-links via each trainer's token\n520a736 Update HANDOFF.json\nd5010d1 Scheduler: Book this time opens the trainer's Calendly + guest invites"
+  "context_notes": "Recent commits:\nb7a6e17 Update HANDOFF.json\n39f4b02 Update HANDOFF.json\n5103822 Update HANDOFF.json\n4f388f8 Scheduler: exact-slot Calendly deep-links via each trainer's token\n520a736 Update HANDOFF.json"
 }
