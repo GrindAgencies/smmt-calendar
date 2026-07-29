@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-07-29T18:23:30.209Z",
+  "timestamp": "2026-07-29T18:57:06.468Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -22,9 +22,9 @@
     },
     {
       "status": "M",
-      "path": "calendar.html"
+      "path": "roadmap.html"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\n99a8fe4 Update HANDOFF.json\n4f55cb5 My Schedule: remove 'Past & canceled' section; cancellations now drive Ops follow-up tasks\na752df1 Update HANDOFF.json\n9604dfa My Schedule: simplify 'This week's trainings' into an animated weekday strip + one-tap share\n945a5b6 Update HANDOFF.json"
+  "context_notes": "Recent commits:\n56c09b1 Update HANDOFF.json\nadf2315 Book Operations: route to the Operations Calendly instead of failing internal booking\n99a8fe4 Update HANDOFF.json\n4f55cb5 My Schedule: remove 'Past & canceled' section; cancellations now drive Ops follow-up tasks\na752df1 Update HANDOFF.json"
 }
