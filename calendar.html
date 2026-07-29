@@ -293,6 +293,24 @@ function wdOf(dstr){return new Date(dstr+'T12:00:00Z').getUTCDay();}
 function prettyDate(dstr){return new Date(dstr+'T12:00:00Z').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',timeZone:'UTC'});}
 function t2min(t){var m=/(\d+):(\d+)\s*(AM|PM)/i.exec(t);if(!m)return 0;var h=+m[1]%12;if(/PM/i.test(m[3]))h+=12;return h*60+ +m[2];}
 function inRange(dstr,r){return r&&dstr>=r.start&&dstr<=r.end;}
+/* Calendly is the AUTHORITY when internal availability and Calendly disagree.
+   For a Calendly-connected trainer we intersect internal open times with their real Calendly-open times. */
+var CALAVAIL={}; /* {dateStr:{trainerName: Set(normTimes) | null}} — null = not connected, internal is authority */
+function normT(t){return String(t||'').replace(/\s+/g,'').toUpperCase();}
+function loadCalAvail(ds,cb){
+  if(CALAVAIL[ds]){cb&&cb();return;}
+  var map={};CALAVAIL[ds]=map;
+  var cands=bTr().filter(function(c){return c&&c.calendly;});
+  if(!cands.length){cb&&cb();return;}
+  var pending=cands.length,done=false;
+  function fin(){if(!done&&pending<=0){done=true;cb&&cb();}}
+  cands.forEach(function(c){
+    fetch(CALS,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'exact_slot',trainer_name:c.name,date:ds,time:'12:01 AM',event_type_name:SELCAT})}).then(function(r){return r.json();}).then(function(x){
+      map[c.name]=(x&&Array.isArray(x.available))?new Set(x.available.map(normT)):null; /* connected → Set (maybe empty); not connected/err → null */
+      pending--;fin();
+    }).catch(function(){map[c.name]=null;pending--;fin();});
+  });
+}
 function availTimesForTrainer(cft,dstr){
   if(cft.locked)return [];
   if(isClosureCli(dstr))return [];
@@ -304,6 +322,8 @@ function availTimesForTrainer(cft,dstr){
   var out=slots.filter(function(t){return taken.indexOf(t)<0;});
   var busy=(cft.busy||[]).filter(function(b){return b.date===dstr;});
   if(busy.length)out=out.filter(function(t){var tm=t2min(t);return !busy.some(function(b){return (Number(b.s)||0) < tm+60 && (Number(b.e)||1440) > tm;});});
+  var cav=CALAVAIL[dstr]&&CALAVAIL[dstr][cft.name];
+  if(cav){out=out.filter(function(t){return cav.has(normT(t));});} /* Calendly wins: drop times Calendly shows as taken */
   var cut=schedCutoff();
   return out.filter(function(t){if(dstr>cut.date)return true;if(dstr<cut.date)return false;return t2min(t)>=cut.minutes;});
 }
@@ -797,7 +817,7 @@ function renderDStrip(){var h='';for(var i=0;i<14;i++){var d=addDays(i);var ds=y
   h+='<div class="dpill'+on+td+'" onclick="pickDate(\''+ds+'\')"><div class="dw">'+(ds===todayStr()?'Today':wname)+'</div><div class="dd">'+dn+'</div><div class="dm">'+mn+'</div></div>';}
   $('dstrip').innerHTML=h;}
 function renderCats(){$('catrow').innerHTML=CATS.map(function(c){return '<button class="cat'+(c===SELCAT?' on':'')+'" onclick="SELCAT=\''+c+'\';renderCats()">'+esc(c)+'</button>';}).join('');}
-function pickDate(ds){SELDATE=ds;SELTIME=null;renderDStrip();$('timesWrap').innerHTML='<div class="spin">Loading availability…</div>';$('trWrap').innerHTML='';loadDayBooked(ds,function(){renderTimes();});}
+function pickDate(ds){SELDATE=ds;SELTIME=null;renderDStrip();$('timesWrap').innerHTML='<div class="spin">Checking Calendly availability…</div>';$('trWrap').innerHTML='';loadDayBooked(ds,function(){loadCalAvail(ds,function(){renderTimes();});});}
 function renderTimes(){var times=allTimesForDate(SELDATE);
   if(!times.length){$('timesWrap').innerHTML='<div class="empty">No trainer availability on '+prettyDate(SELDATE)+'. Try another day.</div>';return;}
   $('timesWrap').innerHTML='<div class="tchips">'+times.map(function(o){return '<button class="tchip'+(o.time===SELTIME?' on':'')+'" onclick="pickTime(\''+o.time+'\')">'+o.time+'<span class="cnt">'+o.count+' free</span></button>';}).join('')+'</div>';}
