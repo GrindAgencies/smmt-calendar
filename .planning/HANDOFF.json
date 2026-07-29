@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-07-29T04:58:24.652Z",
+  "timestamp": "2026-07-29T18:23:30.209Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -19,8 +19,12 @@
     {
       "status": "M",
       "path": ".planning/HANDOFF.json"
+    },
+    {
+      "status": "M",
+      "path": "calendar.html"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\na752df1 Update HANDOFF.json\n9604dfa My Schedule: simplify 'This week's trainings' into an animated weekday strip + one-tap share\n945a5b6 Update HANDOFF.json\n1d07919 My Schedule: replace all-upcoming Calendly list with a Today & Tomorrow day snapshot\n9ac9dc0 Update HANDOFF.json"
+  "context_notes": "Recent commits:\n99a8fe4 Update HANDOFF.json\n4f55cb5 My Schedule: remove 'Past & canceled' section; cancellations now drive Ops follow-up tasks\na752df1 Update HANDOFF.json\n9604dfa My Schedule: simplify 'This week's trainings' into an animated weekday strip + one-tap share\n945a5b6 Update HANDOFF.json"
 }
