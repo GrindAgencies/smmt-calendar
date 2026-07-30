@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>The Standard</title>
+<style>
+  html,body{margin:0;height:100%;background:#0b0f1a;color:#f5f6fa;
+    font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',system-ui,sans-serif;}
+  .wrap{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px;text-align:center;}
+  .mark{width:66px;height:66px;border-radius:20px;border:1.5px solid #c99a2e;display:flex;align-items:center;justify-content:center;color:#e4be6e;font-weight:800;font-size:24px;letter-spacing:.5px;background:rgba(201,154,46,.06);}
+  b{font-size:18px;font-weight:800;} span{font-size:13.5px;color:#aab0c0;}
+  .sp{width:26px;height:26px;border:3px solid rgba(255,255,255,.15);border-top-color:#5b6cff;border-radius:50%;animation:spin 1s linear infinite;margin-top:6px;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  a{color:#8b93ff;font-size:13px;text-decoration:none;margin-top:10px;}
+</style>
+</head>
+<body>
+  <!--
+    This page is only the Capacitor fallback shell. In normal use the native app
+    loads https://tsfg.app directly (server.url in capacitor.config.json), so the
+    app always shows the LIVE platform and updates the moment you push — no
+    app-store resubmission for content changes. This page shows only if the live
+    site can't be reached (e.g. the device is offline at launch).
+  -->
+  <div class="wrap">
+    <div class="mark">TS</div>
+    <b>The Standard</b>
+    <span>Connecting…</span>
+    <div class="sp"></div>
+    <a href="https://tsfg.app/app.html">Tap to retry</a>
+  </div>
+  <script>
+    // Belt-and-suspenders: if this fallback ever loads, try the live site.
+    setTimeout(function(){ try{ location.href = 'https://tsfg.app/app.html'; }catch(e){} }, 1200);
+  </script>
+</body>
+</html>

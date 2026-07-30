@@ -1,0 +1,26 @@
+{
+  "name": "thestandard-native",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Capacitor iOS/Android wrapper for The Standard — a thin native shell that loads tsfg.app live, so content updates need no app-store resubmission.",
+  "scripts": {
+    "postinstall": "echo 'Next: npx cap add ios  &&  npx cap add android  (see README.md)'",
+    "sync": "cap sync",
+    "open:ios": "cap open ios",
+    "open:android": "cap open android",
+    "assets": "capacitor-assets generate --assetPath ./assets --iconBackgroundColor '#0b0f1a' --splashBackgroundColor '#0b0f1a'"
+  },
+  "dependencies": {
+    "@capacitor/core": "^6.1.0",
+    "@capacitor/ios": "^6.1.0",
+    "@capacitor/android": "^6.1.0",
+    "@capacitor/app": "^6.0.0",
+    "@capacitor/push-notifications": "^6.0.0",
+    "@capacitor/splash-screen": "^6.0.0",
+    "@capacitor/status-bar": "^6.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.1.0",
+    "@capacitor/assets": "^3.0.5"
+  }
+}

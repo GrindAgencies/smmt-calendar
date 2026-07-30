@@ -1,0 +1,11 @@
+# Capacitor native project — dependencies + generated native platforms.
+# These are regenerated on your Mac (see README.md). Keeping them out of the
+# repo keeps the GitHub Desktop push workflow clean.
+node_modules/
+ios/
+android/
+.DS_Store
+*.log
+
+# If you DO want to version-control native customizations (signing config,
+# native tweaks), delete the ios/ and android/ lines above and commit them.

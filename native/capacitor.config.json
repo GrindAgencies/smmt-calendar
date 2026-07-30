@@ -1,0 +1,35 @@
+{
+  "appId": "app.tsfg.standard",
+  "appName": "The Standard",
+  "webDir": "www",
+  "server": {
+    "url": "https://tsfg.app",
+    "cleartext": false,
+    "androidScheme": "https",
+    "iosScheme": "https"
+  },
+  "backgroundColor": "#0b0f1a",
+  "ios": {
+    "contentInset": "always",
+    "backgroundColor": "#0b0f1a",
+    "limitsNavigationsToAppBoundDomains": false
+  },
+  "android": {
+    "backgroundColor": "#0b0f1a"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 900,
+      "backgroundColor": "#0b0f1a",
+      "showSpinner": false,
+      "androidScaleType": "CENTER_CROP"
+    },
+    "PushNotifications": {
+      "presentationOptions": ["badge", "sound", "alert"]
+    },
+    "StatusBar": {
+      "style": "DARK",
+      "backgroundColor": "#0b0f1a"
+    }
+  }
+}
