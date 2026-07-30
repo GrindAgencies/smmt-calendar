@@ -366,7 +366,7 @@ function signOut(){try{localStorage.removeItem('tsfg_code');localStorage.removeI
   var _urlTab=(function(){try{return new URLSearchParams(location.search).get('tab');}catch(e){return null;}})();
   fetch(TA,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'cftavail'})}).then(function(r){return r.json();}).then(function(r){
     var v=r&&r.value;TRAINERS=(v&&Array.isArray(v.cfts))?v.cfts:[];if(v&&v.tz)TZ=v.tz;
-    revealAvailTab();loadProfile();loadEmds();
+    revealAvailTab();loadProfile(autoDetectTz);loadEmds();
     loadSched(function(){loadMy(function(){loadMyTrainer(function(){loadMyAppts(function(){render();if(_urlTab)setTab(_urlTab);});});});});
   }).catch(function(){TRAINERS=[];render();});
   document.addEventListener('keydown',function(e){if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();openSpot();}if(e.key==='Escape'){closeSpot();$('bkOv').classList.remove('on');}});
@@ -533,16 +533,29 @@ function toggleBookable(code2,name2,on){
 // === Calendar (week) view — the front door ===
 function weekStartYmd(off){var d=new Date(todayStr()+'T12:00:00Z');d.setUTCDate(d.getUTCDate()-d.getUTCDay()+off*7);return d.toISOString().slice(0,10);}
 function statusColor(s){return s==='confirmed'?'var(--green)':(s==='pending'?'var(--gold)':(s==='canceled'||s==='no_show'||s==='declined'?'var(--red)':'var(--accent)'));}
+/* ===== viewer time zone layer — render every appointment in the viewer's own zone from its true UTC instant ===== */
+function tzShort(tz){try{var p=new Intl.DateTimeFormat('en-US',{timeZone:tz||viewerTz(),timeZoneName:'short'}).formatToParts(new Date()).find(function(x){return x.type==='timeZoneName';});return (p&&p.value)||'';}catch(e){return '';}}
+function vDateOf(inst){try{return new Intl.DateTimeFormat('en-CA',{timeZone:viewerTz()}).format(inst);}catch(e){return '';}}
+function vTimeOf(inst){try{return inst.toLocaleTimeString('en-US',{timeZone:viewerTz(),hour:'numeric',minute:'2-digit'});}catch(e){return '';}}
+function vMinOf(inst){try{var s=new Intl.DateTimeFormat('en-US',{timeZone:viewerTz(),hour12:false,hour:'2-digit',minute:'2-digit'}).format(inst);var m=/(\d+):(\d+)/.exec(s);return (Number(m[1])%24)*60+Number(m[2]);}catch(e){return 0;}}
+function calToday(){return vDateOf(new Date());}
+function calAddDays(n){var d=new Date(calToday()+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d;}
+/* interpret a Pacific wall-time (stored standard) as a real UTC instant — fallback when starts_at is absent */
+function ptInstant(ds,tstr){if(!ds||!tstr)return null;var mm=t2min(tstr);var p=String(ds).split('-');if(p.length<3)return null;var guess=new Date(Date.UTC(+p[0],+p[1]-1,+p[2],Math.floor(mm/60),mm%60));var asPT=new Date(guess.toLocaleString('en-US',{timeZone:'America/Los_Angeles'}));var asUTC=new Date(guess.toLocaleString('en-US',{timeZone:'UTC'}));return new Date(guess.getTime()+(asUTC-asPT));}
+function itemInstant(o){if(!o)return null;if(o.inst instanceof Date)return o.inst;var s=o.start||o.start_time||o.starts_at;if(s){var d=new Date(s);if(!isNaN(d))return d;}if(o.date&&o.time)return ptInstant(o.date,o.time);return null;}
+function dispTime(b){var i=itemInstant(b);return i?vTimeOf(i):(b.time||'');}
+function dispDate(b){var i=itemInstant(b);return i?vDateOf(i):(b.date||'');}
+function tzTag(){var a=tzShort();return a?(' '+a):'';}
 function calEventsFor(dstr){
   var evs=[];var myname=(NAME||'').trim().toLowerCase();
-  MYB.forEach(function(b){if(b.date===dstr)evs.push({id:b.id,time:b.time,title:(b.title||b.trainer_name||b.category),sub:b.category,status:b.status,color:b.color,role:'agent',source:b.source});});
-  COMPANY_EV.forEach(function(b){if(b.date===dstr&&(b.trainer_name||'').trim().toLowerCase()===myname&&!MYB.some(function(x){return x.id===b.id;}))evs.push({id:b.id,time:b.time,title:(b.agent_name||'Client'),sub:b.category,status:b.status,color:b.color,role:'trainer'});});
-  evs.sort(function(a,b){return t2min(a.time)-t2min(b.time);});
+  MYB.forEach(function(b){var inst=itemInstant(b);if(!inst||vDateOf(inst)!==dstr)return;evs.push({id:b.id,inst:inst,time:vTimeOf(inst),title:(b.title||b.trainer_name||b.category),sub:b.category,status:b.status,color:b.color,role:'agent',source:b.source,dur:Number(b.duration_minutes)||60});});
+  COMPANY_EV.forEach(function(b){if((b.trainer_name||'').trim().toLowerCase()!==myname)return;if(MYB.some(function(x){return x.id===b.id;}))return;var inst=itemInstant(b);if(!inst||vDateOf(inst)!==dstr)return;evs.push({id:b.id,inst:inst,time:vTimeOf(inst),title:(b.agent_name||'Client'),sub:b.category,status:b.status,color:b.color,role:'trainer',dur:Number(b.duration_minutes)||60});});
+  evs.sort(function(a,b){return a.inst-b.inst;});
   return evs;
 }
 var CALMONTH=0,CALEV=[],CALBYDATE={};
 var CALIMPORT="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/cal-import";
-function calPt(iso){var d=new Date(iso);return {date:new Intl.DateTimeFormat('en-CA',{timeZone:'America/Los_Angeles',year:'numeric',month:'2-digit',day:'2-digit'}).format(d),time:d.toLocaleTimeString('en-US',{timeZone:'America/Los_Angeles',hour:'numeric',minute:'2-digit'})};}
+function calPt(iso){var d=new Date(iso);return {date:vDateOf(d),time:vTimeOf(d)};}
 function loadCalEvents(cb){
   fetch(CALS,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'list',code:CODE})}).then(function(r){return r.json();}).then(function(r){
     CALEV=((r&&r.events)||[]).filter(function(e){return (e.status||'')==='active'&&e.start_time;});
@@ -552,23 +565,23 @@ function loadCalEvents(cb){
 }
 function dayItems(ds){
   var out=[];
-  calEventsFor(ds).forEach(function(e){out.push({kind:'internal',id:e.id,time:e.time,title:e.title,sub:e.sub,status:e.status,color:e.color,source:e.source});});
-  (CALBYDATE[ds]||[]).forEach(function(e){out.push({kind:'calendly',uuid:e.event_uuid,time:e._time,title:(e.invitee_name||'Client'),sub:(e.event_type_name||e.name||''),join:e.join_url,name:e.event_type_name||e.name,email:e.invitee_email,start:e.start_time,end:e.end_time});});
-  out.sort(function(a,b){return t2min(a.time)-t2min(b.time);});
+  calEventsFor(ds).forEach(function(e){out.push({kind:'internal',id:e.id,inst:e.inst,time:e.time,title:e.title,sub:e.sub,status:e.status,color:e.color,source:e.source,dur:e.dur});});
+  (CALBYDATE[ds]||[]).forEach(function(e){var inst=new Date(e.start_time);out.push({kind:'calendly',uuid:e.event_uuid,inst:inst,time:vTimeOf(inst),title:(e.invitee_name||'Client'),sub:(e.event_type_name||e.name||''),join:e.join_url,name:e.event_type_name||e.name,email:e.invitee_email,start:e.start_time,end:e.end_time});});
+  out.sort(function(a,b){return (a.inst&&b.inst)?(a.inst-b.inst):(t2min(a.time)-t2min(b.time));});
   return out;
 }
-/* start-minute + duration for time-grid placement */
-function itemMinDur(it){var min=t2min(it.time||'0:00 AM');var dur=60;
+/* start-minute (viewer TZ) + duration for time-grid placement */
+function itemMinDur(it){var min=it.inst?vMinOf(it.inst):t2min(it.time||'0:00 AM');var dur=60;
   if(it.kind==='calendly'){if(it.start&&it.end){var mm=Math.round((new Date(it.end).getTime()-new Date(it.start).getTime())/60000);if(mm>0)dur=mm;else dur=30;}else dur=30;}
   else{dur=Number(it.dur)||60;}
   return {min:min,dur:dur};}
-function nowMinPT(){var d=new Date();var s=d.toLocaleTimeString('en-US',{timeZone:'America/Los_Angeles',hour:'numeric',minute:'2-digit',hour12:true});return t2min(s);}
+function nowMinPT(){return vMinOf(new Date());}
 var CALVIEW='month';try{CALVIEW=localStorage.getItem('tsfg_calview')||'month';}catch(e){}
 var CALCUR=null; /* anchor date (YYYY-MM-DD); null = today */
-function calAnchor(){return CALCUR||todayStr();}
+function calAnchor(){return CALCUR||calToday();}
 function calSetView(v){CALVIEW=v;try{localStorage.setItem('tsfg_calview',v);}catch(e){}renderCal();}
 function calNav(dir){var d=new Date(calAnchor()+'T12:00:00Z');
-  if(dir===0){CALCUR=todayStr();}
+  if(dir===0){CALCUR=calToday();}
   else if(CALVIEW==='day')d.setUTCDate(d.getUTCDate()+dir),CALCUR=d.toISOString().slice(0,10);
   else if(CALVIEW==='week')d.setUTCDate(d.getUTCDate()+7*dir),CALCUR=d.toISOString().slice(0,10);
   else d.setUTCMonth(d.getUTCMonth()+dir),CALCUR=d.toISOString().slice(0,10);
@@ -585,7 +598,7 @@ function daysInRange(from,to){var out=[];var d=new Date(from+'T12:00:00Z');var e
 function renderCal(){
   var r=calRange();
   var sw='<div class="calviews">'+[['month','Month'],['week','Week'],['day','Day']].map(function(v){return '<button class="calvbtn'+(CALVIEW===v[0]?' on':'')+'" onclick="calSetView(\''+v[0]+'\')">'+v[1]+'</button>';}).join('')+'</div>';
-  var h='<div class="calhdr"><div><h2 style="font-size:20px;font-weight:800;margin:0;letter-spacing:-.02em">'+esc(calLabel())+'</h2><div style="font-size:12.5px;color:var(--ink3);margin-top:2px">All bookings + Calendly appointments · live</div></div><div class="calctrls">'+sw+'<div class="calnavg"><button class="calnav" onclick="calNav(-1)">‹</button><button class="calnav" onclick="calNav(0)">Today</button><button class="calnav" onclick="calNav(1)">›</button></div><button class="qbtn" style="margin:0" onclick="setTab(\'book\')">+ Book</button></div></div>';
+  var h='<div class="calhdr"><div><h2 style="font-size:20px;font-weight:800;margin:0;letter-spacing:-.02em">'+esc(calLabel())+'</h2><div style="font-size:12.5px;color:var(--ink3);margin-top:2px">All bookings + Calendly appointments · live · '+tzNote()+'</div></div><div class="calctrls">'+sw+'<div class="calnavg"><button class="calnav" onclick="calNav(-1)">‹</button><button class="calnav" onclick="calNav(0)">Today</button><button class="calnav" onclick="calNav(1)">›</button></div><button class="qbtn" style="margin:0" onclick="setTab(\'book\')">+ Book</button></div></div>';
   $('view').innerHTML=h+'<div id="calWrap"><div class="spin">Loading your calendar…</div></div>';
   loadCompanyEvents(r.from,r.to,function(){loadCalEvents(function(){if(CALVIEW==='month')paintMonth();else paintTimeGrid(CALVIEW==='week'?daysInRange(r.from,r.to):[calAnchor()]);});});
 }
@@ -594,7 +607,7 @@ function paintMonth(){
   var d=new Date(calAnchor()+'T12:00:00Z');var mf=new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),1));var mon=mf.getUTCMonth();var gs=new Date(mf);gs.setUTCDate(1-mf.getUTCDay());
   var h='<div class="mdowrow">'+['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(function(x){return '<div class="mdow">'+x+'</div>';}).join('')+'</div><div class="mgrid">';
   for(var i=0;i<42;i++){var dd=new Date(gs);dd.setUTCDate(gs.getUTCDate()+i);var ds=dd.toISOString().slice(0,10);
-    var inMonth=dd.getUTCMonth()===mon;var isToday=ds===todayStr();var items=dayItems(ds);
+    var inMonth=dd.getUTCMonth()===mon;var isToday=ds===calToday();var items=dayItems(ds);
     var chips=items.slice(0,3).map(function(it){var col=it.color||(it.kind==='calendly'?'var(--gold)':statusColor(it.status));return '<div class="mchip" style="border-left:3px solid '+col+'">'+esc(it.time)+' '+esc((it.title||'').slice(0,16))+'</div>';}).join('');
     h+='<div class="mcell'+(inMonth?'':' out')+(isToday?' today':'')+'" onclick="openCalDay(\''+ds+'\')"><div class="mnum">'+dd.getUTCDate()+'</div>'+chips+(items.length>3?'<div class="mmore">+'+(items.length-3)+' more</div>':'')+'</div>';
   }
@@ -609,7 +622,7 @@ function hourLabel(hh){return (hh===0?'12 AM':hh<12?hh+' AM':hh===12?'12 PM':(hh
 function paintTimeGrid(days){
   var SH=GSH,EH=GEH,PX=48;var week=days.length>1;
   var hrs='';for(var hh=SH;hh<=EH;hh++){hrs+='<div class="tg-lbl" style="height:'+PX+'px">'+(hh===SH?'':hourLabel(hh))+'</div>';}
-  var headrow=week?('<div class="tg-headrow"><div class="tg-corner"></div>'+days.map(function(ds){var dd=new Date(ds+'T12:00:00Z');return '<div class="tg-dh'+(ds===todayStr()?' today':'')+'" onclick="openCalDay(\''+ds+'\')"><div class="dow">'+dd.toLocaleDateString('en-US',{weekday:'short',timeZone:'UTC'})+'</div><div class="dn">'+dd.getUTCDate()+'</div></div>';}).join('')+'</div>'):'';
+  var headrow=week?('<div class="tg-headrow"><div class="tg-corner"></div>'+days.map(function(ds){var dd=new Date(ds+'T12:00:00Z');return '<div class="tg-dh'+(ds===calToday()?' today':'')+'" onclick="openCalDay(\''+ds+'\')"><div class="dow">'+dd.toLocaleDateString('en-US',{weekday:'short',timeZone:'UTC'})+'</div><div class="dn">'+dd.getUTCDate()+'</div></div>';}).join('')+'</div>'):'';
   var cols=days.map(function(ds){
     var items=dayItems(ds);var byHr={};
     items.forEach(function(it){var h=hourBucket(itemMinDur(it).min);(byHr[h]=byHr[h]||[]).push(it);});
@@ -624,7 +637,7 @@ function paintTimeGrid(days){
       }
       cells+='<div class="tg-cell'+(inner?'':' tg-empty')+'" style="height:'+PX+'px" title="Add appointment" onclick="manualAdd(\''+ds+'\','+hh+')">'+inner+'</div>';
     }
-    var nowLine=(ds===todayStr())?(function(){var nm=nowMinPT();if(nm<SH*60||nm>EH*60)return '';return '<div class="tg-now" style="top:'+((nm-SH*60)/60*PX)+'px"></div>';})():'';
+    var nowLine=(ds===calToday())?(function(){var nm=nowMinPT();if(nm<SH*60||nm>EH*60)return '';return '<div class="tg-now" style="top:'+((nm-SH*60)/60*PX)+'px"></div>';})():'';
     return '<div class="tg-col">'+cells+nowLine+'</div>';
   }).join('');
   var el=$('calWrap');if(el)el.innerHTML='<div class="tg">'+headrow+'<div class="tg-scroll"><div class="tg-inner"><div class="tg-times">'+hrs+'</div><div class="tg-cols">'+cols+'</div></div></div></div><div class="tg-tip">Tap an empty slot to add an appointment · tap an appointment to expand it</div>'+calLegend();
@@ -707,12 +720,12 @@ function openCalEvent(id){
   }
   var acell='<div class="dact" style="margin-top:20px">'+(acts||'<button class="go" onclick="$(\'bkOv\').classList.remove(\'on\')">Close</button>')+'</div>';
   if(b.source==='manual'){
-    $('bkDrawer').innerHTML='<h3>'+esc(b.title||'Appointment')+' <span style="font-size:11px;color:var(--accent);font-weight:900;letter-spacing:.03em">PERSONAL</span></h3><p class="dsub">'+prettyDate(b.date)+' · '+esc(b.time)+' PT · '+(b.duration_minutes||60)+' min</p>'+
+    $('bkDrawer').innerHTML='<h3>'+esc(b.title||'Appointment')+' <span style="font-size:11px;color:var(--accent);font-weight:900;letter-spacing:.03em">PERSONAL</span></h3><p class="dsub">'+prettyDate(dispDate(b))+' · '+esc(dispTime(b))+tzTag()+' · '+(b.duration_minutes||60)+' min</p>'+
       (b.notes?'<div class="confrow"><div class="cl">Notes</div><div class="cv" style="font-weight:500;white-space:pre-wrap">'+esc(b.notes)+'</div></div>':'')+acell;
     $('bkOv').classList.add('on');return;
   }
   var who=role==='trainer'?(b.agent_name||b.agent_code||'Client'):b.trainer_name;
-  $('bkDrawer').innerHTML='<h3>'+esc(b.category||'Appointment')+'</h3><p class="dsub">'+prettyDate(b.date)+' · '+esc(b.time)+' PT</p>'+
+  $('bkDrawer').innerHTML='<h3>'+esc(b.category||'Appointment')+'</h3><p class="dsub">'+prettyDate(dispDate(b))+' · '+esc(dispTime(b))+tzTag()+'</p>'+
     '<div class="confrow"><div class="cl">'+(role==='trainer'?'Client':'Trainer')+'</div><div class="cv">'+esc(who||'')+'</div></div>'+
     '<div class="confrow"><div class="cl">Status</div><div class="cv">'+esc(b.status)+'</div></div>'+
     '<div class="confrow"><div class="cl">Confirmation</div><div class="cv">'+esc(b.conf||'')+'</div></div>'+acell;
@@ -729,7 +742,7 @@ function calFmt(iso){if(!iso)return '';var d=new Date(iso);if(isNaN(d))return ''
 var SNAP_OPEN=8*60, SNAP_CLOSE=20*60; /* the working window used for showing free time */
 function loadMyCalendly(){
   var host=$('myCalendly');if(!host)return;
-  var t=todayStr();var tmr=addDays(1).toISOString().slice(0,10);
+  var t=calToday();var tmr=calAddDays(1).toISOString().slice(0,10);
   loadCompanyEvents(t,tmr,function(){loadCalEvents(function(){renderDaySnapshot();});});
 }
 function snapAppt(it){
@@ -759,7 +772,7 @@ function daySnapshotRows(ds,isToday){
 }
 function renderDaySnapshot(){
   var host=$('myCalendly');if(!host)return;
-  var t=todayStr();var tmr=addDays(1).toISOString().slice(0,10);
+  var t=calToday();var tmr=calAddDays(1).toISOString().slice(0,10);
   var td=new Date(t+'T12:00:00Z'),tm=new Date(tmr+'T12:00:00Z');
   var col=function(ds,lab,dd,isToday){return '<div class="snap-col"><div class="snap-h"><b>'+lab+'</b> '+dd.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',timeZone:'UTC'})+'</div>'+daySnapshotRows(ds,isToday)+'</div>';};
   host.innerHTML='<div class="sec"><div class="sech"><h2>📅 Today &amp; Tomorrow</h2><a onclick="setTab(\'cal\')">Full calendar →</a></div>'+
@@ -797,6 +810,9 @@ function addAvBlock(btn){var day=btn.closest('.avday');if(!day)return;var box=da
 function removeAvBlock(el){var blk=el.closest('.avblk');if(blk&&blk.parentNode)blk.parentNode.removeChild(blk);}
 function avDayToggle(sel){var day=sel.closest('.avday');if(!day)return;var on=sel.value==='1';var box=day.querySelector('.avblocks');var add=day.querySelector('.avaddblk');if(box)box.style.display=on?'flex':'none';if(add)add.style.display=on?'inline-block':'none';[].forEach.call(day.querySelectorAll('.avblk select'),function(s){s.disabled=!on;});if(on&&box&&!box.querySelector('.avblk')){var div=document.createElement('div');div.innerHTML=avBlockHtml(600,840,true);box.appendChild(div.firstElementChild);}}
 function viewerTz(){try{return Intl.DateTimeFormat().resolvedOptions().timeZone||'America/Los_Angeles';}catch(e){return 'America/Los_Angeles';}}
+function tzNote(){var tz=viewerTz();var lab=tzLabel(tz)||(tz?tz.split('/').pop().replace(/_/g,' '):'');var ab=tzShort();return '🕒 Times shown in your time zone · '+esc(lab)+(ab?(' ('+esc(ab)+')'):'');}
+/* silently keep the broker's saved time zone matching their device (trainers publish it to bookers) */
+function autoDetectTz(){try{var tz=viewerTz();if(!tz)return;var me=myTrainerProfile();if(me&&me.timezone!==tz){me.timezone=tz;fetch(AVP,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'set_timezone',code:CODE,trainer_name:me.name,timezone:tz})}).then(function(r){return r.json();}).then(function(){var idx=TRAINERS.findIndex(function(c){return c.name===me.name;});if(idx>=0)TRAINERS[idx].timezone=tz;}).catch(function(){});}}catch(e){}}
 function offsetVsPT(){try{var n=new Date();var pt=new Date(n.toLocaleString('en-US',{timeZone:'America/Los_Angeles'}));var loc=new Date(n.toLocaleString('en-US',{timeZone:viewerTz()}));return Math.round((loc-pt)/3600000);}catch(e){return 0;}}
 function ptToLocalLabel(hh){var off=offsetVsPT();var lh=((hh+off)%24+24)%24;return pad2(lh)+':00';}
 function saveSlots(){var me=myTrainerProfile();if(!me)return;var slots={};var bad=false;
@@ -923,7 +939,7 @@ function openCompanyEvent(key){
   if((myRole()==='CFT'||isEmd())&&(b.status==='booked'||b.status==='confirmed'))acts+='<button class="go" onclick="$(\'bkOv\').classList.remove(\'on\');openTransfer(\''+b.id+'\',\''+(isEmd()?'manager':'peer')+'\')">Transfer</button>';
   acts+='<button class="go" onclick="$(\'bkOv\').classList.remove(\'on\');startBookWith(\''+encodeURIComponent(b.trainer_name)+'\')">Book '+esc((b.trainer_name||'').split(' ')[0])+'</button>';
   if(active&&(isEmd()||mine))acts+='<button class="x can" onclick="quickCancel(\''+b.id+'\')'+CX+'">✕ Cancel</button>';
-  $('bkDrawer').innerHTML='<h3>'+esc(b.category||'Appointment')+'</h3><p class="dsub">'+prettyDate(b.date)+' · '+esc(b.time)+' PT</p>'+
+  $('bkDrawer').innerHTML='<h3>'+esc(b.category||'Appointment')+'</h3><p class="dsub">'+prettyDate(dispDate(b))+' · '+esc(dispTime(b))+tzTag()+'</p>'+
     '<div class="confrow"><div class="cl">Trainer</div><div class="cv">'+esc(b.trainer_name||'')+'</div></div>'+
     '<div class="confrow"><div class="cl">With</div><div class="cv">'+esc(b.agent_name||'—')+'</div></div>'+
     '<div class="confrow"><div class="cl">Status</div><div class="cv">'+esc(b.status)+'</div></div>'+
@@ -992,7 +1008,7 @@ function aptRow(b){var col=avColor(b.trainer_name);
   if(b.status==='pending')right='<span class="tstat" style="margin-left:auto;background:var(--gold-soft);color:var(--gold)"><span class="d"></span>Pending approval</span><button class="x can" style="margin-left:8px" onclick="cancelBk(\''+b.id+'\')">Cancel</button>';
   else if(b.status==='booked'||b.status==='confirmed')right='<button class="x can" style="margin-left:auto" onclick="cancelBk(\''+b.id+'\')">Cancel</button>';
   else right='<span class="conf" style="margin-left:auto">'+esc(b.status)+'</span>';
-  return '<div class="apt"><div class="tav" style="width:42px;height:42px;font-size:14px;background:'+col+'">'+initials(b.trainer_name)+'</div><div><div style="font-weight:700;font-size:14.5px">'+esc(b.trainer_name)+' · '+esc(b.category||'Training')+(b.status==='confirmed'?' <span style="color:var(--green);font-weight:800">✓</span>':'')+'</div><div style="font-size:12.5px;color:var(--ink3)">'+prettyDate(b.date)+' · '+esc(b.time)+' PT <span class="conf">· '+esc(b.conf||'')+'</span></div></div>'+right+'</div>';}
+  return '<div class="apt"><div class="tav" style="width:42px;height:42px;font-size:14px;background:'+col+'">'+initials(b.trainer_name)+'</div><div><div style="font-weight:700;font-size:14.5px">'+esc(b.trainer_name)+' · '+esc(b.category||'Training')+(b.status==='confirmed'?' <span style="color:var(--green);font-weight:800">✓</span>':'')+'</div><div style="font-size:12.5px;color:var(--ink3)">'+prettyDate(dispDate(b))+' · '+esc(dispTime(b))+tzTag()+' <span class="conf">· '+esc(b.conf||'')+'</span></div></div>'+right+'</div>';}
 function renderBook(){
   if(!SELDATE)SELDATE=todayStr();
   var h='<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap"><div style="font-size:12.5px;color:var(--ink3)">Booking a training for yourself? Use the steps below. Booking a client appointment for someone else?</div><button class="qbtn" style="margin:0" onclick="openStaffBook()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Book for a client</button></div>';
@@ -1105,7 +1121,7 @@ function pickColor(c){var i=$('na_color');if(i)i.value=c;var row=$('na_swatches'
 function to12(hhmm){var m=(hhmm||'').split(':');if(m.length<2)return hhmm;var h=parseInt(m[0],10),mi=m[1];var ap=h>=12?'PM':'AM';var h12=h%12;if(h12===0)h12=12;return h12+':'+mi+' '+ap;}
 function from12(s){var m=(s||'').match(/(\d+):(\d+)\s*(AM|PM)/i);if(!m)return '';var h=parseInt(m[1],10)%12;if(/pm/i.test(m[3]))h+=12;return (h<10?'0':'')+h+':'+m[2];}
 function loadMyAppts(cb){fetch(AT.replace('atlas-api','sched-ext'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'my_appts',code:CODE})}).then(function(r){return r.json();}).then(function(r){MYAPPTS=(r&&r.appts)||[];cb&&cb();}).catch(function(){cb&&cb();});}
-function myApptRow(b){var col=avColor(b.title||b.agent_name||'');var extra=(b.agent_name&&b.title&&b.agent_name!==b.title)?(' · '+esc(b.agent_name)):'';return '<div class="apt" style="'+(b.color?('border-left:4px solid '+b.color):'')+'"><div class="tav" style="width:42px;height:42px;font-size:16px;background:'+(b.color||col)+'">📌</div><div style="flex:1;min-width:0"><div style="font-weight:700;font-size:14.5px">'+esc(b.title||b.agent_name||'Appointment')+'</div><div style="font-size:12.5px;color:var(--ink3)">'+prettyDate(b.date)+' · '+esc(b.time)+' PT'+extra+'</div></div><div style="display:flex;gap:8px;margin-left:auto"><button class="x" onclick="openNewAppt(\''+b.id+'\')">Edit</button><button class="x can" onclick="delAppt(\''+b.id+'\')">Delete</button></div></div>';}
+function myApptRow(b){var col=avColor(b.title||b.agent_name||'');var extra=(b.agent_name&&b.title&&b.agent_name!==b.title)?(' · '+esc(b.agent_name)):'';return '<div class="apt" style="'+(b.color?('border-left:4px solid '+b.color):'')+'"><div class="tav" style="width:42px;height:42px;font-size:16px;background:'+(b.color||col)+'">📌</div><div style="flex:1;min-width:0"><div style="font-weight:700;font-size:14.5px">'+esc(b.title||b.agent_name||'Appointment')+'</div><div style="font-size:12.5px;color:var(--ink3)">'+prettyDate(dispDate(b))+' · '+esc(dispTime(b))+tzTag()+''+extra+'</div></div><div style="display:flex;gap:8px;margin-left:auto"><button class="x" onclick="openNewAppt(\''+b.id+'\')">Edit</button><button class="x can" onclick="delAppt(\''+b.id+'\')">Delete</button></div></div>';}
 function openNewAppt(id){
   EDIT_APPT=null;var a=null;
   if(id){a=MYAPPTS.filter(function(x){return String(x.id)===String(id);})[0];if(a)EDIT_APPT=id;}
@@ -1188,7 +1204,7 @@ function doBook(encName){var name=decodeURIComponent(encName);var c=TRAINERS.fil
     var b=r.booking;
     function showDone(calUrl,exact){
       if(calWin){if(calUrl){try{calWin.location.href=calUrl;}catch(e){}}else{try{calWin.close();}catch(e){}}}
-      $('bkDrawer').innerHTML='<div class="done"><div class="chk">✓</div><h3>You’re booked!</h3><p class="dsub">'+esc(name)+' · '+prettyDate(SELDATE)+' at '+esc(SELTIME)+' PT</p><div class="cnum">Confirmation '+esc(b.conf||'')+'</div>'+
+      $('bkDrawer').innerHTML='<div class="done"><div class="chk">✓</div><h3>You’re booked!</h3><p class="dsub">'+esc(name)+' · '+prettyDate(dispDate({date:SELDATE,time:SELTIME}))+' at '+esc(dispTime({date:SELDATE,time:SELTIME}))+tzTag()+'</p><div class="cnum">Confirmation '+esc(b.conf||'')+'</div>'+
         (calUrl?('<div style="font-size:12px;color:var(--gold-br,#b8891f);margin-top:12px;line-height:1.45">📅 Calendly opened to '+(exact?'this exact time':'this day')+' to finalize &amp; send invites'+(guests?(' to your guests'):'')+'. It also shows here on the Scheduler. <a href="'+esc(calUrl)+'" target="_blank" rel="noopener" style="color:var(--accent);font-weight:700">Reopen</a></div>'):'')+
         '<div class="dact" style="margin-top:20px"><button class="go" onclick="finishBook()">Done</button></div>'+
         '<div style="font-size:11.5px;color:var(--ink3);margin-top:12px">Notification sent to '+esc(name.split(' ')[0])+'. You can cancel any time from My Schedule.</div></div>';
@@ -1220,7 +1236,7 @@ function trainerAptRow(b){var col=avColor(b.agent_name||b.agent_code||'');
   }
   return '<div class="apt"><div class="tav" style="width:42px;height:42px;font-size:14px;background:'+col+'">'+initials(b.agent_name||b.agent_code||'')+'</div>'+
    '<div><div style="font-weight:700;font-size:14.5px">'+esc(b.agent_name||b.agent_code||'Agent')+' · '+esc(b.category||'Training')+(b.status==='pending'?' <span style="color:var(--gold);font-weight:800">· needs approval</span>':'')+'</div>'+
-   '<div style="font-size:12.5px;color:var(--ink3)">'+prettyDate(b.date)+' · '+esc(b.time)+' PT <span class="conf">· '+esc(b.conf||'')+'</span></div></div>'+right+'</div>';}
+   '<div style="font-size:12.5px;color:var(--ink3)">'+prettyDate(dispDate(b))+' · '+esc(dispTime(b))+tzTag()+' <span class="conf">· '+esc(b.conf||'')+'</span></div></div>'+right+'</div>';}
 function isPastBk(b){var t=todayStr();if(b.date<t)return true;if(b.date===t)return (t2min(b.time)+(Number(b.duration_minutes)||60))<=nowPTmin();return false;}
 function doMark(id,status){fetch(AT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'atlas_setstatus',id:id,status:status,code:CODE})}).then(function(r){return r.json();}).then(function(r){if(!r||!r.ok){toast((r&&r.error)||'Could not update');return;}toast(status==='completed'?'Marked completed':'Marked no-show');loadMyTrainer(function(){render();});}).catch(function(){toast('Network error');});}
 function doApprove(id,decision){
@@ -1232,7 +1248,7 @@ function doApprove(id,decision){
   }).catch(function(){toast('Network error — try again.');});}
 var XFER=null,XMODE='peer',MANAGE=[];
 function openTransfer(id,mode){var b=(MYT.filter(function(x){return x.id===id;})[0])||(MANAGE.filter(function(x){return x.id===id;})[0]);if(!b)return;XFER=b;XMODE=mode||'peer';
-  $('bkDrawer').innerHTML='<h3>Transfer session</h3><p class="dsub">'+esc(b.agent_name||b.agent_code||'Agent')+' · '+prettyDate(b.date)+' at '+esc(b.time)+' PT</p><div class="spin">Finding available trainers…</div>';
+  $('bkDrawer').innerHTML='<h3>Transfer session</h3><p class="dsub">'+esc(b.agent_name||b.agent_code||'Agent')+' · '+prettyDate(dispDate(b))+' at '+esc(dispTime(b))+tzTag()+'</p><div class="spin">Finding available trainers…</div>';
   $('bkOv').classList.add('on');
   loadDayBooked(b.date,function(){renderTransferCandidates(b);});}
 function renderTransferCandidates(b){
@@ -1241,12 +1257,12 @@ function renderTransferCandidates(b){
   if(XMODE==='peer')cands=cands.filter(function(c){return (c.role||'').toUpperCase()==='CFT';});
   var note=(XMODE==='peer')?'<div style="font-size:12px;color:var(--ink3);margin:0 2px 12px">Peer transfer — hand this to another available CFT. Same time, same confirmation for the agent.</div>':'';
   var body;
-  if(!cands.length){body='<div class="empty">No '+(XMODE==='peer'?'CFT ':'')+'trainer has '+esc(b.time)+' open on '+prettyDate(b.date)+'. They need that slot free in their availability.</div>';}
+  if(!cands.length){body='<div class="empty">No '+(XMODE==='peer'?'CFT ':'')+'trainer has '+esc(b.time)+' open on '+prettyDate(dispDate(b))+'. They need that slot free in their availability.</div>';}
   else{body='<div class="grid g3">'+cands.map(function(c){var col=avColor(c.name);var wl=DAYBOOKED.filter(function(x){return x.trainer_name===c.name;}).length;
     return '<div class="tcard"><div class="th"><div class="tav" style="background:'+col+'">'+initials(c.name)+'</div><div><div class="tn">'+esc(c.name)+'</div><div class="tr">'+esc(roleLabel(c.role))+'</div></div></div>'+
      '<div class="tmeta"><span class="m">'+esc(b.time)+' free</span><span class="m">'+wl+' booked '+esc(shortDate(b.date))+'</span></div>'+
      '<button class="book" onclick="doTransfer(\''+b.id+'\',\''+encodeURIComponent(c.name)+'\')">Transfer to '+esc(c.name.split(' ')[0])+'</button></div>';}).join('')+'</div>';}
-  $('bkDrawer').innerHTML='<h3>Transfer session</h3><p class="dsub">'+esc(b.agent_name||b.agent_code||'Agent')+' · '+esc(b.category||'Training')+' · '+prettyDate(b.date)+' at '+esc(b.time)+' PT</p>'+note+body+'<div class="dact" style="margin-top:18px"><button onclick="$(\'bkOv\').classList.remove(\'on\')">Close</button></div>';}
+  $('bkDrawer').innerHTML='<h3>Transfer session</h3><p class="dsub">'+esc(b.agent_name||b.agent_code||'Agent')+' · '+esc(b.category||'Training')+' · '+prettyDate(dispDate(b))+' at '+esc(dispTime(b))+tzTag()+'</p>'+note+body+'<div class="dact" style="margin-top:18px"><button onclick="$(\'bkOv\').classList.remove(\'on\')">Close</button></div>';}
 function doTransfer(id,encName){var name=decodeURIComponent(encName);
   fetch(AT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'atlas_transfer',id:id,to_trainer_name:name,code:CODE})}).then(function(r){return r.json();}).then(function(r){
     if(r&&r.taken){toast(r.error||'That trainer was just booked.');loadDayBooked(XFER.date,function(){renderTransferCandidates(XFER);});return;}
@@ -1257,7 +1273,7 @@ function doTransfer(id,encName){var name=decodeURIComponent(encName);
 function loadManage(cb){fetch(AT+'?action=atlas_manage_upcoming&code='+encodeURIComponent(CODE)).then(function(r){return r.json();}).then(function(r){MANAGE=(r&&r.bookings)||[];cb&&cb();}).catch(function(){MANAGE=[];cb&&cb();});}
 function manageRow(b){var col=avColor(b.trainer_name);return '<div class="apt"><div class="tav" style="width:42px;height:42px;font-size:14px;background:'+col+'">'+initials(b.trainer_name)+'</div>'+
   '<div><div style="font-weight:700;font-size:14.5px">'+esc(b.trainer_name)+' <span style="color:var(--ink3);font-weight:600">← </span>'+esc(b.agent_name||b.agent_code||'Agent')+'</div>'+
-  '<div style="font-size:12.5px;color:var(--ink3)">'+esc(b.category||'Training')+' · '+prettyDate(b.date)+' · '+esc(b.time)+' PT <span class="conf">· '+esc(b.status)+'</span></div></div>'+
+  '<div style="font-size:12.5px;color:var(--ink3)">'+esc(b.category||'Training')+' · '+prettyDate(dispDate(b))+' · '+esc(dispTime(b))+tzTag()+' <span class="conf">· '+esc(b.status)+'</span></div></div>'+
   '<button class="x" style="margin-left:auto" onclick="openTransfer(\''+b.id+'\',\'manager\')">Transfer</button></div>';}
 function renderTransfers(){
   if(!isEmd()){$('view').innerHTML='<div class="empty">Transfers are managed by EMD / Ops only.</div>';return;}
@@ -1370,7 +1386,7 @@ function openClient(key){
   var up=bks.filter(function(b){return (b.status==='booked'||b.status==='confirmed'||b.status==='pending')&&b.date>=t;}).length;
   var noshow=bks.filter(function(b){return b.status==='no_show';}).length;
   var rows=bks.map(function(b){var col=b.status==='no_show'||b.status==='canceled'||b.status==='declined'?'var(--red)':(b.status==='confirmed'?'var(--green)':(b.status==='pending'?'var(--gold)':'var(--ink3)'));
-    return '<div class="confrow"><div><div style="font-weight:700;font-size:13.5px">'+esc(b.category||'Appointment')+'</div><div style="font-size:12px;color:var(--ink3)">'+prettyDate(b.date)+' · '+esc(b.time)+' PT <span class="conf">'+esc(b.conf||'')+'</span></div></div><span style="margin-left:auto;font-size:11.5px;font-weight:800;color:'+col+'">'+esc(b.status)+'</span></div>';}).join('');
+    return '<div class="confrow"><div><div style="font-weight:700;font-size:13.5px">'+esc(b.category||'Appointment')+'</div><div style="font-size:12px;color:var(--ink3)">'+prettyDate(dispDate(b))+' · '+esc(dispTime(b))+tzTag()+' <span class="conf">'+esc(b.conf||'')+'</span></div></div><span style="margin-left:auto;font-size:11.5px;font-weight:800;color:'+col+'">'+esc(b.status)+'</span></div>';}).join('');
   $('bkDrawer').innerHTML='<h3>'+esc(name||'Client')+'</h3><p class="dsub">'+esc(email||'')+(phone?(email?' · ':'')+esc(phone):'')+'</p>'+
     '<div class="grid g4" style="margin-bottom:16px">'+tile('Appointments',bks.length)+tile('Upcoming',up)+tile('No-shows',noshow)+'</div>'+
     '<div style="font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin-bottom:6px">History</div>'+rows+
@@ -1379,14 +1395,14 @@ function openClient(key){
 }
 function renderTrainers(){var rec=recommendTrainers();
   $('view').innerHTML='<div class="sech" style="margin-bottom:14px"><h2>Certified Field Trainers</h2><a onclick="setTab(\'book\')">Fast book →</a></div><div class="grid g3">'+(rec.length?rec.map(function(o){return trainerCard(o.cft,o.tag);}).join(''):'<div class="empty">No trainers configured.</div>')+'</div>';}
-function renderMe(){var t=todayStr();
+function renderMe(){var t=calToday();
   var naBtn=canNewAppt()?'<button onclick="openNewAppt()" style="border:none;background:var(--accent);color:#fff;font-weight:700;font-size:12.5px;padding:8px 13px;border-radius:10px;cursor:pointer;white-space:nowrap">+ New appointment</button>':'';
-  var isUp=function(b){return (b.status==='booked'||b.status==='confirmed'||b.status==='pending')&&b.date>=t;};
+  var isUp=function(b){return (b.status==='booked'||b.status==='confirmed'||b.status==='pending')&&dispDate(b)>=t;};
   var up=MYB.filter(isUp);
   var myTrain=MYT.filter(function(b){return isUp(b)&&!MYAPPTS.some(function(x){return String(x.id)===String(b.id);});});
-  var myAppt=MYAPPTS.filter(function(b){return b.date>=t&&(b.status||'')!=='canceled';});
+  var myAppt=MYAPPTS.filter(function(b){return dispDate(b)>=t&&(b.status||'')!=='canceled';});
   var pendCount=myTrain.filter(function(b){return b.status==='pending';}).length;
-  var h='<div id="myCalendly"></div>';
+  var h='<div style="font-size:11.5px;color:var(--ink3);margin:0 2px 10px">'+tzNote()+'</div><div id="myCalendly"></div>';
   h+='<div class="sec"><div class="sech"><h2>Upcoming appointments</h2><div style="display:flex;gap:8px;align-items:center">'+naBtn+'<a onclick="setTab(\'book\')">Book another →</a></div></div>'+(up.length?up.map(aptRow).join(''):'<div class="empty">Nothing on the books — tap Book a Trainer to schedule.</div>')+'</div>';
   if(myAppt.length){h+='<div class="sec"><div class="sech"><h2>Your appointments</h2><span style="font-size:12px;color:var(--ink3)">'+myAppt.length+' upcoming</span></div>'+myAppt.map(myApptRow).join('')+'</div>';}
   if(myTrain.length){h+='<div class="sec"><div class="sech"><h2>Sessions you\'re training</h2><span style="font-size:12px;color:var(--ink3)">'+myTrain.length+' upcoming'+(pendCount?' · '+pendCount+' to approve':'')+'</span></div><div style="font-size:12.5px;color:var(--ink3);margin:0 2px 10px">'+(pendCount?'Approve or decline pending requests below.':'Your upcoming sessions.')+'</div>'+myTrain.map(trainerAptRow).join('')+'</div>';}
@@ -1592,7 +1608,7 @@ function closeSpot(){$('spot').classList.remove('on');}
 $('spot').addEventListener('click',function(e){if(e.target===this)closeSpot();});
 function spotSearch(){var q=($('spotI').value||'').toLowerCase();var items=[];
   bTr().forEach(function(c){if(!q||c.name.toLowerCase().indexOf(q)>=0||(roleLabel(c.role).toLowerCase().indexOf(q)>=0)){items.push({t:c.name,s:roleLabel(c.role),k:'Trainer',act:function(){closeSpot();startBookWith(encodeURIComponent(c.name));}});}});
-  MYB.forEach(function(b){var hay=((b.trainer_name||'')+' '+(b.category||'')+' '+(b.conf||'')+' '+(b.status||'')).toLowerCase();if(!q||hay.indexOf(q)>=0){items.push({t:b.trainer_name+' · '+(b.category||'Training'),s:prettyDate(b.date)+' · '+b.time+' · '+(b.conf||''),k:'Appt',act:function(){closeSpot();setTab('me');}});}});
+  MYB.forEach(function(b){var hay=((b.trainer_name||'')+' '+(b.category||'')+' '+(b.conf||'')+' '+(b.status||'')).toLowerCase();if(!q||hay.indexOf(q)>=0){items.push({t:b.trainer_name+' · '+(b.category||'Training'),s:prettyDate(dispDate(b))+' · '+b.time+' · '+(b.conf||''),k:'Appt',act:function(){closeSpot();setTab('me');}});}});
   TRAININGS.forEach(function(s){if(!q||s.t.toLowerCase().indexOf(q)>=0||s.host.toLowerCase().indexOf(q)>=0){items.push({t:s.t,s:fmtHM(s.h,s.m)+' PT · '+s.host,k:'Training',act:function(){window.open(s.z,'_blank');}});}});
   CATS.forEach(function(c){if(q&&c.toLowerCase().indexOf(q)>=0)items.push({t:c,s:'Start a booking',k:'Type',act:function(){closeSpot();SELCAT=c;setTab('book');}});});
   SPOTITEMS=items.slice(0,12);SPOTSEL=0;
