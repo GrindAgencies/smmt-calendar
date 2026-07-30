@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-07-30T15:29:24.925Z",
+  "timestamp": "2026-07-30T16:04:24.696Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -19,8 +19,12 @@
     {
       "status": "M",
       "path": ".planning/HANDOFF.json"
+    },
+    {
+      "status": "M",
+      "path": "calendar.html"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\n09f599f Scheduler: show availability slots in the booker's time zone (submit stays Pacific)\n7ea663e Update HANDOFF.json\ncdc21ea Scheduler: convert recurring trainings + Ops dashboard to viewer time zone too\n0ea3e54 Update HANDOFF.json\n784c838 Scheduler: render every calendar in each broker's own time zone (auto-detected)"
+  "context_notes": "Recent commits:\n4e6fc0d Update HANDOFF.json\n09f599f Scheduler: show availability slots in the booker's time zone (submit stays Pacific)\n7ea663e Update HANDOFF.json\ncdc21ea Scheduler: convert recurring trainings + Ops dashboard to viewer time zone too\n0ea3e54 Update HANDOFF.json"
 }
