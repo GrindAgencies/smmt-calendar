@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-07-29T19:32:46.270Z",
+  "timestamp": "2026-07-30T15:12:30.936Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -19,8 +19,12 @@
     {
       "status": "M",
       "path": ".planning/HANDOFF.json"
+    },
+    {
+      "status": "M",
+      "path": "calendar.html"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\ne79b9e4 My Tracker: Ops milestone verification loop (two-way)\n2155139 Update HANDOFF.json\nfa8ba7e Update HANDOFF.json\n22ff9b4 My Tracker: Candy Crush board + tap-a-spot broker occupancy (color-coded by stuck-time)\n56c09b1 Update HANDOFF.json"
+  "context_notes": "Recent commits:\n1223015 Update HANDOFF.json\ne79b9e4 My Tracker: Ops milestone verification loop (two-way)\n2155139 Update HANDOFF.json\nfa8ba7e Update HANDOFF.json\n22ff9b4 My Tracker: Candy Crush board + tap-a-spot broker occupancy (color-coded by stuck-time)"
 }
