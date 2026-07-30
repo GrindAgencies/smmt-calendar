@@ -341,6 +341,9 @@ var TRAININGS=[
  {d:[4],h:18,m:0,t:'Orientation Day 2',host:'Elijah Cox',z:ZOOM.main,zt:'Zoom 964 650 9994 · WEALTH'}
 ];
 function fmtHM(h,m){var ap=h>=12?'PM':'AM';var hh=h%12;if(hh===0)hh=12;return hh+':'+(m<10?'0'+m:m)+' '+ap;}
+/* a recurring PT wall-time (h:m) shown in the viewer's zone */
+function fmtHMlocal(h,m){var tstr=(h%12===0?12:h%12)+':'+(m<10?'0'+m:m)+' '+(h>=12?'PM':'AM');var inst=ptInstant(calToday(),tstr);return inst?vTimeOf(inst):tstr;}
+function localHParts(h,m){var lt=fmtHMlocal(h,m);var mm=/(\d+):(\d+)\s*(AM|PM)/i.exec(lt);return mm?{h12:+mm[1],ap:mm[3].toUpperCase()}:{h12:(h%12===0?12:h%12),ap:(h>=12?'PM':'AM')};}
 function trainingsFor(wd){return TRAININGS.filter(function(s){return s.d.indexOf(wd)>=0;}).sort(function(a,b){return (a.h*60+a.m)-(b.h*60+b.m);});}
 function trainingBaseshopOK(){var b=((PROFILE&&PROFILE.baseshop)||'').toUpperCase();return b===''||b.indexOf('SUMMIT')>=0||b.indexOf('SMMT')>=0||b.indexOf('GRIND')>=0;}
 var NAVI=[['home','Home','index.html','M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z'],
@@ -887,27 +890,27 @@ function saveCalSync(){
   }).catch(function(){if(btn)btn.disabled=false;msg.style.color='var(--red)';msg.textContent='Network error — try again.';});
 }
 var DASHVIEW='month',DASHMONTH=0,DASHDAY=null,COMPANY_EV=[];
-function monthFirst(off){var d=new Date(todayStr()+'T12:00:00Z');d.setUTCDate(1);d.setUTCMonth(d.getUTCMonth()+off);return d;}
+function monthFirst(off){var d=new Date(calToday()+'T12:00:00Z');d.setUTCDate(1);d.setUTCMonth(d.getUTCMonth()+off);return d;}
 function loadCompanyEvents(from,to,cb){fetch(CAL+'?action=company_events&code='+encodeURIComponent(CODE)+'&from='+from+'&to='+to).then(function(r){return r.json();}).then(function(r){COMPANY_EV=(r&&r.events)||[];cb&&cb();}).catch(function(){COMPANY_EV=[];cb&&cb();});}
 function companyEventsFor(ds){var out=[];
-  COMPANY_EV.forEach(function(b){if(b.date===ds)out.push({key:'b:'+b.id,time:b.time,title:b.trainer_name||'',sub:(b.category||'')+(b.agent_name?(' · '+b.agent_name):''),color:statusColor(b.status),status:b.status});});
-  trainingsFor(wdOf(ds)).forEach(function(tr,i){out.push({key:'tr:'+ds+':'+i,time:fmtHM(tr.h,tr.m),title:tr.t,sub:'Live training',color:'var(--gold)'});});
+  COMPANY_EV.forEach(function(b){var inst=itemInstant(b);var vd=inst?vDateOf(inst):b.date;if(vd!==ds)return;out.push({key:'b:'+b.id,time:inst?vTimeOf(inst):b.time,title:b.trainer_name||'',sub:(b.category||'')+(b.agent_name?(' · '+b.agent_name):''),color:statusColor(b.status),status:b.status});});
+  trainingsFor(wdOf(ds)).forEach(function(tr,i){out.push({key:'tr:'+ds+':'+i,time:fmtHMlocal(tr.h,tr.m),title:tr.t,sub:'Live training',color:'var(--gold)'});});
   out.sort(function(a,b){return t2min(a.time)-t2min(b.time);});return out;}
 function renderDash(){
-  if(!DASHDAY)DASHDAY=todayStr();
+  if(!DASHDAY)DASHDAY=calToday();
   var rangeFrom,rangeTo,head;
   var toggle='<div style="display:inline-flex;background:var(--panel);border:1px solid var(--line2);border-radius:11px;padding:3px;gap:2px"><button class="calnav" style="border:none;padding:6px 14px;'+(DASHVIEW==='month'?'background:var(--accent);color:#fff':'background:none')+'" onclick="DASHVIEW=\'month\';render()">Month</button><button class="calnav" style="border:none;padding:6px 14px;'+(DASHVIEW==='day'?'background:var(--accent);color:#fff':'background:none')+'" onclick="DASHVIEW=\'day\';render()">Day</button></div>';
   if(DASHVIEW==='month'){
     var mf=monthFirst(DASHMONTH);var gs=new Date(mf);gs.setUTCDate(1-mf.getUTCDay());rangeFrom=gs.toISOString().slice(0,10);
     var ge=new Date(gs);ge.setUTCDate(gs.getUTCDate()+41);rangeTo=ge.toISOString().slice(0,10);
     var mlabel=mf.toLocaleDateString('en-US',{month:'long',year:'numeric',timeZone:'UTC'});
-    head='<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;flex-wrap:wrap"><h2 style="font-size:20px;font-weight:800;margin:0;letter-spacing:-.02em">'+esc(mlabel)+'</h2><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">'+toggle+'<button class="calnav" onclick="DASHMONTH--;render()">‹</button><button class="calnav" onclick="DASHMONTH=0;DASHDAY=todayStr();render()">Today</button><button class="calnav" onclick="DASHMONTH++;render()">›</button></div></div>';
+    head='<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;flex-wrap:wrap"><h2 style="font-size:20px;font-weight:800;margin:0;letter-spacing:-.02em">'+esc(mlabel)+'</h2><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">'+toggle+'<button class="calnav" onclick="DASHMONTH--;render()">‹</button><button class="calnav" onclick="DASHMONTH=0;DASHDAY=calToday();render()">Today</button><button class="calnav" onclick="DASHMONTH++;render()">›</button></div></div>';
   } else {
     rangeFrom=DASHDAY;rangeTo=DASHDAY;
     var dl=new Date(DASHDAY+'T12:00:00Z').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',timeZone:'UTC'});
-    head='<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;flex-wrap:wrap"><h2 style="font-size:20px;font-weight:800;margin:0;letter-spacing:-.02em">'+esc(dl)+'</h2><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">'+toggle+'<button class="calnav" onclick="DASHDAY=ymd(new Date(new Date(DASHDAY+\'T12:00:00Z\').getTime()-864e5));render()">‹</button><button class="calnav" onclick="DASHDAY=todayStr();render()">Today</button><button class="calnav" onclick="DASHDAY=ymd(new Date(new Date(DASHDAY+\'T12:00:00Z\').getTime()+864e5));render()">›</button></div></div>';
+    head='<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;flex-wrap:wrap"><h2 style="font-size:20px;font-weight:800;margin:0;letter-spacing:-.02em">'+esc(dl)+'</h2><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">'+toggle+'<button class="calnav" onclick="DASHDAY=ymd(new Date(new Date(DASHDAY+\'T12:00:00Z\').getTime()-864e5));render()">‹</button><button class="calnav" onclick="DASHDAY=calToday();render()">Today</button><button class="calnav" onclick="DASHDAY=ymd(new Date(new Date(DASHDAY+\'T12:00:00Z\').getTime()+864e5));render()">›</button></div></div>';
   }
-  $('view').innerHTML='<div style="font-size:12.5px;color:var(--ink3);margin-bottom:8px">Company calendar — everyone’s bookings + live trainings. Tap a day for the hourly view.</div>'+head+'<div id="dashCal"><div class="spin">Loading company calendar…</div></div>';
+  $('view').innerHTML='<div style="font-size:12.5px;color:var(--ink3);margin-bottom:8px">Company calendar — everyone’s bookings + live trainings. Tap a day for the hourly view. · '+tzNote()+'</div>'+head+'<div id="dashCal"><div class="spin">Loading company calendar…</div></div>';
   loadCompanyEvents(rangeFrom,rangeTo,function(){paintDash();});
 }
 function paintDash(){var el=$('dashCal');if(!el)return;
@@ -915,7 +918,7 @@ function paintDash(){var el=$('dashCal');if(!el)return;
   var mf=monthFirst(DASHMONTH);var mon=mf.getUTCMonth();var gs=new Date(mf);gs.setUTCDate(1-mf.getUTCDay());
   var h='<div class="mdowrow">'+['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(function(x){return '<div class="mdow">'+x+'</div>';}).join('')+'</div><div class="mgrid">';
   for(var i=0;i<42;i++){var d=new Date(gs);d.setUTCDate(gs.getUTCDate()+i);var ds=d.toISOString().slice(0,10);
-    var inMonth=d.getUTCMonth()===mon;var isToday=ds===todayStr();var evs=companyEventsFor(ds);
+    var inMonth=d.getUTCMonth()===mon;var isToday=ds===calToday();var evs=companyEventsFor(ds);
     var chips=evs.slice(0,3).map(function(e){return '<div class="mchip" style="border-left:3px solid '+e.color+'" onclick="event.stopPropagation();openCompanyEvent(\''+e.key+'\')">'+esc(e.time)+' '+esc(e.title)+'</div>';}).join('');
     h+='<div class="mcell'+(inMonth?'':' out')+(isToday?' today':'')+'" onclick="DASHDAY=\''+ds+'\';DASHVIEW=\'day\';render()"><div class="mnum">'+d.getUTCDate()+'</div>'+chips+(evs.length>3?'<div class="mmore">+'+(evs.length-3)+' more</div>':'')+'</div>';
   }
@@ -970,7 +973,7 @@ function trainerCard(c,tag){var av=trainerAvailToday(c);var no=nextOpening(c);va
 }
 function roleLabel(r){return r==='EMD'?'Executive Marketing Director':(r==='MD'?'Marketing Director · Field Trainer':(r==='CFT'?'Certified Field Trainer':(r||'Trainer')));}
 function shortDate(dstr){if(dstr===todayStr())return 'Today';return new Date(dstr+'T12:00:00Z').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',timeZone:'UTC'});}
-function trainingRow(s){return '<div class="trow"><div class="ti"><div class="h">'+(s.h%12===0?12:s.h%12)+'</div><div class="ap">'+(s.h>=12?'PM':'AM')+'</div></div><div><div class="tt">'+esc(s.t)+'</div><div class="ts">'+fmtHM(s.h,s.m)+' PT · '+esc(s.host)+' · '+esc(s.zt)+'</div></div><a class="zj" href="'+s.z+'" target="_blank" rel="noopener">Join Zoom</a></div>';}
+function trainingRow(s){var lp=localHParts(s.h,s.m);return '<div class="trow"><div class="ti"><div class="h">'+lp.h12+'</div><div class="ap">'+lp.ap+'</div></div><div><div class="tt">'+esc(s.t)+'</div><div class="ts">'+fmtHMlocal(s.h,s.m)+tzTag()+' · '+esc(s.host)+' · '+esc(s.zt)+'</div></div><a class="zj" href="'+s.z+'" target="_blank" rel="noopener">Join Zoom</a></div>';}
 /* ---- This week's trainings: weekday strip, opens on today, one-tap share ---- */
 var WD_FULL=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 var WD_SHORT=['SUN','MON','TUE','WED','THU','FRI','SAT'];
@@ -978,7 +981,7 @@ var WEEK_ORDER=[1,2,3,4,5,6,0];
 var TRAINDAY=null;
 function todayWd(){return addDays(0).getUTCDay();}
 function trainRowShare(wd,i){var s=trainingsFor(wd)[i];if(!s)return '';
-  return '<div class="trow tin" style="animation-delay:'+(i*55)+'ms"><div class="ti"><div class="h">'+(s.h%12===0?12:s.h%12)+'</div><div class="ap">'+(s.h>=12?'PM':'AM')+'</div></div><div style="min-width:0"><div class="tt">'+esc(s.t)+'</div><div class="ts">'+fmtHM(s.h,s.m)+' PT · '+esc(s.host)+' · '+esc(s.zt)+'</div></div><div style="margin-left:auto;display:flex;gap:7px"><a class="zj" style="margin:0" href="'+s.z+'" target="_blank" rel="noopener">Join</a><button class="tshare" onclick="shareTrainingItem('+wd+','+i+')">Share</button></div></div>';}
+  var lp=localHParts(s.h,s.m);return '<div class="trow tin" style="animation-delay:'+(i*55)+'ms"><div class="ti"><div class="h">'+lp.h12+'</div><div class="ap">'+lp.ap+'</div></div><div style="min-width:0"><div class="tt">'+esc(s.t)+'</div><div class="ts">'+fmtHMlocal(s.h,s.m)+tzTag()+' · '+esc(s.host)+' · '+esc(s.zt)+'</div></div><div style="margin-left:auto;display:flex;gap:7px"><a class="zj" style="margin:0" href="'+s.z+'" target="_blank" rel="noopener">Join</a><button class="tshare" onclick="shareTrainingItem('+wd+','+i+')">Share</button></div></div>';}
 function wkInner(){
   var tw=todayWd();
   var strip=WD_SHORT.map(function(nm,wd){var cnt=trainingsFor(wd).length;
@@ -1609,7 +1612,7 @@ $('spot').addEventListener('click',function(e){if(e.target===this)closeSpot();})
 function spotSearch(){var q=($('spotI').value||'').toLowerCase();var items=[];
   bTr().forEach(function(c){if(!q||c.name.toLowerCase().indexOf(q)>=0||(roleLabel(c.role).toLowerCase().indexOf(q)>=0)){items.push({t:c.name,s:roleLabel(c.role),k:'Trainer',act:function(){closeSpot();startBookWith(encodeURIComponent(c.name));}});}});
   MYB.forEach(function(b){var hay=((b.trainer_name||'')+' '+(b.category||'')+' '+(b.conf||'')+' '+(b.status||'')).toLowerCase();if(!q||hay.indexOf(q)>=0){items.push({t:b.trainer_name+' · '+(b.category||'Training'),s:prettyDate(dispDate(b))+' · '+b.time+' · '+(b.conf||''),k:'Appt',act:function(){closeSpot();setTab('me');}});}});
-  TRAININGS.forEach(function(s){if(!q||s.t.toLowerCase().indexOf(q)>=0||s.host.toLowerCase().indexOf(q)>=0){items.push({t:s.t,s:fmtHM(s.h,s.m)+' PT · '+s.host,k:'Training',act:function(){window.open(s.z,'_blank');}});}});
+  TRAININGS.forEach(function(s){if(!q||s.t.toLowerCase().indexOf(q)>=0||s.host.toLowerCase().indexOf(q)>=0){items.push({t:s.t,s:fmtHMlocal(s.h,s.m)+tzTag()+' · '+s.host,k:'Training',act:function(){window.open(s.z,'_blank');}});}});
   CATS.forEach(function(c){if(q&&c.toLowerCase().indexOf(q)>=0)items.push({t:c,s:'Start a booking',k:'Type',act:function(){closeSpot();SELCAT=c;setTab('book');}});});
   SPOTITEMS=items.slice(0,12);SPOTSEL=0;
   $('spotR').innerHTML=SPOTITEMS.length?SPOTITEMS.map(function(x,i){return '<div class="sres'+(i===0?' sel':'')+'" onclick="SPOTITEMS['+i+'].act()"><div class="si">'+esc((x.k[0]||'?'))+'</div><div><div class="st">'+esc(x.t)+'</div><div class="ss">'+esc(x.s)+'</div></div><span class="kind">'+esc(x.k)+'</span></div>';}).join(''):'<div class="empty" style="border:none">No matches.</div>';}
