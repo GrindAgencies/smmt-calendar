@@ -180,6 +180,37 @@
   }catch(e){}
 })();
 
+/* ===== Install prompt — "Add to Home Screen" (added 2026-07-30) =====
+   A tasteful, dismissible banner that makes the PWA installable on Android
+   (native beforeinstallprompt) and iOS Safari (Share → Add to Home Screen).
+   Skipped inside the native app, when already installed, or if recently dismissed. */
+(function(){
+  try{
+    var C=window.Capacitor; if(C&&C.isNativePlatform&&C.isNativePlatform())return;
+    var standalone=(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)||window.navigator.standalone===true;
+    if(standalone)return;
+    var KEY='tsfg_install_snooze';
+    try{ if(Date.now()-(+localStorage.getItem(KEY)||0) < 1000*60*60*24*14) return; }catch(e){}
+    var isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
+    var deferred=null;
+    function snooze(el){try{localStorage.setItem(KEY,String(Date.now()));}catch(e){}if(el)el.remove();}
+    function show(){
+      if(document.getElementById('tsfgInstall')||!document.body)return;
+      if(!document.getElementById('tsfgInstCss')){var s=document.createElement('style');s.id='tsfgInstCss';
+        s.textContent='#tsfgInstall{position:fixed;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);z-index:2147482000;display:flex;align-items:center;gap:12px;max-width:520px;margin:0 auto;background:#12151f;color:#f5f6fa;border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:12px 14px;box-shadow:0 14px 36px rgba(0,0,0,.5);font-family:-apple-system,BlinkMacSystemFont,Inter,Segoe UI,system-ui,sans-serif;animation:tsfgUp .3s ease}@keyframes tsfgUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}#tsfgInstall img{width:40px;height:40px;border-radius:11px;flex:0 0 auto}#tsfgInstall .it{flex:1;min-width:0;line-height:1.3}#tsfgInstall .it b{font-size:14px;font-weight:800;display:block}#tsfgInstall .it span{font-size:12px;color:#aab0c0}#tsfgInstall .ib{border:none;background:#5b6cff;color:#fff;font-weight:800;font-size:13px;padding:9px 15px;border-radius:11px;cursor:pointer;white-space:nowrap}#tsfgInstall .ix{border:none;background:none;color:#8a90a0;font-size:22px;cursor:pointer;padding:0 4px;line-height:1}';
+        document.head.appendChild(s);}
+      var d=document.createElement('div');d.id='tsfgInstall';
+      var msg=isIOS?'<b>Install The Standard</b><span>Tap <b style="display:inline">Share ⬆</b>, then “Add to Home Screen”.</span>':'<b>Install The Standard</b><span>Add the full-screen app to your home screen.</span>';
+      d.innerHTML='<img src="apple-touch-icon.png" alt=""><div class="it">'+msg+'</div>'+(isIOS?'':'<button class="ib" id="tsfgInstBtn">Install</button>')+'<button class="ix" id="tsfgInstX" aria-label="Dismiss">×</button>';
+      document.body.appendChild(d);
+      var x=document.getElementById('tsfgInstX'); if(x)x.onclick=function(){snooze(d);};
+      var b=document.getElementById('tsfgInstBtn'); if(b)b.onclick=function(){ if(!deferred)return; deferred.prompt(); (deferred.userChoice||Promise.resolve()).finally(function(){snooze(d);deferred=null;}); };
+    }
+    window.addEventListener('beforeinstallprompt',function(e){ e.preventDefault(); deferred=e; setTimeout(show,1400); });
+    if(isIOS) setTimeout(function(){ if(!standalone) show(); },1800);
+  }catch(e){}
+})();
+
 /* ===== Native app push registration (added 2026-07-24) =====
    When the site runs INSIDE the Capacitor iOS/Android app, register the device
    for push and store its token in Supabase (device_tokens). No-op in a browser.

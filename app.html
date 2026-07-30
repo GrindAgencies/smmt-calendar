@@ -76,6 +76,8 @@
   <a class="full" href="index.html">Open the full platform →</a>
 
   <script>
+    // If the app is launched and no one is signed in, go to the sign-in home.
+    try{ if(!localStorage.getItem('tsfg_code')) location.replace('index.html'); }catch(e){}
     // Notifications tile opens the shared bell panel (injected by notif.js)
     function openNotifs(){
       var b=document.querySelector('.ntf-btn');
