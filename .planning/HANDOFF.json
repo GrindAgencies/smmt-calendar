@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-07-30T16:04:24.696Z",
+  "timestamp": "2026-07-30T16:19:52.328Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -22,9 +22,13 @@
     },
     {
       "status": "M",
-      "path": "calendar.html"
+      "path": "app.html"
+    },
+    {
+      "status": "M",
+      "path": "notif.js"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\n4e6fc0d Update HANDOFF.json\n09f599f Scheduler: show availability slots in the booker's time zone (submit stays Pacific)\n7ea663e Update HANDOFF.json\ncdc21ea Scheduler: convert recurring trainings + Ops dashboard to viewer time zone too\n0ea3e54 Update HANDOFF.json"
+  "context_notes": "Recent commits:\n3b8e587 Update HANDOFF.json\n73a7e2c My Availability: trainers set their weekly hours in their OWN time zone\n4e6fc0d Update HANDOFF.json\n09f599f Scheduler: show availability slots in the booker's time zone (submit stays Pacific)\n7ea663e Update HANDOFF.json"
 }
