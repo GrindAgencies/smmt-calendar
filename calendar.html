@@ -549,6 +549,8 @@ function itemInstant(o){if(!o)return null;if(o.inst instanceof Date)return o.ins
 function dispTime(b){var i=itemInstant(b);return i?vTimeOf(i):(b.time||'');}
 function dispDate(b){var i=itemInstant(b);return i?vDateOf(i):(b.date||'');}
 function tzTag(){var a=tzShort();return a?(' '+a):'';}
+/* a Pacific availability slot (stored standard) shown in the viewer's zone; the PT value stays the pick/submit key */
+function localSlot(ds,t){var inst=ptInstant(ds,t);return inst?vTimeOf(inst):t;}
 function calEventsFor(dstr){
   var evs=[];var myname=(NAME||'').trim().toLowerCase();
   MYB.forEach(function(b){var inst=itemInstant(b);if(!inst||vDateOf(inst)!==dstr)return;evs.push({id:b.id,inst:inst,time:vTimeOf(inst),title:(b.title||b.trainer_name||b.category),sub:b.category,status:b.status,color:b.color,role:'agent',source:b.source,dur:Number(b.duration_minutes)||60});});
@@ -1062,7 +1064,7 @@ function sbTrainerChange(){var name=$('sb_trainer').value;var ds=$('sb_date');$(
 }
 function sbDateChange(){var d=$('sb_date').value;var ts=$('sb_time');var day=SBSLOTS.filter(function(s){return s.date===d;})[0];
   if(!day){ts.innerHTML='<option value="">—</option>';return;}
-  ts.innerHTML='<option value="">Select a time…</option>'+day.times.map(function(t){return '<option value="'+esc(t)+'">'+esc(t)+' PT</option>';}).join('');
+  ts.innerHTML='<option value="">Select a time…</option>'+day.times.map(function(t){return '<option value="'+esc(t)+'">'+esc(localSlot(d,t))+tzTag()+'</option>';}).join('');
 }
 function doStaffBook(){
   var err=$('sbErr');err.textContent='';
@@ -1090,11 +1092,11 @@ function renderCats(){$('catrow').innerHTML=CATS.map(function(c){return '<button
 function pickDate(ds){SELDATE=ds;SELTIME=null;renderDStrip();$('timesWrap').innerHTML='<div class="spin">Checking Calendly availability…</div>';$('trWrap').innerHTML='';loadDayBooked(ds,function(){loadCalAvail(ds,function(){renderTimes();});});}
 function renderTimes(){var times=allTimesForDate(SELDATE);
   if(!times.length){$('timesWrap').innerHTML='<div class="empty">No trainer availability on '+prettyDate(SELDATE)+'. Try another day.</div>';return;}
-  $('timesWrap').innerHTML='<div class="tchips">'+times.map(function(o){return '<button class="tchip'+(o.time===SELTIME?' on':'')+'" onclick="pickTime(\''+o.time+'\')">'+o.time+'<span class="cnt">'+o.count+' free</span></button>';}).join('')+'</div>';}
+  $('timesWrap').innerHTML='<div style="font-size:11.5px;color:var(--ink3);margin-bottom:8px">'+tzNote()+'</div><div class="tchips">'+times.map(function(o){return '<button class="tchip'+(o.time===SELTIME?' on':'')+'" onclick="pickTime(\''+o.time+'\')">'+esc(localSlot(SELDATE,o.time))+'<span class="cnt">'+o.count+' free</span></button>';}).join('')+'</div>';}
 function pickTime(t){SELTIME=t;renderTimes();var trs=trainersAt(SELDATE,t);
   $('trWrap').innerHTML='<div class="lbl">4 · Choose your trainer</div><div class="grid g3">'+trs.map(function(c){return bookTrainerCard(c);}).join('')+'</div>';
   $('trWrap').scrollIntoView({behavior:'smooth',block:'center'});}
-function bookTrainerCard(c){var col=avColor(c.name);return '<div class="tcard"><div class="th"><div class="tav" style="background:'+col+'">'+initials(c.name)+'</div><div><div class="tn">'+esc(c.name)+'</div><div class="tr">'+esc(roleLabel(c.role))+'</div></div></div><div class="tmeta"><span class="m">'+esc(SELTIME)+' PT</span><span class="m">'+esc(SELCAT)+'</span></div><button class="book" onclick="confirmBook(\''+encodeURIComponent(c.name)+'\')">Book this time</button></div>';}
+function bookTrainerCard(c){var col=avColor(c.name);return '<div class="tcard"><div class="th"><div class="tav" style="background:'+col+'">'+initials(c.name)+'</div><div><div class="tn">'+esc(c.name)+'</div><div class="tr">'+esc(roleLabel(c.role))+'</div></div></div><div class="tmeta"><span class="m">'+esc(localSlot(SELDATE,SELTIME))+tzTag()+'</span><span class="m">'+esc(SELCAT)+'</span></div><button class="book" onclick="confirmBook(\''+encodeURIComponent(c.name)+'\')">Book this time</button></div>';}
 function startBookWith(encName){var name=decodeURIComponent(encName);var c=TRAINERS.filter(function(x){return x.name===name;})[0];if(!c)return;
   if(c.calendly){window.open(c.calendly,'_blank','noopener');toast('Opening '+name.split(' ')[0]+'’s Calendly…');return;}
   toast(name.split(' ')[0]+' hasn’t connected their Calendly yet.');}
@@ -1184,8 +1186,8 @@ function confirmBook(encName){var name=decodeURIComponent(encName);var c=TRAINER
   var col=avColor(name);var hasCal=!!(c&&c.calendly);
   $('bkDrawer').innerHTML='<h3>Confirm your training</h3><p class="dsub">Review, add guests, and confirm.</p>'+
     '<div style="display:flex;align-items:center;gap:13px;margin-bottom:8px"><div class="tav" style="background:'+col+'">'+initials(name)+'</div><div><div style="font-weight:800;font-size:16px">'+esc(name)+'</div><div style="font-size:12.5px;color:var(--ink3)">'+esc(roleLabel(c.role))+'</div></div></div>'+
-    '<div class="confrow"><div class="cl">When</div><div class="cv">'+prettyDate(SELDATE)+'</div></div>'+
-    '<div class="confrow"><div class="cl">Time</div><div class="cv">'+esc(SELTIME)+' · '+esc((TZ.split(" ")[0]||"PT"))+'</div></div>'+
+    '<div class="confrow"><div class="cl">When</div><div class="cv">'+prettyDate(dispDate({date:SELDATE,time:SELTIME}))+'</div></div>'+
+    '<div class="confrow"><div class="cl">Time</div><div class="cv">'+esc(localSlot(SELDATE,SELTIME))+' · '+esc(tzShort()||(TZ.split(" ")[0]||"PT"))+'</div></div>'+
     '<div class="confrow"><div class="cl">Type</div><div class="cv">'+esc(SELCAT)+'</div></div>'+
     '<div class="confrow"><div class="cl">Agent</div><div class="cv">'+esc(NAME||CODE)+'</div></div>'+
     '<div style="margin-top:10px"><label style="font-size:11.5px;font-weight:700;color:var(--ink2)">Your email</label><input id="bk_email" value="'+esc(PROFILE.email||'')+'" placeholder="you@email.com" style="'+_CFIN+';margin-top:4px"></div>'+
