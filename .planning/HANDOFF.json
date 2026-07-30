@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-07-30T15:19:08.833Z",
+  "timestamp": "2026-07-30T15:29:24.925Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -22,5 +22,5 @@
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\ncdc21ea Scheduler: convert recurring trainings + Ops dashboard to viewer time zone too\n0ea3e54 Update HANDOFF.json\n784c838 Scheduler: render every calendar in each broker's own time zone (auto-detected)\n1223015 Update HANDOFF.json\ne79b9e4 My Tracker: Ops milestone verification loop (two-way)"
+  "context_notes": "Recent commits:\n09f599f Scheduler: show availability slots in the booker's time zone (submit stays Pacific)\n7ea663e Update HANDOFF.json\ncdc21ea Scheduler: convert recurring trainings + Ops dashboard to viewer time zone too\n0ea3e54 Update HANDOFF.json\n784c838 Scheduler: render every calendar in each broker's own time zone (auto-detected)"
 }
