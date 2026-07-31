@@ -51,7 +51,7 @@
 </head>
 <body>
   <header>
-    <div class="mark">TS</div>
+    <div class="mark" style="border:none;background:none;padding:0;overflow:hidden"><img src="apple-touch-icon.png" alt="The Standard" style="width:44px;height:44px;border-radius:13px;object-fit:cover"></div>
     <div class="brand"><b>The Standard</b><span>Financial Group</span></div>
   </header>
   <h1>Welcome — what do you need?</h1>
@@ -72,6 +72,10 @@
       <div class="ic">🔔</div>
       <div><div class="tl">Notifications</div><div class="sb">Your alerts &amp; mentions</div></div>
     </button>
+    <button class="tile" onclick="location.href='checklist.html'" style="grid-column:1/-1">
+      <div class="ic">✅</div>
+      <div><div class="tl">My Tracker</div><div class="sb">Your 90-day path &amp; daily non-negotiables</div></div>
+    </button>
   </div>
   <a class="full" href="index.html">Open the full platform →</a>
 
@@ -81,8 +85,12 @@
     // Notifications tile opens the shared bell panel (injected by notif.js)
     function openNotifs(){
       var b=document.querySelector('.ntf-btn');
-      if(b){ b.click(); }
-      else { location.href='index.html'; } // fallback if bell not ready
+      if(b){ b.click(); return; }
+      var n=0, t=setInterval(function(){
+        var x=document.querySelector('.ntf-btn');
+        if(x){ clearInterval(t); x.click(); }
+        else if(++n>25){ clearInterval(t); location.href='index.html'; }
+      },150);
     }
     // register the service worker directly too (belt + braces; notif.js also does it)
     if('serviceWorker' in navigator){
