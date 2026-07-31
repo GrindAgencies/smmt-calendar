@@ -185,6 +185,94 @@ input,textarea,select{border-radius:12px;}
 .hero,.commit,.stuck,.ga-start{box-shadow:0 2px 6px rgba(0,0,0,.04),0 12px 34px rgba(0,0,0,.06)!important;}
 .hero{background:#fff!important;}
 </style>
+<style id="broker-css">
+.modeswitch{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:0 auto 18px;max-width:520px;}
+.modeswitch button{flex:1;min-width:150px;font-family:inherit;cursor:pointer;text-align:center;font-weight:900;font-size:13px;letter-spacing:.04em;text-transform:uppercase;padding:12px 16px;border-radius:12px;border:1px solid var(--gold-deep);color:var(--gold);background:#f2f2f5;transition:.15s;}
+.modeswitch button.on{color:#1d1d1f;background:linear-gradient(90deg,var(--gold-bright),var(--gold));border-color:var(--gold);box-shadow:0 6px 18px rgba(212,175,55,.25);}
+.signedout{max-width:420px;margin:34px auto;text-align:center;border:1px solid var(--line);border-radius:16px;padding:26px;background:#fff;}
+.signedout p{color:var(--muted);margin:0 0 14px;}
+.btn-gold{display:inline-block;text-decoration:none;font-weight:900;color:#1d1d1f;background:linear-gradient(90deg,var(--gold-bright),var(--gold));padding:11px 20px;border-radius:12px;}
+.who-row{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;}
+#whoAmI{font-weight:800;color:#1d1d1f;font-size:14px;}
+.savestat{font-size:12px;font-weight:800;color:var(--muted);min-height:14px;}
+.savestat.ok{color:var(--green);}
+.mp-tabs{display:flex;gap:8px;margin-bottom:14px;}
+.mp-tab{flex:1;font-family:inherit;cursor:pointer;font-weight:800;font-size:13.5px;padding:11px;border-radius:12px;border:1px solid var(--line);background:#fff;color:var(--muted);}
+.mp-tab.on{color:#1d1d1f;border-color:var(--gold-deep);background:rgba(212,175,55,.08);}
+.vcount{display:inline-block;min-width:18px;padding:0 5px;border-radius:999px;background:var(--gold);color:#1d1d1f;font-size:11px;font-weight:900;}
+.marker{font-size:13px;color:var(--muted);background:rgba(212,175,55,.06);border:1px solid var(--line);border-radius:12px;padding:11px 13px;margin-bottom:14px;line-height:1.5;}
+.marker b{color:#1d1d1f;}
+.wm-goal{border:1px solid var(--gold-deep);border-radius:14px;padding:14px;background:#fff;margin-bottom:10px;}
+.wm-goal-top{display:flex;justify-content:space-between;font-weight:900;font-size:13.5px;color:#1d1d1f;}
+.wm-goal-top span:last-child{color:var(--gold-bright);}
+.wm-goal-bar{height:10px;border-radius:999px;background:#f0f0f3;overflow:hidden;margin:9px 0 7px;}
+.wm-goal-bar span{display:block;height:100%;background:linear-gradient(90deg,var(--gold-bright),var(--gold));width:0;transition:width .4s;}
+.wm-goal-note{font-size:12px;color:var(--muted);font-weight:700;}
+.wm-score{font-size:12.5px;font-weight:800;color:#1d1d1f;margin-bottom:14px;}
+.wl-win{color:var(--green);}.wl-lose{color:var(--red);}
+.mp-import{border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px;background:#fbfbfd;}
+.mp-import-h{font-weight:900;font-size:14px;color:var(--gold-bright);}
+.mp-import-sub{font-size:12.5px;color:var(--muted);margin:4px 0 11px;line-height:1.45;}
+.mp-import-actions{display:flex;gap:8px;flex-wrap:wrap;}
+.mp-imp-btn{flex:1;min-width:150px;font-family:inherit;padding:11px;border-radius:11px;border:0;font-weight:800;font-size:13px;cursor:pointer;background:linear-gradient(90deg,var(--gold-bright),var(--gold));color:#1d1d1f;}
+.mp-imp-btn.alt{background:#fff;color:var(--gold);border:1px solid var(--gold-deep);}
+#impPasteBox{width:100%;border-radius:10px;border:1px solid var(--line);background:#fff;color:#1d1d1f;padding:10px;font-size:13px;margin-bottom:8px;font-family:inherit;}
+.mp-import-note{font-size:12.5px;font-weight:800;margin-top:9px;min-height:14px;}
+.mp-import-help{font-size:11px;color:var(--muted);margin-top:9px;line-height:1.45;}
+.mp-import-help b{color:var(--gold);}
+.wm-log{border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px;background:#fff;}
+.wm-log-h{font-weight:900;font-size:14px;color:#1d1d1f;margin-bottom:10px;}
+.wm-rows{display:flex;flex-direction:column;gap:8px;}
+.wm-row{display:grid;grid-template-columns:1.3fr 1fr 1.2fr auto;gap:6px;align-items:center;}
+.wm-row input{padding:10px;border-radius:10px;border:1px solid var(--line);background:#fbfbfd;font-size:14px;font-family:inherit;}
+.wm-row .wm-note-in{grid-column:1/-1;}
+.wm-x{border:0;background:#f0f0f3;border-radius:8px;cursor:pointer;font-size:16px;width:34px;height:34px;color:var(--muted);}
+.wm-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
+.wm-add,.wm-save{font-family:inherit;cursor:pointer;font-weight:800;font-size:13px;padding:10px 15px;border-radius:11px;border:1px solid var(--gold-deep);background:#fff;color:var(--gold);}
+.wm-save{background:linear-gradient(90deg,var(--gold-bright),var(--gold));color:#1d1d1f;border:0;}
+.wm-note{font-size:12.5px;font-weight:800;margin-top:8px;min-height:14px;}
+.mp-addrow{display:none;justify-content:center;margin:10px 0;}
+.mp-addrow button{font-family:inherit;cursor:pointer;font-weight:800;font-size:13px;padding:10px 16px;border-radius:11px;border:1px dashed var(--gold-deep);background:#fff;color:var(--gold);}
+.wm-empty{text-align:center;color:var(--muted);font-style:italic;padding:22px;}
+.wm-card{border:1px solid var(--line);border-radius:14px;padding:13px;margin-bottom:11px;background:#fff;}
+.wm-card.contacted{border-color:var(--gold-deep);}
+.wm-card.oc-win{border-color:var(--green);box-shadow:0 0 0 2px rgba(52,199,89,.12);}
+.wm-card.oc-lose{opacity:.72;}
+.wm-card.locked{border:2px solid var(--gold);box-shadow:0 0 0 3px rgba(212,175,55,.12);}
+.wm-card.pooled{border-color:#fdba74;}
+.wm-head{display:flex;gap:8px;align-items:center;}
+.wm-name-in{flex:1;min-width:0;padding:10px;border-radius:10px;border:1px solid var(--line);background:#fbfbfd;font-size:15px;font-weight:800;font-family:inherit;}
+.wm-status{font-family:inherit;cursor:pointer;font-weight:900;font-size:12px;border-radius:999px;padding:7px 9px;border:1px solid var(--gold-deep);background:#fbfbfd;color:#1d1d1f;}
+.wm-status.s-fresh{color:var(--green);border-color:var(--green);}
+.wm-status.s-called{color:var(--blue);border-color:var(--blue);}
+.wm-status.s-scheduled{color:#b8860b;border-color:#caa23a;}
+.wm-status.s-followup{color:#7a4fb0;border-color:#9a6ec9;}
+.wm-status.s-won{color:#fff;background:var(--green);border-color:var(--green);}
+.wm-status.s-lost{color:#fff;background:var(--red);border-color:var(--red);}
+.wm-lock,.wm-del{border:1px solid var(--line);background:#fbfbfd;border-radius:9px;cursor:pointer;font-size:15px;width:38px;height:38px;flex:0 0 auto;}
+.wm-lock.on{background:rgba(212,175,55,.16);border-color:var(--gold);}
+.wm-pooled-flag,.wm-locked-flag{margin:9px 0 2px;border-radius:9px;padding:8px 11px;font-size:12px;font-weight:700;line-height:1.45;}
+.wm-pooled-flag{background:#fff7ed;border:1px solid #fdba74;color:#9a3412;}
+.wm-locked-flag{background:rgba(212,175,55,.10);border:1px solid var(--gold-deep);color:#1d1d1f;}
+.wm-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;}
+@media(max-width:560px){.wm-grid{grid-template-columns:1fr;}.wm-row{grid-template-columns:1fr;}}
+.wm-fld{display:flex;flex-direction:column;gap:4px;font-size:11px;font-weight:800;color:var(--muted);}
+.wm-fld input,.wm-fld select{padding:9px;border-radius:9px;border:1px solid var(--line);background:#fbfbfd;font-size:14px;font-family:inherit;color:#1d1d1f;}
+.wm-toggles{display:flex;gap:16px;margin-top:9px;}
+.wm-tg{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:#1d1d1f;}
+.wm-notes{width:100%;margin-top:9px;padding:10px;border-radius:10px;border:1px solid var(--line);background:#fbfbfd;font-size:13.5px;font-family:inherit;resize:vertical;}
+.pz-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;font-weight:800;color:#1d1d1f;}
+.pz-refresh{font-family:inherit;cursor:pointer;font-weight:800;font-size:12.5px;padding:8px 13px;border-radius:999px;border:1px solid var(--gold-deep);background:#fff;color:var(--gold);}
+.pz-card{border:1px solid var(--line);border-radius:14px;padding:13px;margin-bottom:11px;background:#fff;}
+.pz-top{display:flex;justify-content:space-between;align-items:center;gap:8px;}
+.pz-name{font-weight:900;font-size:15px;color:#1d1d1f;}
+.pz-phone{text-decoration:none;color:var(--gold-bright);font-weight:800;white-space:nowrap;}
+.pz-meta{font-size:12.5px;color:var(--muted);margin-top:5px;}
+.pz-tags{margin-top:7px;display:flex;gap:5px;flex-wrap:wrap;}
+.pz-tag{font-size:11px;font-weight:800;color:var(--muted);background:#f2f2f5;border:1px solid var(--line);border-radius:6px;padding:2px 7px;}
+.pz-tag.release{color:#9a3412;background:#fff7ed;border-color:#fdba74;}
+.pz-claim{margin-top:10px;width:100%;font-family:inherit;cursor:pointer;font-weight:800;font-size:13.5px;padding:11px;border-radius:11px;border:0;background:linear-gradient(90deg,var(--gold-bright),var(--gold));color:#1d1d1f;}
+</style>
 
 
 </head>
@@ -210,10 +298,75 @@ input,textarea,select{border-radius:12px;}
   <div class="head">
     <img src="https://grindagencies.github.io/smmt-calendar/logo.png" alt="TSFG">
     <div class="wm">The Standard Financial Group</div>
-    <h1>Fresh Leads Database</h1>
-    <div class="sub">Every agent's Marketing Plan in one place — call, schedule, and close</div>
+    <h1 id="pageTitle">My Top 100</h1>
+    <div class="sub" id="pageSub">Your personal book of business — every name you know, worked to a close.</div>
   </div>
 
+  <div class="modeswitch">
+    <button id="mBroker" class="on" onclick="showMode('broker')">📇 My Top 100</button>
+    <button id="mLead" onclick="showMode('lead')">🔒 Leadership view</button>
+  </div>
+
+  <!-- ================= BROKER: MY TOP 100 ================= -->
+  <div id="brokerView">
+    <div id="signedOut" class="signedout" style="display:none">
+      <p>Sign in with your GFI code to build and work your Top 100 list.</p>
+      <a class="btn-gold" href="index.html">Sign in →</a>
+    </div>
+    <div id="planApp" style="display:none">
+      <div class="who-row"><span id="whoAmI"></span><span class="savestat" id="wmSaveStat"></span></div>
+      <div class="mp-tabs">
+        <button id="mpTabMine" class="mp-tab on" onclick="mpTab('mine')">📒 My List</button>
+        <button id="mpTabPool" class="mp-tab" onclick="mpTab('pool')">📞 Phone Zone <span class="vcount" id="pzTabCount">0</span></button>
+      </div>
+      <div id="myPlanWrap">
+        <div class="marker">Your personal book of business. Add everyone you know, fill in their details, and set a status as you work them. Your leadership pulls these as <b>fresh leads</b> to help you book and close. Mark <b>Won</b> when you earn the business.</div>
+        <div class="wm-goal">
+          <div class="wm-goal-top"><span>🎯 Top 100 Goal — build your book</span><span id="wmGoalTxt">0 / 100</span></div>
+          <div class="wm-goal-bar"><span id="wmGoalFill"></span></div>
+          <div class="wm-goal-note" id="wmGoalNote">Add everyone you know — aim for 100+ names.</div>
+        </div>
+        <div class="wm-score" id="wmScore">No outcomes logged yet</div>
+        <div class="mp-import">
+          <div class="mp-import-h">📥 Mass import — roster, leads list, or iPhone contacts</div>
+          <div class="mp-import-sub">Upload a <b>.csv</b> (Excel / Google Sheets export) or a <b>.vcf</b> (iPhone / Mac Contacts). Names, phones &amp; emails map automatically, duplicates are skipped, and everyone drops into your list.</div>
+          <div class="mp-import-actions">
+            <button type="button" class="mp-imp-btn" onclick="el('impFile').click()">⬆ Choose file (.csv / .vcf)</button>
+            <button type="button" class="mp-imp-btn alt" onclick="toggleImpPaste()">📋 Paste a list instead</button>
+          </div>
+          <input type="file" id="impFile" accept=".csv,.vcf,.vcard,.txt,text/csv,text/vcard,text/plain" style="display:none" onchange="handleImportFile(this)">
+          <div id="impPasteWrap" style="display:none;margin-top:11px;">
+            <textarea id="impPasteBox" rows="5" placeholder="Paste rows here — e.g.&#10;Name, Phone, Email&#10;Jane Smith, 555-123-4567, jane@email.com"></textarea>
+            <button type="button" class="mp-imp-btn" onclick="importPaste()">Add pasted contacts →</button>
+          </div>
+          <div class="mp-import-note" id="impNote"></div>
+          <div class="mp-import-help">📱 <b>iPhone:</b> Contacts → Share Contact → save the <b>.vcf</b> → upload here. 💻 <b>Mac:</b> Contacts → File → Export → Export vCard. 📊 <b>Spreadsheet:</b> File → Save As <b>.csv</b>.</div>
+        </div>
+        <div class="wm-log">
+          <div class="wm-log-h">➕ Add to your Top 100</div>
+          <div class="wm-rows" id="wmRows2"></div>
+          <div class="wm-actions">
+            <button type="button" class="wm-add" onclick="addWmRow2()">＋ Add another person</button>
+            <button type="button" class="wm-save" onclick="logContacts2()">Save to my list →</button>
+          </div>
+          <div class="wm-note" id="wmLogNote2"></div>
+        </div>
+        <div id="wmList"></div>
+        <div class="mp-addrow" id="wmAddRow"><button type="button" onclick="addBlankLead()">＋ Add blank lead</button></div>
+        <div class="wm-empty" id="wmEmpty">No leads yet. Add people above to start your Top 100.</div>
+      </div>
+      <div id="phoneZone" style="display:none;">
+        <div class="marker">📞 <b>Phone Zone — shared lead pool.</b> Unassigned leads open to every agent. Pick one, call them, and if you connect tap <b>Assign to me</b> to move them into your list. Once claimed, the lead leaves the pool so no one double-calls.</div>
+        <div class="pz-bar"><span id="pzCount">Loading…</span><button type="button" class="pz-refresh" onclick="loadPool(true)">↻ Refresh</button></div>
+        <div id="pzList"></div>
+        <div class="wm-empty" id="pzLoading">Loading the shared pool…</div>
+        <div class="wm-empty" id="pzEmpty" style="display:none;">The pool is empty right now. Tap Refresh to check again.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= LEADERSHIP: FRESH LEADS DATABASE ================= -->
+  <div id="leadView" style="display:none">
   <div class="gate" id="gate">
     <h2>Leadership Access</h2>
     <p>Enter the ops passcode to view all leads.</p>
@@ -283,13 +436,125 @@ input,textarea,select{border-radius:12px;}
     </div>
     <div class="foot">The Standard Financial Group · Fresh Leads Database · Each lead tied to the agent who added them</div>
   </div>
+  </div><!-- /leadView -->
 </div>
 
 <script>
   var API="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/tracker-api";
-  var token=null, leads=[], sortKey='broker', sortDir=1;
   function el(id){return document.getElementById(id);}
   function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  var escH=esc;
+  function ptToday(){try{return new Intl.DateTimeFormat('en-CA',{timeZone:'America/Los_Angeles'}).format(new Date());}catch(e){return new Date().toISOString().slice(0,10);}}
+  function api(p){return fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)}).then(function(r){return r.json();});}
+
+  /* ===================== MODE SWITCH ===================== */
+  var CODE=null; try{CODE=(localStorage.getItem('tsfg_code')||'').trim().toUpperCase();}catch(e){}
+  var MYNAME=''; try{MYNAME=(localStorage.getItem('tsfg_name')||'').trim();}catch(e){}
+  function showMode(m){
+    var broker=(m!=='lead');
+    el('brokerView').style.display=broker?'block':'none';
+    el('leadView').style.display=broker?'none':'block';
+    el('mBroker').classList.toggle('on',broker);
+    el('mLead').classList.toggle('on',!broker);
+    el('pageTitle').textContent=broker?'My Top 100':'Fresh Leads Database';
+    el('pageSub').textContent=broker?'Your personal book of business — every name you know, worked to a close.':'Every agent’s Marketing Plan in one place — call, schedule, and close.';
+    if(!broker){var t=null;try{t=sessionStorage.getItem('tsfg_admin');}catch(e){} if(t&&!token){el('pass').value=t;enter();} else if(!token){setTimeout(function(){if(el('pass'))el('pass').focus();},60);}}
+    window.scrollTo(0,0);
+  }
+
+  /* ===================== MY TOP 100 (broker) ===================== */
+  var warmMarket=[];
+  function setSave(t,ok){var s=el('wmSaveStat');if(s){s.textContent=t;s.className='savestat'+(ok?' ok':'');}}
+  var wmSaveTimer=null;
+  function wmSave(immediate){
+    if(!CODE)return; setSave('Saving…');
+    var go=function(){api({action:'savewarm',code:CODE,warm_market:warmMarket}).then(function(r){setSave(r&&r.ok?'Saved ✓':'Saved',r&&r.ok);}).catch(function(){setSave('Offline — will retry');});};
+    clearTimeout(wmSaveTimer); if(immediate)go(); else wmSaveTimer=setTimeout(go,650);
+  }
+  function loadPlan(){
+    if(!CODE){el('signedOut').style.display='block';el('planApp').style.display='none';return;}
+    el('signedOut').style.display='none';el('planApp').style.display='block';
+    el('whoAmI').textContent=(MYNAME?(MYNAME+' · '):'')+'GFI '+CODE;
+    api({action:'load',code:CODE}).then(function(r){
+      if(r&&r.ok&&r.agent){warmMarket=Array.isArray(r.agent.warm_market)?r.agent.warm_market:[];if(!MYNAME){var nm=((r.agent.first_name||'')+' '+(r.agent.last_name||'')).trim();if(nm)el('whoAmI').textContent=nm+' · GFI '+CODE;}}
+      else warmMarket=[];
+      renderWarm();
+    }).catch(function(){renderWarm();});
+  }
+  var WM_STATUSES=[['fresh','🟢 Fresh'],['called','📞 Called'],['scheduled','📅 Scheduled'],['followup','🔁 Future Follow Up'],['won','🏆 Won'],['lost','✖ Lost']];
+  function statusOf(c){var k=c&&c.status;if(k&&['fresh','called','scheduled','followup','won','lost'].indexOf(k)>=0)return k;if(c){if(c.outcome==='win')return'won';if(c.outcome==='lose')return'lost';if(c.contacted)return'called';}return'fresh';}
+  function wmStatusOptions(cur){return WM_STATUSES.map(function(op){return '<option value="'+op[0]+'"'+(op[0]===cur?' selected':'')+'>'+op[1]+'</option>';}).join('');}
+  function applyStatus(c,st){c.status=st;if(st==='fresh'){c.contacted=false;c.outcome='';}else if(st==='won'){c.contacted=true;c.outcome='win';if(!c.contactedDate)c.contactedDate=ptToday();}else if(st==='lost'){c.contacted=true;c.outcome='lose';if(!c.contactedDate)c.contactedDate=ptToday();}else{c.contacted=true;c.outcome='';if(!c.contactedDate)c.contactedDate=ptToday();}}
+  function wmSetStatus(id,st){for(var i=0;i<warmMarket.length;i++){if(warmMarket[i].id===id){applyStatus(warmMarket[i],st);break;}}renderWarm();wmSave(true);}
+  function wmLock(id){for(var i=0;i<warmMarket.length;i++){if(warmMarket[i].id===id){warmMarket[i].locked=!warmMarket[i].locked;if(warmMarket[i].locked&&warmMarket[i].pooled){warmMarket[i].pooled=false;delete warmMarket[i].pooledDate;}break;}}renderWarm();wmSave(true);}
+  function wmRemove(id){warmMarket=warmMarket.filter(function(x){return x.id!==id;});renderWarm();wmSave(true);}
+  function wmField(id,field,val,immediate){for(var i=0;i<warmMarket.length;i++){if(warmMarket[i].id===id){warmMarket[i][field]=val;break;}}wmSave(!!immediate);}
+  function wmFld(label,f,val,type){return '<label class="wm-fld"><span>'+label+'</span><input data-f="'+f+'" type="'+(type||'text')+'" value="'+escH(val||'')+'" placeholder="'+escH(label)+'" autocomplete="off"></label>';}
+  function wmTz(val){var z=['','PST','MST','CST','EST','HST','AKST'];var o='';z.forEach(function(t){o+='<option value="'+t+'"'+(t===(val||'')?' selected':'')+'>'+(t||'— time zone —')+'</option>';});return '<label class="wm-fld"><span>Time zone</span><select data-f="timeZone">'+o+'</select></label>';}
+  function addBlankLead(){warmMarket.unshift({id:'wm'+Date.now()+Math.floor(Math.random()*100000),name:'',phone:'',date:ptToday(),outcome:'',done:false});wmSave(true);renderWarm();var first=document.querySelector('#wmList .wm-card .wm-name-in');if(first)first.focus();}
+  function wmRowHTML(){return '<div class="wm-row"><input class="wm-n" type="text" placeholder="Name" autocomplete="off"><input class="wm-p" type="tel" placeholder="Phone" autocomplete="off"><input class="wm-e" type="email" placeholder="Email" autocomplete="off"><button type="button" class="wm-x" onclick="this.parentNode.remove()">×</button><input class="wm-note-in" type="text" placeholder="Notes — how you know them, next step…" autocomplete="off"></div>';}
+  function addWmRow2(){el('wmRows2').insertAdjacentHTML('beforeend',wmRowHTML());}
+  function resetRows(id){el(id).innerHTML=wmRowHTML();}
+  function gatherRows(container){var rows=container.querySelectorAll('.wm-row');var added=0;rows.forEach(function(r){var n=r.querySelector('.wm-n').value.trim();var p=r.querySelector('.wm-p').value.trim();var e=r.querySelector('.wm-e').value.trim();var ni=r.querySelector('.wm-note-in');var notes=ni?ni.value.trim():'';if(n||p||e){warmMarket.unshift({id:'wm'+Date.now()+Math.floor(Math.random()*1000),name:n,phone:p,email:e,notes:notes,outcome:'',date:ptToday(),done:false});added++;}});return added;}
+  function logContacts2(){var n=gatherRows(el('wmRows2'));var note=el('wmLogNote2');if(!n){note.style.color='var(--red)';note.textContent='Enter at least a name, phone, or email.';return;}note.style.color='var(--green)';note.textContent=n+' contact'+(n>1?'s':'')+' added ✓';resetRows('wmRows2');renderWarm();wmSave(true);setTimeout(function(){note.textContent='';},3500);}
+  function impDigits(s){return (s||'').replace(/\D/g,'');}
+  function setImpNote(msg,err){var n=el('impNote');if(!n)return;n.textContent=msg;n.style.color=err?'var(--red)':'var(--green)';}
+  function toggleImpPaste(){var w=el('impPasteWrap');if(w)w.style.display=(w.style.display==='none'||!w.style.display)?'block':'none';}
+  function handleImportFile(inp){var f=inp.files&&inp.files[0];if(!f)return;var r=new FileReader();r.onload=function(){try{var txt=String(r.result||'');var leads2=/BEGIN:VCARD/i.test(txt)?parseVCard(txt):parseDelimited(txt);addImported(leads2,f.name);}catch(e){setImpNote('Sorry — could not read that file. Use a .csv or .vcf export.',true);}inp.value='';};r.onerror=function(){setImpNote('Could not open that file.',true);inp.value='';};r.readAsText(f);}
+  function importPaste(){var t=(el('impPasteBox')&&el('impPasteBox').value)||'';if(!t.trim()){setImpNote('Paste some rows first.',true);return;}var leads2=/BEGIN:VCARD/i.test(t)?parseVCard(t):parseDelimited(t);addImported(leads2,'pasted list');}
+  function parseVCard(txt){var out=[];txt.split(/END:VCARD/i).forEach(function(c){if(!/BEGIN:VCARD/i.test(c))return;var lines=c.replace(/\r/g,'').replace(/\n[ \t]/g,'').split('\n');var name='',phones=[],email='';lines.forEach(function(ln){var u=ln.toUpperCase();if(u.indexOf('FN')===0&&!name){name=ln.substring(ln.indexOf(':')+1).trim();}else if(u.indexOf('N:')===0||u.indexOf('N;')===0){if(!name){var v=ln.substring(ln.indexOf(':')+1).split(';');name=(((v[1]||'')+' '+(v[0]||'')).trim());}}else if(u.indexOf('TEL')===0){var p=ln.substring(ln.indexOf(':')+1).trim();if(p)phones.push(p);}else if(u.indexOf('EMAIL')===0){if(!email)email=ln.substring(ln.indexOf(':')+1).trim();}});if(name||phones.length||email)out.push({name:name,phone:phones[0]||'',email:email});});return out;}
+  function splitCells(l,delim){var out=[],cur='',q=false;for(var i=0;i<l.length;i++){var ch=l[i];if(ch==='"'){if(q&&l[i+1]==='"'){cur+='"';i++;}else q=!q;}else if(ch===delim&&!q){out.push(cur);cur='';}else cur+=ch;}out.push(cur);return out.map(function(s){return s.trim();});}
+  function parseDelimited(txt){var lines=txt.replace(/\r/g,'').split('\n').filter(function(l){return l.trim()!=='';});if(!lines.length)return [];var delim=(lines[0].split('\t').length>lines[0].split(',').length)?'\t':',';var header=splitCells(lines[0],delim).map(function(h){return h.toLowerCase();});var looksHeader=header.some(function(h){return /name|phone|mobile|cell|email|number|first|last/.test(h);});function find(keys){for(var i=0;i<header.length;i++){for(var k=0;k<keys.length;k++){if(header[i].indexOf(keys[k])>=0)return i;}}return -1;}var out=[];if(looksHeader){var iName=find(['full name','display name','name','contact']),iFirst=find(['first']),iLast=find(['last']),iPhone=find(['mobile','cell','phone','number','tel']),iEmail=find(['email','e-mail']),iNote=find(['note','company','source','how','tag']);for(var r=1;r<lines.length;r++){var c=splitCells(lines[r],delim);if(!c.length)continue;var nm=(iName>=0?c[iName]:'')||(((iFirst>=0?c[iFirst]:'')+' '+(iLast>=0?c[iLast]:'')).trim());var ph=iPhone>=0?(c[iPhone]||''):'',em=iEmail>=0?(c[iEmail]||''):'',no=iNote>=0?(c[iNote]||''):'';if(nm||ph||em)out.push({name:nm,phone:ph,email:em,notes:no});}}else{lines.forEach(function(l){var c=splitCells(l,delim),nm='',ph='',em='';c.forEach(function(v){if(/@/.test(v)){em=em||v;}else if(impDigits(v).length>=7){ph=ph||v;}else if(v&&!nm){nm=v;}});if(nm||ph||em)out.push({name:nm,phone:ph,email:em});});}return out;}
+  function addImported(list,srcName){if(!list||!list.length){setImpNote('No contacts found in '+(srcName||'that file')+'. Check it has names/phones/emails.',true);return;}var seen={};warmMarket.forEach(function(x){seen[((x.name||'').trim().toLowerCase()+'|'+impDigits(x.phone))]=1;});var added=0,i=0;list.forEach(function(l){var nm=(l.name||'').trim(),ph=(l.phone||'').trim();if(!nm&&!ph)return;var key=nm.toLowerCase()+'|'+impDigits(ph);if(seen[key])return;seen[key]=1;warmMarket.unshift({id:'wm'+Date.now()+Math.floor(Math.random()*1e6)+(i++),name:nm,phone:ph,email:(l.email||'').trim(),howKnow:(l.notes||'').trim(),notes:'',contacted:false,outcome:'',date:ptToday(),done:false});added++;});if(added){renderWarm();wmSave(true);}var skipped=list.length-added;setImpNote('✓ Imported '+added+' contact'+(added===1?'':'s')+(skipped>0?(' · skipped '+skipped+' duplicate/blank'):'')+'.',false);if(el('impPasteWrap'))el('impPasteWrap').style.display='none';if(el('impPasteBox'))el('impPasteBox').value='';}
+  function renderWarm(){
+    var n=warmMarket.length;
+    var wins=warmMarket.filter(function(c){return c.outcome==='win';}).length;
+    var losses=warmMarket.filter(function(c){return c.outcome==='lose';}).length;
+    if(el('wmGoalTxt')){el('wmGoalTxt').textContent=n+' / 100';el('wmGoalFill').style.width=Math.min(100,n)+'%';el('wmGoalNote').textContent=(n>=100)?('🏆 100+ built — '+n+' in your book. Next stop: 300!'):(n>=1)?((100-n)+' to go — add everyone you know.'):'Add everyone you know — aim for 100+ names.';}
+    if(el('wmScore')){var dec=wins+losses;var rate=dec?Math.round(wins*100/dec):0;var contacted=warmMarket.filter(function(c){return c.contacted;}).length;el('wmScore').innerHTML='☎ <span class="wl-win">'+contacted+' reached out</span> / '+n+(n-contacted>0?(' &nbsp;·&nbsp; '+(n-contacted)+' to reach out'):'')+(dec?(' &nbsp;|&nbsp; 🏆 <span class="wl-win">'+wins+'W</span> · <span class="wl-lose">'+losses+'L</span> · '+rate+'% close'):'');}
+    if(el('wmEmpty'))el('wmEmpty').style.display=n?'none':'block';
+    if(el('wmAddRow'))el('wmAddRow').style.display=n?'flex':'none';
+    var L=el('wmList');if(!L)return;L.innerHTML='';
+    warmMarket.forEach(function(c){
+      var oc=c.outcome||'';var st=statusOf(c);
+      var d=document.createElement('div');d.className='wm-card'+(c.contacted?' contacted':'')+(oc?(' oc-'+oc):'')+((c.pooled&&!c.locked)?' pooled':'')+(c.locked?' locked':'');
+      d.innerHTML='<div class="wm-head">'+
+        '<select class="wm-status s-'+st+'" title="Lead status">'+wmStatusOptions(st)+'</select>'+
+        '<input class="wm-name-in" data-f="name" type="text" value="'+escH(c.name||'')+'" placeholder="Full name" autocomplete="off">'+
+        '<button class="wm-lock'+(c.locked?' on':'')+'" title="'+(c.locked?'Locked — protected from the 21-day pool. Click to unlock.':'Lock — keep this lead off the 21-day shared pool')+'">'+(c.locked?'🔒':'🔓')+'</button>'+
+        '<button class="wm-del" title="Remove">🗑</button>'+
+        '</div>'+
+        ((c.pooled&&!c.locked)?'<div class="wm-pooled-flag">⏰ Uncalled 21+ days — now shared in the Phone Zone. Set a status to pull it back and keep it yours.</div>':'')+
+        (c.locked?'<div class="wm-locked-flag">🔒 Locked — protected from the 21-day shared pool. Click the lock again to release it.</div>':'')+
+        '<div class="wm-grid">'+
+          wmFld('☎ Phone','phone',c.phone,'tel')+
+          wmFld('🤝 How you know them','howKnow',c.howKnow,'text')+
+          wmTz(c.timeZone)+
+          wmFld('📅 Appointment date','apptDate',c.apptDate,'date')+
+          wmFld('✉ Email','email',c.email,'email')+
+          wmFld('Age','age',c.age,'text')+
+          wmFld('3 character traits','traits',c.traits,'text')+
+        '</div>'+
+        '<div class="wm-toggles">'+
+          '<label class="wm-tg"><input type="checkbox" data-f="married" '+(c.married?'checked':'')+'> Married</label>'+
+          '<label class="wm-tg"><input type="checkbox" data-f="children" '+(c.children?'checked':'')+'> Children</label>'+
+        '</div>'+
+        '<textarea class="wm-notes" data-f="notes" rows="2" placeholder="Notes — what was discussed, next steps, objections…">'+escH(c.notes||'')+'</textarea>';
+      d.querySelector('.wm-status').addEventListener('change',function(){wmSetStatus(c.id,this.value);});
+      d.querySelector('.wm-lock').addEventListener('click',function(){wmLock(c.id);});
+      d.querySelector('.wm-del').addEventListener('click',function(){if(confirm('Remove this lead?'))wmRemove(c.id);});
+      Array.prototype.forEach.call(d.querySelectorAll('[data-f]'),function(inp){var f=inp.getAttribute('data-f');if(inp.type==='checkbox'){inp.addEventListener('change',function(){wmField(c.id,f,inp.checked,true);});}else if(inp.tagName==='SELECT'||inp.type==='date'){inp.addEventListener('change',function(){wmField(c.id,f,inp.value,true);});}else{inp.addEventListener('input',function(){wmField(c.id,f,inp.value,false);});inp.addEventListener('change',function(){wmField(c.id,f,inp.value,true);});}});
+      L.appendChild(d);
+    });
+  }
+  var poolLeads=[],poolLoaded=false,poolLoading=false;
+  function mpTab(t){var pool=(t==='pool');if(el('myPlanWrap'))el('myPlanWrap').style.display=pool?'none':'block';if(el('phoneZone'))el('phoneZone').style.display=pool?'block':'none';if(el('mpTabMine'))el('mpTabMine').classList.toggle('on',!pool);if(el('mpTabPool'))el('mpTabPool').classList.toggle('on',pool);if(pool&&!poolLoaded)loadPool(false);window.scrollTo(0,0);}
+  function loadPool(force){if(poolLoading)return;poolLoading=true;if(force&&el('pzLoading')){el('pzLoading').textContent='Loading the shared pool…';el('pzLoading').style.display='block';}api({action:'poolleads'}).then(function(r){poolLoading=false;poolLoaded=true;poolLeads=(r&&r.leads)||[];renderPool();}).catch(function(){poolLoading=false;poolLoaded=true;if(el('pzLoading')){el('pzLoading').textContent='Could not load the pool. Tap Refresh to try again.';el('pzLoading').style.display='block';}});}
+  function renderPool(){var n=poolLeads.length;if(el('pzTabCount'))el('pzTabCount').textContent=n;if(el('pzCount'))el('pzCount').textContent=n+' lead'+(n===1?'':'s')+' available in the pool';if(el('pzLoading'))el('pzLoading').style.display='none';if(el('pzEmpty'))el('pzEmpty').style.display=n?'none':'block';var L=el('pzList');if(!L)return;L.innerHTML='';poolLeads.forEach(function(c){var d=document.createElement('div');d.className='pz-card';var meta=[];if(c.howKnow)meta.push('🤝 '+escH(c.howKnow));if(c.timeZone)meta.push('🕑 '+escH(c.timeZone));if(c.age)meta.push('🎂 '+escH(c.age));if(c.apptDate)meta.push('📅 '+escH(c.apptDate));var tagHtml='';if(c.autoReleased)tagHtml+='<span class="pz-tag release">⏰ '+(c.originAgentName?('From '+escH(c.originAgentName)+' — '):'')+'uncalled 21+ days</span>';if(c.married)tagHtml+='<span class="pz-tag">Married</span>';if(c.children)tagHtml+='<span class="pz-tag">Children</span>';if(c.contacted)tagHtml+='<span class="pz-tag">Previously contacted</span>';d.innerHTML='<div class="pz-top"><span class="pz-name">'+(escH(c.name)||'(no name)')+'</span>'+(c.phone?'<a class="pz-phone" href="tel:'+escH(c.phone)+'">☎ '+escH(c.phone)+'</a>':'')+'</div>'+(meta.length?'<div class="pz-meta">'+meta.join(' &nbsp;·&nbsp; ')+'</div>':'')+(c.notes?'<div class="pz-meta">📝 '+escH(c.notes)+'</div>':'')+(tagHtml?'<div class="pz-tags">'+tagHtml+'</div>':'')+'<button type="button" class="pz-claim">✅ Assign to me &amp; add to my list</button>';d.querySelector('.pz-claim').addEventListener('click',function(){claimLead(c.id,d.querySelector('.pz-claim'));});L.appendChild(d);});}
+  function claimLead(id,btn){if(!CODE){alert('Please sign in first.');return;}if(!confirm('Assign this lead to your list?\n\nUse this once you have called and connected with them. It moves into your list and leaves the shared pool.'))return;if(btn){btn.disabled=true;btn.textContent='Assigning…';}api({action:'claimlead',code:CODE,leadId:id}).then(function(r){if(r&&r.ok&&r.lead){poolLeads=poolLeads.filter(function(x){return x.id!==id;});warmMarket.unshift(r.lead);renderPool();renderWarm();setSave('Lead assigned ✓',true);}else if(r&&r.taken){poolLeads=poolLeads.filter(function(x){return x.id!==id;});renderPool();alert('That lead was just claimed by another agent.');}else{if(btn){btn.disabled=false;btn.innerHTML='✅ Assign to me &amp; add to my list';}alert((r&&r.error)||'Could not assign that lead.');}}).catch(function(){if(btn){btn.disabled=false;btn.innerHTML='✅ Assign to me &amp; add to my list';}alert('Network error — please try again.');});}
+
+  /* ===================== LEADERSHIP (aggregate) ===================== */
+  var token=null, leads=[], sortKey='broker', sortDir=1;
 
   function enter(){
     var t=el('pass').value.trim();
@@ -430,8 +695,10 @@ input,textarea,select{border-radius:12px;}
   function copyFormula(){ navigator.clipboard.writeText(el('formula').textContent).then(function(){var b=event.target;b.textContent="Copied ✓";setTimeout(function(){b.textContent="Copy formula";},1500);}); }
   function downloadCsv(){ if(!token)return; window.open(API+'?action=marketing&format=csv&token='+encodeURIComponent(token),'_blank'); }
 
-  (function(){ var t=null; try{t=sessionStorage.getItem('tsfg_admin');}catch(e){} if(t){el('pass').value=t;enter();} })();
-  el('pass').addEventListener('keydown',function(e){if(e.key==='Enter')enter();});
+  addWmRow2();
+  loadPlan();
+  (function(){var admin=null;try{admin=sessionStorage.getItem('tsfg_admin');}catch(e){} if(!CODE&&admin){showMode('lead');}else{showMode('broker');}})();
+  if(el('pass'))el('pass').addEventListener('keydown',function(e){if(e.key==='Enter')enter();});
 </script>
 
 
