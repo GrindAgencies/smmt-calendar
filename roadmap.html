@@ -705,7 +705,7 @@ function openLevel(id){
     return '<div class="ci'+(claimed&&!pending?' done':'')+(pending?' pend':'')+(locked?' lk':'')+'"'+tap+'><div class="ck">'+box+'</div><div class="cn">'+esc(LABELS[cid]||cid)+tag+'</div><div class="cx">+25 XP</div></div>';
   }).join('');
   var cta='';var _cta=l.cta||CTAMAP[l.id];
-  if(_cta&&_cta.url){var u=_cta.url;if(/calendly\.com/.test(u)){var nm=(PLAYER&&PLAYER.name)||'';if(nm)u+=(u.indexOf('?')>=0?'&':'?')+'name='+encodeURIComponent(nm);}cta='<a class="lvl-cta" href="'+esc(u)+'" target="_blank" rel="noopener">'+esc(_cta.label||'Open')+'</a>';}
+  if(_cta&&_cta.url){var u=_cta.url;var ext=/^https?:/i.test(u);if(ext&&/calendly\.com/.test(u)){var nm=(PLAYER&&PLAYER.name)||'';if(nm)u+=(u.indexOf('?')>=0?'&':'?')+'name='+encodeURIComponent(nm);}cta='<a class="lvl-cta" href="'+esc(u)+'"'+(ext?' target="_blank" rel="noopener"':'')+'>'+esc(_cta.label||'Open')+'</a>';}
   $('sheet').innerHTML='<div class="sh-h"><div class="sh-ic" style="background:'+w.color+'">'+(l.status==='done'?'✓':(locked?'🔒':levelIcon(l)))+'</div>'
     +'<div style="min-width:0"><h3>'+esc(l.name)+'</h3><div class="d">'+esc(w.icon+' '+w.name)+(l.difficulty==='hard'?' · ⚡ Hard':'')+'</div></div><button class="sh-x" onclick="closeSheet()">✕</button></div>'
     +(l.desc?'<div class="lvl-guide"><div class="lvl-guide-h">📋 How to complete this step</div>'+esc(l.desc)+'</div>':'')+cta+reward
