@@ -576,6 +576,13 @@ function loadAgentTracker(code){
     var cashTot=d.levels.filter(function(l){return l.auto;}).length;
     var h='<h4>🗺️ Tracker position <span style="color:var(--ink3);font-weight:700;text-transform:none;letter-spacing:0">· self-managed — you can adjust or reset</span></h4>';
     h+='<div class="ot-head">'+esc(d.name)+' is on <b>'+esc(cur)+'</b> · step '+d.level_index+'/'+d.total_levels+' · '+d.pct+'%</div>';
+    // Quick placement — jump this broker to any numbered spot; everything up to it is checked off
+    h+='<div class="ot-place" style="margin:10px 0 4px;padding:12px;border:1px solid var(--line2,rgba(255,255,255,.12));border-radius:12px;background:rgba(91,108,255,.06)">'
+      +'<div style="font-size:12.5px;font-weight:800;color:var(--ink2);margin-bottom:8px">📍 Place on the path <span style="font-weight:700;color:var(--ink3);text-transform:none">· jump to a spot based on real performance</span></div>'
+      +'<div style="display:flex;gap:8px;align-items:stretch;flex-wrap:wrap"><select id="otJump" style="flex:1;min-width:200px;font-weight:700">'
+      +d.levels.map(function(l){return '<option value="'+esc(l.id)+'"'+(l.id===d.current_level?' selected':'')+'>'+l.order+'. '+esc(l.name)+(l.auto?' — auto from $':'')+'</option>';}).join('')
+      +'</select><button class="ot-set" style="white-space:nowrap;padding:8px 16px" onclick="otJumpGo(\''+code+'\')">Place here ✓</button></div>'
+      +'<div class="sub" style="margin-top:8px;line-height:1.45">Marks <b>every spot up to and including</b> the one you pick as done, and clears everything after — so their board reflects where they actually are. Cashflow $ tiles still fill from the cashflow number above.</div></div>';
     h+='<div class="ot-list">'+tasks.map(function(l){
       var chk=l.challenges.map(function(c){return '<label class="ot-c'+(c.done?' on':'')+'"><input type="checkbox"'+(c.done?' checked':'')+' onchange="otToggle(\''+code+'\',\''+c.id+'\',this.checked)"><span>'+esc(c.label)+'</span></label>';}).join('');
       return '<div class="ot-lvl ot-'+l.status+'"><div class="ot-lvl-h"><div class="ot-nm"><b>'+l.order+'. '+esc(l.name)+'</b> <span class="ot-badge ot-'+l.status+'">'+l.status+'</span></div><button class="ot-set" onclick="otReset(\''+code+'\',\''+l.id+'\',\''+esc(l.name).replace(/\x27/g,'')+'\')">Set here</button></div><div class="ot-ch">'+chk+'</div></div>';
@@ -586,6 +593,7 @@ function loadAgentTracker(code){
 }
 function otToggle(code,cid,checked){var b={token:'2026',action:'set',code:code};b[checked?'set':'clear']=[cid];
   fetch(OPSTRK,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();}).then(function(d){if(d&&d.ok){toast('Updated ✓');loadAgentTracker(code);}else toast('Could not update');}).catch(function(){toast('Network error');});}
+function otJumpGo(code){var sel=$('otJump');if(!sel||!sel.value)return;var opt=sel.options[sel.selectedIndex];var name=(opt?opt.text:'').replace(/^\s*\d+\.\s*/,'').replace(/ — auto from \$$/,'');otReset(code,sel.value,name);}
 function otReset(code,levelId,name){if(!confirm('Set “'+name+'” as this broker’s current spot?\n\nEverything up to and including it is marked done; everything after is cleared.'))return;
   fetch(OPSTRK,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:'2026',action:'reset_to',code:code,level_id:levelId})}).then(function(r){return r.json();}).then(function(d){if(d&&d.ok){toast('Reset to '+name+' ✓');loadAgentTracker(code);}else toast('Could not reset');}).catch(function(){toast('Network error');});}
 function setTab(t){TAB=t;['licensing','newbiz','faststart','bookings','appointed','inforce','gfi','fieldtraining','teamhub'].forEach(function(x){var b=$('tg_'+x);if(b)b.classList.toggle('on',x===t);});
