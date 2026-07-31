@@ -72,6 +72,24 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);-web
 .vq-ok:hover{border-color:#1a9c52;color:#1a9c52}
 .vq-no:hover{border-color:var(--red);color:var(--red)}
 #agVerify .vq-row:first-of-type{border-top:none}
+.ot-head{font-size:13px;color:var(--ink2);margin:2px 0 12px}
+.ot-list{max-height:340px;overflow-y:auto;border:1px solid var(--line);border-radius:12px;padding:6px}
+.ot-lvl{padding:8px 8px 6px;border-bottom:1px solid var(--line)}
+.ot-lvl:last-child{border-bottom:none}
+.ot-lvl.ot-done{opacity:.72}
+.ot-lvl-h{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.ot-nm{font-size:13px;min-width:0}
+.ot-badge{font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.04em;padding:2px 6px;border-radius:6px;margin-left:6px}
+.ot-badge.ot-done{background:rgba(26,156,82,.16);color:#1a9c52}
+.ot-badge.ot-active{background:rgba(91,108,255,.16);color:var(--accent)}
+.ot-badge.ot-locked{background:rgba(120,120,140,.14);color:var(--ink3)}
+.ot-set{border:1px solid var(--line2);background:var(--panel);color:var(--ink2);font-weight:700;font-size:11.5px;padding:5px 10px;border-radius:9px;cursor:pointer;white-space:nowrap}
+.ot-set:hover{border-color:var(--accent);color:var(--accent)}
+.ot-ch{display:flex;flex-direction:column;gap:3px;margin:6px 0 2px;padding-left:4px}
+.ot-c{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink2);cursor:pointer}
+.ot-c input{width:15px;height:15px;flex:0 0 auto}
+.ot-c.on span{color:var(--ink);text-decoration:line-through;text-decoration-color:var(--line2)}
+.ot-cash{font-size:11.5px;color:var(--ink3);margin-top:10px;padding:9px 11px;border:1px dashed var(--line2);border-radius:10px}
 .togglebar{display:inline-flex;background:var(--panel);border:1px solid var(--line2);border-radius:13px;padding:4px;gap:3px;box-shadow:var(--shadow-sm);flex-wrap:wrap}
 .togglebar .tgl{cursor:grab}
 .togglebar .tgl:active{cursor:grabbing}
@@ -547,15 +565,29 @@ function verifyAgent(code,btn){
     box.remove();toast('Approved all ✓');renderVerifyBanner();
   });
 }
-function loadAgentVerify(code){
-  var host=$('agVerify');if(!host||!canEdit())return;
-  rmap({action:'pending',token:'2026'}).then(function(r){
-    if(!r||!r.ok)return;var me=(r.agents||[]).filter(function(a){return a.code===code;})[0];
-    if(!me||!me.pending.length){host.style.display='none';host.innerHTML='';return;}
-    host.style.display='';
-    host.innerHTML='<h4>⏳ Milestones to verify <span style="color:var(--ink3);font-weight:700;text-transform:none;letter-spacing:0">· '+me.pending.length+' from their tracker</span></h4>'+me.pending.map(function(p){return vqRow(code,p);}).join('');
-  });
+var OPSTRK="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/ops-tracker";
+function loadAgentTracker(code){
+  var host=$('agVerify');if(!host||!canEdit())return;host.style.display='';host.innerHTML='<h4>🗺️ Tracker position</h4><div class="sub">Loading…</div>';
+  fetch(OPSTRK,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:'2026',action:'get',code:code})}).then(function(r){return r.json();}).then(function(d){
+    if(!d||!d.ok){host.style.display='none';host.innerHTML='';return;}
+    var cur=(d.levels.filter(function(l){return l.id===d.current_level;})[0]||{}).name||'—';
+    var tasks=d.levels.filter(function(l){return !l.auto;});
+    var cashDone=d.levels.filter(function(l){return l.auto&&l.status==='done';}).length;
+    var cashTot=d.levels.filter(function(l){return l.auto;}).length;
+    var h='<h4>🗺️ Tracker position <span style="color:var(--ink3);font-weight:700;text-transform:none;letter-spacing:0">· self-managed — you can adjust or reset</span></h4>';
+    h+='<div class="ot-head">'+esc(d.name)+' is on <b>'+esc(cur)+'</b> · step '+d.level_index+'/'+d.total_levels+' · '+d.pct+'%</div>';
+    h+='<div class="ot-list">'+tasks.map(function(l){
+      var chk=l.challenges.map(function(c){return '<label class="ot-c'+(c.done?' on':'')+'"><input type="checkbox"'+(c.done?' checked':'')+' onchange="otToggle(\''+code+'\',\''+c.id+'\',this.checked)"><span>'+esc(c.label)+'</span></label>';}).join('');
+      return '<div class="ot-lvl ot-'+l.status+'"><div class="ot-lvl-h"><div class="ot-nm"><b>'+l.order+'. '+esc(l.name)+'</b> <span class="ot-badge ot-'+l.status+'">'+l.status+'</span></div><button class="ot-set" onclick="otReset(\''+code+'\',\''+l.id+'\',\''+esc(l.name).replace(/\x27/g,'')+'\')">Set here</button></div><div class="ot-ch">'+chk+'</div></div>';
+    }).join('')+'</div>';
+    h+='<div class="ot-cash">💵 Cashflow milestones ('+cashDone+'/'+cashTot+') complete automatically from the cashflow number set above — no need to check them here.</div>';
+    host.innerHTML=h;
+  }).catch(function(){host.style.display='none';host.innerHTML='';});
 }
+function otToggle(code,cid,checked){var b={token:'2026',action:'set',code:code};b[checked?'set':'clear']=[cid];
+  fetch(OPSTRK,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();}).then(function(d){if(d&&d.ok){toast('Updated ✓');loadAgentTracker(code);}else toast('Could not update');}).catch(function(){toast('Network error');});}
+function otReset(code,levelId,name){if(!confirm('Set “'+name+'” as this broker’s current spot?\n\nEverything up to and including it is marked done; everything after is cleared.'))return;
+  fetch(OPSTRK,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:'2026',action:'reset_to',code:code,level_id:levelId})}).then(function(r){return r.json();}).then(function(d){if(d&&d.ok){toast('Reset to '+name+' ✓');loadAgentTracker(code);}else toast('Could not reset');}).catch(function(){toast('Network error');});}
 function setTab(t){TAB=t;['licensing','newbiz','faststart','bookings','appointed','inforce','gfi','fieldtraining','teamhub'].forEach(function(x){var b=$('tg_'+x);if(b)b.classList.toggle('on',x===t);});
   var isB=(t==='bookings'),isNB=(t==='newbiz'||t==='gfi'),isIF=(t==='inforce'),isTH=(t==='teamhub'),isFT=(t==='fieldtraining');
   var tw=$('tableWrap'),bh=$('bookingsHost'),nh=$('newbizHost'),ifh=$('inforceHost'),thh=$('teamhubHost'),fth=$('fieldtrainingHost'),sb=$('search'),ab=$('addBtn');
@@ -1115,7 +1147,7 @@ function paintAgent(r){
   h+='</div>';$('drawer').innerHTML=h;
   makeAgentSectionsCollapsible();
   if(canEdit())opsCashLoad(a.code);
-  if(canEdit())loadAgentVerify(a.code);
+  if(canEdit())loadAgentTracker(a.code);
   agTasksLoad(a.code);
 }
 /* collapse the agent-profile groupings from Licensing down; Contact (first) stays open. Click a header to expand. */
