@@ -627,7 +627,7 @@ function levelIcon(l){
   if(/families|family/.test(n))return '👪';
   if(/net license/.test(n))return '⚡';
   if(/marketing director/.test(n))return '🏆';
-  if(w==='cashflow'){if(/millionaire|1,000,000/.test(n))return '👑';if(/500,000/.test(n))return '💎';if(/250,000/.test(n))return '💰';if(/ring|100,000|100k/.test(n))return '💍';if(/watch|50,000|50k/.test(n))return '⌚';return '💵';}
+  if(w==='cashflow'){if(/👑|millionaire|1,000,000/.test(n))return '👑';if(/💎/.test(n))return '💎';if(/💍|ring/.test(n))return '💍';if(/⌚|watch|50,000|50k/.test(n))return '⌚';return '💵';}
   return (worldById(w).icon||'⭐');
 }
 function stuckColor(d){if(d>=30)return '#ef4444';if(d>=14)return '#f97316';if(d>=7)return '#eab308';return '#22c55e';}
