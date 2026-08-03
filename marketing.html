@@ -327,6 +327,44 @@ input,textarea,select{border-radius:12px;}
           <div class="wm-goal-note" id="wmGoalNote">Add everyone you know — aim for 100+ names.</div>
         </div>
         <div class="wm-score" id="wmScore">No outcomes logged yet</div>
+        <style>
+        .ai-card{border:1px solid var(--gold-deep);border-radius:16px;padding:16px;margin:0 0 14px;background:linear-gradient(160deg,#fffdf7,#fbfbfd);}
+        .ai-h{font-weight:900;font-size:15px;color:var(--gold-bright);}
+        .ai-h span{font-weight:700;color:var(--muted);font-size:12px;}
+        .ai-sub{font-size:12.5px;color:var(--muted);margin:5px 0 12px;line-height:1.5;}
+        .ai-actions{display:flex;gap:8px;flex-wrap:wrap;}
+        .ai-btn{font-family:inherit;cursor:pointer;font-weight:800;font-size:13.5px;padding:11px 16px;border-radius:12px;border:0;background:linear-gradient(90deg,var(--gold-bright),var(--gold));color:#1d1d1f;}
+        .ai-btn.alt{background:#fff;color:var(--gold);border:1px solid var(--gold-deep);}
+        .ai-btn:disabled{opacity:.55;cursor:default;}
+        .ai-status{font-size:12.5px;font-weight:700;color:var(--gold-bright);margin-top:10px;min-height:14px;}
+        .ai-foot{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:12px;color:var(--muted);}
+        .ai-mini{font-family:inherit;cursor:pointer;font-weight:800;font-size:12px;padding:7px 11px;border-radius:9px;border:1px solid var(--line);background:#fff;color:var(--gold);}
+        .md-out{margin-top:14px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 18px;font-size:14px;line-height:1.6;color:#1d1d1f;overflow-x:auto;}
+        .md-out h1{font-size:19px;font-weight:900;margin:2px 0 10px;}
+        .md-out h2{font-size:16px;font-weight:900;color:var(--gold-bright);margin:20px 0 8px;padding-top:12px;border-top:1px solid var(--line);}
+        .md-out h2:first-of-type{border-top:0;padding-top:0;margin-top:2px;}
+        .md-out h3{font-size:14.5px;font-weight:800;margin:14px 0 6px;}
+        .md-out p{margin:8px 0;}
+        .md-out ul,.md-out ol{margin:8px 0 8px 20px;}
+        .md-out li{margin:4px 0;}
+        .md-out strong{font-weight:800;}
+        .md-out hr{border:0;border-top:1px solid var(--line);margin:14px 0;}
+        .md-out table{border-collapse:collapse;width:100%;margin:10px 0;font-size:13px;}
+        .md-out th,.md-out td{border:1px solid var(--line);padding:7px 9px;text-align:left;vertical-align:top;}
+        .md-out th{background:#fbfbfd;font-weight:800;color:var(--gold);}
+        .md-out code{background:#f2f2f5;border-radius:5px;padding:1px 5px;font-size:12.5px;}
+        </style>
+        <div class="ai-card" id="aiCard">
+          <div class="ai-h">🤖 AI Growth Plan <span>· built from your list by Claude</span></div>
+          <div class="ai-sub">Turn your Top 100 into a personalized, compliance-safe game plan — your real contacts segmented, hot/warm/cold priorities, a 90-day plan, and ready-to-use scripts.</div>
+          <div class="ai-actions" id="aiActions">
+            <button class="ai-btn" id="aiBtn1" onclick="genPlan(false,true)">✨ Build my Growth Plan</button>
+            <button class="ai-btn alt" id="aiBtn2" onclick="genPlan(true,true)">📘 Deep Dive · full playbook</button>
+          </div>
+          <div class="ai-status" id="aiStatus"></div>
+          <div class="md-out" id="aiOut" style="display:none"></div>
+          <div class="ai-foot" id="aiFoot" style="display:none"><span id="aiTs"></span><span style="flex:1"></span><button class="ai-mini" onclick="copyPlan()">📋 Copy</button><button class="ai-mini" onclick="genPlan(LASTFULL,true)">↻ Regenerate</button></div>
+        </div>
         <div class="mp-import">
           <div class="mp-import-h">📥 Mass import — roster, leads list, or iPhone contacts</div>
           <div class="mp-import-sub">Upload a <b>.csv</b> (Excel / Google Sheets export) or a <b>.vcf</b> (iPhone / Mac Contacts). Names, phones &amp; emails map automatically, duplicates are skipped, and everyone drops into your list.</div>
@@ -477,6 +515,56 @@ input,textarea,select{border-radius:12px;}
       renderWarm();
     }).catch(function(){renderWarm();});
   }
+  /* ===================== AI GROWTH PLAN ===================== */
+  var LASTFULL=false, PLANMD='';
+  function mdEsc(s){return String(s).replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c];});}
+  function mdInline(s){s=mdEsc(s);s=s.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');s=s.replace(/`([^`]+)`/g,'<code>$1</code>');s=s.replace(/\[([^\]]+)\]\((https?:[^)]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');return s;}
+  function mdToHtml(md){
+    var lines=String(md||'').replace(/\r/g,'').split('\n'), out=[], i=0;
+    while(i<lines.length){
+      var ln=lines[i];
+      if(/^\s*\|/.test(ln) && i+1<lines.length && /^\s*\|?[\s:|-]*-[-\s:|]*\|?\s*$/.test(lines[i+1])){
+        var head=ln.split('|').slice(1,-1).map(function(x){return x.trim();});
+        i+=2; var bd=[];
+        while(i<lines.length && /^\s*\|/.test(lines[i])){ bd.push(lines[i].split('|').slice(1,-1).map(function(x){return x.trim();})); i++; }
+        var t='<table><thead><tr>'+head.map(function(h){return '<th>'+mdInline(h)+'</th>';}).join('')+'</tr></thead><tbody>';
+        bd.forEach(function(r){t+='<tr>'+r.map(function(c){return '<td>'+mdInline(c)+'</td>';}).join('')+'</tr>';});
+        out.push(t+'</tbody></table>'); continue;
+      }
+      var h=/^(#{1,3})\s+(.*)$/.exec(ln);
+      if(h){ out.push('<h'+h[1].length+'>'+mdInline(h[2])+'</h'+h[1].length+'>'); i++; continue; }
+      if(/^\s*([-*_])\1{2,}\s*$/.test(ln)){ out.push('<hr>'); i++; continue; }
+      if(/^\s*[-*]\s+/.test(ln)){ var u=[]; while(i<lines.length && /^\s*[-*]\s+/.test(lines[i])){ u.push('<li>'+mdInline(lines[i].replace(/^\s*[-*]\s+/,''))+'</li>'); i++; } out.push('<ul>'+u.join('')+'</ul>'); continue; }
+      if(/^\s*\d+[.)]\s+/.test(ln)){ var o=[]; while(i<lines.length && /^\s*\d+[.)]\s+/.test(lines[i])){ o.push('<li>'+mdInline(lines[i].replace(/^\s*\d+[.)]\s+/,''))+'</li>'); i++; } out.push('<ol>'+o.join('')+'</ol>'); continue; }
+      if(/^\s*$/.test(ln)){ i++; continue; }
+      var para=[ln]; i++;
+      while(i<lines.length && !/^\s*$/.test(lines[i]) && !/^(#{1,3})\s/.test(lines[i]) && !/^\s*[-*]\s+/.test(lines[i]) && !/^\s*\d+[.)]\s+/.test(lines[i]) && !/^\s*\|/.test(lines[i])){ para.push(lines[i]); i++; }
+      out.push('<p>'+para.map(mdInline).join('<br>')+'</p>');
+    }
+    return out.join('\n');
+  }
+  function aiBusy(on,msg){ ['aiBtn1','aiBtn2'].forEach(function(id){var b=el(id);if(b)b.disabled=on;}); if(el('aiStatus'))el('aiStatus').textContent=msg||''; }
+  function renderPlan(res){
+    PLANMD=res.plan||''; LASTFULL=!!res.full;
+    el('aiOut').innerHTML=mdToHtml(PLANMD); el('aiOut').style.display='block'; el('aiFoot').style.display='flex';
+    var when=res.generated_at?('Built '+timeAgo(res.generated_at)):'';
+    el('aiTs').textContent=(res.full?'📘 Full playbook · ':'✨ Focused plan · ')+when+(res.model?(' · '+String(res.model).replace('claude-','')):'');
+  }
+  function genPlan(full,regen){
+    if(!CODE){aiBusy(false,'Sign in first.');return;}
+    aiBusy(true,(full?'📘 Building your full playbook':'✨ Building your plan')+' — Claude is reading your list… (~15–40s)');
+    fetch(MKT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'growth_plan',code:CODE,full:!!full,regenerate:!!regen})})
+      .then(function(r){return r.json();}).then(function(res){
+        if(!res||!res.ok){aiBusy(false,(res&&res.error)||'Could not build the plan — try again.');return;}
+        aiBusy(false,''); renderPlan(res);
+      }).catch(function(){aiBusy(false,'Network issue — try again.');});
+  }
+  function peekPlan(){
+    if(!CODE)return;
+    fetch(MKT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'growth_plan',code:CODE,peek:true})})
+      .then(function(r){return r.json();}).then(function(res){ if(res&&res.ok&&res.plan)renderPlan(res); }).catch(function(){});
+  }
+  function copyPlan(){ if(!PLANMD)return; navigator.clipboard.writeText(PLANMD).then(function(){if(el('aiStatus'))el('aiStatus').textContent='Copied ✓';setTimeout(function(){if(el('aiStatus'))el('aiStatus').textContent='';},1500);}); }
   var WM_STATUSES=[['fresh','🟢 Fresh'],['called','📞 Called'],['scheduled','📅 Scheduled'],['followup','🔁 Future Follow Up'],['won','🏆 Won'],['lost','✖ Lost']];
   function statusOf(c){var k=c&&c.status;if(k&&['fresh','called','scheduled','followup','won','lost'].indexOf(k)>=0)return k;if(c){if(c.outcome==='win')return'won';if(c.outcome==='lose')return'lost';if(c.contacted)return'called';}return'fresh';}
   function wmStatusOptions(cur){return WM_STATUSES.map(function(op){return '<option value="'+op[0]+'"'+(op[0]===cur?' selected':'')+'>'+op[1]+'</option>';}).join('');}
@@ -666,6 +754,7 @@ input,textarea,select{border-radius:12px;}
   /* ===================== INIT ===================== */
   addWmRow2();
   loadPlan();
+  peekPlan();
   checkTeamAccess();
   showMode('broker');
 </script>
