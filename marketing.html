@@ -328,6 +328,14 @@ input,textarea,select{border-radius:12px;}
         </div>
         <div class="wm-score" id="wmScore">No outcomes logged yet</div>
         <style>
+        .wm-tools{margin:0 0 14px;}
+        .wm-tool-btn{font-family:inherit;cursor:pointer;font-weight:800;font-size:12.5px;padding:9px 14px;border-radius:10px;border:1px solid var(--gold-deep);background:#fff;color:var(--gold);}
+        .wm-tool-btn:hover{background:rgba(212,175,55,.08);}
+        .wm-reach{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin:9px 0 2px;font-size:12px;font-weight:800;color:var(--muted);background:rgba(52,199,89,.06);border:1px solid var(--line);border-radius:10px;padding:8px 11px;}
+        .wm-reach select,.wm-reach input{padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:#fbfbfd;font-size:13px;font-family:inherit;color:#1d1d1f;}
+        </style>
+        <div class="wm-tools"><button type="button" class="wm-tool-btn" onclick="copyEmails()">📧 Copy all emails for my monthly note</button></div>
+        <style>
         .ai-card{border:1px solid var(--gold-deep);border-radius:16px;padding:16px;margin:0 0 14px;background:linear-gradient(160deg,#fffdf7,#fbfbfd);}
         .ai-h{font-weight:900;font-size:15px;color:var(--gold-bright);}
         .ai-h span{font-weight:700;color:var(--muted);font-size:12px;}
@@ -575,12 +583,17 @@ input,textarea,select{border-radius:12px;}
   function wmField(id,field,val,immediate){for(var i=0;i<warmMarket.length;i++){if(warmMarket[i].id===id){warmMarket[i][field]=val;break;}}wmSave(!!immediate);}
   function wmFld(label,f,val,type){return '<label class="wm-fld"><span>'+label+'</span><input data-f="'+f+'" type="'+(type||'text')+'" value="'+escH(val||'')+'" placeholder="'+escH(label)+'" autocomplete="off"></label>';}
   function wmTz(val){var z=['','PST','MST','CST','EST','HST','AKST'];var o='';z.forEach(function(t){o+='<option value="'+t+'"'+(t===(val||'')?' selected':'')+'>'+(t||'— time zone —')+'</option>';});return '<label class="wm-fld"><span>Time zone</span><select data-f="timeZone">'+o+'</select></label>';}
+  function wmSel(label,f,val,opts){return '<label class="wm-fld"><span>'+label+'</span><select data-f="'+f+'">'+opts.map(function(o){return '<option value="'+o[0]+'"'+((val||'')===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join('')+'</select></label>';}
+  function mktToast(msg){var t=document.getElementById('mktToast');if(!t){t=document.createElement('div');t.id='mktToast';t.style.cssText='position:fixed;left:50%;bottom:24px;transform:translateX(-50%);max-width:88%;text-align:center;background:#1d1d1f;color:#fff;padding:11px 18px;border-radius:12px;font-weight:800;font-size:13px;z-index:9999;box-shadow:0 8px 30px rgba(0,0,0,.3);opacity:0;transition:opacity .2s';document.body.appendChild(t);}t.textContent=msg;t.style.opacity='1';clearTimeout(t._t);t._t=setTimeout(function(){t.style.opacity='0';},2800);}
+  function collectEmails(){var em=[],seen={};warmMarket.forEach(function(c){var e=(c.email||'').trim();var k=e.toLowerCase();if(e&&e.indexOf('@')>0&&!seen[k]){seen[k]=1;em.push(e);}});return em;}
+  function copyEmails(){var em=collectEmails();if(!em.length){mktToast('No emails in your list yet — add some to build your monthly list.');return;}var txt=em.join(', ');if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(function(){mktToast('📧 Copied '+em.length+' email'+(em.length===1?'':'s')+' — paste into BCC for your monthly note');},function(){window.prompt('Copy these '+em.length+' emails (Ctrl/Cmd+C):',txt);});}else window.prompt('Copy these '+em.length+' emails (Ctrl/Cmd+C):',txt);}
   function addBlankLead(){warmMarket.unshift({id:'wm'+Date.now()+Math.floor(Math.random()*100000),name:'',phone:'',date:ptToday(),outcome:'',done:false});wmSave(true);renderWarm();var first=document.querySelector('#wmList .wm-card .wm-name-in');if(first)first.focus();}
   function wmRowHTML(){return '<div class="wm-row"><input class="wm-n" type="text" placeholder="Name" autocomplete="off"><input class="wm-p" type="tel" placeholder="Phone" autocomplete="off"><input class="wm-e" type="email" placeholder="Email" autocomplete="off"><button type="button" class="wm-x" onclick="this.parentNode.remove()">×</button><input class="wm-note-in" type="text" placeholder="Notes — how you know them, next step…" autocomplete="off"></div>';}
   function addWmRow2(){el('wmRows2').insertAdjacentHTML('beforeend',wmRowHTML());}
   function resetRows(id){el(id).innerHTML=wmRowHTML();}
-  function gatherRows(container){var rows=container.querySelectorAll('.wm-row');var added=0;rows.forEach(function(r){var n=r.querySelector('.wm-n').value.trim();var p=r.querySelector('.wm-p').value.trim();var e=r.querySelector('.wm-e').value.trim();var ni=r.querySelector('.wm-note-in');var notes=ni?ni.value.trim():'';if(n||p||e){warmMarket.unshift({id:'wm'+Date.now()+Math.floor(Math.random()*1000),name:n,phone:p,email:e,notes:notes,outcome:'',date:ptToday(),done:false});added++;}});return added;}
-  function logContacts2(){var n=gatherRows(el('wmRows2'));var note=el('wmLogNote2');if(!n){note.style.color='var(--red)';note.textContent='Enter at least a name, phone, or email.';return;}note.style.color='var(--green)';note.textContent=n+' contact'+(n>1?'s':'')+' added ✓';resetRows('wmRows2');renderWarm();wmSave(true);setTimeout(function(){note.textContent='';},3500);}
+  function dupKey(nm,ph){return (nm||'').trim().toLowerCase()+'|'+(ph||'').replace(/\D/g,'');}
+  function gatherRows(container){var rows=container.querySelectorAll('.wm-row');var added=0,skipped=0;var seen={};warmMarket.forEach(function(x){seen[dupKey(x.name,x.phone)]=1;});rows.forEach(function(r){var n=r.querySelector('.wm-n').value.trim();var p=r.querySelector('.wm-p').value.trim();var e=r.querySelector('.wm-e').value.trim();var ni=r.querySelector('.wm-note-in');var notes=ni?ni.value.trim():'';if(!n&&!p&&!e)return;var k=dupKey(n,p);if(seen[k]){skipped++;return;}seen[k]=1;warmMarket.unshift({id:'wm'+Date.now()+Math.floor(Math.random()*1000000),name:n,phone:p,email:e,notes:notes,outcome:'',date:ptToday(),done:false});added++;});return {added:added,skipped:skipped};}
+  function logContacts2(){var res=gatherRows(el('wmRows2'));var note=el('wmLogNote2');if(!res.added&&!res.skipped){note.style.color='var(--red)';note.textContent='Enter at least a name, phone, or email.';return;}note.style.color=res.added?'var(--green)':'var(--gold-bright)';note.textContent=(res.added?(res.added+' added ✓'):'Nothing new')+(res.skipped?(' · '+res.skipped+' already in your list (skipped the duplicate)'):'');resetRows('wmRows2');renderWarm();if(res.added)wmSave(true);setTimeout(function(){note.textContent='';},4500);}
   function impDigits(s){return (s||'').replace(/\D/g,'');}
   function setImpNote(msg,err){var n=el('impNote');if(!n)return;n.textContent=msg;n.style.color=err?'var(--red)':'var(--green)';}
   function toggleImpPaste(){var w=el('impPasteWrap');if(w)w.style.display=(w.style.display==='none'||!w.style.display)?'block':'none';}
@@ -610,11 +623,13 @@ input,textarea,select{border-radius:12px;}
         '</div>'+
         ((c.pooled&&!c.locked)?'<div class="wm-pooled-flag">⏰ Uncalled 21+ days — now shared in the Phone Zone. Set a status to pull it back and keep it yours.</div>':'')+
         (c.locked?'<div class="wm-locked-flag">🔒 Locked — protected from the 21-day shared pool. Click the lock again to release it.</div>':'')+
+        ((c.contacted||statusOf(c)!=='fresh')?('<div class="wm-reach"><span>☎ Reached:</span><select data-f="outreachType"><option value="">— talked or left a message? —</option><option value="talked"'+(c.outreachType==='talked'?' selected':'')+'>🗣 Talked to them</option><option value="voicemail"'+(c.outreachType==='voicemail'?' selected':'')+'>📩 Left a message</option></select><span>on</span><input data-f="contactedDate" type="date" value="'+escH(c.contactedDate||'')+'"></div>'):'')+
         '<div class="wm-grid">'+
           wmFld('☎ Phone','phone',c.phone,'tel')+
           wmFld('🤝 How you know them','howKnow',c.howKnow,'text')+
           wmTz(c.timeZone)+
           wmFld('📅 Appointment date','apptDate',c.apptDate,'date')+
+          wmSel('Meeting type','apptType',c.apptType,[['','— type —'],['appointment','📅 Appointment'],['hiring','🧑‍💼 Hiring Interview']])+
           wmFld('✉ Email','email',c.email,'email')+
           wmFld('Age','age',c.age,'text')+
           wmFld('3 character traits','traits',c.traits,'text')+
