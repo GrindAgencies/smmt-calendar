@@ -733,8 +733,39 @@ function openCalEvent(id){
   $('bkDrawer').innerHTML='<h3>'+esc(b.category||'Appointment')+'</h3><p class="dsub">'+prettyDate(dispDate(b))+' · '+esc(dispTime(b))+tzTag()+'</p>'+
     '<div class="confrow"><div class="cl">'+(role==='trainer'?'Client':'Trainer')+'</div><div class="cv">'+esc(who||'')+'</div></div>'+
     '<div class="confrow"><div class="cl">Status</div><div class="cv">'+esc(b.status)+'</div></div>'+
-    '<div class="confrow"><div class="cl">Confirmation</div><div class="cv">'+esc(b.conf||'')+'</div></div>'+acell;
+    '<div class="confrow"><div class="cl">Confirmation</div><div class="cv">'+esc(b.conf||'')+'</div></div>'+
+    '<div id="coachWrap" style="margin-top:14px"></div>'+acell;
   $('bkOv').classList.add('on');
+  loadCoach(coachCtx(b,role));
+}
+/* ===== Coaching notes on a field training (trainer writes · trainee reads) ===== */
+var CO="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/coaching";
+function coachCtx(b,role){
+  if(role==='trainer')return {bid:b.id,tcode:(b.agent_code||''),tname:(b.agent_name||''),trainer:(b.trainer_name||NAME),ftdate:dispDate(b),canWrite:true};
+  return {bid:b.id,tcode:CODE,tname:NAME,trainer:(b.trainer_name||''),ftdate:dispDate(b),canWrite:false};
+}
+function coachWhen(iso){try{return new Date(iso).toLocaleDateString('en-US',{month:'short',day:'numeric'});}catch(e){return '';}}
+function loadCoach(ctx){
+  var host=$('coachWrap');if(!host)return;window.__coachCtx=ctx;
+  host.innerHTML='<div class="cl" style="margin-bottom:6px">🎓 Coaching notes</div><div id="coachList" style="font-size:13px;color:var(--muted)">Loading…</div>'+
+    (ctx.canWrite?('<textarea id="coachIn" rows="2" placeholder="Leave a note for '+esc(ctx.tname||'the trainee')+' to study from — what went well, what to work on…" style="width:100%;margin-top:8px;padding:9px;border-radius:10px;border:1px solid var(--line);font-family:inherit;font-size:13px;box-sizing:border-box"></textarea><button class="go" style="margin-top:6px" onclick="saveCoach()">Save coaching note</button>'):'');
+  if(!ctx.bid){renderCoach([],ctx);return;}
+  fetch(CO,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'booking',booking_id:ctx.bid})}).then(function(r){return r.json();}).then(function(d){renderCoach((d&&d.notes)||[],ctx);}).catch(function(){var l=$('coachList');if(l)l.textContent='Could not load notes.';});
+}
+function renderCoach(notes,ctx){
+  var l=$('coachList');if(!l)return;
+  if(!notes.length){l.innerHTML=ctx.canWrite?'No notes yet — leave the first one below.':'No coaching notes for this training yet.';return;}
+  l.innerHTML=notes.map(function(n){return '<div style="background:rgba(91,108,255,.06);border:1px solid var(--line);border-radius:10px;padding:9px 11px;margin-bottom:7px"><div style="color:var(--ink);white-space:pre-wrap;font-weight:500">'+esc(n.body)+'</div><div style="font-size:11px;color:var(--muted);margin-top:4px">— '+esc(n.by_name||'Trainer')+' · '+coachWhen(n.created_at)+'</div></div>';}).join('');
+}
+function saveCoach(){
+  var ctx=window.__coachCtx;var inp=$('coachIn');var t=(inp&&inp.value||'').trim();
+  if(!ctx||!t)return;
+  if(!ctx.tcode){toast('No trainee is attached to this booking.');return;}
+  var btn=event&&event.target;if(btn){btn.disabled=true;btn.textContent='Saving…';}
+  fetch(CO,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'add',by_code:CODE,by_name:NAME,trainee_code:ctx.tcode,trainee_name:ctx.tname,trainer_name:ctx.trainer,booking_id:ctx.bid,ft_date:ctx.ftdate,body:t})}).then(function(r){return r.json();}).then(function(d){
+    if(btn){btn.disabled=false;btn.textContent='Save coaching note';}
+    if(d&&d.ok){inp.value='';toast('Coaching note saved ✓');loadCoach(ctx);}else toast((d&&d.error)||'Could not save');
+  }).catch(function(){if(btn){btn.disabled=false;btn.textContent='Save coaching note';}toast('Network error');});
 }
 var CAL="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/cal-feed";
 var PA="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/profile-api";

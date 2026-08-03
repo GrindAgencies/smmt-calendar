@@ -346,6 +346,7 @@ svg.gpath{position:absolute;inset:0;z-index:1;pointer-events:none;}
 </aside>
 <header class="tsfg-top"><button class="tsfg-ic" onclick="tsfgToggle()" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button><div class="tsfg-title">My Journey</div><div style="flex:1"></div><a class="tsfg-ic" href="checklist.html?classic=1" title="Classic checklist" style="width:auto;padding:0 12px;font-size:12.5px;font-weight:700;gap:6px">📋 Classic</a></header>
 
+<div class="wrap" id="coachTracker" style="padding-bottom:0"></div>
 <div class="wrap" id="wrap"><div class="spin">Loading your journey…</div></div>
 
 <div class="ov" id="ov" onclick="if(event.target===this)closeSheet()"><div class="sheet" id="sheet"></div></div>
@@ -361,6 +362,20 @@ var OCC={eligible:false,occupancy:{},counts:{}};
 var KEYS=new Set();var CTAMAP={};
 var CODE="",NAME="";
 try{CODE=(localStorage.getItem('tsfg_code')||'').toUpperCase();NAME=localStorage.getItem('tsfg_name')||'';}catch(e){}
+/* 🎓 Coaching Notes — feedback trainers leave after field trainings (read-only for the trainee) */
+var COACHAPI="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/coaching";
+function loadCoachTracker(){
+  if(!CODE)return;
+  fetch(COACHAPI,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'list',code:CODE})}).then(function(r){return r.json();}).then(function(d){
+    var host=document.getElementById('coachTracker');if(!host)return;
+    var notes=(d&&d.notes)||[];if(!notes.length){host.innerHTML='';return;}
+    var esc=function(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});};
+    var when=function(iso){try{return new Date(iso).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});}catch(e){return '';}};
+    var items=notes.slice(0,12).map(function(n){return '<div style="background:#fff;border:1px solid #ececf0;border-radius:12px;padding:11px 13px;margin-bottom:8px"><div style="white-space:pre-wrap;font-weight:500;color:#1d1d1f;line-height:1.5">'+esc(n.body)+'</div><div style="font-size:11.5px;color:#6e6e73;margin-top:5px;font-weight:700">— '+esc(n.by_name||n.trainer_name||'Your trainer')+' · '+when(n.created_at)+(n.ft_date?(' · field training '+esc(n.ft_date)):'')+'</div></div>';}).join('');
+    host.innerHTML='<div style="border:1px solid #e6dcc2;border-radius:16px;padding:16px 18px;margin:0 0 16px;background:linear-gradient(160deg,#fffdf7,#fbfbfd)"><div style="font-weight:900;font-size:15px;color:#c99a2e;margin-bottom:4px">🎓 Coaching Notes</div><div style="font-size:12.5px;color:#6e6e73;margin-bottom:12px">Feedback from your trainers after field trainings — study these to level up.</div>'+items+(notes.length>12?('<div style="font-size:12px;color:#6e6e73;font-weight:700">+ '+(notes.length-12)+' more in your history</div>'):'')+'</div>';
+  }).catch(function(){});
+}
+try{loadCoachTracker();}catch(e){}
 var PLAYER=null,WORLDS=[],LABELS={},NEARBY={},AGENT=null,PROGRESS={},OPENLVL=null;
 var FIRST=true,JUSTID='',TEAM=null;
 function scrollToCurrent(){var el=document.querySelector('.gnode.active');if(!el){var dn=document.querySelectorAll('.gnode.done');el=dn[dn.length-1];}if(el&&el.scrollIntoView){try{el.scrollIntoView({behavior:'smooth',block:'center'});}catch(e){try{el.scrollIntoView();}catch(_){}}}}
