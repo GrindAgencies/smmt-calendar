@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-08-03T14:59:52.751Z",
+  "timestamp": "2026-08-03T15:01:01.165Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -15,44 +15,7 @@
   "blockers": [],
   "human_actions_pending": [],
   "decisions": [],
-  "uncommitted_files": [
-    {
-      "status": "M",
-      "path": ".planning/HANDOFF.json"
-    },
-    {
-      "status": "M",
-      "path": "checklist.html"
-    },
-    {
-      "status": "M",
-      "path": "dashboard.html"
-    },
-    {
-      "status": "M",
-      "path": "index.html"
-    },
-    {
-      "status": "M",
-      "path": "marketing.html"
-    },
-    {
-      "status": "M",
-      "path": "org.html"
-    },
-    {
-      "status": "M",
-      "path": "resources.html"
-    },
-    {
-      "status": "M",
-      "path": "team.html"
-    },
-    {
-      "status": "??",
-      "path": "native/package-lock.json"
-    }
-  ],
+  "uncommitted_files": [],
   "next_action": null,
-  "context_notes": "Recent commits:\n13d90aa Leads tab: migrate each broker's Top 100 into marketing.html (dual-mode)\n6c85f85 Ops agent profile: '📍 Place on the path' quick-picker — jump a broker to any numbered spot, auto-checks everything up to it\n04e8782 Tracker: trophy tiles read the milestone's emoji — 💎 diamond on every $100K, 💍 ring on the marked tiers, 👑 crown at $1M\n86aee60 My Tracker: self-accountability model + Ops adjust/reset override\nc4f96b6 Merge branch 'main' of https://github.com/GrindAgencies/smmt-calendar"
+  "context_notes": "Recent commits:\n44dde50 Marketing Plan: rename Leads→Marketing Plan everywhere; gate the aggregate to CFT-and-above (role-based, no passcode)\n13d90aa Leads tab: migrate each broker's Top 100 into marketing.html (dual-mode)\n6c85f85 Ops agent profile: '📍 Place on the path' quick-picker — jump a broker to any numbered spot, auto-checks everything up to it\n04e8782 Tracker: trophy tiles read the milestone's emoji — 💎 diamond on every $100K, 💍 ring on the marked tiers, 👑 crown at $1M\n86aee60 My Tracker: self-accountability model + Ops adjust/reset override"
 }
