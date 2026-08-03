@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-07-30T16:19:52.328Z",
+  "timestamp": "2026-08-03T14:59:52.751Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -22,13 +22,37 @@
     },
     {
       "status": "M",
-      "path": "app.html"
+      "path": "checklist.html"
     },
     {
       "status": "M",
-      "path": "notif.js"
+      "path": "dashboard.html"
+    },
+    {
+      "status": "M",
+      "path": "index.html"
+    },
+    {
+      "status": "M",
+      "path": "marketing.html"
+    },
+    {
+      "status": "M",
+      "path": "org.html"
+    },
+    {
+      "status": "M",
+      "path": "resources.html"
+    },
+    {
+      "status": "M",
+      "path": "team.html"
+    },
+    {
+      "status": "??",
+      "path": "native/package-lock.json"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\n3b8e587 Update HANDOFF.json\n73a7e2c My Availability: trainers set their weekly hours in their OWN time zone\n4e6fc0d Update HANDOFF.json\n09f599f Scheduler: show availability slots in the booker's time zone (submit stays Pacific)\n7ea663e Update HANDOFF.json"
+  "context_notes": "Recent commits:\n13d90aa Leads tab: migrate each broker's Top 100 into marketing.html (dual-mode)\n6c85f85 Ops agent profile: '📍 Place on the path' quick-picker — jump a broker to any numbered spot, auto-checks everything up to it\n04e8782 Tracker: trophy tiles read the milestone's emoji — 💎 diamond on every $100K, 💍 ring on the marked tiers, 👑 crown at $1M\n86aee60 My Tracker: self-accountability model + Ops adjust/reset override\nc4f96b6 Merge branch 'main' of https://github.com/GrindAgencies/smmt-calendar"
 }
