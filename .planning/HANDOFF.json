@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-08-03T15:37:44.942Z",
+  "timestamp": "2026-08-03T16:04:35.661Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -26,5 +26,5 @@
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\nd4145c7 Update HANDOFF.json\n44dde50 Marketing Plan: rename Leads→Marketing Plan everywhere; gate the aggregate to CFT-and-above (role-based, no passcode)\n13d90aa Leads tab: migrate each broker's Top 100 into marketing.html (dual-mode)\n6c85f85 Ops agent profile: '📍 Place on the path' quick-picker — jump a broker to any numbered spot, auto-checks everything up to it\n04e8782 Tracker: trophy tiles read the milestone's emoji — 💎 diamond on every $100K, 💍 ring on the marked tiers, 👑 crown at $1M"
+  "context_notes": "Recent commits:\n4093431 Update HANDOFF.json\n0014b87 Marketing Plan: AI Growth Plan — turn a broker's real Top 100 into a personalized playbook\nd4145c7 Update HANDOFF.json\n44dde50 Marketing Plan: rename Leads→Marketing Plan everywhere; gate the aggregate to CFT-and-above (role-based, no passcode)\n13d90aa Leads tab: migrate each broker's Top 100 into marketing.html (dual-mode)"
 }
