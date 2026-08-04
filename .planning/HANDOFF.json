@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-08-03T22:57:37.010Z",
+  "timestamp": "2026-08-03T23:52:41.619Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -22,9 +22,13 @@
     },
     {
       "status": "M",
-      "path": "marketing.html"
+      "path": "calendar.html"
+    },
+    {
+      "status": "M",
+      "path": "roadmap.html"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\na1e5a39 Update HANDOFF.json\nad7a3c3 Marketing Plan: exclude bulk imports from the 21-day auto-recycle\n320f058 Update HANDOFF.json\n498fc31 Phone Zone: search + capped rendering so the shared pool scales\n4093431 Update HANDOFF.json"
+  "context_notes": "Recent commits:\n97c2786 Update HANDOFF.json\ndce7c0a Marketing Plan: outreach type + date, copy-all-emails, hiring-interview meeting type, dedupe on manual add\na1e5a39 Update HANDOFF.json\nad7a3c3 Marketing Plan: exclude bulk imports from the 21-day auto-recycle\n320f058 Update HANDOFF.json"
 }
