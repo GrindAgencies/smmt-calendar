@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-08-03T23:52:41.619Z",
+  "timestamp": "2026-08-04T15:25:47.422Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -19,16 +19,8 @@
     {
       "status": "M",
       "path": ".planning/HANDOFF.json"
-    },
-    {
-      "status": "M",
-      "path": "calendar.html"
-    },
-    {
-      "status": "M",
-      "path": "roadmap.html"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\n97c2786 Update HANDOFF.json\ndce7c0a Marketing Plan: outreach type + date, copy-all-emails, hiring-interview meeting type, dedupe on manual add\na1e5a39 Update HANDOFF.json\nad7a3c3 Marketing Plan: exclude bulk imports from the 21-day auto-recycle\n320f058 Update HANDOFF.json"
+  "context_notes": "Recent commits:\nb2e13e1 Update HANDOFF.json\n150379b Field training: coaching notes — trainers leave feedback on an FTA, trainees read it (per-training + running log)\n97c2786 Update HANDOFF.json\ndce7c0a Marketing Plan: outreach type + date, copy-all-emails, hiring-interview meeting type, dedupe on manual add\na1e5a39 Update HANDOFF.json"
 }
