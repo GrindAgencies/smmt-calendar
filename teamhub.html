@@ -518,8 +518,10 @@ function heartbeat(){var st=(Date.now()-lastActivity>600000)?'away':'active';if(
   loadChannels();renderHead();loadMsgs(true);heartbeat();loadAvatars();loadEmblems();loadRoster();
   // roster for DMs + mentions
   fetch(TA,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'team',leader:BASESHOP_LEADER})}).then(function(r){return r.json();}).then(function(d){(d&&d.agents||[]).forEach(function(a){var nm=((a.first_name||'')+' '+(a.last_name||'')).trim();if(a.code&&nm)MEMBERS[a.code]=nm;});renderRooms();});
-  POLL=setInterval(function(){loadMsgs(false);},4000);
-  setInterval(heartbeat,30000);setInterval(loadAvatars,45000);
+  POLL=setInterval(function(){if(!document.hidden)loadMsgs(false);},10000);
+  setInterval(function(){if(!document.hidden)heartbeat();},30000);
+  setInterval(function(){if(!document.hidden)loadAvatars();},120000);
+  document.addEventListener('visibilitychange',function(){if(!document.hidden){loadMsgs(false);heartbeat();}});
 })();
 </script>
 <script defer src="notif.js"></script>

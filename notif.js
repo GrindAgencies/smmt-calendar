@@ -11,7 +11,7 @@
   try { NAME = localStorage.getItem('tsfg_name') || ''; CODE = localStorage.getItem('tsfg_code') || ''; } catch (e) {}
   if (!NAME && !CODE) return; // not logged in — no bell
 
-  var POLL_MS = 45000;
+  var POLL_MS = 60000;
   var items = [], unread = 0, open = false, timer = null;
 
   function isDark() {
@@ -153,7 +153,7 @@
 
   function start(){
     build(); refresh();
-    timer = setInterval(function(){ if(!open) refresh(); }, POLL_MS);
+    timer = setInterval(function(){ if(!open && !document.hidden) refresh(); }, POLL_MS);
     document.addEventListener('visibilitychange', function(){ if(!document.hidden) refresh(); });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
