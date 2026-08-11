@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Team Hub — The Standard</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
   --bg:#f5f5f7;--panel:#fff;--panel2:#fbfbfd;--ink:#1d1d1f;--ink2:#6e6e73;--ink3:#8e8e93;
@@ -344,7 +345,24 @@ function renderHead(){var m=chanMeta(CHAN);var del=(CHAN.indexOf('c_')===0)?'<bu
 
 /* messages */
 var MSGS=[];
+/* ===== Supabase Realtime — a broadcast "nudge" replaces the fast poll.
+   The DB trigger broadcasts only {channel,id} (NO message body); actual content is
+   still fetched through the access-gated hub-api, so nothing sensitive rides the socket.
+   A 60s fallback poll below keeps chat working if the websocket ever drops. ===== */
+var SBURL="https://bmfqxtocxkjhsgfnndlo.supabase.co";
+var SBKEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtZnF4dG9jeGtqaHNnZm5uZGxvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzczMTkzMzYsImV4cCI6MjA5Mjg5NTMzNn0.WhC3etNhHUhy6Sip0w2Gk1FzYDYhad2ukaCgsOAYrf8";
+var SB=null,rtChan=null,rtTopicNow="";
+function rtTopic(chan){return 'hub-'+String(chan||'').replace(/[^a-zA-Z0-9]/g,'_');}
+function rtSubscribe(){
+  try{ if(!SB&&window.supabase)SB=window.supabase.createClient(SBURL,SBKEY); }catch(e){SB=null;}
+  if(!SB)return;
+  try{ if(rtChan){SB.removeChannel(rtChan);rtChan=null;} }catch(e){}
+  var top=rtTopic(CHAN);rtTopicNow=top;
+  try{ rtChan=SB.channel(top).on('broadcast',{event:'newmsg'},function(){ if(!document.hidden)loadMsgs(false); }).subscribe(); }catch(e){rtChan=null;}
+}
+function rtEnsure(){ if(rtTopicNow!==rtTopic(CHAN))rtSubscribe(); }
 function loadMsgs(scroll){
+  try{rtEnsure();}catch(e){}
   h({action:'hub_list',channel:CHAN,after:LASTID}).then(function(r){
     var arr=(r&&r.messages)||[];
     if(LASTID===0){MSGS=arr;}else if(arr.length){MSGS=MSGS.concat(arr);}
@@ -518,7 +536,7 @@ function heartbeat(){var st=(Date.now()-lastActivity>600000)?'away':'active';if(
   loadChannels();renderHead();loadMsgs(true);heartbeat();loadAvatars();loadEmblems();loadRoster();
   // roster for DMs + mentions
   fetch(TA,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'team',leader:BASESHOP_LEADER})}).then(function(r){return r.json();}).then(function(d){(d&&d.agents||[]).forEach(function(a){var nm=((a.first_name||'')+' '+(a.last_name||'')).trim();if(a.code&&nm)MEMBERS[a.code]=nm;});renderRooms();});
-  POLL=setInterval(function(){if(!document.hidden)loadMsgs(false);},10000);
+  POLL=setInterval(function(){if(!document.hidden)loadMsgs(false);},60000); /* fallback only — realtime broadcast drives live updates */
   setInterval(function(){if(!document.hidden)heartbeat();},30000);
   setInterval(function(){if(!document.hidden)loadAvatars();},120000);
   document.addEventListener('visibilitychange',function(){if(!document.hidden){loadMsgs(false);heartbeat();}});
