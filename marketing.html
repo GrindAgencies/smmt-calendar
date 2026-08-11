@@ -328,13 +328,69 @@ input,textarea,select{border-radius:12px;}
         </div>
         <div class="wm-score" id="wmScore">No outcomes logged yet</div>
         <style>
+        #myPlanWrap{display:flex;flex-direction:column;}
+        #myPlanWrap>.marker{order:0;}
+        #myPlanWrap>.wm-goal,#myPlanWrap>.wm-score{order:1;}
+        #myPlanWrap>.wm-actionbar{order:2;}
+        #myPlanWrap>#panelAdd,#myPlanWrap>#panelImport,#myPlanWrap>#aiCard,#myPlanWrap>.wm-tools{order:3;}
+        #myPlanWrap>.wm-worktools{order:4;}
+        #myPlanWrap>#wmList,#myPlanWrap>#wmAddRow,#myPlanWrap>#wmEmpty{order:5;}
+        .wm-actionbar{display:flex;gap:8px;flex-wrap:wrap;margin:2px 0 14px;}
+        .wm-ab{flex:1;min-width:84px;font-family:inherit;cursor:pointer;font-weight:800;font-size:13px;padding:11px 10px;border-radius:12px;border:1px solid var(--gold-deep);background:#fff;color:var(--gold);}
+        .wm-ab.on{background:linear-gradient(90deg,var(--gold-bright),var(--gold));color:#1d1d1f;border-color:var(--gold);}
+        .wm-worktools{position:sticky;top:56px;z-index:6;background:#f5f5f7;padding:8px 0 6px;}
+        #wmSearch{width:100%;box-sizing:border-box;padding:11px 15px;border-radius:999px;border:1px solid var(--gold-deep);background:#fff;font-size:14px;font-weight:600;outline:none;font-family:inherit;}
+        .wm-chips{display:flex;gap:7px;margin-top:9px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:2px;}
+        .wm-chip{white-space:nowrap;font-family:inherit;cursor:pointer;font-weight:800;font-size:12.5px;padding:7px 13px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--muted);}
+        .wm-chip.on{background:rgba(212,175,55,.14);border-color:var(--gold-deep);color:#1d1d1f;}
+        .lead{border:1px solid var(--line);border-radius:12px;margin-bottom:8px;background:#fff;overflow:hidden;}
+        .lead.open{border-color:var(--gold-deep);box-shadow:0 2px 12px rgba(0,0,0,.06);}
+        .lead-row{display:flex;align-items:center;gap:11px;padding:12px 13px;cursor:pointer;}
+        .lead-dot{width:32px;height:32px;flex:0 0 auto;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px;background:#f2f2f5;}
+        .lead-dot.s-fresh{background:rgba(52,199,89,.14);}
+        .lead-dot.s-called{background:rgba(91,108,255,.12);}
+        .lead-dot.s-scheduled{background:rgba(212,175,55,.18);}
+        .lead-dot.s-followup{background:rgba(154,110,201,.14);}
+        .lead-dot.s-won{background:rgba(52,199,89,.22);}
+        .lead-dot.s-lost{background:#eff0f2;}
+        .lead-main{flex:1;min-width:0;}
+        .lead-name{font-weight:800;font-size:14.5px;color:#1d1d1f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .lead-sub{font-size:12px;color:var(--muted);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;}
+        .lead-call{flex:0 0 auto;text-decoration:none;font-size:16px;width:38px;height:38px;border-radius:10px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--gold-bright);}
+        .lead-call:active{background:rgba(212,175,55,.1);}
+        .lead-chev{flex:0 0 auto;color:#b8b8bf;font-size:20px;line-height:1;transition:transform .15s;}
+        .lead.open .lead-chev{transform:rotate(90deg);}
+        .lead-detail{padding:2px 13px 13px;}
+        .lead-tag{display:inline-block;font-size:9.5px;font-weight:900;border-radius:5px;padding:1px 6px;margin-left:6px;vertical-align:middle;}
+        .lead-tag.lock{background:rgba(212,175,55,.16);color:var(--gold-deep);}
+        .lead-tag.pool{background:#fff7ed;color:#9a3412;}
+        .lead-tag.won{background:var(--green);color:#fff;}
+        .wm-listcount{font-size:12px;color:var(--muted);font-weight:700;margin:2px 2px 8px;}
+        </style>
+        <div class="wm-actionbar">
+          <button type="button" class="wm-ab" id="abAdd" onclick="wmPanel('add')">＋ Add person</button>
+          <button type="button" class="wm-ab" id="abImport" onclick="wmPanel('import')">📥 Import</button>
+          <button type="button" class="wm-ab" id="abAi" onclick="wmPanel('ai')">🤖 AI Plan</button>
+          <button type="button" class="wm-ab" onclick="copyEmails()">📧 Emails</button>
+        </div>
+        <div class="wm-worktools">
+          <input id="wmSearch" placeholder="🔎 Find a name or number in your list…" oninput="wmSearchChanged()">
+          <div class="wm-chips" id="wmChips">
+            <button type="button" class="wm-chip on" data-f="all" onclick="wmSetFilter('all')">All</button>
+            <button type="button" class="wm-chip" data-f="tocall" onclick="wmSetFilter('tocall')">☎ To call</button>
+            <button type="button" class="wm-chip" data-f="scheduled" onclick="wmSetFilter('scheduled')">📅 Scheduled</button>
+            <button type="button" class="wm-chip" data-f="won" onclick="wmSetFilter('won')">🏆 Won</button>
+          </div>
+        </div>
+        <div class="wm-listcount" id="wmListCount" style="order:5"></div>
+        <style>
         .wm-tools{margin:0 0 14px;}
         .wm-tool-btn{font-family:inherit;cursor:pointer;font-weight:800;font-size:12.5px;padding:9px 14px;border-radius:10px;border:1px solid var(--gold-deep);background:#fff;color:var(--gold);}
         .wm-tool-btn:hover{background:rgba(212,175,55,.08);}
         .wm-reach{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin:9px 0 2px;font-size:12px;font-weight:800;color:var(--muted);background:rgba(52,199,89,.06);border:1px solid var(--line);border-radius:10px;padding:8px 11px;}
         .wm-reach select,.wm-reach input{padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:#fbfbfd;font-size:13px;font-family:inherit;color:#1d1d1f;}
         </style>
-        <div class="wm-tools"><button type="button" class="wm-tool-btn" onclick="copyEmails()">📧 Copy all emails for my monthly note</button></div>
+        <div class="wm-tools" style="display:none"><button type="button" class="wm-tool-btn" onclick="copyEmails()">📧 Copy all emails for my monthly note</button></div>
         <style>
         .ai-card{border:1px solid var(--gold-deep);border-radius:16px;padding:16px;margin:0 0 14px;background:linear-gradient(160deg,#fffdf7,#fbfbfd);}
         .ai-h{font-weight:900;font-size:15px;color:var(--gold-bright);}
@@ -362,7 +418,7 @@ input,textarea,select{border-radius:12px;}
         .md-out th{background:#fbfbfd;font-weight:800;color:var(--gold);}
         .md-out code{background:#f2f2f5;border-radius:5px;padding:1px 5px;font-size:12.5px;}
         </style>
-        <div class="ai-card" id="aiCard">
+        <div class="ai-card" id="aiCard" style="display:none">
           <div class="ai-h">🤖 AI Growth Plan <span>· built from your list by Claude</span></div>
           <div class="ai-sub">Turn your Top 100 into a personalized, compliance-safe game plan — your real contacts segmented, hot/warm/cold priorities, a 90-day plan, and ready-to-use scripts.</div>
           <div class="ai-actions" id="aiActions">
@@ -373,7 +429,7 @@ input,textarea,select{border-radius:12px;}
           <div class="md-out" id="aiOut" style="display:none"></div>
           <div class="ai-foot" id="aiFoot" style="display:none"><span id="aiTs"></span><span style="flex:1"></span><button class="ai-mini" onclick="copyPlan()">📋 Copy</button><button class="ai-mini" onclick="genPlan(LASTFULL,true)">↻ Regenerate</button></div>
         </div>
-        <div class="mp-import">
+        <div class="mp-import" id="panelImport" style="display:none">
           <div class="mp-import-h">📥 Mass import — roster, leads list, or iPhone contacts</div>
           <div class="mp-import-sub">Upload a <b>.csv</b> (Excel / Google Sheets export) or a <b>.vcf</b> (iPhone / Mac Contacts). Names, phones &amp; emails map automatically, duplicates are skipped, and everyone drops into your list.</div>
           <div class="mp-import-actions">
@@ -388,7 +444,7 @@ input,textarea,select{border-radius:12px;}
           <div class="mp-import-note" id="impNote"></div>
           <div class="mp-import-help">📱 <b>iPhone:</b> Contacts → Share Contact → save the <b>.vcf</b> → upload here. 💻 <b>Mac:</b> Contacts → File → Export → Export vCard. 📊 <b>Spreadsheet:</b> File → Save As <b>.csv</b>.</div>
         </div>
-        <div class="wm-log">
+        <div class="wm-log" id="panelAdd" style="display:none">
           <div class="wm-log-h">➕ Add to your Top 100</div>
           <div class="wm-rows" id="wmRows2"></div>
           <div class="wm-actions">
@@ -399,7 +455,7 @@ input,textarea,select{border-radius:12px;}
         </div>
         <div id="wmList"></div>
         <div class="mp-addrow" id="wmAddRow"><button type="button" onclick="addBlankLead()">＋ Add blank lead</button></div>
-        <div class="wm-empty" id="wmEmpty">No leads yet. Add people above to start your Top 100.</div>
+        <div class="wm-empty" id="wmEmpty">No leads yet — tap <b>＋ Add person</b> or <b>📥 Import</b> above to start your Top 100.</div>
       </div>
       <div id="phoneZone" style="display:none;">
         <div class="marker">📞 <b>Phone Zone — shared lead pool.</b> Unassigned leads open to every agent. Pick one, call them, and if you connect tap <b>Assign to me</b> to move them into your list. Once claimed, the lead leaves the pool so no one double-calls.</div>
@@ -587,7 +643,7 @@ input,textarea,select{border-radius:12px;}
   function mktToast(msg){var t=document.getElementById('mktToast');if(!t){t=document.createElement('div');t.id='mktToast';t.style.cssText='position:fixed;left:50%;bottom:24px;transform:translateX(-50%);max-width:88%;text-align:center;background:#1d1d1f;color:#fff;padding:11px 18px;border-radius:12px;font-weight:800;font-size:13px;z-index:9999;box-shadow:0 8px 30px rgba(0,0,0,.3);opacity:0;transition:opacity .2s';document.body.appendChild(t);}t.textContent=msg;t.style.opacity='1';clearTimeout(t._t);t._t=setTimeout(function(){t.style.opacity='0';},2800);}
   function collectEmails(){var em=[],seen={};warmMarket.forEach(function(c){var e=(c.email||'').trim();var k=e.toLowerCase();if(e&&e.indexOf('@')>0&&!seen[k]){seen[k]=1;em.push(e);}});return em;}
   function copyEmails(){var em=collectEmails();if(!em.length){mktToast('No emails in your list yet — add some to build your monthly list.');return;}var txt=em.join(', ');if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(function(){mktToast('📧 Copied '+em.length+' email'+(em.length===1?'':'s')+' — paste into BCC for your monthly note');},function(){window.prompt('Copy these '+em.length+' emails (Ctrl/Cmd+C):',txt);});}else window.prompt('Copy these '+em.length+' emails (Ctrl/Cmd+C):',txt);}
-  function addBlankLead(){warmMarket.unshift({id:'wm'+Date.now()+Math.floor(Math.random()*100000),name:'',phone:'',date:ptToday(),outcome:'',done:false});wmSave(true);renderWarm();var first=document.querySelector('#wmList .wm-card .wm-name-in');if(first)first.focus();}
+  function addBlankLead(){var id='wm'+Date.now()+Math.floor(Math.random()*100000);warmMarket.unshift({id:id,name:'',phone:'',date:ptToday(),outcome:'',done:false});WMOPEN[id]=1;WMFILTER='all';WMQ='';wmSave(true);renderWarm();setTimeout(function(){var f=document.querySelector('#wmList .lead.open .wm-name-in');if(f)f.focus();},20);}
   function wmRowHTML(){return '<div class="wm-row"><input class="wm-n" type="text" placeholder="Name" autocomplete="off"><input class="wm-p" type="tel" placeholder="Phone" autocomplete="off"><input class="wm-e" type="email" placeholder="Email" autocomplete="off"><button type="button" class="wm-x" onclick="this.parentNode.remove()">×</button><input class="wm-note-in" type="text" placeholder="Notes — how you know them, next step…" autocomplete="off"></div>';}
   function addWmRow2(){el('wmRows2').insertAdjacentHTML('beforeend',wmRowHTML());}
   function resetRows(id){el(id).innerHTML=wmRowHTML();}
@@ -603,51 +659,98 @@ input,textarea,select{border-radius:12px;}
   function splitCells(l,delim){var out=[],cur='',q=false;for(var i=0;i<l.length;i++){var ch=l[i];if(ch==='"'){if(q&&l[i+1]==='"'){cur+='"';i++;}else q=!q;}else if(ch===delim&&!q){out.push(cur);cur='';}else cur+=ch;}out.push(cur);return out.map(function(s){return s.trim();});}
   function parseDelimited(txt){var lines=txt.replace(/\r/g,'').split('\n').filter(function(l){return l.trim()!=='';});if(!lines.length)return [];var delim=(lines[0].split('\t').length>lines[0].split(',').length)?'\t':',';var header=splitCells(lines[0],delim).map(function(h){return h.toLowerCase();});var looksHeader=header.some(function(h){return /name|phone|mobile|cell|email|number|first|last/.test(h);});function find(keys){for(var i=0;i<header.length;i++){for(var k=0;k<keys.length;k++){if(header[i].indexOf(keys[k])>=0)return i;}}return -1;}var out=[];if(looksHeader){var iName=find(['full name','display name','name','contact']),iFirst=find(['first']),iLast=find(['last']),iPhone=find(['mobile','cell','phone','number','tel']),iEmail=find(['email','e-mail']),iNote=find(['note','company','source','how','tag']);for(var r=1;r<lines.length;r++){var c=splitCells(lines[r],delim);if(!c.length)continue;var nm=(iName>=0?c[iName]:'')||(((iFirst>=0?c[iFirst]:'')+' '+(iLast>=0?c[iLast]:'')).trim());var ph=iPhone>=0?(c[iPhone]||''):'',em=iEmail>=0?(c[iEmail]||''):'',no=iNote>=0?(c[iNote]||''):'';if(nm||ph||em)out.push({name:nm,phone:ph,email:em,notes:no});}}else{lines.forEach(function(l){var c=splitCells(l,delim),nm='',ph='',em='';c.forEach(function(v){if(/@/.test(v)){em=em||v;}else if(impDigits(v).length>=7){ph=ph||v;}else if(v&&!nm){nm=v;}});if(nm||ph||em)out.push({name:nm,phone:ph,email:em});});}return out;}
   function addImported(list,srcName){if(!list||!list.length){setImpNote('No contacts found in '+(srcName||'that file')+'. Check it has names/phones/emails.',true);return;}var seen={};warmMarket.forEach(function(x){seen[((x.name||'').trim().toLowerCase()+'|'+impDigits(x.phone))]=1;});var added=0,i=0;list.forEach(function(l){var nm=(l.name||'').trim(),ph=(l.phone||'').trim();if(!nm&&!ph)return;var key=nm.toLowerCase()+'|'+impDigits(ph);if(seen[key])return;seen[key]=1;warmMarket.unshift({id:'wm'+Date.now()+Math.floor(Math.random()*1e6)+(i++),name:nm,phone:ph,email:(l.email||'').trim(),howKnow:(l.notes||'').trim(),notes:'',contacted:false,outcome:'',date:ptToday(),done:false,imported:true});added++;});if(added){renderWarm();wmSave(true);}var skipped=list.length-added;setImpNote('✓ Imported '+added+' contact'+(added===1?'':'s')+(skipped>0?(' · skipped '+skipped+' duplicate/blank'):'')+'.',false);if(el('impPasteWrap'))el('impPasteWrap').style.display='none';if(el('impPasteBox'))el('impPasteBox').value='';}
+  /* ===== working list: search · filter · hot→cold sort · compact rows w/ lazy-expand ===== */
+  var WMFILTER='all', WMQ='', WMOPEN={};
+  var WMEMO={fresh:'🟢',called:'📞',scheduled:'📅',followup:'🔁',won:'🏆',lost:'✖'};
+  var WMRANK={scheduled:0,followup:1,fresh:2,called:3,won:5,lost:6};
+  function niceDate(d){try{var p=String(d).split('-');return new Date(+p[0],+p[1]-1,+p[2]).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});}catch(e){return d;}}
+  function leadSub(c){var s=statusOf(c);
+    if(s==='won')return 'Won 🏆';
+    if(s==='lost')return 'Not a fit';
+    if(c.apptDate)return '📅 '+niceDate(c.apptDate)+(c.apptType==='hiring'?' · hiring interview':' · appointment');
+    if(s==='followup')return '🔁 Follow up'+(c.howKnow?(' · '+c.howKnow):'');
+    if(s==='called')return 'Reached'+(c.outreachType==='talked'?' · talked':c.outreachType==='voicemail'?' · left msg':'')+(c.howKnow?(' · '+c.howKnow):'');
+    return c.howKnow?c.howKnow:'Not contacted yet';
+  }
+  function wmSearchChanged(){WMQ=((el('wmSearch')&&el('wmSearch').value)||'').trim().toLowerCase();renderWarm();}
+  function wmSetFilter(f){WMFILTER=f;Array.prototype.forEach.call(document.querySelectorAll('#wmChips .wm-chip'),function(b){b.classList.toggle('on',b.getAttribute('data-f')===f);});renderWarm();}
+  function wmPanel(name){
+    var n2={add:'add','import':'imp',imp:'imp',ai:'ai'}[name]||name;
+    var mp={add:'panelAdd',imp:'panelImport',ai:'aiCard'},ab={add:'abAdd',imp:'abImport',ai:'abAi'};
+    var tgt=el(mp[n2]);var willOpen=!!(tgt&&tgt.style.display==='none');
+    ['add','imp','ai'].forEach(function(p){var pn=el(mp[p]);var bt=el(ab[p]);var open=(p===n2&&willOpen);if(pn)pn.style.display=open?'block':'none';if(bt)bt.classList.toggle('on',open);});
+    if(willOpen&&n2==='add'){var fi=document.querySelector('#panelAdd .wm-n');if(fi)fi.focus();}
+  }
   function renderWarm(){
     var n=warmMarket.length;
     var wins=warmMarket.filter(function(c){return c.outcome==='win';}).length;
     var losses=warmMarket.filter(function(c){return c.outcome==='lose';}).length;
-    if(el('wmGoalTxt')){el('wmGoalTxt').textContent=n+' / 100';el('wmGoalFill').style.width=Math.min(100,n)+'%';el('wmGoalNote').textContent=(n>=100)?('🏆 100+ built — '+n+' in your book. Next stop: 300!'):(n>=1)?((100-n)+' to go — add everyone you know.'):'Add everyone you know — aim for 100+ names.';}
-    if(el('wmScore')){var dec=wins+losses;var rate=dec?Math.round(wins*100/dec):0;var contacted=warmMarket.filter(function(c){return c.contacted;}).length;el('wmScore').innerHTML='☎ <span class="wl-win">'+contacted+' reached out</span> / '+n+(n-contacted>0?(' &nbsp;·&nbsp; '+(n-contacted)+' to reach out'):'')+(dec?(' &nbsp;|&nbsp; 🏆 <span class="wl-win">'+wins+'W</span> · <span class="wl-lose">'+losses+'L</span> · '+rate+'% close'):'');}
+    if(el('wmGoalTxt')){el('wmGoalTxt').textContent=n+' / 100';el('wmGoalFill').style.width=Math.min(100,n)+'%';el('wmGoalNote').textContent=(n>=100)?('🏆 '+n+' in your book!'):(n>=1)?((100-n)+' to go'):'Aim for 100+';}
+    if(el('wmScore')){var dec=wins+losses;var rate=dec?Math.round(wins*100/dec):0;var contacted=warmMarket.filter(function(c){return c.contacted;}).length;el('wmScore').innerHTML='☎ <span class="wl-win">'+contacted+' reached</span> / '+n+(dec?(' &nbsp;·&nbsp; 🏆 <span class="wl-win">'+wins+'W</span> · <span class="wl-lose">'+losses+'L</span> · '+rate+'%'):'');}
     if(el('wmEmpty'))el('wmEmpty').style.display=n?'none':'block';
-    if(el('wmAddRow'))el('wmAddRow').style.display=n?'flex':'none';
-    var L=el('wmList');if(!L)return;L.innerHTML='';
-    warmMarket.forEach(function(c){
-      var oc=c.outcome||'';var st=statusOf(c);
-      var d=document.createElement('div');d.className='wm-card'+(c.contacted?' contacted':'')+(oc?(' oc-'+oc):'')+((c.pooled&&!c.locked)?' pooled':'')+(c.locked?' locked':'');
-      d.innerHTML='<div class="wm-head">'+
-        '<select class="wm-status s-'+st+'" title="Lead status">'+wmStatusOptions(st)+'</select>'+
-        '<input class="wm-name-in" data-f="name" type="text" value="'+escH(c.name||'')+'" placeholder="Full name" autocomplete="off">'+
-        '<button class="wm-lock'+(c.locked?' on':'')+'" title="'+(c.locked?'Locked — protected from the 21-day pool. Click to unlock.':'Lock — keep this lead off the 21-day shared pool')+'">'+(c.locked?'🔒':'🔓')+'</button>'+
-        '<button class="wm-del" title="Remove">🗑</button>'+
-        '</div>'+
-        ((c.pooled&&!c.locked)?'<div class="wm-pooled-flag">⏰ Uncalled 21+ days — now shared in the Phone Zone. Set a status to pull it back and keep it yours.</div>':'')+
-        (c.locked?'<div class="wm-locked-flag">🔒 Locked — protected from the 21-day shared pool. Click the lock again to release it.</div>':'')+
-        ((c.contacted||statusOf(c)!=='fresh')?('<div class="wm-reach"><span>☎ Reached:</span><select data-f="outreachType"><option value="">— talked or left a message? —</option><option value="talked"'+(c.outreachType==='talked'?' selected':'')+'>🗣 Talked to them</option><option value="voicemail"'+(c.outreachType==='voicemail'?' selected':'')+'>📩 Left a message</option></select><span>on</span><input data-f="contactedDate" type="date" value="'+escH(c.contactedDate||'')+'"></div>'):'')+
-        '<div class="wm-grid">'+
-          wmFld('☎ Phone','phone',c.phone,'tel')+
-          wmFld('🤝 How you know them','howKnow',c.howKnow,'text')+
-          wmTz(c.timeZone)+
-          wmFld('📅 Appointment date','apptDate',c.apptDate,'date')+
-          wmSel('Meeting type','apptType',c.apptType,[['','— type —'],['appointment','📅 Appointment'],['hiring','🧑‍💼 Hiring Interview']])+
-          wmFld('✉ Email','email',c.email,'email')+
-          wmFld('Age','age',c.age,'text')+
-          wmFld('3 character traits','traits',c.traits,'text')+
-        '</div>'+
-        '<div class="wm-toggles">'+
-          '<label class="wm-tg"><input type="checkbox" data-f="married" '+(c.married?'checked':'')+'> Married</label>'+
-          '<label class="wm-tg"><input type="checkbox" data-f="children" '+(c.children?'checked':'')+'> Children</label>'+
-        '</div>'+
-        '<textarea class="wm-notes" data-f="notes" rows="2" placeholder="Notes — what was discussed, next steps, objections…">'+escH(c.notes||'')+'</textarea>';
-      d.querySelector('.wm-status').addEventListener('change',function(){wmSetStatus(c.id,this.value);});
-      d.querySelector('.wm-lock').addEventListener('click',function(){wmLock(c.id);});
-      d.querySelector('.wm-del').addEventListener('click',function(){if(confirm('Remove this lead?'))wmRemove(c.id);});
-      Array.prototype.forEach.call(d.querySelectorAll('[data-f]'),function(inp){var f=inp.getAttribute('data-f');if(inp.type==='checkbox'){inp.addEventListener('change',function(){wmField(c.id,f,inp.checked,true);});}else if(inp.tagName==='SELECT'||inp.type==='date'){inp.addEventListener('change',function(){wmField(c.id,f,inp.value,true);});}else{inp.addEventListener('input',function(){wmField(c.id,f,inp.value,false);});inp.addEventListener('change',function(){wmField(c.id,f,inp.value,true);});}});
-      L.appendChild(d);
+    var L=el('wmList');if(!L)return;
+    var q=WMQ;
+    var list=warmMarket.filter(function(c){
+      var s=statusOf(c);
+      if(WMFILTER==='tocall'){if(s!=='fresh'&&s!=='followup')return false;}
+      else if(WMFILTER==='scheduled'){if(s!=='scheduled'&&!(c.apptDate&&s!=='won'&&s!=='lost'))return false;}
+      else if(WMFILTER==='won'){if(c.outcome!=='win')return false;}
+      if(q){var hay=((c.name||'')+' '+(c.phone||'')+' '+(c.howKnow||'')+' '+(c.notes||'')+' '+(c.email||'')+' '+(c.traits||'')).toLowerCase();if(hay.indexOf(q)<0)return false;}
+      return true;
+    });
+    list.sort(function(a,b){var ra=(WMRANK[statusOf(a)]!=null?WMRANK[statusOf(a)]:4),rb=(WMRANK[statusOf(b)]!=null?WMRANK[statusOf(b)]:4);if(ra!==rb)return ra-rb;if(ra===0){var aa=a.apptDate||'~',bb=b.apptDate||'~';if(aa!==bb)return aa<bb?-1:1;}return String(a.name||'').toLowerCase().localeCompare(String(b.name||'').toLowerCase());});
+    if(el('wmListCount'))el('wmListCount').textContent=n?((WMFILTER==='all'&&!q)?(n+' in your list · sorted by who to work next'):(list.length+' of '+n+' shown')):'';
+    L.innerHTML='';
+    if(n&&!list.length){L.innerHTML='<div class="wm-empty">No leads match — clear the search or filter.</div>';return;}
+    list.forEach(function(c){
+      var s=statusOf(c);var op=!!WMOPEN[c.id];
+      var row=document.createElement('div');row.className='lead'+(op?' open':'');
+      var tags=(c.locked?'<span class="lead-tag lock">🔒</span>':'')+((c.pooled&&!c.locked)?'<span class="lead-tag pool">shared</span>':'')+(c.outcome==='win'?'<span class="lead-tag won">WON</span>':'');
+      var phone=c.phone?('<a class="lead-call" href="tel:'+escH(c.phone)+'" onclick="event.stopPropagation()" title="Call">☎</a>'):'';
+      row.innerHTML='<div class="lead-row"><span class="lead-dot s-'+s+'">'+(WMEMO[s]||'🟢')+'</span>'+
+        '<div class="lead-main"><div class="lead-name">'+(escH(c.name)||'<span style="color:#9a9aa1">(no name)</span>')+tags+'</div><div class="lead-sub">'+escH(leadSub(c))+'</div></div>'+
+        phone+'<span class="lead-chev">›</span></div>'+
+        '<div class="lead-detail" style="display:'+(op?'block':'none')+'"></div>';
+      row.querySelector('.lead-row').addEventListener('click',(function(cc,rr){return function(){wmToggle(cc,rr);};})(c,row));
+      if(op)buildDetail(c,row);
+      L.appendChild(row);
     });
   }
+  function wmToggle(c,row){var det=row.querySelector('.lead-detail');if(WMOPEN[c.id]){delete WMOPEN[c.id];det.style.display='none';row.classList.remove('open');}else{WMOPEN[c.id]=1;buildDetail(c,row);det.style.display='block';row.classList.add('open');}}
+  function buildDetail(c,row){
+    var det=row.querySelector('.lead-detail');if(det.getAttribute('data-built'))return;det.setAttribute('data-built','1');
+    var st=statusOf(c);
+    det.innerHTML='<div class="wm-head">'+
+      '<select class="wm-status s-'+st+'" title="Lead status">'+wmStatusOptions(st)+'</select>'+
+      '<button class="wm-lock'+(c.locked?' on':'')+'" title="'+(c.locked?'Locked — protected from the 21-day pool. Click to unlock.':'Lock — keep this lead off the 21-day shared pool')+'">'+(c.locked?'🔒':'🔓')+'</button>'+
+      '<button class="wm-del" title="Remove">🗑</button>'+
+      '</div>'+
+      '<input class="wm-name-in" data-f="name" type="text" value="'+escH(c.name||'')+'" placeholder="Full name" autocomplete="off" style="width:100%;box-sizing:border-box;margin:2px 0 8px;padding:10px;border-radius:10px;border:1px solid var(--line);background:#fbfbfd;font-size:15px;font-weight:800;font-family:inherit">'+
+      ((c.pooled&&!c.locked)?'<div class="wm-pooled-flag">⏰ Uncalled 21+ days — now shared in the Phone Zone. Set a status to pull it back and keep it yours.</div>':'')+
+      (c.locked?'<div class="wm-locked-flag">🔒 Locked — protected from the 21-day shared pool. Click the lock again to release it.</div>':'')+
+      ((c.contacted||st!=='fresh')?('<div class="wm-reach"><span>☎ Reached:</span><select data-f="outreachType"><option value="">— talked or left a message? —</option><option value="talked"'+(c.outreachType==='talked'?' selected':'')+'>🗣 Talked to them</option><option value="voicemail"'+(c.outreachType==='voicemail'?' selected':'')+'>📩 Left a message</option></select><span>on</span><input data-f="contactedDate" type="date" value="'+escH(c.contactedDate||'')+'"></div>'):'')+
+      '<div class="wm-grid">'+
+        wmFld('☎ Phone','phone',c.phone,'tel')+
+        wmFld('🤝 How you know them','howKnow',c.howKnow,'text')+
+        wmTz(c.timeZone)+
+        wmFld('📅 Appointment date','apptDate',c.apptDate,'date')+
+        wmSel('Meeting type','apptType',c.apptType,[['','— type —'],['appointment','📅 Appointment'],['hiring','🧑‍💼 Hiring Interview']])+
+        wmFld('✉ Email','email',c.email,'email')+
+        wmFld('Age','age',c.age,'text')+
+        wmFld('3 character traits','traits',c.traits,'text')+
+      '</div>'+
+      '<div class="wm-toggles">'+
+        '<label class="wm-tg"><input type="checkbox" data-f="married" '+(c.married?'checked':'')+'> Married</label>'+
+        '<label class="wm-tg"><input type="checkbox" data-f="children" '+(c.children?'checked':'')+'> Children</label>'+
+      '</div>'+
+      '<textarea class="wm-notes" data-f="notes" rows="2" placeholder="Notes — what was discussed, next steps, objections…">'+escH(c.notes||'')+'</textarea>';
+    det.querySelector('.wm-status').addEventListener('change',function(){wmSetStatus(c.id,this.value);});
+    det.querySelector('.wm-lock').addEventListener('click',function(){wmLock(c.id);});
+    det.querySelector('.wm-del').addEventListener('click',function(){if(confirm('Remove this lead?'))wmRemove(c.id);});
+    Array.prototype.forEach.call(det.querySelectorAll('[data-f]'),function(inp){var f=inp.getAttribute('data-f');if(inp.type==='checkbox'){inp.addEventListener('change',function(){wmField(c.id,f,inp.checked,true);});}else if(inp.tagName==='SELECT'||inp.type==='date'){inp.addEventListener('change',function(){wmField(c.id,f,inp.value,true);});}else{inp.addEventListener('input',function(){wmField(c.id,f,inp.value,false);if(f==='name'){var nm=row.querySelector('.lead-name');if(nm)nm.textContent=inp.value||'(no name)';}});inp.addEventListener('change',function(){wmField(c.id,f,inp.value,true);});}});
+  }
   var poolLeads=[],poolLoaded=false,poolLoading=false;
-  function mpTab(t){var pool=(t==='pool');if(el('myPlanWrap'))el('myPlanWrap').style.display=pool?'none':'block';if(el('phoneZone'))el('phoneZone').style.display=pool?'block':'none';if(el('mpTabMine'))el('mpTabMine').classList.toggle('on',!pool);if(el('mpTabPool'))el('mpTabPool').classList.toggle('on',pool);if(pool&&!poolLoaded)loadPool(false);window.scrollTo(0,0);}
+  function mpTab(t){var pool=(t==='pool');if(el('myPlanWrap'))el('myPlanWrap').style.display=pool?'none':'flex';if(el('phoneZone'))el('phoneZone').style.display=pool?'block':'none';if(el('mpTabMine'))el('mpTabMine').classList.toggle('on',!pool);if(el('mpTabPool'))el('mpTabPool').classList.toggle('on',pool);if(pool&&!poolLoaded)loadPool(false);window.scrollTo(0,0);}
   function loadPool(force){if(poolLoading)return;poolLoading=true;if(force&&el('pzLoading')){el('pzLoading').textContent='Loading the shared pool…';el('pzLoading').style.display='block';}api({action:'poolleads'}).then(function(r){poolLoading=false;poolLoaded=true;poolLeads=(r&&r.leads)||[];renderPool();}).catch(function(){poolLoading=false;poolLoaded=true;if(el('pzLoading')){el('pzLoading').textContent='Could not load the pool. Tap Refresh to try again.';el('pzLoading').style.display='block';}});}
   var PZLIMIT=60;
   function pzSearchChanged(){PZLIMIT=60;renderPool();}
