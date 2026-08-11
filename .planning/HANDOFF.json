@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-08-11T16:06:51.060Z",
+  "timestamp": "2026-08-11T16:10:21.058Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -22,5 +22,5 @@
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\ne031f64 Cut edge-function burn: visibility-aware polling (Team Hub 4s->10s, bell pauses in background tabs)\ncf7331d Update HANDOFF.json\nb2e13e1 Update HANDOFF.json\n150379b Field training: coaching notes — trainers leave feedback on an FTA, trainees read it (per-training + running log)\n97c2786 Update HANDOFF.json"
+  "context_notes": "Recent commits:\necb113a Update HANDOFF.json\ne031f64 Cut edge-function burn: visibility-aware polling (Team Hub 4s->10s, bell pauses in background tabs)\ncf7331d Update HANDOFF.json\nb2e13e1 Update HANDOFF.json\n150379b Field training: coaching notes — trainers leave feedback on an FTA, trainees read it (per-training + running log)"
 }
