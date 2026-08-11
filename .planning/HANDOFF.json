@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-08-04T15:25:47.422Z",
+  "timestamp": "2026-08-11T16:06:51.060Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -22,5 +22,5 @@
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\nb2e13e1 Update HANDOFF.json\n150379b Field training: coaching notes — trainers leave feedback on an FTA, trainees read it (per-training + running log)\n97c2786 Update HANDOFF.json\ndce7c0a Marketing Plan: outreach type + date, copy-all-emails, hiring-interview meeting type, dedupe on manual add\na1e5a39 Update HANDOFF.json"
+  "context_notes": "Recent commits:\ne031f64 Cut edge-function burn: visibility-aware polling (Team Hub 4s->10s, bell pauses in background tabs)\ncf7331d Update HANDOFF.json\nb2e13e1 Update HANDOFF.json\n150379b Field training: coaching notes — trainers leave feedback on an FTA, trainees read it (per-training + running log)\n97c2786 Update HANDOFF.json"
 }
