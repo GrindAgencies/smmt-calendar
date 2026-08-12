@@ -235,11 +235,34 @@ function toggleTheme(){var d=document.documentElement.getAttribute('data-theme')
 function ptToday(){return new Intl.DateTimeFormat('en-CA',{timeZone:'America/Los_Angeles'}).format(new Date());}
 
 /* status model (granular -> bucket) */
-var LIFE_STATUSES=[['pending','Pending','pending'],['needs_med_exam','Needs Med Exam','pending'],['med_exam_scheduled','Med Exam Scheduled','pending'],['outstanding_requirements','Outstanding Requirements','stuck'],['approved','Approved','approved'],['policy_issued','Policy Issued','paid'],['premium_drafted','Premium Drafted','paid'],['paid','Paid Out','paid'],['contracting_error','Contracting Error','stuck'],['declined','Declined','closed'],['cancelled','Cancelled','closed'],['closed','Closed','closed']];
-var ANN_STATUSES=[['pending','Pending','pending'],['pending_suitability','Pending Suitability','pending'],['pending_funds_transfer','Pending Funds Transfer','pending'],['approved','Approved','approved'],['funds_received','Funds Received','paid'],['premium_drafted','Premium Drafted','paid'],['paid','Paid Out','paid'],['contracting_error','Contracting Error','stuck'],['declined','Declined','closed'],['cancelled','Cancelled','closed'],['closed','Closed','closed']];
-// master union for label/stage lookups across both business types (first match wins)
-var STATUSES=LIFE_STATUSES.concat(ANN_STATUSES.filter(function(a){return !LIFE_STATUSES.some(function(l){return l[0]===a[0];});}));
-function curStatuses(){return BIZ==='annuity'?ANN_STATUSES:LIFE_STATUSES;}
+// Unified status list (life + annuity), in the order Ops requested. [code, label, KPI-bucket]
+var STATUS_LIST=[
+  ['pending','Pending Underwriting','pending'],
+  ['outstanding_requirements','Outstanding Requirements','stuck'],
+  ['aps','APS','stuck'],
+  ['needs_med_exam','Needs to Schedule Medical Exam','pending'],
+  ['med_exam_scheduled','Med Exam Scheduled','pending'],
+  ['policy_delivery','Policy Delivery','approved'],
+  ['pending_client_signature','Pending Client Signature','pending'],
+  ['pending_agent_signature','Pending Agent Signature','pending'],
+  ['policy_issued','Policy Issued','paid'],
+  ['pending_premium','Pending Premium','approved'],
+  ['approved','Approved','approved'],
+  ['declined','Declined','closed'],
+  ['other','Other','pending'],
+  ['cancelled','Cancelled','closed'],
+  ['incomplete','Incomplete','stuck'],
+  ['paid','Paid Out','paid'],
+  ['suitability_needed','Suitability Needed','pending'],
+  ['pending_funds_transfer','Pending Transfer of Funds','pending'],
+  ['funds_received','Funds Received','paid']
+];
+// legacy codes kept so any old record still renders + buckets correctly (not offered in the picker)
+var LEGACY_STATUSES=[['premium_drafted','Premium Drafted','paid'],['contracting_error','Contracting Error','stuck'],['closed','Closed','closed'],['pending_suitability','Suitability Needed','pending']];
+var LIFE_STATUSES=STATUS_LIST,ANN_STATUSES=STATUS_LIST;
+// master union for label/stage lookups (unified list + legacy aliases; first match wins)
+var STATUSES=STATUS_LIST.concat(LEGACY_STATUSES);
+function curStatuses(){return STATUS_LIST;}
 function stLabel(k){for(var i=0;i<STATUSES.length;i++)if(STATUSES[i][0]===k)return STATUSES[i][1];return k;}
 function bucket(k){for(var i=0;i<STATUSES.length;i++)if(STATUSES[i][0]===k)return STATUSES[i][2];return 'pending';}
 /* Three-way business separation (client tabs):
@@ -406,7 +429,7 @@ function load(){
 
 /* modal */
 function renderStatusGrid(){
-  $('stGrid').innerHTML=curStatuses().filter(function(s){return s[0]!=='closed';}).concat([['closed','Closed','closed']]).map(function(s){
+  $('stGrid').innerHTML=curStatuses().map(function(s){
     return '<button class="stbtn'+(STATUS===s[0]?' on':'')+'" onclick="STATUS=\''+s[0]+'\';renderStatusGrid()">'+s[1]+'</button>';
   }).join('');
 }

@@ -174,7 +174,7 @@ var HUB="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/hub-api";
 var NB="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/newbiz-api";
 var OPS=false, CODE="", NAME="", FILTER="active", TASKS=[], EDIT=null, TODAY="";
 var AGENTFILTER="", ALLCOLLAPSED=false, GCOLLAPSED={};  // Ops: which agent to show + group collapse state
-var UNAS="__none__";
+var UNAS="__none__", OPSF="__ops__";  // special dropdown values: unassigned bucket, Operations tasks
 var ROSTER=[], CLIENTS=[], POLICIES=[];
 var DRAFT={agent_codes:[],client_names:[],policy_ids:[],tags:[]};
 var $=function(id){return document.getElementById(id);};
@@ -236,8 +236,11 @@ function load(){
 }
 /* which tasks are in view given the Ops agent filter (agents always see only their own) */
 function taskAgents(t){return (t.agent_codes||[]).map(function(c){return (c||'').toUpperCase();});}
+/* An Operations task = created by Ops OR owned by Ops (incl. back-office autos), regardless of which agent it's linked to. */
+function isOpsTask(t){return String(t.owner_code||'').toUpperCase()==='OPS'||String(t.created_by||'').toUpperCase()==='OPS';}
 function visibleTasks(){
   if(!OPS||AGENTFILTER==='')return TASKS;
+  if(AGENTFILTER===OPSF)return TASKS.filter(isOpsTask);
   if(AGENTFILTER===UNAS)return TASKS.filter(function(t){return !taskAgents(t).length;});
   return TASKS.filter(function(t){return taskAgents(t).indexOf(AGENTFILTER)>=0;});
 }
@@ -257,11 +260,13 @@ function populateAgentFilter(){
   var counts={},un=0;
   TASKS.forEach(function(t){var a=taskAgents(t);if(!a.length){un++;return;}a.forEach(function(c){counts[c]=(counts[c]||0)+1;});});
   var codes=Object.keys(counts).sort(function(a,b){return nameOf(a).localeCompare(nameOf(b));});
+  var opsN=TASKS.filter(isOpsTask).length;
   var opts='<option value="">👥 All agents (grouped)</option>';
+  opts+='<option value="'+OPSF+'">🛠 Operations tasks · '+opsN+'</option>';
   opts+=codes.map(function(c){return '<option value="'+esc(c)+'">'+esc(nameOf(c))+' · '+counts[c]+'</option>';}).join('');
   if(un)opts+='<option value="'+UNAS+'">🗂 Unassigned / back-office · '+un+'</option>';
   sel.innerHTML=opts;
-  sel.value=(AGENTFILTER&&(counts[AGENTFILTER]||AGENTFILTER===UNAS))?AGENTFILTER:'';
+  sel.value=(AGENTFILTER&&(counts[AGENTFILTER]||AGENTFILTER===UNAS||AGENTFILTER===OPSF))?AGENTFILTER:'';
   AGENTFILTER=sel.value;
 }
 function agentFilterChanged(){AGENTFILTER=$('fAgent').value;$('collapseBtn').style.display=(AGENTFILTER==='')?'':'none';renderStats();renderList();}
