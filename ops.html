@@ -569,7 +569,7 @@ function verifyAgent(code,btn){
   });
 }
 var OPSTRK="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/ops-tracker";
-function loadAgentTracker(code){
+function loadAgentTracker(code,keepOpen){
   var host=$('agVerify');if(!host||!canEdit())return;host.style.display='';host.innerHTML='<h4>🗺️ Tracker position</h4><div class="sub">Loading…</div>';
   fetch(OPSTRK,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:'2026',action:'get',code:code})}).then(function(r){return r.json();}).then(function(d){
     if(!d||!d.ok){host.style.display='none';host.innerHTML='';return;}
@@ -592,13 +592,14 @@ function loadAgentTracker(code){
     }).join('')+'</div>';
     h+='<div class="ot-cash">💵 Cashflow milestones ('+cashDone+'/'+cashTot+') complete automatically from the cashflow number set above — no need to check them here.</div>';
     host.innerHTML=h;
+    collapseAgentSection(host,!!keepOpen);                   // collapsible like the other tabs (stays open while actively editing)
   }).catch(function(){host.style.display='none';host.innerHTML='';});
 }
 function otToggle(code,cid,checked){var b={token:'2026',action:'set',code:code};b[checked?'set':'clear']=[cid];
-  fetch(OPSTRK,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();}).then(function(d){if(d&&d.ok){toast('Updated ✓');loadAgentTracker(code);}else toast('Could not update');}).catch(function(){toast('Network error');});}
+  fetch(OPSTRK,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();}).then(function(d){if(d&&d.ok){toast('Updated ✓');loadAgentTracker(code,true);}else toast('Could not update');}).catch(function(){toast('Network error');});}
 function otJumpGo(code){var sel=$('otJump');if(!sel||!sel.value)return;var opt=sel.options[sel.selectedIndex];var name=(opt?opt.text:'').replace(/^\s*\d+\.\s*/,'').replace(/ — auto from \$$/,'');otReset(code,sel.value,name);}
 function otReset(code,levelId,name){if(!confirm('Set “'+name+'” as this broker’s current spot?\n\nEverything up to and including it is marked done; everything after is cleared.'))return;
-  fetch(OPSTRK,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:'2026',action:'reset_to',code:code,level_id:levelId})}).then(function(r){return r.json();}).then(function(d){if(d&&d.ok){toast('Reset to '+name+' ✓');loadAgentTracker(code);}else toast('Could not reset');}).catch(function(){toast('Network error');});}
+  fetch(OPSTRK,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:'2026',action:'reset_to',code:code,level_id:levelId})}).then(function(r){return r.json();}).then(function(d){if(d&&d.ok){toast('Reset to '+name+' ✓');loadAgentTracker(code,true);}else toast('Could not reset');}).catch(function(){toast('Network error');});}
 function setTab(t){TAB=t;['licensing','newbiz','faststart','bookings','appointed','inforce','gfi','fieldtraining','teamhub'].forEach(function(x){var b=$('tg_'+x);if(b)b.classList.toggle('on',x===t);});
   var isB=(t==='bookings'),isNB=(t==='newbiz'||t==='gfi'),isIF=(t==='inforce'),isTH=(t==='teamhub'),isFT=(t==='fieldtraining');
   var tw=$('tableWrap'),bh=$('bookingsHost'),nh=$('newbizHost'),ifh=$('inforceHost'),thh=$('teamhubHost'),fth=$('fieldtrainingHost'),sb=$('search'),ab=$('addBtn');
@@ -1172,18 +1173,25 @@ function paintAgent(r){
   agTasksLoad(a.code);
 }
 /* collapse the agent-profile groupings from Licensing down; Contact (first) stays open. Click a header to expand. */
+/* Wire ONE .dsec section as a collapsible header+body. Reused for sections that render async
+   (e.g. Tracker position), which otherwise miss the initial pass. startOpen keeps it expanded. */
+function collapseAgentSection(sec,startOpen){
+  if(!sec)return;
+  var h=sec.querySelector('h4');if(!h)return;               // no header → nothing to toggle
+  var wrap=document.createElement('div');wrap.className='agsec-body';
+  while(h.nextSibling)wrap.appendChild(h.nextSibling);       // move everything after the header into the toggle body
+  sec.appendChild(wrap);wrap.style.display=startOpen?'block':'none';
+  sec.classList.add('collapsible');
+  if(!h.querySelector('.agsec-caret'))h.insertAdjacentHTML('afterbegin','<span class="agsec-caret"'+(startOpen?' style="transform:rotate(90deg)"':'')+'>▸</span>');
+  h.addEventListener('click',function(){var open=wrap.style.display==='none';wrap.style.display=open?'block':'none';var c=h.querySelector('.agsec-caret');if(c)c.style.transform=open?'rotate(90deg)':'';});
+}
 function makeAgentSectionsCollapsible(){
   var body=$('drawer').querySelector('.dbody');if(!body)return;
   var secs=Array.prototype.slice.call(body.children).filter(function(el){return el.classList&&el.classList.contains('dsec');});
   secs.forEach(function(sec,i){
-    var h=sec.querySelector('h4');if(!h)return;            // actions block has no h4 → stays visible
-    if(i===0)return;                                        // keep the first (Contact) fully expanded
-    var wrap=document.createElement('div');wrap.className='agsec-body';
-    while(h.nextSibling)wrap.appendChild(h.nextSibling);    // move everything after the header into a toggle body
-    sec.appendChild(wrap);wrap.style.display='none';
-    sec.classList.add('collapsible');
-    if(!h.querySelector('.agsec-caret'))h.insertAdjacentHTML('afterbegin','<span class="agsec-caret">▸</span>');
-    h.addEventListener('click',function(){var open=wrap.style.display==='none';wrap.style.display=open?'block':'none';var c=h.querySelector('.agsec-caret');if(c)c.style.transform=open?'rotate(90deg)':'';});
+    if(i===0)return;                                         // keep the first (Contact) fully expanded
+    if(sec.id==='agVerify')return;                           // Tracker position renders async → wired by loadAgentTracker
+    collapseAgentSection(sec,false);
   });
 }
 /* agent-profile Tasks section */

@@ -201,7 +201,7 @@ function startApp(){
   try{sessionStorage.setItem('tsfg_tasks_id',JSON.stringify({ops:OPS,code:CODE}));}catch(e){}
   $('gate').style.display='none';$('app').classList.add('on');
   $('whoLbl').textContent=OPS?'Operations · full access':(NAME+' · your tasks');
-  if(OPS){$('fAgent').style.display='';$('collapseBtn').style.display='';}
+  if(OPS){AGENTFILTER=OPSF;$('fAgent').style.display='';$('collapseBtn').style.display='none';}  // default Ops to their own tasks, not the full firehose
   loadPickers();load();
 }
 function signOut(){try{sessionStorage.removeItem('tsfg_tasks_id');}catch(e){}location.reload();}
@@ -236,8 +236,9 @@ function load(){
 }
 /* which tasks are in view given the Ops agent filter (agents always see only their own) */
 function taskAgents(t){return (t.agent_codes||[]).map(function(c){return (c||'').toUpperCase();});}
-/* An Operations task = created by Ops OR owned by Ops (incl. back-office autos), regardless of which agent it's linked to. */
-function isOpsTask(t){return String(t.owner_code||'').toUpperCase()==='OPS'||String(t.created_by||'').toUpperCase()==='OPS';}
+/* An Operations task = one Operations created, OR one an agent created for Operations (owner=OPS).
+   Excludes AUTO-generated back-office tasks so the Ops view stays what people actually put on Ops. */
+function isOpsTask(t){var cb=String(t.created_by||'').toUpperCase();if(cb==='AUTO')return false;return cb==='OPS'||String(t.owner_code||'').toUpperCase()==='OPS';}
 function visibleTasks(){
   if(!OPS||AGENTFILTER==='')return TASKS;
   if(AGENTFILTER===OPSF)return TASKS.filter(isOpsTask);
