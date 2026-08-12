@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-08-12T19:26:05.246Z",
+  "timestamp": "2026-08-12T19:35:48.403Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -22,29 +22,9 @@
     },
     {
       "status": "M",
-      "path": "checklist.html"
-    },
-    {
-      "status": "M",
-      "path": "dashboard.html"
-    },
-    {
-      "status": "M",
-      "path": "org.html"
-    },
-    {
-      "status": "M",
-      "path": "resources.html"
-    },
-    {
-      "status": "M",
-      "path": "roadmap.html"
-    },
-    {
-      "status": "M",
-      "path": "team.html"
+      "path": "newbusiness.html"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\naa7d143 Marketing Plan mobile fix: iPhone notch safe-area + tighter fit on small phones\n5d857e8 Update HANDOFF.json\n964b586 My Top 100: rebuilt for working a real list (release polish)\n456b741 Update HANDOFF.json\n6c3bb91 Team Hub chat → Supabase Realtime (kills the polling burn)"
+  "context_notes": "Recent commits:\n84ccd70 iPhone notch/safe-area fix rolled out app-wide\naa7d143 Marketing Plan mobile fix: iPhone notch safe-area + tighter fit on small phones\n5d857e8 Update HANDOFF.json\n964b586 My Top 100: rebuilt for working a real list (release polish)\n456b741 Update HANDOFF.json"
 }
