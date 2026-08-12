@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-08-12T20:04:40.377Z",
+  "timestamp": "2026-08-12T20:17:03.818Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -22,5 +22,5 @@
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\n46f8c94 New Business status taxonomy overhaul + Ops 'Operations tasks' view\nc7852a1 Ops: client profile shows phone/email + tasks now client-specific\n24a8058 Update HANDOFF.json\nfbfee3d Update HANDOFF.json\n3ed7999 Ops Tasks: separate by agent + per-agent filter (de-clutter)"
+  "context_notes": "Recent commits:\n4881ce8 Ops Tasks: default to Operations' own tasks (de-flood) + collapsible Tracker tab\nabd8f34 Update HANDOFF.json\nf3be3e3 Ops New Business: widen Status column so long labels aren't cut off\n46f8c94 New Business status taxonomy overhaul + Ops 'Operations tasks' view\nc7852a1 Ops: client profile shows phone/email + tasks now client-specific"
 }
