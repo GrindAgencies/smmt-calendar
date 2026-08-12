@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-08-12T19:35:48.403Z",
+  "timestamp": "2026-08-12T19:41:40.521Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -22,9 +22,9 @@
     },
     {
       "status": "M",
-      "path": "newbusiness.html"
+      "path": "tasks.html"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\n84ccd70 iPhone notch/safe-area fix rolled out app-wide\naa7d143 Marketing Plan mobile fix: iPhone notch safe-area + tighter fit on small phones\n5d857e8 Update HANDOFF.json\n964b586 My Top 100: rebuilt for working a real list (release polish)\n456b741 Update HANDOFF.json"
+  "context_notes": "Recent commits:\n698a53b Update HANDOFF.json\n40e2383 New Business: three-way separation — Pending Business · In Force · Cancelled/Closed\n84ccd70 iPhone notch/safe-area fix rolled out app-wide\naa7d143 Marketing Plan mobile fix: iPhone notch safe-area + tighter fit on small phones\n5d857e8 Update HANDOFF.json"
 }
