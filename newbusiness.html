@@ -221,7 +221,7 @@ var PFRAPI="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/pfr-api";
 var RECOS={};
 var BASESHOP_LEADER="Elijah Cox";
 var TA="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/tracker-api";var MYMD="",MYEMD="";
-var CODE=null,NAME="",BIZ="life",SCOPE="me",TAB="active",POLICIES=[],SORT={k:'submitted_date',dir:-1},OPS=false,EDIT=null,STATUS='pending';
+var CODE=null,NAME="",BIZ="life",SCOPE="me",TAB="pendingbiz",POLICIES=[],SORT={k:'submitted_date',dir:-1},OPS=false,EDIT=null,STATUS='pending';
 var $=function(i){return document.getElementById(i);};
 function api(b){return fetch(NB,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();}).catch(function(){return{ok:false};});}
 function money(n){n=Number(n)||0;return '$'+Math.round(n).toLocaleString('en-US');}
@@ -242,6 +242,14 @@ var STATUSES=LIFE_STATUSES.concat(ANN_STATUSES.filter(function(a){return !LIFE_S
 function curStatuses(){return BIZ==='annuity'?ANN_STATUSES:LIFE_STATUSES;}
 function stLabel(k){for(var i=0;i<STATUSES.length;i++)if(STATUSES[i][0]===k)return STATUSES[i][1];return k;}
 function bucket(k){for(var i=0;i<STATUSES.length;i++)if(STATUSES[i][0]===k)return STATUSES[i][2];return 'pending';}
+/* Three-way business separation (client tabs):
+   In Force = status 'paid' (Paid Out) only — Policy Issued / Premium Drafted stay in Pending.
+   Dead     = Cancelled + Declined + Closed — leave Pending completely.
+   Pending Business = everything else (workable pipeline). Membership is derived from
+   status, so the only way to move a policy back is to change its status. */
+function isInforce(st){return st==='paid';}
+function isDead(st){return st==='cancelled'||st==='declined'||st==='closed';}
+function isPendingBiz(st){return !isInforce(st)&&!isDead(st);}
 function pillClass(k){var b=bucket(k);return 'b-'+b;}
 
 /* sidebar */
@@ -307,16 +315,19 @@ function renderKpis(){
   var sumf=function(arr,fn){return arr.reduce(function(t,r){return t+(Number(fn(r))||0);},0);};
   var openR=rows.filter(function(r){return r.status!=='closed';});
   var byB=function(b){return rows.filter(function(r){return bucket(r.status)===b;});};
-  var cards=[['AP Submitted',moneyK(sumf(openR,myAp)),'blue'],['Pending Comm.',moneyK(sumf(byB('pending'),myComm)),'gold'],['Approved AP',moneyK(sumf(byB('approved'),myAp)),'green'],['In Force',moneyK(sumf(byB('paid'),myAp)),'green'],['Paid Comm.',moneyK(sumf(byB('paid'),myComm)),'gold'],['Chargebacks',moneyK(sum(rows,'chargeback_amount')),'red'],['Closed AP',moneyK(sumf(byB('closed'),myAp)),'red'],['Total Coverage',moneyK(sum(openR,'coverage')),'blue']];
+  var forceR=rows.filter(function(r){return isInforce(r.status);});
+  var cards=[['AP Submitted',moneyK(sumf(openR,myAp)),'blue'],['Pending Comm.',moneyK(sumf(byB('pending'),myComm)),'gold'],['Approved AP',moneyK(sumf(byB('approved'),myAp)),'green'],['In Force',moneyK(sumf(forceR,myAp)),'green'],['Paid Comm.',moneyK(sumf(forceR,myComm)),'gold'],['Chargebacks',moneyK(sum(rows,'chargeback_amount')),'red'],['Closed AP',moneyK(sumf(byB('closed'),myAp)),'red'],['Total Coverage',moneyK(sum(openR,'coverage')),'blue']];
   $('kpis').innerHTML=cards.map(function(c){return '<div class="kpi '+c[2]+'"><div class="kl">'+c[0]+'</div><div class="kv">'+c[1]+'</div></div>';}).join('');
   var cnt=function(b){return byB(b).length;};
   var stages=[['submitted','Submitted',openR.length,'M9 3h6v4H9zM7 7h10v13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1z'],['pending','Pending',cnt('pending'),'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 2'],['approved','Approved',cnt('approved'),'M20 6 9 17l-5-5'],['paid','Paid Out',cnt('paid'),'M3 10.5 12 4l9 6.5V20H3zM9 20v-6h6v6'],['closed','Closed',cnt('closed'),'M18 6 6 18M6 6l12 12']];
   var h='';stages.forEach(function(st,i){h+='<div class="pstage s-'+st[0]+'"><div class="pic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="'+st[3]+'"/></svg></div><div><div class="pn">'+st[2]+'</div><div class="pt">'+st[1]+'</div></div></div>';if(i<stages.length-1)h+='<div class="parrow"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>';});
   $('pipe').innerHTML=h;
-  var stuck=rows.filter(function(r){return bucket(r.status)==='stuck';}).length;
-  $('tabs').innerHTML=[['active','Active',byB('pending').length+byB('approved').length],['stuck','Stuck',stuck],['paid','Paid Out',cnt('paid')],['deposits','💰 Deposits',cnt('paid')],['closed','Closed',cnt('closed')],['all','All',rows.length]].map(function(t){return '<button class="'+(TAB===t[0]?'on':'')+'" onclick="setTab(\''+t[0]+'\')">'+t[1]+'<span class="c">'+t[2]+'</span></button>';}).join('');
+  var nPend=rows.filter(function(p){return isPendingBiz(p.status);}).length;
+  var nForce=rows.filter(function(p){return isInforce(p.status);}).length;
+  var nDead=rows.filter(function(p){return isDead(p.status);}).length;
+  $('tabs').innerHTML=[['pendingbiz','Pending Business',nPend],['inforce','✅ In Force',nForce],['closed','Cancelled / Closed',nDead],['all','All',rows.length]].map(function(t){return '<button class="'+(TAB===t[0]?'on':'')+'" onclick="setTab(\''+t[0]+'\')">'+t[1]+'<span class="c">'+t[2]+'</span></button>';}).join('');
 }
-function passTab(p){var b=bucket(p.status);if(TAB==='all')return true;if(TAB==='active')return b==='pending'||b==='approved';if(TAB==='stuck')return b==='stuck';if(TAB==='deposits')return b==='paid';return b===TAB;}
+function passTab(p){var st=p.status;if(TAB==='all')return true;if(TAB==='inforce')return isInforce(st);if(TAB==='closed')return isDead(st);return isPendingBiz(st);/* pendingbiz */}
 
 var COLS=[['client_name','Client'],['status','Status'],['submitted_date','Submitted'],['state','State'],['carrier','Carrier'],['policy_number','Policy #'],['product','Product'],['split_agent','Split Agent'],['annual_premium','Annual Premium']];
 function renderHead(){
