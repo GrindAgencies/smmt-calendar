@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-08-12T19:41:40.521Z",
+  "timestamp": "2026-08-12T19:46:00.577Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -15,16 +15,7 @@
   "blockers": [],
   "human_actions_pending": [],
   "decisions": [],
-  "uncommitted_files": [
-    {
-      "status": "M",
-      "path": ".planning/HANDOFF.json"
-    },
-    {
-      "status": "M",
-      "path": "tasks.html"
-    }
-  ],
+  "uncommitted_files": [],
   "next_action": null,
-  "context_notes": "Recent commits:\n698a53b Update HANDOFF.json\n40e2383 New Business: three-way separation — Pending Business · In Force · Cancelled/Closed\n84ccd70 iPhone notch/safe-area fix rolled out app-wide\naa7d143 Marketing Plan mobile fix: iPhone notch safe-area + tighter fit on small phones\n5d857e8 Update HANDOFF.json"
+  "context_notes": "Recent commits:\nfbfee3d Update HANDOFF.json\n3ed7999 Ops Tasks: separate by agent + per-agent filter (de-clutter)\n698a53b Update HANDOFF.json\n40e2383 New Business: three-way separation — Pending Business · In Force · Cancelled/Closed\n84ccd70 iPhone notch/safe-area fix rolled out app-wide"
 }
