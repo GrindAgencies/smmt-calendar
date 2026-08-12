@@ -1069,12 +1069,15 @@ function openClient(name){
   name=(name||'').trim();if(!name)return;CLIENT={name:name,policies:[],tasks:null};
   $('drawer').innerHTML='<div class="dbody"><div class="spin">Loading client…</div></div>';$('ov').classList.add('on');
   var pb={action:'nb_list'};if(canEdit())pb.token='2026';if(OPS)pb.by_code=OPS.code;
+  var cb={action:'client_contact',name:name};if(canEdit())cb.token='2026';if(OPS)cb.by_code=OPS.code;
   Promise.all([
     fetch(NBFEED,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(pb)}).then(function(r){return r.json();}).catch(function(){return{};}),
-    taskCall({action:'for_client',name:name})
+    taskCall({action:'for_client',name:name}),
+    fetch(NBFEED,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(cb)}).then(function(r){return r.json();}).catch(function(){return{};})
   ]).then(function(res){
-    var tickets=((res[0]&&res[0].tickets)||[]).filter(function(t){return (t.data&&t.data.client||'').trim().toLowerCase()===name.toLowerCase();});
+    var tickets=((res[0]&&res[0].tickets)||[]).filter(function(t){return (t.data&&t.data.client||'').trim().toLowerCase()===name.trim().toLowerCase();});
     CLIENT.policies=tickets;CLIENT.tasks=res[1]&&res[1].ok?res[1]:{open:[],overdue:[],completed:[],counts:{open:0,overdue:0,completed:0}};
+    var cc=res[2]||{};CLIENT.contact={phone:cc.phone||'',email:cc.email||''};
     paintClient();
   });
 }
@@ -1082,16 +1085,15 @@ function paintClient(){
   var name=CLIENT.name;var pols=CLIENT.policies;var tk=CLIENT.tasks||{open:[],overdue:[],completed:[]};
   var totAp=pols.reduce(function(t,p){return t+(Number(p.data&&p.data.ap)||0);},0);
   var h='<div class="dhd"><div><h3>🧾 '+esc(name)+'</h3><div class="sub">Client profile · '+pols.length+' polic'+(pols.length===1?'y':'ies')+' · '+money(totAp)+' AP</div></div><button class="x" onclick="closeDrawer()">✕</button></div><div class="dbody">';
-  // contact (phone + email from the client's policy records)
-  var cPh='',cEm='';
+  // contact — reliable server lookup first, then any phone/email carried on the loaded policies
+  var cPh=(CLIENT.contact&&CLIENT.contact.phone)||'',cEm=(CLIENT.contact&&CLIENT.contact.email)||'';
   for(var ci=0;ci<pols.length;ci++){var cd=pols[ci].data||{};if(!cPh&&cd.phone)cPh=String(cd.phone).trim();if(!cEm&&cd.email)cEm=String(cd.email).trim();}
-  if(cPh||cEm){
-    var chip='display:inline-flex;align-items:center;gap:7px;padding:8px 13px;border-radius:11px;border:1px solid var(--line2);background:var(--panel2);color:var(--ink);font-weight:700;font-size:13px;text-decoration:none';
-    h+='<div class="dsec"><h4>📇 Contact</h4><div style="display:flex;gap:9px;flex-wrap:wrap">'
-      +(cPh?('<a href="tel:'+esc(cPh.replace(/[^0-9+]/g,""))+'" style="'+chip+'">📞 '+esc(cPh)+'</a>'):'')
-      +(cEm?('<a href="mailto:'+esc(cEm)+'" style="'+chip+'">✉️ '+esc(cEm)+'</a>'):'')
-      +'</div></div>';
-  }
+  var chip='display:inline-flex;align-items:center;gap:7px;padding:8px 13px;border-radius:11px;border:1px solid var(--line2);background:var(--panel2);color:var(--ink);font-weight:700;font-size:13px;text-decoration:none';
+  h+='<div class="dsec"><h4>📇 Contact</h4><div style="display:flex;gap:9px;flex-wrap:wrap">'
+    +(cPh?('<a href="tel:'+esc(cPh.replace(/[^0-9+]/g,""))+'" style="'+chip+'">📞 '+esc(cPh)+'</a>'):'')
+    +(cEm?('<a href="mailto:'+esc(cEm)+'" style="'+chip+'">✉️ '+esc(cEm)+'</a>'):'')
+    +((!cPh&&!cEm)?'<span class="sub">No phone or email on file yet.</span>':'')
+    +'</div></div>';
   // policies
   h+='<div class="dsec"><h4>📄 Policies</h4>'+(pols.length?pols.map(function(t){var d=t.data||{};return '<div class="polrow"><div class="pt">'+esc(d.carrier||'—')+(d.product?(' · '+esc(d.product)):'')+' · '+money(d.ap)+'</div><div class="pm"><span>'+esc(d.agent||'')+'</span><span>'+esc(d.status||'')+'</span><span>#'+esc(d.policy_num||'—')+'</span></div></div>';}).join(''):'<div class="sub">No policies on record for this name.</div>')+'</div>';
   // tasks / commission tickets
