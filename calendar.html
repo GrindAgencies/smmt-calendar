@@ -282,6 +282,10 @@ textarea.ma-in{resize:vertical}
 .hchip:hover{border-color:var(--accent);}
 .hchip.on{background:var(--accent);color:#fff;border-color:var(--accent);}
 </style>
+<style id="mobile-safe-fix">
+.side{ padding-top: calc(16px + env(safe-area-inset-top)) !important; }
+html, body{ overflow-x: hidden; }
+</style>
 </head>
 <body>
 <div class="scrim" onclick="drawer(false)"></div>

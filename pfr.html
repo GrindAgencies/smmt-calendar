@@ -252,6 +252,10 @@ input[type=range]{width:100%;accent-color:var(--accent);height:6px;}
   .rep{padding:0;}
 }
 </style>
+<style id="mobile-safe-fix">
+.side{ padding-top: calc(16px + env(safe-area-inset-top)) !important; }
+html, body{ overflow-x: hidden; }
+</style>
 </head>
 <body>
 

@@ -330,6 +330,12 @@ svg.gpath{position:absolute;inset:0;z-index:1;pointer-events:none;}
 @keyframes comet2{0%{transform:translate(0,120px) rotate(24deg);opacity:0;}5%{opacity:.9;}20%{transform:translate(-40vw,640px) rotate(24deg);opacity:0;}100%{opacity:0;}}
 @media(prefers-reduced-motion:reduce){.node.active .dot,.node.active .av3,.node.justarrived .av3,.node.reveal .dot,.dot.done::after,.gtile.done::after,.gnode.active .gpiece,.gnode.just .gpiece,.gstars,.ghero,.sv-crawl,.sv-pulse,.sv-rot,.gp-flow,.gnode.active .gtwrap::before,.greward,.gnebula,.gcomet,.grace,.cine .ring,.cine .burst,.cine-badge,.cine-piece{animation:none!important;}.cine-eyebrow,.cine-title,.cine-sub,.cine-xp,.cine-emblem,.cine-ranks,.cine-btn{opacity:1!important;animation:none!important;}.bo-rays,.bo-bar,.bo-flash{display:none!important;}.bo-old{display:none!important;}.bo-new{opacity:1!important;transform:none!important;animation:none!important;}.bo-eyebrow,.bo-title,.bo-sub,.bo-ranks,.bo-btn{opacity:1!important;animation:none!important;}.node.pop,.gnode.pop{opacity:1;transform:translate(-50%,-50%);animation:none;}.xpbar>span,.path .trail{transition:none;}.celecard{animation:none;}.confetti,.gcomets{display:none!important;}}
 </style>
+<style id="mobile-safe-fix">
+body{ padding-top: calc(60px + env(safe-area-inset-top)) !important; }
+.tsfg-top{ height: calc(60px + env(safe-area-inset-top)); padding-top: env(safe-area-inset-top); }
+.tsfg-side{ padding-top: calc(16px + env(safe-area-inset-top)) !important; }
+html, body{ overflow-x: hidden; }
+</style>
 </head>
 <body>
 <div class="tsfg-scrim" onclick="tsfgDrawer(false)"></div>

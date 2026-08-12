@@ -164,6 +164,13 @@ body.drawer .scrim{display:block;}
 .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--panel);padding:11px 18px;border-radius:12px;font-weight:600;font-size:13.5px;box-shadow:var(--shadow-lg);z-index:1100;opacity:0;transition:.2s;pointer-events:none;}
 .toast.on{opacity:1;}
 </style>
+<style id="mobile-safe-fix">
+.top{ height: calc(56px + env(safe-area-inset-top)); padding-top: env(safe-area-inset-top); }
+.hub{ top: calc(56px + env(safe-area-inset-top)); }
+.rooms{ top: calc(56px + env(safe-area-inset-top)); }
+.side{ padding-top: calc(16px + env(safe-area-inset-top)) !important; }
+html, body{ overflow-x: hidden; }
+</style>
 </head>
 <body>
 <div class="scrim" onclick="drawer(false)"></div>

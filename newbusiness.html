@@ -130,6 +130,12 @@ tbody tr{cursor:pointer;}tbody tr:hover{background:var(--bg);}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--panel);padding:12px 20px;border-radius:12px;font-weight:600;font-size:14px;box-shadow:var(--shadow-lg);z-index:1100;opacity:0;transition:.2s;pointer-events:none;}
 .toast.on{opacity:1;}
 </style>
+<style id="mobile-safe-fix">
+.top{ height: calc(60px + env(safe-area-inset-top)); padding-top: env(safe-area-inset-top); }
+.wrap{ padding-top: calc(60px + env(safe-area-inset-top)) !important; }
+.side{ padding-top: calc(16px + env(safe-area-inset-top)) !important; }
+html, body{ overflow-x: hidden; }
+</style>
 </head>
 <body>
 <div class="scrim" onclick="drawer(false)"></div>

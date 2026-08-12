@@ -319,6 +319,10 @@ button{font-family:inherit;cursor:pointer;}
   .ctx button{padding:7px 11px;}
 }
 </style>
+<style id="mobile-safe-fix">
+.sidebar{ padding-top: calc(env(safe-area-inset-top)) !important; }
+html, body{ overflow-x: hidden; }
+</style>
 </head>
 <body>
 

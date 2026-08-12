@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>My Team — GRIND Agencies</title>
 <link rel="icon" href="logo.png">
 <style>
@@ -89,6 +89,12 @@ body.tsfg-drawer .tsfg-scrim{display:block;}
   .tsfg-top{left:0;}
 }
 input,textarea,select{border-radius:12px;}
+</style>
+<style id="mobile-safe-fix">
+body{ padding-top: calc(60px + env(safe-area-inset-top)) !important; }
+.tsfg-top{ height: calc(60px + env(safe-area-inset-top)); padding-top: env(safe-area-inset-top); }
+.tsfg-side{ padding-top: calc(16px + env(safe-area-inset-top)) !important; }
+html, body{ overflow-x: hidden; }
 </style>
 </head>
 <body>

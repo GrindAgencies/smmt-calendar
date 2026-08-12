@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Resources — The Standard Financial Group</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -126,6 +126,12 @@ body.tsfg-drawer .tsfg-scrim{display:block;}
   .block-h b{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:22px;letter-spacing:-.01em;color:var(--ink);}
   .block-h span{font-size:13px;color:var(--muted);font-weight:500;}
   .foot{text-align:center;color:var(--muted2);font-size:12px;margin-top:34px;}
+</style>
+<style id="mobile-safe-fix">
+body{ padding-top: calc(60px + env(safe-area-inset-top)) !important; }
+.tsfg-top{ height: calc(60px + env(safe-area-inset-top)); padding-top: env(safe-area-inset-top); }
+.tsfg-side{ padding-top: calc(16px + env(safe-area-inset-top)) !important; }
+html, body{ overflow-x: hidden; }
 </style>
 </head>
 <body>
