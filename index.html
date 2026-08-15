@@ -831,6 +831,7 @@ function doLogin(){
       if(acc!=='approved'){ gatePending(acc,(res.agent.first_name||first)); return; }
       CODE=code;NAME=(res.agent.first_name||first)+' '+(res.agent.last_name||last);NAME=NAME.trim();
       try{localStorage.setItem('tsfg_code',CODE);localStorage.setItem('tsfg_name',NAME);}catch(e){}
+      try{if(window.__pushReattach)window.__pushReattach();}catch(e){}  // link this device's push token to the code
       showApp();
     } else if(res&&res.notfound){
       msg.textContent='No agent with that code yet — add your first & last name to create it.';

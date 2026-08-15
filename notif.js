@@ -222,22 +222,23 @@
     var Push = C.Plugins && C.Plugins.PushNotifications;
     if(!Push) return;
 
+    var lastToken='';
     function saveToken(token){
       try{
-        var base = (window.SUPABASE_URL || 'https://bmfqxtocxkjhsgfnndlo.supabase.co');
-        var key  = window.SUPABASE_KEY; if(!key) return;
-        var code = localStorage.getItem('tsfg_code') || null;
-        var name = localStorage.getItem('tsfg_name') || null;
-        fetch(base + '/rest/v1/device_tokens?on_conflict=token', {
-          method:'POST',
-          headers:{ 'apikey':key, 'Authorization':'Bearer '+key,
-                    'Content-Type':'application/json',
-                    'Prefer':'resolution=merge-duplicates,return=minimal' },
-          body: JSON.stringify({ token:token, platform:(C.getPlatform&&C.getPlatform())||'ios',
-                                 agent_code:code, agent_name:name, last_seen:new Date().toISOString() })
+        if(token) lastToken=token;
+        if(!lastToken) return;
+        var code = localStorage.getItem('tsfg_code') || '';
+        var name = localStorage.getItem('tsfg_name') || '';
+        fetch('https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/push-register', {
+          method:'POST', headers:{ 'Content-Type':'application/json' },
+          body: JSON.stringify({ action:'register', token:lastToken,
+                                 platform:(C.getPlatform&&C.getPlatform())||'ios',
+                                 agent_code:code, agent_name:name })
         }).catch(function(){});
       }catch(e){}
     }
+    // if the device registered before sign-in, re-attach the agency code once it's set
+    window.__pushReattach = function(){ if(lastToken) saveToken(lastToken); };
 
     Push.addListener('registration', function(t){ if(t&&t.value) saveToken(t.value); });
     Push.addListener('registrationError', function(){});
