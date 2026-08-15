@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-08-12T20:17:03.818Z",
+  "timestamp": "2026-08-15T17:33:04.788Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -22,5 +22,5 @@
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\n4881ce8 Ops Tasks: default to Operations' own tasks (de-flood) + collapsible Tracker tab\nabd8f34 Update HANDOFF.json\nf3be3e3 Ops New Business: widen Status column so long labels aren't cut off\n46f8c94 New Business status taxonomy overhaul + Ops 'Operations tasks' view\nc7852a1 Ops: client profile shows phone/email + tasks now client-specific"
+  "context_notes": "Recent commits:\nb60c9b9 Push: wire native (Capacitor) device registration to push-register endpoint\nc38738d Add privacy.html — required for App Store submission\nd8a26b4 PWA manifest: add stable app id for App Store packaging\ne2d5790 Ops New Business: route Paid Out → In Force, Declined/Cancelled → Archived\nb69735d Ops client profile: reliable phone/email (always shown)"
 }
