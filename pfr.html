@@ -67,6 +67,8 @@ h1.pgh{font-size:30px;font-weight:800;letter-spacing:-.03em;margin:0 0 5px;}
 .badge{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;padding:3px 8px;border-radius:999px;}
 .badge.draft{background:var(--gold-soft);color:var(--gold);}
 .badge.complete{background:var(--green-soft);color:#1a9c52;}
+.viewsum{display:block;width:100%;margin:12px 0 2px;padding:9px 10px;border:1px solid var(--accent);background:var(--accent-soft,rgba(91,108,255,.10));color:var(--accent);font-weight:800;font-size:12.5px;border-radius:10px;cursor:pointer;font-family:inherit;transition:.12s;}
+.viewsum:hover{background:var(--accent);color:#fff;}
 /* ===== FLOW (guided) ===== */
 .flow{position:fixed;inset:0;background:var(--bg);z-index:60;display:flex;flex-direction:column;}
 .fprog{height:4px;background:var(--line);}
@@ -246,10 +248,14 @@ input[type=range]{width:100%;accent-color:var(--accent);height:6px;}
 .aiscript .aitag{font-size:11px;color:var(--ink3);align-self:center;}
 /* PRINT */
 @media print{
-  .top,.fnav,.ftop,.fprog,.repbtns,.tlink,.noprint{display:none!important;}
-  body{background:#fff;}
-  .sec{box-shadow:none;border:1px solid #ddd;break-inside:avoid;}
-  .rep{padding:0;}
+  /* hide EVERYTHING that isn't the report — incl. the fixed sidebar that was overlaying the left edge */
+  .side,.top,.fnav,.ftop,.fprog,.repbtns,.tlink,.noprint,.toast,.nov,.flow,#gallery{display:none!important;}
+  html,body{background:#fff!important;margin:0!important;padding:0!important;height:auto!important;overflow:visible!important;}
+  /* full-width report, and let tall sections flow across pages instead of being clipped */
+  .rep{max-width:100%!important;margin:0!important;padding:0 10px!important;}
+  .sec{box-shadow:none;border:1px solid #ddd;break-inside:auto;page-break-inside:auto;}
+  .sec,.pbrec,.pbstep,.krow,.obs{break-inside:avoid-page;}
+  *{ -webkit-print-color-adjust:exact!important; print-color-adjust:exact!important; }
 }
 </style>
 <style id="mobile-safe-fix">
@@ -365,16 +371,17 @@ function renderGallery(){
   }
   $('cards').innerHTML=list.map(function(x){
     var nm=x.client_name||'Untitled Client';var col=avColor(nm);
-    var st=x.status==='complete'?'complete':'draft';
-    return '<div class="card" onclick="openPFR(\''+x.id+'\')">'+
+    var st=x.status==='complete'?'complete':'draft';var done=st==='complete';
+    return '<div class="card" onclick="openPFR(\''+x.id+'\''+(done?',true':'')+')" title="'+(done?'View the completed summary':'Continue this review')+'">'+
       '<button class="cmenu" onclick="event.stopPropagation();togglePop(\''+x.id+'\')">&#8942;</button>'+
       '<div class="pop hide" id="pop_'+x.id+'" onclick="event.stopPropagation()">'+
+        '<button onclick="openPFR(\''+x.id+'\',true)">📄 View Summary</button>'+
         '<button onclick="openPFR(\''+x.id+'\')">Open / Edit</button>'+
-        '<button onclick="openPFR(\''+x.id+'\',true)">View Report</button>'+
         '<button class="del" onclick="delPFR(\''+x.id+'\')">Delete</button>'+
       '</div>'+
       '<div class="ch"><div class="cav" style="background:'+col+'">'+esc(initials(nm)).toUpperCase()+'</div><div><div class="cn">'+esc(nm)+'</div><div class="cp">'+esc(x.client_phone||'')+'</div></div></div>'+
       '<div class="cneed">'+money(x.insurable_need)+'</div><div class="cl">Insurable Need</div>'+
+      (done?'<button class="viewsum" onclick="event.stopPropagation();openPFR(\''+x.id+'\',true)">📄 View Summary →</button>':'')+
       '<div class="cfoot"><span>Updated '+fmtDate(x.updated_at)+(pfrNoteCount(x)?(' · 🔒 '+pfrNoteCount(x)+' note'+(pfrNoteCount(x)>1?'s':'')):'')+'</span><span class="badge '+st+'">'+st+'</span></div>'+
     '</div>';
   }).join('');
@@ -1030,7 +1037,31 @@ function buildInternalNotes(dd){
   var arr=Array.isArray(dd.producerNotes)?dd.producerNotes:[];
   var inner=arr.length? arr.map(function(n){return '<div class="nitem" style="margin-bottom:8px"><div class="nt">'+esc(n.t)+'</div><div class="nmeta">'+esc(n.a||'Producer')+' · '+noteWhen(n.ts)+'</div></div>';}).join('') : '<div class="nempty">No internal notes yet — click 🔒 Notes in the builder to add producer-only notes.</div>';
   return '<div class="sec internal noprint"><span class="lock">🔒 Internal — producer only</span><h2 style="margin-top:2px">Notes</h2>'+inner+'</div>';
-}function shareEmail(){if(!CUR)return;var dd=CUR.data,c=calc(dd);var first=(dd.client.name||'there').split(' ')[0];if(!(dd.client.email||'').trim()){if(!confirm('No client email is on file for this PFR. Open the email draft anyway (you can type their address)?'))return;}var subject='Your Personal Financial Review — '+first;var gapLbl=c.gapYr<0?'gap to close':'surplus';var L=['Hi '+first+',','','Thank you for taking the time to go through your Personal Financial Review with me. Here is a quick recap of what we found together:','','• Ideal retirement: age '+dd.retire.best,'• Desired retirement income: '+money(dd.goal.bestMo)+'/month','• Current monthly cash flow: '+money(c.netMo),'• Estimated annual '+gapLbl+': '+money(Math.abs(c.gapYr)),'• Protection need: '+money(c.insurable),'','I am attaching your full review as a PDF. Based on what matters most to you — '+(dd.priorities[0]||'your goals')+' — I would love to show you a conservative strategy designed to help close that gap while protecting your family.','',(AGENT.cal?('You can grab a time that works for you here: '+AGENT.cal):'Just reply with a good time and we will connect.'),'','Talk soon,',(AGENT.name||NAME),'The Standard Financial Group',(AGENT.email||''),(AGENT.phone||'')];var body=L.join('\n');var mailto='mailto:'+encodeURIComponent((dd.client.email||'').trim())+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);toast('Opening your email + PDF — attach the saved PDF to send');try{location.href=mailto;}catch(e){}setTimeout(function(){window.print();},650);}
+}function shareEmail(){if(!CUR)return;var dd=CUR.data,c=calc(dd);var first=(dd.client.name||'there').split(' ')[0];if(!(dd.client.email||'').trim()){if(!confirm('No client email is on file for this PFR. Open the email draft anyway (you can type their address)?'))return;}var subject='Your Personal Financial Review — '+first;var gapLbl=c.gapYr<0?'gap to close':'surplus';
+var pr=(dd.priorities||[]).slice(0,3).filter(Boolean).join(', ');
+var L=['Hi '+first+',','',
+  'Thank you for taking the time to go through your Personal Financial Review with me. Here is the complete recap of what we found together:','',
+  'YOUR RETIREMENT',
+  '• Ideal retirement age: '+dd.retire.best,
+  '• Plan through age: '+dd.retire.deathAge,
+  '• Desired retirement income: '+money(dd.goal.bestMo)+'/month',
+  '• Estimated annual '+gapLbl+': '+money(Math.abs(c.gapYr)),'',
+  'YOUR CASH FLOW',
+  '• Monthly income: '+money(c.inc),
+  '• Monthly expenses: '+money(c.exp),
+  '• Monthly cash flow: '+money(c.netMo),
+  '• Savings rate: '+Math.round(c.savingsRate*100)+'%','',
+  'YOUR FINANCIAL SNAPSHOT',
+  '• Total assets: '+money(c.assets),
+  '• Total investments: '+money(c.invest),
+  '• Total debt: '+money(c.debt),
+  '• Net worth: '+money(c.netWorth),'',
+  'YOUR PROTECTION',
+  '• Estimated insurable / protection need: '+money(c.insurable),'',
+  (pr?('What matters most to you: '+pr+'.'):''),
+  'I am also attaching your full review as a PDF. Based on what matters most to you, I would love to show you a conservative strategy designed to help close that gap while protecting your family.','',
+  (AGENT.cal?('You can grab a time that works for you here: '+AGENT.cal):'Just reply with a good time and we will connect.'),'',
+  'Talk soon,',(AGENT.name||NAME),'The Standard Financial Group',(AGENT.email||''),(AGENT.phone||'')].filter(function(x){return x!==false;});var body=L.join('\n');var mailto='mailto:'+encodeURIComponent((dd.client.email||'').trim())+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);toast('Opening your email + PDF — attach the saved PDF to send');try{location.href=mailto;}catch(e){}setTimeout(function(){window.print();},650);}
 function saveComplete(){if(!CUR)return;CUR.status='complete';saveNow();toast('PFR saved ✓');setTimeout(backToGallery,700);}function kv(l,v){return '<div class="kv"><div class="l">'+l+'</div><div class="v">'+esc(v)+'</div></div>';}
 function kvc(l,v,good){return '<div class="kv"><div class="l">'+l+'</div><div class="v" style="color:'+(good?'#1a9c52':'var(--red)')+'">'+esc(v)+'</div></div>';}
 function backToGallery(){$('summary').classList.add('hide');$('gallery').classList.remove('hide');loadPFRs();}
