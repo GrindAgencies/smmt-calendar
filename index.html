@@ -320,8 +320,14 @@ button{font-family:inherit;cursor:pointer;}
 }
 </style>
 <style id="mobile-safe-fix">
-.sidebar{ padding-top: calc(env(safe-area-inset-top)) !important; }
+/* keep the sticky top bar clear of the notch / status bar (phone + installed app), so nothing is cut off */
+.topbar{ padding-top: calc(14px + env(safe-area-inset-top)) !important; }
+.sidebar{ padding-top: calc(16px + env(safe-area-inset-top)) !important; }
 html, body{ overflow-x: hidden; }
+@media(max-width:560px){
+  .topbar{ padding-left:14px !important; padding-right:14px !important; padding-bottom:10px !important; }
+  .content{ padding:16px 13px !important; }
+}
 </style>
 </head>
 <body>

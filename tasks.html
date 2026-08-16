@@ -32,7 +32,9 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);-web
 .ghint{font-size:11.5px;color:var(--ink3);margin-top:14px;line-height:1.5}
 /* app */
 .app{display:none}.app.on{display:block}
-.top{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:12px;padding:12px 20px;background:color-mix(in srgb,var(--bg) 85%,transparent);backdrop-filter:saturate(180%) blur(18px);border-bottom:1px solid var(--line);flex-wrap:wrap}
+.top{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:12px;padding:12px 20px;padding-top:calc(12px + env(safe-area-inset-top));background:color-mix(in srgb,var(--bg) 85%,transparent);backdrop-filter:saturate(180%) blur(18px);border-bottom:1px solid var(--line);flex-wrap:wrap}
+html,body{overflow-x:hidden}
+@media(max-width:560px){.top{padding-left:14px;padding-right:14px}.wrap{padding-left:12px !important;padding-right:12px !important}}
 .bdot{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--gold),var(--gold-dp));display:flex;align-items:center;justify-content:center;font-size:17px}
 .top h1{font-size:16.5px;font-weight:800;margin:0}
 .who{font-size:11.5px;color:var(--ink2)}
