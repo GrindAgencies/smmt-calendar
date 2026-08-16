@@ -663,24 +663,28 @@ html, body{ overflow-x: hidden; }
   /* ===== Mass clean up — bulk-delete leads you've already called/contacted ===== */
   var CLEANSEL={};
   function cesc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function isWorked(c){return c.contacted||['called','scheduled','followup','won','lost'].indexOf(c.status)>=0;}
   function openCleanup(){
-    var worked=warmMarket.filter(function(c){return c.contacted||['called','scheduled','followup','won','lost'].indexOf(c.status)>=0;});
-    if(!worked.length){mktToast('No called/contacted leads to clean up yet.');return;}
-    CLEANSEL={};worked.forEach(function(c){CLEANSEL[c.id]=true;});
+    var all=warmMarket.slice();
+    if(!all.length){mktToast('No leads to clean up yet.');return;}
+    CLEANSEL={};all.forEach(function(c){CLEANSEL[c.id]=isWorked(c);});
+    all.sort(function(a,b){var wa=CLEANSEL[a.id]?0:1,wb=CLEANSEL[b.id]?0:1;return wa-wb;});
+    var pre=0;for(var k in CLEANSEL)if(CLEANSEL[k])pre++;
     var ov=el('cleanOv');if(!ov){ov=document.createElement('div');ov.id='cleanOv';document.body.appendChild(ov);}
     ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:2000;display:flex;align-items:flex-start;justify-content:center;padding:36px 14px;overflow:auto;';
     ov.onclick=function(e){if(e.target===ov)closeCleanup();};
     ov.innerHTML='<div style="width:100%;max-width:520px;background:#fff;border-radius:18px;box-shadow:0 24px 60px rgba(0,0,0,.28);overflow:hidden;color:#1d1d1f">'+
-      '<div style="padding:18px 20px 12px"><div style="font-weight:900;font-size:18px">🧹 Clean up worked leads</div><div style="font-size:12.5px;color:#6e6e73;margin-top:3px">These are leads you’ve already called or contacted. <b>Uncheck any you want to KEEP</b>, then delete the rest to keep your list focused.</div>'+
-      '<div style="display:flex;gap:14px;margin-top:12px;font-size:12.5px;font-weight:700"><span style="color:#5b6cff;cursor:pointer" onclick="cleanAll(true)">Select all</span><span style="color:#8e8e93;cursor:pointer" onclick="cleanAll(false)">Select none</span></div></div>'+
-      '<div style="max-height:52vh;overflow:auto;padding:0 20px" id="cleanList">'+worked.map(cleanRow).join('')+'</div>'+
-      '<div style="display:flex;gap:10px;padding:14px 20px;border-top:1px solid #ececf0;background:#fbfbfd"><button id="cleanDelBtn" onclick="runCleanup()" style="border:none;background:#ff3b30;color:#fff;font-weight:800;font-size:14px;padding:11px 16px;border-radius:11px;cursor:pointer;font-family:inherit">🗑 Delete selected (<span id="cleanN">'+worked.length+'</span>)</button><button onclick="closeCleanup()" style="border:1px solid #e3e3e8;background:#fff;color:#6e6e73;font-weight:700;font-size:14px;padding:11px 16px;border-radius:11px;cursor:pointer;font-family:inherit">Cancel</button></div>'+
+      '<div style="padding:18px 20px 12px"><div style="font-weight:900;font-size:18px">🧹 Clean up leads</div><div style="font-size:12.5px;color:#6e6e73;margin-top:3px"><b>Every lead in your list</b> ('+all.length+'). The ones you’ve already called/contacted are pre-checked — check or uncheck <b>any</b>, then delete the ones you don’t need.</div>'+
+      '<div style="display:flex;gap:14px;margin-top:12px;font-size:12.5px;font-weight:700;flex-wrap:wrap"><span style="color:#5b6cff;cursor:pointer" onclick="cleanAll(true)">Select all</span><span style="color:#8e8e93;cursor:pointer" onclick="cleanAll(false)">Select none</span><span style="color:#c99a2e;cursor:pointer" onclick="cleanWorked()">Only called/contacted</span></div></div>'+
+      '<div style="max-height:52vh;overflow:auto;padding:0 20px" id="cleanList">'+all.map(cleanRow).join('')+'</div>'+
+      '<div style="display:flex;gap:10px;padding:14px 20px;border-top:1px solid #ececf0;background:#fbfbfd"><button id="cleanDelBtn" onclick="runCleanup()" style="border:none;background:#ff3b30;color:#fff;font-weight:800;font-size:14px;padding:11px 16px;border-radius:11px;cursor:pointer;font-family:inherit">🗑 Delete selected (<span id="cleanN">'+pre+'</span>)</button><button onclick="closeCleanup()" style="border:1px solid #e3e3e8;background:#fff;color:#6e6e73;font-weight:700;font-size:14px;padding:11px 16px;border-radius:11px;cursor:pointer;font-family:inherit">Cancel</button></div>'+
     '</div>';
   }
-  function cleanRow(c){var st=statusOf(c);var lbl={called:'Called',scheduled:'Scheduled',followup:'Follow-up',won:'Won',lost:'Lost',fresh:'Not contacted'}[st]||st;var when=c.contactedDate||c.date||'';
-    return '<label style="display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid #f0f0f2;cursor:pointer"><input type="checkbox" '+(CLEANSEL[c.id]?'checked':'')+' onchange="cleanToggle(\''+c.id+'\',this.checked)" style="width:20px;height:20px;flex:0 0 auto"><span style="flex:1;min-width:0"><span style="font-weight:700;font-size:14px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+cesc(c.name||'(no name)')+'</span><span style="font-size:12px;color:#8e8e93">'+cesc(lbl)+(when?(' · '+cesc(when)):'')+(c.phone?(' · '+cesc(c.phone)):'')+'</span></span></label>';}
+  function cleanRow(c){var st=statusOf(c);var lbl={called:'Called',scheduled:'Scheduled',followup:'Follow-up',won:'Won',lost:'Lost',fresh:'Not contacted yet'}[st]||st;var when=c.contactedDate||c.date||'';
+    return '<label style="display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid #f0f0f2;cursor:pointer"><input type="checkbox" data-id="'+c.id+'" '+(CLEANSEL[c.id]?'checked':'')+' onchange="cleanToggle(\''+c.id+'\',this.checked)" style="width:20px;height:20px;flex:0 0 auto"><span style="flex:1;min-width:0"><span style="font-weight:700;font-size:14px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+cesc(c.name||'(no name)')+'</span><span style="font-size:12px;color:#8e8e93">'+cesc(lbl)+(when?(' · '+cesc(when)):'')+(c.phone?(' · '+cesc(c.phone)):'')+'</span></span></label>';}
   function cleanToggle(id,on){CLEANSEL[id]=on;updateCleanN();}
   function cleanAll(on){var ov=el('cleanOv');if(!ov)return;Array.prototype.forEach.call(ov.querySelectorAll('#cleanList input[type=checkbox]'),function(cb){cb.checked=on;});for(var k in CLEANSEL)CLEANSEL[k]=on;updateCleanN();}
+  function cleanWorked(){var ov=el('cleanOv');if(!ov)return;var by={};warmMarket.forEach(function(c){by[c.id]=isWorked(c);});for(var k in CLEANSEL)CLEANSEL[k]=!!by[k];Array.prototype.forEach.call(ov.querySelectorAll('#cleanList input[type=checkbox]'),function(cb){var id=cb.getAttribute('data-id');cb.checked=!!by[id];});updateCleanN();}
   function updateCleanN(){var n=0;for(var k in CLEANSEL)if(CLEANSEL[k])n++;var s=el('cleanN');if(s)s.textContent=n;var b=el('cleanDelBtn');if(b)b.style.opacity=n?'1':'.5';}
   function runCleanup(){var ids=[];for(var k in CLEANSEL)if(CLEANSEL[k])ids.push(k);if(!ids.length){mktToast('Nothing selected to delete.');return;}if(!confirm('Delete '+ids.length+' lead'+(ids.length===1?'':'s')+' from your list? This cannot be undone.'))return;var set={};ids.forEach(function(i){set[i]=1;});warmMarket=warmMarket.filter(function(x){return !set[x.id];});closeCleanup();renderWarm();wmSave(true);mktToast('🧹 Cleaned up '+ids.length+' lead'+(ids.length===1?'':'s'));}
   function closeCleanup(){var ov=el('cleanOv');if(ov)ov.remove();}
