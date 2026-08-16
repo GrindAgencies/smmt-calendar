@@ -380,6 +380,8 @@ html, body{ overflow-x: hidden; }
         .lead-name{font-weight:800;font-size:14.5px;color:#1d1d1f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
         .lead-sub{font-size:12px;color:var(--muted);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;}
         .lead-call{flex:0 0 auto;text-decoration:none;font-size:16px;width:38px;height:38px;border-radius:10px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--gold-bright);}
+        .lead-del{flex:0 0 auto;font-size:14px;width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:#fff;display:flex;align-items:center;justify-content:center;color:#b8b8bf;cursor:pointer;font-family:inherit;padding:0;transition:.12s;}
+        .lead-del:hover{border-color:#ff3b30;color:#ff3b30;background:rgba(255,59,48,.06);}
         .lead-call:active{background:rgba(212,175,55,.1);}
         .lead-chev{flex:0 0 auto;color:#b8b8bf;font-size:20px;line-height:1;transition:transform .15s;}
         .lead.open .lead-chev{transform:rotate(90deg);}
@@ -660,6 +662,12 @@ html, body{ overflow-x: hidden; }
   function wmSetStatus(id,st){for(var i=0;i<warmMarket.length;i++){if(warmMarket[i].id===id){applyStatus(warmMarket[i],st);break;}}renderWarm();wmSave(true);}
   function wmLock(id){for(var i=0;i<warmMarket.length;i++){if(warmMarket[i].id===id){warmMarket[i].locked=!warmMarket[i].locked;if(warmMarket[i].locked&&warmMarket[i].pooled){warmMarket[i].pooled=false;delete warmMarket[i].pooledDate;}break;}}renderWarm();wmSave(true);}
   function wmRemove(id){warmMarket=warmMarket.filter(function(x){return x.id!==id;});renderWarm();wmSave(true);}
+  /* ===== One-click row delete with Undo — rapid-fire prune ===== */
+  var wmUndo=null;
+  function wmQuickDel(id){var idx=-1,lead=null;for(var i=0;i<warmMarket.length;i++){if(warmMarket[i].id===id){idx=i;lead=warmMarket[i];break;}}if(!lead)return;warmMarket.splice(idx,1);wmUndo={lead:lead,idx:idx};renderWarm();wmSave(true);showUndoToast((lead.name||'Lead')+' removed');}
+  function wmUndoDel(){if(!wmUndo)return;var at=Math.min(wmUndo.idx,warmMarket.length);warmMarket.splice(at,0,wmUndo.lead);wmUndo=null;renderWarm();wmSave(true);mktToast('Restored ✓');}
+  function showUndoToast(msg){var t=el('wmUndoToast');if(!t){t=document.createElement('div');t.id='wmUndoToast';document.body.appendChild(t);}t.style.cssText='position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#1d1d1f;color:#fff;padding:11px 16px;border-radius:12px;font-size:13.5px;font-weight:700;z-index:2500;display:flex;align-items:center;gap:16px;box-shadow:0 12px 34px rgba(0,0,0,.35)';t.innerHTML='<span>🗑 '+escH(msg)+'</span><span style="color:#8b9bff;cursor:pointer;font-weight:800" onclick="wmUndoDel();hideUndoToast()">Undo</span>';clearTimeout(t._t);t._t=setTimeout(hideUndoToast,5000);}
+  function hideUndoToast(){var t=el('wmUndoToast');if(t)t.remove();wmUndo=null;}
   /* ===== Mass clean up — bulk-delete leads you've already called/contacted ===== */
   var CLEANSEL={};
   function cesc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
@@ -761,7 +769,7 @@ html, body{ overflow-x: hidden; }
       var phone=c.phone?('<a class="lead-call" href="tel:'+escH(c.phone)+'" onclick="event.stopPropagation()" title="Call">☎</a>'):'';
       row.innerHTML='<div class="lead-row"><span class="lead-dot s-'+s+'">'+(WMEMO[s]||'🟢')+'</span>'+
         '<div class="lead-main"><div class="lead-name">'+(escH(c.name)||'<span style="color:#9a9aa1">(no name)</span>')+tags+'</div><div class="lead-sub">'+escH(leadSub(c))+'</div></div>'+
-        phone+'<span class="lead-chev">›</span></div>'+
+        phone+'<button class="lead-del" title="Remove lead" onclick="event.stopPropagation();wmQuickDel(\''+c.id+'\')">🗑</button><span class="lead-chev">›</span></div>'+
         '<div class="lead-detail" style="display:'+(op?'block':'none')+'"></div>';
       row.querySelector('.lead-row').addEventListener('click',(function(cc,rr){return function(){wmToggle(cc,rr);};})(c,row));
       if(op)buildDetail(c,row);
