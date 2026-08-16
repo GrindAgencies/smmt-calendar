@@ -11,7 +11,7 @@
   --bg:#f5f5f7;--panel:#ffffff;--panel2:#fbfbfd;
   --ink:#1d1d1f;--text:#1d1d1f;--muted:#6e6e73;--muted2:#8e8e93;
   --line:#ececf0;--line-2:#e3e3e8;
-  --gold:#c99a2e;--green:#34c759;--red:#ff3b30;
+  --gold:#c99a2e;--gold-dp:#8a6d1f;--green:#34c759;--green-dp:#1a9c52;--red:#ff3b30;
   --accent:#5b6cff;--accent-soft:rgba(91,108,255,.10);
   --tsfg-side:248px;
 }
@@ -20,7 +20,6 @@ html,body{background:var(--bg);color:var(--ink);}
 body{margin:0;font-family:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;line-height:1.5;
   padding-left:var(--tsfg-side);padding-top:60px;-webkit-font-smoothing:antialiased;}
 a{color:inherit;}
-/* ---- sidebar ---- */
 .tsfg-side{position:fixed;left:0;top:0;height:100vh;width:var(--tsfg-side);background:#fff;border-right:1px solid var(--line);
   display:flex;flex-direction:column;gap:3px;padding:16px 12px;z-index:900;overflow-y:auto;transition:transform .24s cubic-bezier(.2,.8,.2,1);}
 .tsfg-brand{display:flex;align-items:center;gap:11px;padding:6px 8px 14px;color:#1d1d1f;text-decoration:none;}
@@ -32,7 +31,6 @@ a{color:inherit;}
 .tsfg-side .side-link:hover{background:#f5f5f7;color:#1d1d1f;}
 .tsfg-side .side-link.on{background:var(--accent-soft);color:var(--accent);}
 .tsfg-foot{margin-top:auto;padding-top:10px;border-top:1px solid var(--line);}
-/* ---- topbar ---- */
 .tsfg-top{position:fixed;top:0;left:var(--tsfg-side);right:0;height:60px;z-index:850;display:flex;align-items:center;gap:14px;
   padding:0 22px;background:rgba(245,245,247,.8);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid var(--line);}
 .tsfg-title{font-weight:800;font-size:17px;letter-spacing:-.02em;color:#1d1d1f;}
@@ -49,59 +47,27 @@ body.tsfg-drawer .tsfg-scrim{display:block;}
 }
 </style>
 <style id="res-page">
-  .wrap{max-width:1060px;margin:0 auto;padding:26px 22px 72px;}
-  /* hero */
+  .wrap{max-width:1060px;margin:0 auto;padding:22px 22px 80px;}
   .eyebrow{font-family:'Fraunces',Georgia,serif;letter-spacing:.26em;text-transform:uppercase;font-size:11px;color:var(--gold);font-weight:700;}
   h1{font-family:'Fraunces',Georgia,serif;font-size:30px;letter-spacing:-.01em;color:var(--ink);margin:6px 0 6px;font-weight:600;}
-  .sub{color:var(--muted);font-size:14.5px;margin:0;max-width:660px;}
-  /* primary drive button */
-  .drive{display:flex;align-items:center;gap:14px;margin:22px 0 4px;padding:16px 18px;border-radius:16px;text-decoration:none;
-    background:linear-gradient(135deg,#6470ff,#5b6cff);color:#fff;box-shadow:0 8px 24px rgba(91,108,255,.24);transition:.15s;}
-  .drive:hover{filter:brightness(1.04);transform:translateY(-1px);}
-  .drive .di{width:40px;height:40px;border-radius:12px;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-size:20px;flex:0 0 auto;}
-  .drive .dt{font-weight:800;font-size:15.5px;}
-  .drive .dd{font-size:12.5px;opacity:.9;font-weight:500;margin-top:1px;}
-  .drive .darr{margin-left:auto;font-size:18px;opacity:.9;}
-  /* section */
-  .sec{margin:34px 0 0;}
-  .sec-h{display:flex;align-items:center;gap:9px;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted2);margin:0 0 14px;}
-  .sec-h .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex:0 0 auto;}
-  /* Start-here cards */
-  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(258px,1fr));gap:12px;}
-  .rescard{display:block;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:15px 16px;text-decoration:none;
-    box-shadow:0 1px 2px rgba(0,0,0,.03);transition:.15s;}
-  .rescard:hover{border-color:var(--line-2);box-shadow:0 6px 18px rgba(0,0,0,.07);transform:translateY(-2px);}
-  .rescard-t{font-weight:700;font-size:14px;color:var(--ink);letter-spacing:-.01em;}
-  .rescard-d{font-size:12.5px;color:var(--muted);margin-top:4px;line-height:1.45;}
-  /* topic accordions */
-  .topics{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;}
-  .topic{border:1px solid var(--line);border-radius:14px;background:var(--panel);overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.03);}
-  .topic-h{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;text-align:left;cursor:pointer;border:0;background:transparent;font:inherit;padding:15px 16px;color:var(--ink);font-weight:700;font-size:14.5px;letter-spacing:-.01em;}
-  .topic-h .rt{display:flex;gap:9px;align-items:center;}
-  .topic-h .cnt{font-size:11px;font-weight:700;color:var(--accent);background:var(--accent-soft);border-radius:999px;padding:2px 9px;}
-  .topic-h .car{color:var(--muted2);transition:.2s;font-size:12px;}
-  .topic.open .topic-h .car{transform:rotate(90deg);}
-  .topic-body{display:none;padding:0 12px 12px;}
-  .topic.open .topic-body{display:block;}
-  .titem{display:flex;align-items:center;gap:11px;text-decoration:none;color:var(--ink);border:1px solid var(--line);border-radius:11px;padding:10px 12px;margin-top:8px;background:var(--panel2);transition:.15s;}
-  a.titem:hover{border-color:var(--accent);background:#fff;}
-  .titem .ico{font-size:17px;}
-  .titem .tt{font-weight:700;font-size:13.5px;}
-  .titem .td{font-size:12px;color:var(--muted);margin-top:1px;}
-  .titem .kind{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;padding:3px 8px;border-radius:999px;margin-left:auto;white-space:nowrap;}
-  .kind.vid{color:#b26a00;background:#fff4e2;}
-  .kind.doc{color:#2b5fb3;background:#eaf1fc;}
-  .kind.book{color:#1f8a53;background:#e6f6ec;}
-  /* search */
-  .search{width:100%;padding:13px 16px;border-radius:12px;border:1px solid var(--line-2);background:#fff;color:var(--ink);font-size:15px;font-weight:500;font-family:inherit;
-    margin:0 0 12px;position:sticky;top:70px;z-index:25;box-shadow:0 1px 2px rgba(0,0,0,.04);}
-  .search:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
-  .search::placeholder{color:var(--muted2);}
+  .sub{color:var(--muted);font-size:14.5px;margin:0 0 4px;max-width:660px;}
+  /* tabs */
+  .rtabs{display:flex;gap:6px;flex-wrap:wrap;margin:18px 0 22px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:5px;box-shadow:0 1px 2px rgba(0,0,0,.03);}
+  .rtab{flex:1;min-width:130px;border:none;background:transparent;color:var(--muted);font-weight:800;font-size:13.5px;padding:11px 10px;border-radius:10px;cursor:pointer;font-family:inherit;}
+  .rtab.on{background:var(--accent);color:#fff;}
+  .rpanel{display:none;}.rpanel.on{display:block;animation:fade .2s ease;}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+  .rbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px;}
+  .search{flex:1;min-width:190px;width:auto;padding:12px 15px;border-radius:12px;border:1px solid var(--line-2);background:#fff;color:var(--ink);font-size:14.5px;font-family:inherit;outline:none;}
+  .search:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
+  .addb{border:none;background:var(--accent);color:#fff;font-weight:800;font-size:13px;padding:12px 16px;border-radius:12px;cursor:pointer;font-family:inherit;white-space:nowrap;}
+  .addb:hover{filter:brightness(1.05);}
+  .hint{font-size:12.5px;color:var(--muted);margin:0 0 12px;}
   .count{color:var(--muted);font-size:12.5px;margin:0 0 14px;}
   /* carrier cards */
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(324px,1fr));gap:14px;}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:17px 17px 15px;box-shadow:0 1px 2px rgba(0,0,0,.03);}
-  .card h2{margin:0;font-size:17px;color:var(--ink);letter-spacing:-.01em;font-weight:700;}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:17px 17px 15px;box-shadow:0 1px 2px rgba(0,0,0,.03);position:relative;}
+  .card h2{margin:0;font-size:17px;color:var(--ink);letter-spacing:-.01em;font-weight:700;padding-right:56px;}
   .prod{font-size:12px;color:var(--muted);margin:4px 0 12px;font-weight:500;line-height:1.45;}
   .lbl{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted2);font-weight:800;margin:13px 0 7px;}
   .rep{padding:9px 11px;border:1px solid var(--line);border-radius:11px;margin:0 0 7px;background:var(--panel2);}
@@ -112,20 +78,65 @@ body.tsfg-drawer .tsfg-scrim{display:block;}
   a.chip:hover{border-color:var(--accent);color:var(--accent);}
   a.chip.mail{color:var(--accent);}
   .lines{display:flex;flex-wrap:wrap;gap:6px;}
-  .empty{font-size:12.5px;color:var(--muted);font-style:italic;padding:6px 0;}
   .dash{display:block;margin-top:13px;padding:11px 12px;border-radius:11px;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:13px;text-decoration:none;text-align:center;transition:.12s;}
   .dash:hover{background:var(--accent);color:#fff;}
-  .portal{display:inline-block;margin-top:10px;font-size:12px;font-weight:600;color:var(--muted);text-decoration:none;border-bottom:1px solid var(--line-2);}
-  .portal:hover{color:var(--ink);}
-  /* website button on carrier cards */
   .siteb{display:block;margin-top:8px;padding:11px 12px;border-radius:11px;background:#fff;border:1px solid var(--line-2);color:var(--ink);font-weight:700;font-size:13px;text-decoration:none;text-align:center;transition:.12s;}
   .siteb:hover{border-color:var(--accent);color:var(--accent);}
-  /* major block headers */
-  .block{margin-top:42px;}
-  .block-h{display:flex;flex-wrap:wrap;align-items:baseline;gap:12px;padding-bottom:12px;margin-bottom:2px;border-bottom:1px solid var(--line-2);}
-  .block-h b{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:22px;letter-spacing:-.01em;color:var(--ink);}
-  .block-h span{font-size:13px;color:var(--muted);font-weight:500;}
-  .foot{text-align:center;color:var(--muted2);font-size:12px;margin-top:34px;}
+  .editb{position:absolute;top:14px;right:14px;border:1px solid var(--line-2);background:#fff;color:var(--muted);font-weight:700;font-size:11.5px;padding:5px 10px;border-radius:9px;cursor:pointer;font-family:inherit;}
+  .editb:hover{border-color:var(--accent);color:var(--accent);}
+  /* scripts */
+  .scat{font-weight:800;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted2);margin:24px 0 10px;}
+  .scard{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:15px 17px;margin-bottom:12px;box-shadow:0 1px 2px rgba(0,0,0,.03);}
+  .scard .sh{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .scard h3{margin:0;font-size:15.5px;font-weight:750;flex:1;min-width:160px;}
+  .eff{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;font-weight:800;color:var(--green-dp);white-space:nowrap;}
+  .effbar{width:56px;height:6px;border-radius:3px;background:var(--line);overflow:hidden;}.effbar i{display:block;height:100%;background:var(--green);}
+  .sbody{font-size:14px;color:var(--ink);white-space:pre-wrap;line-height:1.55;margin-top:11px;}
+  .srow{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
+  .sbtn{border:1px solid var(--line-2);background:var(--panel2);color:var(--muted);font-weight:700;font-size:12px;padding:7px 12px;border-radius:9px;cursor:pointer;font-family:inherit;}
+  .sbtn:hover{border-color:var(--accent);color:var(--accent);}
+  .sbtn.ai{border-color:var(--gold);color:var(--gold-dp);background:rgba(201,154,46,.08);}
+  /* agent resources */
+  .asec{margin-bottom:26px;}
+  .ah{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:20px;color:var(--ink);margin:0 0 4px;}
+  .ad{font-size:13px;color:var(--muted);margin:0 0 14px;}
+  .howcard{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:13px 15px;margin-bottom:9px;box-shadow:0 1px 2px rgba(0,0,0,.03);}
+  .howcard h4{margin:0 0 3px;font-size:14.5px;font-weight:750;}
+  .howcard p{margin:0;font-size:13px;color:var(--muted);line-height:1.5;}
+  .remadd{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:14px;}
+  .remadd input[type=text]{flex:1;min-width:190px;}
+  .rem{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:9px;}
+  .remck{width:23px;height:23px;border-radius:50%;border:2px solid var(--line-2);flex:0 0 auto;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;}
+  .remck.on{background:var(--green);border-color:var(--green);}
+  .remt{font-weight:650;font-size:14px;}.remt.done{text-decoration:line-through;color:var(--muted2);}
+  .remd{font-size:12px;color:var(--muted2);margin-top:2px;}.remd.over{color:var(--red);font-weight:700;}
+  /* recordings */
+  .rfolder{margin-bottom:22px;}
+  .rfh{font-weight:800;font-size:14px;margin:0 0 10px;display:flex;align-items:center;gap:8px;}
+  .rfh .cnt{font-size:11px;font-weight:700;color:var(--accent);background:var(--accent-soft);border-radius:999px;padding:2px 9px;}
+  .rrec{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:8px;text-decoration:none;color:inherit;transition:.12s;}
+  .rrec:hover{border-color:var(--accent);transform:translateX(2px);}
+  .rrec .play{width:34px;height:34px;border-radius:9px;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:15px;flex:0 0 auto;}
+  .rrec .rt{font-weight:700;font-size:14px;}.rrec .rd{font-size:12px;color:var(--muted2);margin-top:1px;}
+  .locked{text-align:center;padding:54px 20px;color:var(--muted2);}
+  .locked .lk{font-size:34px;margin-bottom:10px;}
+  /* modal */
+  .rov{position:fixed;inset:0;background:rgba(0,0,0,.42);display:none;align-items:flex-start;justify-content:center;padding:26px 16px;z-index:1000;overflow:auto;}
+  .rov.on{display:flex;}
+  .rmodal{width:100%;max-width:580px;background:var(--panel);border-radius:18px;box-shadow:0 24px 60px rgba(0,0,0,.22);padding:22px;}
+  .rmodal h3{margin:0 0 14px;font-size:18px;font-weight:800;}
+  .fg{display:flex;flex-direction:column;gap:5px;margin-bottom:11px;}
+  .fg label{font-size:12px;font-weight:700;color:var(--muted);}
+  .fg input,.fg textarea,.fg select{border:1px solid var(--line-2);background:var(--panel2);color:var(--ink);border-radius:10px;padding:10px 12px;font-size:14px;font-family:inherit;outline:none;}
+  .fg input:focus,.fg textarea:focus,.fg select:focus{border-color:var(--accent);}
+  .frow{display:flex;gap:10px;}.frow>.fg{flex:1;}
+  .mact{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;align-items:center;}
+  .dbtn{border:none;background:var(--accent);color:#fff;font-weight:800;font-size:14px;padding:11px 18px;border-radius:11px;cursor:pointer;font-family:inherit;}
+  .dbtn.ghost{background:var(--panel2);color:var(--muted);border:1px solid var(--line-2);}
+  .dbtn.danger{background:var(--red);margin-left:auto;}
+  .foot{text-align:center;color:var(--muted2);font-size:12px;margin-top:30px;}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#1d1d1f;color:#fff;padding:11px 18px;border-radius:12px;font-size:13.5px;font-weight:700;opacity:0;pointer-events:none;transition:.2s;z-index:1200;}.toast.on{opacity:1;}
+  .empty{text-align:center;color:var(--muted2);padding:40px 16px;font-size:14px;}
 </style>
 <style id="mobile-safe-fix">
 body{ padding-top: calc(60px + env(safe-area-inset-top)) !important; }
@@ -159,270 +170,202 @@ html, body{ overflow-x: hidden; }
 <div class="wrap">
   <div class="eyebrow">The Standard Financial Group</div>
   <h1>Resources</h1>
-  <div class="sub">Everything you need in one place — the training library, must-have guides, and the full carrier rolodex with named reps and service desks.</div>
+  <div class="sub">Carriers, scripts, how-to guides, your own reminders, and recorded calls — all in one place.</div>
 
-  <a class="drive" id="docBtn" href="#" target="_blank" rel="noopener">
-    <span class="di">📂</span>
-    <span><span class="dt">Open the full Company Resource Drive</span><span class="dd">Scripts, training, decks &amp; product how-tos — bookmark it</span></span>
-    <span class="darr">→</span>
-  </a>
-
-  <!-- ============ TEAM RESOURCES ============ -->
-  <div class="block">
-    <div class="block-h"><b>👥 Team Resources</b><span>Training, team building &amp; personal development</span></div>
-
-    <div class="sec">
-      <div class="sec-h"><span class="dot"></span>Start here</div>
-      <div class="cards" id="resList"></div>
-    </div>
-
-    <div class="sec">
-      <div class="sec-h"><span class="dot"></span>Team &amp; personal development — books &amp; videos by topic</div>
-      <div class="topics" id="topics"></div>
-    </div>
+  <div class="rtabs">
+    <button class="rtab on" data-t="carrier" onclick="rTab('carrier')">🏛️ Carriers</button>
+    <button class="rtab" data-t="script" onclick="rTab('script')">📜 Scripts</button>
+    <button class="rtab" data-t="agent" onclick="rTab('agent')">🧭 Agent Resources</button>
+    <button class="rtab" data-t="recording" onclick="rTab('recording')">🎥 Recordings</button>
   </div>
 
-  <!-- ============ CARRIER RESOURCES ============ -->
-  <div class="block">
-    <div class="block-h"><b>🏛️ Carrier Resources</b><span>Every carrier — named reps, service desks &amp; website links</span></div>
-
-    <div class="sec">
-      <input class="search" id="q" type="search" placeholder="Search carrier, rep, phone, or email…" autocomplete="off">
-      <div class="count" id="count"></div>
-      <div class="grid" id="grid"></div>
-    </div>
+  <div class="rpanel on" id="p-carrier">
+    <div class="rbar"><input class="search" id="cq" placeholder="Search carrier, rep, phone, email…" oninput="renderCarriers()"><button class="addb" onclick="editCarrier(null)">＋ Add carrier</button></div>
+    <div class="hint">Every carrier — named reps, service desks &amp; portals. <b>Anyone can update</b> — tap Edit on a card to keep it current.</div>
+    <div class="count" id="ccount"></div>
+    <div class="grid" id="cgrid"><div class="empty">Loading carriers…</div></div>
   </div>
 
-  <div class="foot">Built from Christopher's rep list + Follow Up Boss carrier records · Build Momentum. Create Results. Lead From the Front.</div>
+  <div class="rpanel" id="p-script">
+    <div class="rbar"><input class="search" id="sq" placeholder="Search scripts…" oninput="renderScripts()"><button class="addb" onclick="editScript(null)">＋ Add script</button></div>
+    <div class="hint">Sorted by <b>effectiveness</b>. Tap ✨ <b>Improve with AI</b> on any script to sharpen the words, then save the winner. Everyone can edit.</div>
+    <div id="sgrid"><div class="empty">Loading scripts…</div></div>
+  </div>
+
+  <div class="rpanel" id="p-agent"><div id="agentPane"><div class="empty">Loading…</div></div></div>
+
+  <div class="rpanel" id="p-recording"><div id="recPane"><div class="empty">Loading recordings…</div></div></div>
+
+  <div class="foot">Build Momentum. Create Results. Lead From the Front.</div>
 </div>
 
+<div class="rov" id="rov" onclick="if(event.target===this)closeModal()"><div class="rmodal" id="rmodal"></div></div>
+<div class="toast" id="rtoast"></div>
+
 <script>
-  var DRIVE_URL = "https://drive.google.com/drive/folders/1O82d4KtDXxcwg59Zf1A0-sX1ukK6xKwg";
-  document.getElementById('docBtn').href = DRIVE_URL;
-  var RESOURCES = [
-    {t:"📜 Complete Recruiting Script Library", d:"EHTOR · Reference · PBP · Volume scripts — the words that work", u:"https://drive.google.com/file/d/1tj5fZZiXPuRW2bxjjMErcTZL-rYaE1vf/view"},
-    {t:"🎤 GRIND Field Training Slides", d:"The client presentation deck you run on every appointment", u:"https://drive.google.com/file/d/1DU3Z2JTJtcMzD8RIyqNs2knJrC9lTfl-/view"},
-    {t:"🔥 The BLDRs System — Day 1", d:"Our core new-agent training pipeline (Days 1–4)", u:"https://docs.google.com/presentation/d/1hkxpX7fKXttOrRB-M-QW7kzw7YF12bpRIcfnVc2BmrI/edit"},
-    {t:"🚀 New Agent Onboarding — First 90 Days", d:"The roadmap for your first 90 days in the business", u:"https://drive.google.com/file/d/1YfHcoItIpl9j29E-fN7mmSCPbEpGgxFX/view"},
-    {t:"📞 Running a Warm Market System", d:"How to work your list & book appointments (video)", u:"https://drive.google.com/file/d/1QYjMB7j4ySiveuopt9inneak0q9K4yZP/view"},
-    {t:"💼 How to Run a PFR", d:"Personal Financial Review — the appointment framework (video)", u:"https://drive.google.com/file/d/1bWmBP6PGX34Xex39layUkwr9R2XcpO46/view"},
-    {t:"📊 F&G + North American Illustrations", d:"Build carrier illustrations step-by-step (video)", u:"https://drive.google.com/file/d/1RpU0S65JMIh9EklO12_S7I5vHFkATjJ1/view"},
-    {t:"🤝 GRIND Hiring Interview", d:"Run the recruiting interview to build your team", u:"https://drive.google.com/file/d/1NJ5rofsf-IrPAn0VQ2-QzCrWBFjyZZgL/view"},
-    {t:"📇 Carrier Rolodex (Google Doc)", d:"The full carrier contact directory in one doc", u:"https://docs.google.com/document/d/1ZI-AH5JPNGiShsA0JhIWa8-4-qhP6JhRLdm1SEB8hCY/edit"}
-  ];
-  (function(){var L=document.getElementById('resList');if(!L)return;RESOURCES.forEach(function(r){
-    var a=document.createElement('a');a.className='rescard';a.href=r.u;a.target='_blank';a.rel='noopener';
-    a.innerHTML='<div class="rescard-t">'+r.t+'</div><div class="rescard-d">'+r.d+'</div>';L.appendChild(a);});})();
+var RAPI="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/resources-api";
+var TAPI="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/task-api";
+var AIAPI="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/ai-api";
+var CODE="",NAME="";try{CODE=(localStorage.getItem('tsfg_code')||'').trim();NAME=(localStorage.getItem('tsfg_name')||'').trim();}catch(e){}
+var DATA={carrier:[],script:[],how:[],recording:null};
+var LEADER=false, TASKS=[], TAB="carrier";
+var $=function(id){return document.getElementById(id);};
+function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+function toast(m){var t=$('rtoast');t.textContent=m;t.classList.add('on');clearTimeout(t._t);t._t=setTimeout(function(){t.classList.remove('on');},2200);}
+function rapi(b){b=b||{};if(CODE)b.code=CODE;if(NAME)b.by_name=NAME;return fetch(RAPI,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();}).catch(function(){return{ok:false};});}
+function tapi(b){b=b||{};if(CODE)b.code=CODE;return fetch(TAPI,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();}).catch(function(){return{ok:false};});}
+function telHref(p){var d=(p||'').replace(/[^\d]/g,'');if(d.length===10)d='1'+d;return 'tel:+'+d;}
+function phoneChip(p){if(/[a-zA-Z]/.test(p)){var m=p.match(/(\(?\d[\d\s().-]{6,}\d)/);var num=m?m[0]:p;var lbl=p.replace(num,'').trim();return '<a class="chip" href="'+telHref(num)+'">☎ '+esc(num)+(lbl?(' <span style="opacity:.65">'+esc(lbl)+'</span>'):'')+'</a>';}return '<a class="chip" href="'+telHref(p)+'">☎ '+esc(p)+'</a>';}
+function mailChip(addr,label){return '<a class="chip mail" href="mailto:'+esc(addr)+'" title="'+esc(addr)+'">✉ '+esc(label||addr)+'</a>';}
+function today(){return new Date().toISOString().slice(0,10);}
 
-  var TOPICS = [
-    {h:"🤝 Recruiting & Team Building", items:[
-      {tt:"GRIND Hiring Interview", td:"Run the recruiting interview to build your team", kind:"vid", u:"https://drive.google.com/file/d/1NJ5rofsf-IrPAn0VQ2-QzCrWBFjyZZgL/view"},
-      {tt:"Complete Recruiting Script Library", td:"EHTOR · Reference · PBP · Volume scripts", kind:"doc", u:"https://drive.google.com/file/d/1tj5fZZiXPuRW2bxjjMErcTZL-rYaE1vf/view"},
-      {tt:"Go Pro — Eric Worre", td:"7 steps to building a network-marketing team", kind:"book"},
-      {tt:"How to Win Friends & Influence People — Dale Carnegie", td:"The classic on rapport & recruiting", kind:"book"}
-    ]},
-    {h:"👑 Leadership Development", items:[
-      {tt:"The BLDRs System — Day 1", td:"Our core new-agent training pipeline (Days 1–4)", kind:"doc", u:"https://docs.google.com/presentation/d/1hkxpX7fKXttOrRB-M-QW7kzw7YF12bpRIcfnVc2BmrI/edit"},
-      {tt:"21 Irrefutable Laws of Leadership — John Maxwell", td:"Foundational leadership principles", kind:"book"},
-      {tt:"Extreme Ownership — Jocko Willink", td:"Lead from the front, own every result", kind:"book"}
-    ]},
-    {h:"💬 Sales & Presentations", items:[
-      {tt:"GRIND Field Training Slides", td:"The client presentation deck you run on every appointment", kind:"vid", u:"https://drive.google.com/file/d/1DU3Z2JTJtcMzD8RIyqNs2knJrC9lTfl-/view"},
-      {tt:"How to Run a PFR", td:"Personal Financial Review — the appointment framework", kind:"vid", u:"https://drive.google.com/file/d/1bWmBP6PGX34Xex39layUkwr9R2XcpO46/view"},
-      {tt:"Exactly What to Say — Phil M. Jones", td:"Magic words for objections & closing", kind:"book"},
-      {tt:"The Greatest Salesman in the World — Og Mandino", td:"Mindset & habits of selling", kind:"book"}
-    ]},
-    {h:"📈 Mindset & Personal Growth", items:[
-      {tt:"Atomic Habits — James Clear", td:"Build the daily habits that compound", kind:"book"},
-      {tt:"The Compound Effect — Darren Hardy", td:"Small actions, massive results", kind:"book"},
-      {tt:"Think and Grow Rich — Napoleon Hill", td:"The classic on desire & persistence", kind:"book"}
-    ]},
-    {h:"🛡️ Product Knowledge (IUL / FIA / Annuities)", items:[
-      {tt:"F&G + North American Illustrations", td:"Build carrier illustrations step-by-step", kind:"vid", u:"https://drive.google.com/file/d/1RpU0S65JMIh9EklO12_S7I5vHFkATjJ1/view"},
-      {tt:"Carrier Rolodex (Google Doc)", td:"Full carrier contact directory in one doc", kind:"doc", u:"https://docs.google.com/document/d/1ZI-AH5JPNGiShsA0JhIWa8-4-qhP6JhRLdm1SEB8hCY/edit"}
-    ]},
-    {h:"🚀 New Agent Fundamentals", items:[
-      {tt:"New Agent Onboarding — First 90 Days", td:"The roadmap for your first 90 days", kind:"doc", u:"https://drive.google.com/file/d/1YfHcoItIpl9j29E-fN7mmSCPbEpGgxFX/view"},
-      {tt:"Running a Warm Market System", td:"How to work your list & book appointments", kind:"vid", u:"https://drive.google.com/file/d/1QYjMB7j4ySiveuopt9inneak0q9K4yZP/view"},
-      {tt:"The BLDRs System — Day 1", td:"Start the new-agent pipeline", kind:"doc", u:"https://docs.google.com/presentation/d/1hkxpX7fKXttOrRB-M-QW7kzw7YF12bpRIcfnVc2BmrI/edit"}
-    ]}
-  ];
-  (function(){
-    var host=document.getElementById('topics'); if(!host)return;
-    function esc2(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
-    var kindLbl={vid:'Video',doc:'Doc',book:'Book'};
-    var kindIco={vid:'🎬',doc:'📄',book:'📖'};
-    host.innerHTML=TOPICS.map(function(t,i){
-      var items=t.items.map(function(it){
-        var inner='<span class="ico">'+(kindIco[it.kind]||'📌')+'</span><span><span class="tt">'+esc2(it.tt)+'</span><span class="td">'+esc2(it.td||'')+'</span></span><span class="kind '+it.kind+'">'+(kindLbl[it.kind]||'')+'</span>';
-        return it.u ? '<a class="titem" href="'+esc2(it.u)+'" target="_blank" rel="noopener">'+inner+'</a>' : '<div class="titem">'+inner+'</div>';
-      }).join('');
-      return '<div class="topic'+(i===0?' open':'')+'"><button class="topic-h" onclick="this.parentNode.classList.toggle(\'open\')"><span class="rt">'+esc2(t.h)+'</span><span style="display:flex;gap:8px;align-items:center"><span class="cnt">'+t.items.length+'</span><span class="car">▶</span></span></button><div class="topic-body">'+items+'</div></div>';
+function rTab(t){TAB=t;document.querySelectorAll('.rtab').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-t')===t);});document.querySelectorAll('.rpanel').forEach(function(p){p.classList.remove('on');});$('p-'+t).classList.add('on');
+  if(t==='carrier')loadKind('carrier',renderCarriers);
+  else if(t==='script')loadKind('script',renderScripts);
+  else if(t==='agent')loadAgent();
+  else if(t==='recording')loadRecordings();}
+function loadKind(kind,cb){rapi({action:'list',kind:kind}).then(function(r){DATA[kind]=(r&&r.items)||[];if(r&&r.leader)LEADER=true;cb&&cb();});}
+
+/* ---------- CARRIERS ---------- */
+function carrierBlob(c){var d=c.data||{};var s=[c.title,c.category];(d.reps||[]).forEach(function(r){s.push(r.n,r.role,r.email);(r.phones||[]).forEach(function(p){s.push(p);});});(d.emails||[]).forEach(function(e){s.push(e[0],e[1]);});(d.phones||[]).forEach(function(p){s.push(p);});return s.join(' ').toLowerCase();}
+function renderCarriers(){
+  var q=($('cq').value||'').trim().toLowerCase();
+  var list=DATA.carrier.filter(function(c){return !q||carrierBlob(c).indexOf(q)>=0;});
+  $('ccount').textContent=list.length+' of '+DATA.carrier.length+' carriers';
+  var g=$('cgrid');
+  if(!list.length){g.innerHTML='<div class="empty">No carriers match.</div>';return;}
+  g.innerHTML=list.map(function(c){var d=c.data||{};
+    var h='<div class="card"><button class="editb" onclick="editCarrier(\''+c.id+'\')">✏️ Edit</button><h2>'+esc(c.title)+'</h2><div class="prod">'+esc(c.category||'')+'</div>';
+    if((d.reps||[]).length){h+='<div class="lbl">★ Named reps</div>';d.reps.forEach(function(r){h+='<div class="rep"><div class="nm">'+esc(r.n)+(r.role?(' <span class="role">· '+esc(r.role)+'</span>'):'')+'</div><div class="ct">';(r.phones||[]).forEach(function(p){h+=phoneChip(p);});if(r.email)h+=mailChip(r.email,r.email);h+='</div></div>';});}
+    if((d.emails||[]).length){h+='<div class="lbl">Service desks</div><div class="lines">';d.emails.forEach(function(e){h+=mailChip(e[1],e[0]);});h+='</div>';}
+    if((d.phones||[]).length){h+='<div class="lbl">Service lines</div><div class="lines">';d.phones.forEach(function(p){h+=phoneChip(p);});h+='</div>';}
+    if(d.dash)h+='<a class="dash" href="'+esc(d.dash)+'" target="_blank" rel="noopener">🔐 Open '+esc(c.title)+' dashboard →</a>';
+    if(d.portal)h+='<a class="siteb" href="'+esc(d.portal)+'" target="_blank" rel="noopener">🌐 Visit '+esc(c.title)+' website →</a>';
+    return h+'</div>';
+  }).join('');
+}
+function editCarrier(id){var c=id?DATA.carrier.filter(function(x){return x.id===id;})[0]:{data:{}};if(!c)return;var d=c.data||{};
+  function lines(arr){return (arr||[]).map(function(p){return p;}).join('\n');}
+  function repLines(reps){return (reps||[]).map(function(r){return [r.n||'',r.role||'',(r.phones||[]).join('; '),r.email||''].join(' | ');}).join('\n');}
+  function emailLines(em){return (em||[]).map(function(e){return e[0]+' | '+e[1];}).join('\n');}
+  var h='<h3>'+(id?'Edit carrier':'Add carrier')+'</h3>'+
+    '<div class="fg"><label>Carrier name</label><input id="e_title" value="'+esc(c.title||'')+'"></div>'+
+    '<div class="fg"><label>Product line</label><input id="e_cat" value="'+esc(c.category||'')+'"></div>'+
+    '<div class="frow"><div class="fg"><label>Portal / website URL</label><input id="e_portal" value="'+esc(d.portal||'')+'"></div><div class="fg"><label>Dashboard login URL</label><input id="e_dash" value="'+esc(d.dash||'')+'"></div></div>'+
+    '<div class="fg"><label>Named reps — one per line: <i>Name | role | phone; phone | email</i></label><textarea id="e_reps" rows="4">'+esc(repLines(d.reps))+'</textarea></div>'+
+    '<div class="fg"><label>Service desks (email) — one per line: <i>Label | email</i></label><textarea id="e_emails" rows="3">'+esc(emailLines(d.emails))+'</textarea></div>'+
+    '<div class="fg"><label>Service lines (phone) — one per line</label><textarea id="e_phones" rows="3">'+esc(lines(d.phones))+'</textarea></div>'+
+    '<div class="mact"><button class="dbtn" onclick="saveCarrier(\''+(id||'')+'\')">Save</button><button class="dbtn ghost" onclick="closeModal()">Cancel</button>'+(id&&LEADER?'<button class="dbtn danger" onclick="delItem(\''+id+'\',\'carrier\')">Delete</button>':'')+'</div>';
+  openModal(h);}
+function saveCarrier(id){
+  function parseReps(t){return (t||'').split('\n').map(function(l){return l.trim();}).filter(Boolean).map(function(l){var p=l.split('|').map(function(x){return x.trim();});return {n:p[0]||'',role:p[1]||'',phones:(p[2]||'').split(';').map(function(x){return x.trim();}).filter(Boolean),email:p[3]||''};});}
+  function parseEmails(t){return (t||'').split('\n').map(function(l){return l.trim();}).filter(Boolean).map(function(l){var p=l.split('|').map(function(x){return x.trim();});return [p[0]||'',p[1]||''];});}
+  function parseLines(t){return (t||'').split('\n').map(function(l){return l.trim();}).filter(Boolean);}
+  var data={reps:parseReps($('e_reps').value),emails:parseEmails($('e_emails').value),phones:parseLines($('e_phones').value),portal:($('e_portal').value||'').trim(),dash:($('e_dash').value||'').trim()};
+  var title=($('e_title').value||'').trim();if(!title){toast('Enter a carrier name');return;}
+  rapi({action:'save',kind:'carrier',id:id||undefined,title:title,category:($('e_cat').value||'').trim(),data:data}).then(function(r){if(r&&r.ok){toast('Saved ✓');closeModal();loadKind('carrier',renderCarriers);}else toast((r&&r.error)||'Could not save');});}
+
+/* ---------- SCRIPTS ---------- */
+function renderScripts(){
+  var q=($('sq').value||'').trim().toLowerCase();
+  var list=DATA.script.filter(function(s){return !q||((s.title+' '+s.category+' '+s.body).toLowerCase().indexOf(q)>=0);});
+  list.sort(function(a,b){return (b.effectiveness||0)-(a.effectiveness||0);});
+  var cats={},order=[];list.forEach(function(s){var c=s.category||'Other';if(!cats[c]){cats[c]=[];order.push(c);}cats[c].push(s);});
+  var g=$('sgrid');
+  if(!list.length){g.innerHTML='<div class="empty">No scripts yet — tap ＋ Add script.</div>';return;}
+  g.innerHTML=order.map(function(cat){
+    return '<div class="scat">'+esc(cat)+'</div>'+cats[cat].map(function(s){
+      var e=s.effectiveness||0;
+      return '<div class="scard"><div class="sh"><h3>'+esc(s.title)+'</h3>'+(s.effectiveness!=null?'<span class="eff">'+e+'% <span class="effbar"><i style="width:'+e+'%"></i></span></span>':'')+'</div>'+
+        '<div class="sbody">'+esc(s.body)+'</div>'+
+        '<div class="srow"><button class="sbtn" onclick="copyScript(\''+s.id+'\')">📋 Copy</button><button class="sbtn ai" onclick="aiImprove(\''+s.id+'\')">✨ Improve with AI</button><button class="sbtn" onclick="editScript(\''+s.id+'\')">✏️ Edit</button></div></div>';
     }).join('');
-  })();
+  }).join('');
+}
+function copyScript(id){var s=DATA.script.filter(function(x){return x.id===id;})[0];if(!s)return;var t=s.body;if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(function(){toast('Script copied 📋');},function(){window.prompt('Copy:',t);});}else window.prompt('Copy:',t);}
+function editScript(id){var s=id?DATA.script.filter(function(x){return x.id===id;})[0]:{effectiveness:70,category:''};if(!s)return;
+  var cats=['Warm Market','Referral','Appointment Setting','Objection Handling','Recruiting','Follow-Up','Closing','Other'];
+  var h='<h3>'+(id?'Edit script':'Add script')+'</h3>'+
+    '<div class="fg"><label>Title</label><input id="e_title" value="'+esc(s.title||'')+'"></div>'+
+    '<div class="frow"><div class="fg"><label>Category</label><input id="e_cat" list="scats" value="'+esc(s.category||'')+'"><datalist id="scats">'+cats.map(function(c){return '<option value="'+c+'">';}).join('')+'</datalist></div>'+
+    '<div class="fg"><label>Effectiveness (0–100%)</label><input id="e_eff" type="number" min="0" max="100" value="'+(s.effectiveness!=null?s.effectiveness:70)+'"></div></div>'+
+    '<div class="fg"><label>Script</label><textarea id="e_body" rows="8">'+esc(s.body||'')+'</textarea></div>'+
+    '<div class="mact"><button class="dbtn" onclick="saveScript(\''+(id||'')+'\')">Save</button><button class="dbtn ghost" onclick="closeModal()">Cancel</button>'+(id&&LEADER?'<button class="dbtn danger" onclick="delItem(\''+id+'\',\'script\')">Delete</button>':'')+'</div>';
+  openModal(h);}
+function saveScript(id){var title=($('e_title').value||'').trim();if(!title){toast('Enter a title');return;}
+  rapi({action:'save',kind:'script',id:id||undefined,title:title,category:($('e_cat').value||'').trim()||'Other',effectiveness:$('e_eff').value,body:($('e_body').value||'').trim()}).then(function(r){if(r&&r.ok){toast('Saved ✓');closeModal();loadKind('script',renderScripts);}else toast((r&&r.error)||'Could not save');});}
+function aiImprove(id){var s=DATA.script.filter(function(x){return x.id===id;})[0];if(!s)return;
+  toast('✨ Asking AI to sharpen it…');
+  var sys="You are an elite, ethical sales coach for a life & financial-services agency (The Standard). Rewrite the given "+(s.category||'sales')+" script so it is warmer, more natural, and more likely to earn a yes — concise, conversational, and honest (no hype, no false claims, nothing pushy). Keep any [bracketed] placeholders. Return ONLY the improved script text — no preamble, no quotes, no explanation.";
+  fetch(AIAPI,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'ask',system:sys,prompt:s.body,max_tokens:900})}).then(function(r){return r.json();}).then(function(r){
+    var improved=(r&&(r.answer||r.text))||'';
+    if(improved){
+      var h='<h3>✨ AI-sharpened: '+esc(s.title)+'</h3><div class="fg"><label>Suggested rewrite — tweak it if you like, then keep it</label><textarea id="e_body" rows="11">'+esc(improved)+'</textarea></div>'+
+        '<div class="mact"><button class="dbtn" onclick="keepImproved(\''+id+'\')">Keep this version</button><button class="dbtn ghost" onclick="closeModal()">Discard</button></div>';
+      openModal(h);
+    } else toast((r&&r.error)||'AI is warming up — try again in a moment');
+  }).catch(function(){toast('AI unavailable right now');});}
+function keepImproved(id){var s=DATA.script.filter(function(x){return x.id===id;})[0];if(!s)return;
+  rapi({action:'save',kind:'script',id:id,title:s.title,category:s.category,effectiveness:s.effectiveness,body:($('e_body').value||'').trim()}).then(function(r){if(r&&r.ok){toast('Updated ✓');closeModal();loadKind('script',renderScripts);}else toast('Could not save');});}
 
-  var CARRIERS = [
-    {name:"Quility — Back Office (HQ)", prod:"Agency back-office hub (Symmetry / SFG) · HQ = everything · OPT = the lead platform · carrier e-App tools live inside HQ",
-     reps:[],
-     emails:[["Support","help@quility.com"]],
-     phones:[],
-     portal:"https://quility.com/hq/"},
+/* ---------- AGENT RESOURCES (How + personal reminders) ---------- */
+function loadAgent(){
+  Promise.all([rapi({action:'list',kind:'how'}),tapi({action:'for_agent',code:CODE})]).then(function(res){
+    DATA.how=(res[0]&&res[0].items)||[];if(res[0]&&res[0].leader)LEADER=true;
+    var t=res[1]||{};TASKS=(t.overdue||[]).concat(t.open||[]);var done=(t.completed||[]).slice(0,6);
+    var how=DATA.how.map(function(x){return '<div class="howcard"><h4>'+esc(x.title)+(LEADER?' <span style="font-weight:600;font-size:11px;color:var(--muted2);cursor:pointer" onclick="editHow(\''+x.id+'\')">· edit</span>':'')+'</h4><p>'+esc(x.body)+'</p></div>';}).join('')||'<div class="empty">No guides yet.</div>';
+    var rem=TASKS.length?TASKS.map(remRow).join(''):'<div class="empty" style="padding:20px">Nothing on your list — you\'re clear. 🎉</div>';
+    if(done.length)rem+='<div class="hint" style="margin-top:12px;font-weight:700">Recently done</div>'+done.map(remRow).join('');
+    $('agentPane').innerHTML=
+      '<div class="asec"><div class="ah">✅ My Reminders</div><div class="ad">Your own to-dos &amp; reminders — just for you, like a personal list.</div>'+
+        '<div class="remadd"><input class="search" type="text" id="rem_t" placeholder="Add a reminder — e.g. Call 5 leads" onkeydown="if(event.key===\'Enter\')addRem()"><input class="search" type="date" id="rem_d" style="max-width:160px;flex:0 0 auto"><button class="addb" onclick="addRem()">＋ Add</button></div>'+
+        '<div id="remList">'+rem+'</div></div>'+
+      '<div class="asec"><div class="ah">🧭 How-To Guides</div><div class="ad">The "how" behind everything — quick answers for getting things done.'+(LEADER?' <span style="color:var(--accent);cursor:pointer" onclick="editHow(null)">＋ Add a guide</span>':'')+'</div>'+how+'</div>';
+  });
+}
+function remRow(t){var done=t.status==='complete';var over=t.overdue&&!done;
+  return '<div class="rem"><div class="remck'+(done?' on':'')+'" onclick="toggleRem(\''+t.id+'\','+(done?'false':'true')+')">'+(done?'✓':'')+'</div><div style="flex:1;min-width:0"><div class="remt'+(done?' done':'')+'">'+esc(t.title)+'</div>'+(t.due_date?'<div class="remd'+(over?' over':'')+'">📅 '+esc(t.due_date)+(over?' · overdue':'')+'</div>':'')+'</div></div>';}
+function addRem(){var el=$('rem_t');var title=(el.value||'').trim();if(!title){toast('Type a reminder first');return;}
+  tapi({action:'create',title:title,kind:'agent',owner_code:CODE,agent_codes:[CODE],due_date:($('rem_d').value||'')}).then(function(r){if(r&&r.ok){el.value='';$('rem_d').value='';toast('Reminder added ✓');loadAgent();}else toast((r&&r.error)||'Could not add');});}
+function toggleRem(id,mk){tapi({action:'set_status',id:id,status:mk?'complete':'in_progress'}).then(function(r){if(r&&r.ok){toast(mk?'Done ✓':'Reopened');loadAgent();}else toast('Could not update');});}
+function editHow(id){if(!LEADER){toast('Leaders only');return;}var x=id?DATA.how.filter(function(h){return h.id===id;})[0]:{};if(!x)return;
+  var h='<h3>'+(id?'Edit guide':'Add how-to guide')+'</h3><div class="fg"><label>Title</label><input id="e_title" value="'+esc(x.title||'')+'"></div><div class="fg"><label>Category</label><input id="e_cat" value="'+esc(x.category||'Getting Started')+'"></div><div class="fg"><label>The steps / answer</label><textarea id="e_body" rows="6">'+esc(x.body||'')+'</textarea></div><div class="mact"><button class="dbtn" onclick="saveHow(\''+(id||'')+'\')">Save</button><button class="dbtn ghost" onclick="closeModal()">Cancel</button>'+(id?'<button class="dbtn danger" onclick="delItem(\''+id+'\',\'how\')">Delete</button>':'')+'</div>';openModal(h);}
+function saveHow(id){var title=($('e_title').value||'').trim();if(!title){toast('Enter a title');return;}rapi({action:'save',kind:'how',id:id||undefined,title:title,category:($('e_cat').value||'').trim(),body:($('e_body').value||'').trim()}).then(function(r){if(r&&r.ok){toast('Saved ✓');closeModal();loadAgent();}else toast('Could not save');});}
 
-    {name:"North American", prod:"IUL · Fixed & Index Annuities · (Sammons / serviced via SFG–GFI)",
-     reps:[
-       {n:"Michael Dick", role:"", phones:["(605) 601-7122"], email:"mdick@sfgmembers.com"},
-       {n:"Jonah Hardenbrook", role:"", phones:["(760) 908-9436"], email:"jhardenbrook@sfgmembers.com"},
-       {n:"Brandon Deragisch", role:"Cell / Direct", phones:["(605) 601-3415","(605) 373-2372"], email:"bderagisch@sfgmembers.com"}
-     ],
-     emails:[["GFI Life desk","GFILife@sfgmembers.com"],["Fixed new business","fixednewbusiness@sfgmembers.com"],["NA Contracting","NAContracting@sfgmembers.com"],["Life correspondence","lifecorrespondence@sfgmembers.com"],["Policy change","pchange@sfgmembers.com"]],
-     phones:["(507) 227-7540","(800) 800-3656","(800) 923-3223","(833) 460-3185","(877) 872-0757","Annuity NB (515) 205-1902"],
-     portal:"https://www.northamericancompany.com"},
+/* ---------- RECORDINGS ---------- */
+function loadRecordings(){rapi({action:'list',kind:'recording'}).then(function(r){
+  if(r&&r.restricted){$('recPane').innerHTML='<div class="locked"><div class="lk">🔒</div><b>Recordings are for MDs &amp; EMDs.</b><div style="margin-top:6px;font-size:13px">Your leadership can review the team\'s recorded calls here.</div></div>';return;}
+  LEADER=true;DATA.recording=(r&&r.items)||[];renderRecordings();});}
+function renderRecordings(){var list=DATA.recording||[];
+  var folders={},order=[];list.forEach(function(x){var c=x.category||'Other';if(!folders[c]){folders[c]=[];order.push(c);}folders[c].push(x);});
+  order.sort();
+  var h='<div class="rbar"><div class="hint" style="margin:0;flex:1">Pulled from Fathom · sorted into folders. EMD/MD access.</div><button class="addb" onclick="editRec(null)">＋ Log a recording</button></div>';
+  if(!list.length){h+='<div class="empty">No recordings logged yet.</div>';}
+  h+=order.map(function(f){var recs=folders[f].slice().sort(function(a,b){return String((b.data||{}).date||'').localeCompare(String((a.data||{}).date||''));});
+    return '<div class="rfolder"><div class="rfh">📁 '+esc(f)+' <span class="cnt">'+recs.length+'</span></div>'+recs.map(function(x){var d=x.data||{};
+      return '<a class="rrec" href="'+esc(d.url||'#')+'" target="_blank" rel="noopener"><div class="play">▶</div><div style="flex:1;min-width:0"><div class="rt">'+esc(x.title)+'</div><div class="rd">'+esc(d.date||'')+(d.recorder?' · '+esc(d.recorder):'')+'</div></div><span style="font-size:11px;color:var(--muted2);cursor:pointer" onclick="event.preventDefault();event.stopPropagation();editRec(\''+x.id+'\')">edit</span></a>';
+    }).join('')+'</div>';
+  }).join('');
+  $('recPane').innerHTML=h;}
+function editRec(id){var x=id?DATA.recording.filter(function(r){return r.id===id;})[0]:{data:{date:today(),recorder:NAME}};if(!x)return;var d=x.data||{};
+  var folders=['Hiring & Interviews','Client Meetings','Team & Partners','Leadership & Board','Field Training','Other'];
+  var h='<h3>'+(id?'Edit recording':'Log a recording')+'</h3><div class="fg"><label>Title</label><input id="e_title" value="'+esc(x.title||'')+'"></div>'+
+    '<div class="frow"><div class="fg"><label>Folder</label><input id="e_cat" list="rfolders" value="'+esc(x.category||'Other')+'"><datalist id="rfolders">'+folders.map(function(f){return '<option value="'+f+'">';}).join('')+'</datalist></div><div class="fg"><label>Date</label><input id="e_date" type="date" value="'+esc(d.date||today())+'"></div></div>'+
+    '<div class="fg"><label>Fathom link</label><input id="e_url" value="'+esc(d.url||'')+'" placeholder="https://fathom.video/calls/…"></div>'+
+    '<div class="fg"><label>Recorded by</label><input id="e_rec" value="'+esc(d.recorder||NAME)+'"></div>'+
+    '<div class="mact"><button class="dbtn" onclick="saveRec(\''+(id||'')+'\')">Save</button><button class="dbtn ghost" onclick="closeModal()">Cancel</button>'+(id?'<button class="dbtn danger" onclick="delItem(\''+id+'\',\'recording\')">Delete</button>':'')+'</div>';openModal(h);}
+function saveRec(id){var title=($('e_title').value||'').trim();if(!title){toast('Enter a title');return;}
+  rapi({action:'save',kind:'recording',id:id||undefined,title:title,category:($('e_cat').value||'').trim()||'Other',data:{url:($('e_url').value||'').trim(),date:$('e_date').value||today(),recorder:($('e_rec').value||'').trim()}}).then(function(r){if(r&&r.ok){toast('Saved ✓');closeModal();loadRecordings();}else toast((r&&r.error)||'Could not save');});}
 
-    {name:"Corebridge Financial", prod:"IUL · Term · Fixed & Index Annuities · (formerly AIG)",
-     reps:[
-       {n:"Brendan Quinn", role:"", phones:["(806) 345-2675"], email:""},
-       {n:"Nick Lines", role:"", phones:[], email:"Nicholas.lines@corebridgefinancial.com"},
-       {n:"Andrew Franklin / Terike Novak", role:"", phones:["(713) 831-2049","(940) 453-2310"], email:"terike.novak@corebridgefinancial.com"},
-       {n:"Thomas Carley", role:"", phones:[], email:"Thomas.Carley@corebridgefinancial.com"},
-       {n:"Trey", role:"RVP", phones:["(818) 854-1545"], email:""}
-     ],
-     emails:[["New Business","NewBusiness@corebridgefinancial.com"],["Agent Solutions","AgentSolutions@corebridgefinancial.com"],["Producer Care","sharedservicesproducercare@corebridgefinancial.com"],["Contracting Research","contracting.research@corebridgefinancial.com"],["Annuity Service","annuityservice@corebridgefinancial.com"],["WinFlex support","support.winflex@ebix.com"]],
-     phones:["(385) 215-2740","(800) 340-2765","(800) 358-5753","(866) 722-2434","(877) 330-1193","(888) 280-1243","(888) 438-6933"],
-     portal:"https://www.corebridgefinancial.com"},
+/* ---------- shared ---------- */
+function delItem(id,kind){if(!confirm('Delete this permanently?'))return;rapi({action:'delete',id:id}).then(function(r){if(r&&r.ok){toast('Deleted');closeModal();rTab(TAB);}else toast((r&&r.error)||'Leaders only');});}
+function openModal(html){$('rmodal').innerHTML=html;$('rov').classList.add('on');}
+function closeModal(){$('rov').classList.remove('on');}
 
-    {name:"Symetra", prod:"IUL · Term · Fixed & Index Annuities",
-     reps:[
-       {n:"Nate Kohl", role:"Top rep", phones:["(801) 946-6953"], email:""},
-       {n:"Vincent Sanchez", role:"RVP · Top rep", phones:["(941) 787-4365"], email:"vincent.sanchez@symetra.com"}
-     ],
-     emails:[["Life & Retirement Sales Desk","invest@symetra.com"]],
-     phones:["Life Sales Desk (877) 737-3611","Retirement / Annuity (800) 706-0700","Agency Services opt4 (800) 210-1106","Contracts & Licensing opt1 (800) 210-1106","Commissions opt2 (800) 210-1106"],
-     portal:"https://financialprofessionals.symetra.com"},
-
-    {name:"F&G", prod:"IUL · Fixed & Index Annuities · (Fidelity & Guaranty)",
-     reps:[
-       {n:"Ron Barrett", role:"SVP & Chief Distribution Officer", phones:[], email:"ron.barrett@fglife.com"},
-       {n:"Jeff Richardson", role:"", phones:["(515) 633-7273"], email:"Jeff.Richardson@fglife.com"},
-       {n:"Chris Reavis", role:"", phones:["(336) 264-6496"], email:""}
-     ],
-     emails:[["Life Case Management","LifeCaseMgmt@fglife.com"],["Case Manager","casemanager@fglife.com"],["Contracting Support","Contracting.Support@fglife.com"],["Delivery requirements","deliveryrequirements@fglife.com"]],
-     phones:["(800) 445-6758","(888) 513-8797"],
-     portal:"https://www.fglife.com"},
-
-    {name:"Allianz Life", prod:"IUL · Fixed Index Annuities · FIA",
-     reps:[
-       {n:"Earl Brinkley", role:"ext. 46031", phones:["(763) 582-6031"], email:"earl.brinkley@allianzlife.com"},
-       {n:"Jeannie Olson", role:"", phones:[], email:"Jeannie.olson@allianzlife.com"}
-     ],
-     emails:[["Producer Services","ProducerServices@send.allianzlife.com"],["Life Insurance desk","LifeInsurance@send.allianzlife.com"],["Fixed Annuity desk","FixedAnnuity@send.allianzlife.com"]],
-     phones:["(800) 950-7372","(800) 950-1962","(800) 950-3347"],
-     portal:"https://www.allianzlife.com"},
-
-    {name:"Ethos", prod:"Simplified-issue Term & Whole Life · instant decision",
-     reps:[
-       {n:"JJ", role:"Agent contact", phones:["(415) 237-2271"], email:""}
-     ],
-     emails:[["Agents desk","agents@getethos.com"],["Agent Ops","agentops@getethos.com"],["Enterprise agent setup","enterprise-agent-setup@getethos.com"]],
-     phones:["(877) 913-8467","(415) 639-3968","(415) 915-0665","(650) 382-8161"],
-     portal:"https://www.ethoslife.com"},
-
-    {name:"Ameritas", prod:"IUL · Term · Whole Life",
-     reps:[
-       {n:"Flor Andrade", role:"", phones:[], email:"flor.andrade@ameritas.com"},
-       {n:"Matthew Ashworth", role:"", phones:[], email:"matthew.ashworth@ameritas.com"}
-     ],
-     emails:[["Sales Connect","salesconnect@ameritas.com"],["Sales Request","sales.request@ameritas.com"],["Core Contracting","corecontracting@ameritas.com"],["New Business Support","nb_support@ameritas.com"],["Client Services","clientservices@ameritas.com"]],
-     phones:["(800) 745-1112","(800) 319-6903","(800) 555-7746"],
-     portal:"https://www.ameritas.com"},
-
-    {name:"Foresters Financial", prod:"Term · Whole Life · Final Expense · membership benefits",
-     reps:[
-       {n:"Tony Morrison", role:"", phones:["(863) 202-5914"], email:"tomorrison@foresters.com"},
-       {n:"David Johnson", role:"", phones:["(952) 814-4600"], email:"djohnson@foresters.com"},
-       {n:"Luke Keller", role:"", phones:["(952) 214-8677"], email:"lkeller@foresters.com"}
-     ],
-     emails:[["Contracting & Producer Services","agencyadmin@foresters.com"]],
-     phones:["Producer / Contracting opt4 (866) 466-7166"],
-     portal:"https://ezbiz.foresters.com"},
-
-    {name:"Mutual of Omaha", prod:"IUL · Term · Whole Life · Final Expense",
-     reps:[
-       {n:"Nate Nelson", role:"", phones:[], email:"nate.nelson@mutualofomaha.com"},
-       {n:"Jessica Mills", role:"", phones:[], email:"Jessica.mills@mutualofomaha.com"}
-     ],
-     emails:[], phones:["(800) 867-6873","(800) 775-6000","(800) 775-7896","(800) 228-9999"],
-     portal:"https://www.mutualofomaha.com"},
-
-    {name:"American Equity", prod:"Fixed Index Annuities · (American National merged into American Equity)",
-     reps:[
-       {n:"Armando Matias", role:"", phones:["(515) 375-2193"], email:"armando.matias@american-equity.com"},
-       {n:"Kyle Richman", role:"ext. 3544", phones:["(888) 221-1234"], email:""}
-     ],
-     emails:[["Agency","agencyemail@american-equity.com"],["New Business","new_business@american-equity.com"],["Sales","Sales@american-equity.com"],["Commissions","Commissions@american-equity.com"],["Service","service@american-equity.com"]],
-     phones:["(414) 221-0002","(888) 221-1234"],
-     portal:"https://www.american-equity.com"}
-  ];
-
-  var DASH = {
-    "Quility — Back Office (HQ)":"https://hq.quility.com/",
-    "North American":"https://my.northamericancompany.com/",
-    "Corebridge Financial":"https://connext.corebridgefinancial.com/",
-    "Symetra":"https://financialprofessionals.symetra.com/",
-    "F&G":"https://saleslink.fglife.com/",
-    "Allianz Life":"https://www.allianzlife.com/Login",
-    "Ethos":"https://agents.ethoslife.com/dashboard",
-    "Ameritas":"https://workbench.ameritas.com/login",
-    "Foresters Financial":"https://ezbiz.foresters.com/",
-    "Mutual of Omaha":"https://producer.mutualofomaha.com/",
-    "American Equity":"https://myportal.american-equity.com/"
-  };
-  function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
-  function telHref(p){var d=(p||'').replace(/[^\d]/g,'');if(d.length===10)d='1'+d;return 'tel:+'+d;}
-  function phoneChip(p){ if(/[a-zA-Z]/.test(p)){
-      var m=p.match(/(\(?\d[\d\s().-]{6,}\d)/); var num=m?m[0]:p; var lbl=p.replace(num,'').trim();
-      return '<a class="chip" href="'+telHref(num)+'">☎ '+esc(num)+(lbl?(' <span style="opacity:.65">'+esc(lbl)+'</span>'):'')+'</a>';
-    }
-    return '<a class="chip" href="'+telHref(p)+'">☎ '+esc(p)+'</a>'; }
-  function mailChip(addr,label){return '<a class="chip mail" href="mailto:'+esc(addr)+'" title="'+esc(addr)+'">✉ '+esc(label||addr)+'</a>';}
-
-  function render(list){
-    var g=document.getElementById('grid'); g.innerHTML='';
-    document.getElementById('count').textContent=list.length+' of '+CARRIERS.length+' carriers';
-    list.forEach(function(c){
-      var h='<div class="card"><h2>'+esc(c.name)+'</h2><div class="prod">'+esc(c.prod||'')+'</div>';
-      if(c.reps&&c.reps.length){
-        h+='<div class="lbl">★ Named reps</div>';
-        c.reps.forEach(function(r){
-          h+='<div class="rep"><div class="nm">'+esc(r.n)+(r.role?(' <span class="role">· '+esc(r.role)+'</span>'):'')+'</div><div class="ct">';
-          (r.phones||[]).forEach(function(p){h+=phoneChip(p);});
-          if(r.email)h+=mailChip(r.email,r.email);
-          h+='</div></div>';
-        });
-      }
-      if(c.emails&&c.emails.length){
-        h+='<div class="lbl">Service desks</div><div class="lines">';
-        c.emails.forEach(function(e){h+=mailChip(e[1],e[0]);});
-        h+='</div>';
-      }
-      if(c.phones&&c.phones.length){
-        h+='<div class="lbl">Service lines</div><div class="lines">';
-        c.phones.forEach(function(p){h+=phoneChip(p);});
-        h+='</div>';
-      }
-      if(c.note){h+='<div class="empty">⚠ '+esc(c.note)+'</div>';}
-      var dash=DASH[c.name];
-      if(dash)h+='<a class="dash" href="'+esc(dash)+'" target="_blank" rel="noopener">🔐 Open '+esc(c.name)+' dashboard →</a>';
-      if(c.portal)h+='<a class="siteb" href="'+esc(c.portal)+'" target="_blank" rel="noopener">🌐 Visit '+esc(c.name)+' website →</a>';
-      h+='</div>';
-      g.insertAdjacentHTML('beforeend',h);
-    });
-  }
-  function blob(c){var s=[c.name,c.prod,c.note||''];(c.reps||[]).forEach(function(r){s.push(r.n,r.role,r.email);(r.phones||[]).forEach(function(p){s.push(p);});});(c.emails||[]).forEach(function(e){s.push(e[0],e[1]);});(c.phones||[]).forEach(function(p){s.push(p);});return s.join(' ').toLowerCase();}
-  var q=document.getElementById('q');
-  q.addEventListener('input',function(){var t=q.value.trim().toLowerCase();if(!t){render(CARRIERS);return;}var d=t.replace(/[^\da-z@. ]/g,'');render(CARRIERS.filter(function(c){return blob(c).indexOf(t)>=0||blob(c).replace(/[^\da-z@. ]/g,'').indexOf(d)>=0;}));});
-  render(CARRIERS);
+/* init */
+if(!CODE){ $('cgrid').innerHTML='<div class="empty">Please sign in on the Home page first.</div>'; }
+else { loadKind('carrier',renderCarriers); }
 </script>
-
 <script>
 function tsfgToggle(){ if(window.innerWidth<=860){tsfgDrawer(!document.body.classList.contains('tsfg-drawer'));} }
 function tsfgDrawer(on){document.body.classList.toggle('tsfg-drawer',!!on);}
