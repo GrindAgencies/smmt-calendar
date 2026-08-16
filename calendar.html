@@ -113,6 +113,9 @@ a{color:inherit;text-decoration:none;}.hide{display:none!important;}
 .trow .ti{width:44px;height:44px;border-radius:12px;background:var(--accent-soft);color:var(--accent);display:flex;flex-direction:column;align-items:center;justify-content:center;flex:0 0 auto;font-weight:800;line-height:1;}
 .trow .ti .h{font-size:15px;}.trow .ti .ap{font-size:9px;font-weight:700;}
 .trow .tt{font-weight:700;font-size:14.5px;}
+.trow a.tt{color:var(--accent);text-decoration:none;cursor:pointer;display:inline-block;}
+.trow a.tt:hover{text-decoration:underline;}
+.reqp{display:inline-block;font-size:9.5px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;color:var(--red,#d0392b);background:rgba(208,57,43,.12);border-radius:999px;padding:1px 7px;margin-left:6px;vertical-align:middle;}
 .trow .ts{font-size:12.5px;color:var(--ink3);}
 .trow .zj{margin-left:auto;border:1px solid var(--line2);background:var(--panel);color:var(--accent);font-weight:700;font-size:12.5px;padding:9px 13px;border-radius:10px;white-space:nowrap;}
 .trow .zj:hover{background:var(--accent);color:#fff;border-color:var(--accent);}
@@ -339,7 +342,8 @@ var TRAININGS=[
  {d:[1],h:9,m:0,t:'Momentum Monday (9 AM)',host:'Matthew Welsh',z:ZOOM.mm,zt:'Zoom 619 997 0102 · 2026'},
  {d:[1],h:18,m:0,t:'Momentum Monday — Team Training',host:'Elijah Cox & Team',z:ZOOM.main,zt:'Zoom 964 650 9994 · WEALTH'},
  {d:[2,4,5],h:6,m:0,t:'CFT Orientation (Morning)',host:'Christopher Lorenz',z:ZOOM.cft,zt:'Zoom 964 650 9953'},
- {d:[3],h:12,m:0,t:'Phone Zone',host:'Christopher Lorenz',z:ZOOM.cft,zt:'Zoom 964 650 9953'},
+ {d:[2],h:12,m:0,dur:90,t:'Phone Zone',host:'Christopher Lorenz',z:ZOOM.cft,zt:'Zoom 964 650 9953 · WEALTH',req:true},
+ {d:[4],h:9,m:0,dur:90,t:'Phone Zone',host:'Christopher Lorenz',z:ZOOM.cft,zt:'Zoom 964 650 9953 · WEALTH',req:true},
  {d:[3],h:17,m:0,t:'Armed Forces Call',host:'Team',z:ZOOM.af,zt:'Zoom 680 683 9747'},
  {d:[3],h:18,m:0,t:'Orientation Day 1',host:'Elijah Cox',z:ZOOM.main,zt:'Zoom 964 650 9994 · WEALTH'},
  {d:[4],h:18,m:0,t:'Orientation Day 2',host:'Elijah Cox',z:ZOOM.main,zt:'Zoom 964 650 9994 · WEALTH'}
@@ -348,6 +352,9 @@ function fmtHM(h,m){var ap=h>=12?'PM':'AM';var hh=h%12;if(hh===0)hh=12;return hh
 /* a recurring PT wall-time (h:m) shown in the viewer's zone */
 function fmtHMlocal(h,m){var tstr=(h%12===0?12:h%12)+':'+(m<10?'0'+m:m)+' '+(h>=12?'PM':'AM');var inst=ptInstant(calToday(),tstr);return inst?vTimeOf(inst):tstr;}
 function localHParts(h,m){var lt=fmtHMlocal(h,m);var mm=/(\d+):(\d+)\s*(AM|PM)/i.exec(lt);return mm?{h12:+mm[1],ap:mm[3].toUpperCase()}:{h12:(h%12===0?12:h%12),ap:(h>=12?'PM':'AM')};}
+function endHM(h,m,dur){var t=h*60+m+(dur||0);return{h:Math.floor(t/60)%24,m:t%60};}
+function fmtRangeLocal(h,m,dur){var s=fmtHMlocal(h,m);if(!dur)return s;var e=endHM(h,m,dur);return s+'–'+fmtHMlocal(e.h,e.m);}
+function fmtRangePT(h,m,dur){var s=fmtHM(h,m);if(!dur)return s;var e=endHM(h,m,dur);return s+'–'+fmtHM(e.h,e.m);}
 function trainingsFor(wd){return TRAININGS.filter(function(s){return s.d.indexOf(wd)>=0;}).sort(function(a,b){return (a.h*60+a.m)-(b.h*60+b.m);});}
 function trainingBaseshopOK(){var b=((PROFILE&&PROFILE.baseshop)||'').toUpperCase();return b===''||b.indexOf('SUMMIT')>=0||b.indexOf('SMMT')>=0||b.indexOf('GRIND')>=0;}
 var NAVI=[['home','Home','index.html','M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z'],
@@ -1011,7 +1018,7 @@ function trainerCard(c,tag){var av=trainerAvailToday(c);var no=nextOpening(c);va
 }
 function roleLabel(r){return r==='EMD'?'Executive Marketing Director':(r==='MD'?'Marketing Director · Field Trainer':(r==='CFT'?'Certified Field Trainer':(r||'Trainer')));}
 function shortDate(dstr){if(dstr===todayStr())return 'Today';return new Date(dstr+'T12:00:00Z').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',timeZone:'UTC'});}
-function trainingRow(s){var lp=localHParts(s.h,s.m);return '<div class="trow"><div class="ti"><div class="h">'+lp.h12+'</div><div class="ap">'+lp.ap+'</div></div><div><div class="tt">'+esc(s.t)+'</div><div class="ts">'+fmtHMlocal(s.h,s.m)+tzTag()+' · '+esc(s.host)+' · '+esc(s.zt)+'</div></div><a class="zj" href="'+s.z+'" target="_blank" rel="noopener">Join Zoom</a></div>';}
+function trainingRow(s){var lp=localHParts(s.h,s.m);return '<div class="trow"><div class="ti"><div class="h">'+lp.h12+'</div><div class="ap">'+lp.ap+'</div></div><div style="min-width:0"><a class="tt" href="'+s.z+'" target="_blank" rel="noopener">'+esc(s.t)+' ↗</a>'+(s.req?' <span class="reqp">CFTs required</span>':'')+'<div class="ts">'+fmtRangeLocal(s.h,s.m,s.dur)+tzTag()+' · '+esc(s.host)+' · '+esc(s.zt)+'</div></div><a class="zj" href="'+s.z+'" target="_blank" rel="noopener">Join Zoom</a></div>';}
 /* ---- This week's trainings: weekday strip, opens on today, one-tap share ---- */
 var WD_FULL=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 var WD_SHORT=['SUN','MON','TUE','WED','THU','FRI','SAT'];
@@ -1019,7 +1026,7 @@ var WEEK_ORDER=[1,2,3,4,5,6,0];
 var TRAINDAY=null;
 function todayWd(){return addDays(0).getUTCDay();}
 function trainRowShare(wd,i){var s=trainingsFor(wd)[i];if(!s)return '';
-  var lp=localHParts(s.h,s.m);return '<div class="trow tin" style="animation-delay:'+(i*55)+'ms"><div class="ti"><div class="h">'+lp.h12+'</div><div class="ap">'+lp.ap+'</div></div><div style="min-width:0"><div class="tt">'+esc(s.t)+'</div><div class="ts">'+fmtHMlocal(s.h,s.m)+tzTag()+' · '+esc(s.host)+' · '+esc(s.zt)+'</div></div><div style="margin-left:auto;display:flex;gap:7px"><a class="zj" style="margin:0" href="'+s.z+'" target="_blank" rel="noopener">Join</a><button class="tshare" onclick="shareTrainingItem('+wd+','+i+')">Share</button></div></div>';}
+  var lp=localHParts(s.h,s.m);return '<div class="trow tin" style="animation-delay:'+(i*55)+'ms"><div class="ti"><div class="h">'+lp.h12+'</div><div class="ap">'+lp.ap+'</div></div><div style="min-width:0"><a class="tt" href="'+s.z+'" target="_blank" rel="noopener">'+esc(s.t)+' ↗</a>'+(s.req?' <span class="reqp">CFTs required</span>':'')+'<div class="ts">'+fmtRangeLocal(s.h,s.m,s.dur)+tzTag()+' · '+esc(s.host)+' · '+esc(s.zt)+'</div></div><div style="margin-left:auto;display:flex;gap:7px"><a class="zj" style="margin:0" href="'+s.z+'" target="_blank" rel="noopener">Join</a><button class="tshare" onclick="shareTrainingItem('+wd+','+i+')">Share</button></div></div>';}
 function wkInner(){
   var tw=todayWd();
   var strip=WD_SHORT.map(function(nm,wd){var cnt=trainingsFor(wd).length;
@@ -1034,10 +1041,10 @@ function selectTrainDay(wd){TRAINDAY=wd;var m=$('wkMod');if(m)m.innerHTML=wkInne
 function renderWeekTrainings(){TRAINDAY=todayWd();
   return '<div class="sec"><div class="sech"><h2>This week’s trainings</h2><button class="wkshare" onclick="shareWeek()">📤 Share schedule</button></div><div style="font-size:12.5px;color:var(--ink3);margin:0 2px 10px">Opens on today. Tap a day to see its lineup — <b>Share</b> any training to text a new broker the time + Zoom link in one tap.</div><div id="wkMod" class="wk">'+wkInner()+'</div></div>';}
 function shareTrainingItem(wd,i){var s=trainingsFor(wd)[i];if(!s)return;
-  var msg='📚 '+s.t+'\n🗓️ Every '+WD_FULL[wd]+' · '+fmtHM(s.h,s.m)+' PT\n👤 '+s.host+'\n🔗 Join Zoom: '+s.z+'\n('+s.zt+')\n\nHop on this one — see you there! 🙌';
+  var msg='📚 '+s.t+(s.req?' (CFTs required)':'')+'\n🗓️ Every '+WD_FULL[wd]+' · '+fmtRangePT(s.h,s.m,s.dur)+' PT\n👤 '+s.host+'\n🔗 Join Zoom: '+s.z+'\n('+s.zt+')\n\nHop on this one — see you there! 🙌';
   doShare(s.t,msg);}
 function shareWeek(){var out='📅 This Week’s Trainings — The Standard\n';
-  WEEK_ORDER.forEach(function(wd){var ts=trainingsFor(wd);if(!ts.length)return;out+='\n'+WD_FULL[wd].toUpperCase()+'\n';ts.forEach(function(s){out+='• '+fmtHM(s.h,s.m)+' PT — '+s.t+' ('+s.host+')\n   '+s.z+'\n';});});
+  WEEK_ORDER.forEach(function(wd){var ts=trainingsFor(wd);if(!ts.length)return;out+='\n'+WD_FULL[wd].toUpperCase()+'\n';ts.forEach(function(s){out+='• '+fmtRangePT(s.h,s.m,s.dur)+' PT — '+s.t+(s.req?' (CFTs required)':'')+' ('+s.host+')\n   '+s.z+'\n';});});
   out+='\nNew here? Tap any link at training time to jump on Zoom. 🎯';
   doShare('This Week’s Trainings',out);}
 function doShare(title,text){
