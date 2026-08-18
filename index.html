@@ -355,13 +355,14 @@ html, body{ overflow-x: hidden; }
     <!-- JOIN / SIGN UP -->
     <div id="signupPane" class="hide">
       <h1>Join the team</h1>
-      <p>Your business partner will give you their code. We'll set up your account and code.</p>
+      <p>Enter the GFI code you were assigned, plus your direct recruiter's code. We'll set your account up under them.</p>
       <div class="grow">
         <div class="gfield"><label>First name</label><input id="sFirst" type="text" autocomplete="given-name" placeholder="John"></div>
         <div class="gfield"><label>Last name</label><input id="sLast" type="text" autocomplete="family-name" placeholder="Doe"></div>
       </div>
       <div class="gfield"><label>Email</label><input id="sEmail" type="email" autocomplete="email" placeholder="you@email.com"></div>
       <div class="gfield"><label>Mobile phone</label><input id="sPhone" type="tel" autocomplete="tel" placeholder="(555) 555-5555"></div>
+      <div class="gfield"><label>Your GFI code <span style="font-weight:600;color:var(--muted)">— the one GFI assigned you</span></label><input id="sCode" type="text" autocomplete="off" placeholder="e.g. A1234" style="text-transform:uppercase;"></div>
       <div class="gfield"><label>Contract level</label>
         <select id="sLevel">
           <option value="Associate" selected>Associate</option>
@@ -370,7 +371,7 @@ html, body{ overflow-x: hidden; }
           <option value="EMD">Executive Marketing Director (EMD)</option>
         </select>
       </div>
-      <div class="gfield"><label>Direct business partner code</label><input id="sUpline" type="text" autocomplete="off" placeholder="e.g. C1991" style="text-transform:uppercase;"></div>
+      <div class="gfield"><label>Your direct recruiter's GFI code</label><input id="sUpline" type="text" autocomplete="off" placeholder="e.g. C1991" style="text-transform:uppercase;"></div>
       <button class="gbtn" id="sBtn">Create my account →</button>
       <div class="gmsg" id="sMsg"></div>
       <div class="ghint">This places you under your partner and builds your calendar automatically.</div>
@@ -856,10 +857,13 @@ function doSignup(){
   var first=$('sFirst').value.trim(),last=$('sLast').value.trim();
   var email=$('sEmail').value.trim(),phone=$('sPhone').value.trim();
   var level=$('sLevel').value,upline=($('sUpline').value||'').trim().toUpperCase();
+  var code=($('sCode').value||'').trim().toUpperCase();
   if(!first||!last){msg.textContent='Enter your first and last name.';return;}
-  if(!upline){msg.textContent='Enter your business partner code.';return;}
+  if(!code){msg.textContent='Enter the GFI code you were assigned.';return;}
+  if(!upline){msg.textContent="Enter your direct recruiter's GFI code.";return;}
+  if(code===upline){msg.textContent="Your GFI code and your recruiter's code can't be the same.";return;}
   var btn=$('sBtn');btn.disabled=true;btn.textContent='Creating…';
-  fetch(PA,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'signup',first_name:first,last_name:last,email:email,phone:phone,contract_level:level,upline_code:upline})})
+  fetch(PA,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'signup',code:code,first_name:first,last_name:last,email:email,phone:phone,contract_level:level,upline_code:upline})})
     .then(function(r){return r.json();}).then(function(r){
       btn.disabled=false;btn.textContent='Create my account →';
       if(r&&r.ok){
@@ -873,7 +877,7 @@ function doSignup(){
 $('gBtn').addEventListener('click',doLogin);
 ['gFirst','gLast','gCode'].forEach(function(id){$(id).addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});});
 $('sBtn').addEventListener('click',doSignup);
-['sFirst','sLast','sEmail','sPhone','sUpline'].forEach(function(id){$(id).addEventListener('keydown',function(e){if(e.key==='Enter')doSignup();});});
+['sFirst','sLast','sEmail','sPhone','sCode','sUpline'].forEach(function(id){$(id).addEventListener('keydown',function(e){if(e.key==='Enter')doSignup();});});
 (function boot(){
   var c=null,n='';try{c=localStorage.getItem('tsfg_code');n=localStorage.getItem('tsfg_name')||'';}catch(e){}
   if(c){ // validate silently, but reveal fast
