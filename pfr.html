@@ -134,6 +134,10 @@ input[type=range]{width:100%;accent-color:var(--accent);height:6px;}
 .face.on .t{color:var(--accent);}
 /* grouped money inputs */
 .mgroup{background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow-sm);overflow:hidden;margin-bottom:16px;}
+.moneyhdr{font-weight:800;font-size:12px;text-transform:uppercase;letter-spacing:.07em;margin:24px 0 11px;color:var(--ink3);display:flex;align-items:center;gap:8px;}
+.moneyhdr:first-of-type{margin-top:8px;}
+.moneyhdr.in{color:var(--green);}
+.moneyhdr.out{color:var(--gold);}
 .mgroup .gh2{display:flex;align-items:center;justify-content:space-between;padding:13px 18px;border-bottom:1px solid var(--line);font-weight:800;font-size:14px;}
 .mgroup .gh2 .gt{font-size:15px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--accent);}
 .mrow{display:flex;align-items:center;justify-content:space-between;padding:9px 18px;border-bottom:1px solid var(--line);}
@@ -709,11 +713,13 @@ RENDER.snapshot=function(){
    '<h1 class="qh">Where things stand today</h1>'+
    '<p class="qsub">Fill in what you can — estimates are perfectly fine. Your numbers update live as you go. Tap a section to expand it.</p>'+
    '<div class="snapbar">'+snapbarHTML(c)+'</div>'+
+   '<div class="moneyhdr in">💰 Money In</div>'+
    grp('💵','Monthly Income','What comes in each month','income',{Job:'Your job',Spouse:'Spouse / partner','House Hack':'House hack',Passive:'Passive income',Portfolio:'Portfolio income'},true)+
-   grp('🏠','Monthly Expenses','What goes out each month','expenses',{'Mortgage/Rent':'Mortgage / rent payment (monthly)','Property Tax':'Property tax',HOA:'HOA',Utilities:'Utilities',Phone:'Phone',Internet:'Internet',Groceries:'Groceries',Subscriptions:'Subscriptions',Insurances:'Insurances',Gas:'Gas',Childcare:'Childcare',Pets:'Pets','Petty Cash':'Petty cash / misc','Debt Payments':'Debt payments',Unforeseen:'Unforeseen'},false)+
-   grp('💳','Debt Owed','Every balance — the total updates live','debt',{'Credit Cards':'Credit cards','Auto Loan':'Auto loans','Student Loan':'Student loans','Personal Loan':'Personal loans',Medical:'Medical',Mortgage:'Mortgage balance (total owed)',HELOC:'HELOC','Payday Loans':'Payday loans','Equity Loans':'Equity loans','Pension Loans':'Pension loans'},false)+
    grp('📈','Assets','What you own','assets',{House:'Home value',Car:'Vehicles','Savings Acct.':'Savings',Properties:'Other properties',Businesses:'Businesses',Checking:'Checking'},false)+
-   grp('🪙','Investments','Retirement &amp; brokerage','invest',{TSP:'TSP','401k':'401(k)','Trad. IRA':'Traditional IRA','Roth IRA':'Roth IRA',CDs:'CDs',Bonds:'Bonds',Crypto:'Crypto',Stocks:'Stocks',IUL:'IUL',FIA:'FIA','403B':'403(b)','457':'457'},false);
+   grp('🪙','Investments','Retirement &amp; brokerage','invest',{TSP:'TSP','401k':'401(k)','Trad. IRA':'Traditional IRA','Roth IRA':'Roth IRA',CDs:'CDs',Bonds:'Bonds',Crypto:'Crypto',Stocks:'Stocks',IUL:'IUL',FIA:'FIA','403B':'403(b)','457':'457'},false)+
+   '<div class="moneyhdr out">💸 Money Out</div>'+
+   grp('💳','Debt Owed','Every balance — the total updates live','debt',{'Credit Cards':'Credit cards','Auto Loan':'Auto loans','Student Loan':'Student loans','Personal Loan':'Personal loans',Medical:'Medical',Mortgage:'Mortgage balance (total owed)',HELOC:'HELOC','Payday Loans':'Payday loans','Equity Loans':'Equity loans','Pension Loans':'Pension loans'},false)+
+   grp('🏠','Monthly Expenses','What goes out each month','expenses',{'Mortgage/Rent':'Mortgage / rent payment (monthly)','Property Tax':'Property tax',HOA:'HOA',Utilities:'Utilities',Phone:'Phone',Internet:'Internet',Groceries:'Groceries',Subscriptions:'Subscriptions',Insurances:'Insurances',Gas:'Gas',Childcare:'Childcare',Pets:'Pets','Petty Cash':'Petty cash / misc','Debt Payments':'Debt payments',Unforeseen:'Unforeseen'},false);
 };
 function snapTot(){
   ['income','expenses','assets','invest','debt'].forEach(function(k){var el=$('tot_'+k);if(el)el.textContent=money(sum(d()[k]));});
