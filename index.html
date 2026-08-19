@@ -513,9 +513,10 @@ var API="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/tracker-api";
 var NBAPI="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/newbiz-api";
 var PA="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/profile-api";
 var BASESHOP_LEADER="Elijah Cox";
-var CODE=null, NAME="", CTX="me", ME=null, SHOP=null, RAW=null, GOALS={personal:{},shop:{},company:{}};
+var CODE=null, NAME="", CTX="me", ME=null, SHOP=null, RAW=null, SNAP=null, GOALS={personal:{},shop:{},company:{}};
 function nbapi(b){return fetch(NBAPI,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();}).catch(function(){return{ok:false};});}
 function monthStart(){return ptToday().slice(0,7)+'-01';}
+function monthKey(){return ptToday().slice(0,7);}
 var $=function(id){return document.getElementById(id);};
 function api(body){return fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(function(r){return r.json();}).catch(function(){return{ok:false};});}
 function ptToday(){return new Intl.DateTimeFormat('en-CA',{timeZone:'America/Los_Angeles'}).format(new Date());}
@@ -572,7 +573,7 @@ function editGoal(key,label,isMoney){
   var v=prompt('Set the '+noun+' goal for '+label+':',cur!=null?cur:'');
   if(v===null)return; v=(v+'').replace(/[^0-9.]/g,'');
   var goals={}; goals[key]=(v===''?0:Number(v));
-  nbapi({action:'goals_set',scope:scope,code:CODE,by:NAME,goals:goals}).then(function(r){
+  nbapi({action:'goals_set',scope:scope,code:CODE,by:NAME,month:monthKey(),goals:goals}).then(function(r){
     if(r&&r.ok){ if(scope==='me'){GOALS.personal[key]=goals[key];}else if(scope==='company'){GOALS.company[key]=goals[key];}else{GOALS.shop[key]=goals[key];} renderSnapshot(); }
     else { alert((r&&r.error)||'Could not save goal'); }
   });
@@ -592,15 +593,21 @@ function goalCard(o){
   d.innerHTML=body;return d;
 }
 function money2(n){n=Number(n)||0;if(n>=1e6)return '$'+(n/1e6).toFixed(2)+'M';if(n>=1e3)return '$'+(Math.round(n/100)/10)+'K';return '$'+Math.round(n);}
+function snapScope(){return CTX==='me'?'personal':(CTX==='team'?'team':(CTX==='shop'?'shop':'company'));}
 function renderSnapshot(){
   var g=$('snapGrid');if(!g)return;g.innerHTML='';
-  var me=(CTX==='me'); $('snapCtxLbl').textContent=me?'Your numbers':(CTX==='shop'?'Your baseshop':'Whole company');
-  var _pc=$('perfCtx');if(_pc)_pc.textContent=me?'You':(CTX==='shop'?'Baseshop':'Company');
-  var src=me?ME:SHOP; if(!src){for(var i=0;i<6;i++){var d=document.createElement('div');d.className='card';d.innerHTML='<div class="stat"><div class="top"><div class="ic skl" style="width:40px;height:40px;"></div></div><div class="num skl">00</div><div class="lbl skl">loading</div></div>';g.appendChild(d);}return;}
+  var me=(CTX==='me');
+  var who=me?'Your numbers':(CTX==='team'?'Your team':(CTX==='shop'?'Your baseshop':'Whole company'));
+  var mo=(SNAP&&SNAP.month)?(' · '+SNAP.month):'';
+  $('snapCtxLbl').textContent=who+mo;
+  var _pc=$('perfCtx');if(_pc)_pc.textContent=me?'You':(CTX==='team'?'Team':(CTX==='shop'?'Baseshop':'Company'));
+  var src=SNAP?SNAP[snapScope()]:null;
+  if(!src){for(var i=0;i<4;i++){var d=document.createElement('div');d.className='card';d.innerHTML='<div class="stat"><div class="top"><div class="ic skl" style="width:40px;height:40px;"></div></div><div class="num skl">00</div><div class="lbl skl">loading</div></div>';g.appendChild(d);}return;}
+  var pLbl=me?'Your New Partners':(CTX==='team'?'Team New Partners':(CTX==='shop'?'Baseshop New Partners':'Company New Partners'));
   var cards=[
-    {ic:I.team,tone:'',num:src.partners,goalKey:'partners',goalLabel:'Business Partners',lbl:me?'Your Partners':(CTX==='shop'?'Team Partners':'Company Partners')},
+    {ic:I.team,tone:'',num:src.partners,goalKey:'partners',goalLabel:'Business Partners',lbl:pLbl+' · this month'},
     {ic:I.dollar,tone:'gold',num:src.premium,money:true,goalKey:'premium',goalLabel:'Premium Submitted',lbl:'Premium Submitted · this month'},
-    {ic:I.dumbbell,tone:'',num:src.fta,goalKey:'fta',goalLabel:'Field Trainings',lbl:'Field Trainings · this month'},
+    {ic:I.dumbbell,tone:'',num:src.trainings,goalKey:'fta',goalLabel:'Field Trainings',lbl:'Field Trainings · this month'},
     {ic:I.heart,tone:'g',num:src.families,goalKey:'families',goalLabel:'Families Helped',lbl:'Families Helped · this month'}
   ];
   cards.forEach(function(c){g.appendChild(c.goalKey!==undefined||c.link?goalCard(c):statCard(c));});
@@ -686,9 +693,11 @@ function loadData(){
     fetch(API+'?action=pulse').then(function(r){return r.json();}).catch(function(){return{};}),
     nbapi({action:'newbiz_summary',code:CODE,since:since}),
     nbapi({action:'newbiz_summary',leader:BASESHOP_LEADER,since:since}),
-    nbapi({action:'goals_get',code:CODE})
+    nbapi({action:'goals_get',code:CODE,month:monthKey()}),
+    fetch(LB,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'snapshot',code:CODE})}).then(function(r){return r.json();}).catch(function(){return{ok:false};})
   ]).then(function(res){
-    var meRes=res[0],team=res[1],pulse=res[2],nbMe=res[3],nbShop=res[4],goals=res[5];
+    var meRes=res[0],team=res[1],pulse=res[2],nbMe=res[3],nbShop=res[4],goals=res[5],snap=res[6];
+    if(snap&&snap.ok)SNAP=snap;
     if(goals&&goals.ok){GOALS.personal=goals.personal||{};GOALS.shop=goals.shop||{};GOALS.company=goals.company||{};}
     if(meRes&&meRes.ok&&meRes.agent){RAW=meRes.agent;ME=computeMeFromRaw(meRes.agent);}
     else{ME={families:0,pct:0,agents:1,leads:0,ft:0,ft30:0,tasks:0,onStreak:0,added7:0,added14:0,added30:0,ftSeries:[0,0,0,0]};}
