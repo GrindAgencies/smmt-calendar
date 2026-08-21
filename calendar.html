@@ -1447,13 +1447,15 @@ function renderMe(){var t=calToday();
   var naBtn=canNewAppt()?'<button onclick="openNewAppt()" style="border:none;background:var(--accent);color:#fff;font-weight:700;font-size:12.5px;padding:8px 13px;border-radius:10px;cursor:pointer;white-space:nowrap">+ New appointment</button>':'';
   var isUp=function(b){return (b.status==='booked'||b.status==='confirmed'||b.status==='pending')&&dispDate(b)>=t;};
   var up=MYB.filter(isUp);
-  var myTrain=MYT.filter(function(b){return isUp(b)&&!MYAPPTS.some(function(x){return String(x.id)===String(b.id);});});
+  var pendReq=MYT.filter(function(b){return b.status==='pending';}).sort(function(a,b){return String(dispDate(a)).localeCompare(String(dispDate(b)));});
+  var myTrain=MYT.filter(function(b){return (b.status==='booked'||b.status==='confirmed')&&dispDate(b)>=t&&!MYAPPTS.some(function(x){return String(x.id)===String(b.id);});});
   var myAppt=MYAPPTS.filter(function(b){return dispDate(b)>=t&&(b.status||'')!=='canceled';});
-  var pendCount=myTrain.filter(function(b){return b.status==='pending';}).length;
+  var pendCount=pendReq.length;
   var h='<div style="font-size:11.5px;color:var(--ink3);margin:0 2px 10px">'+tzNote()+'</div><div id="myCalendly"></div>';
+  if(pendReq.length){h+='<div class="sec"><div class="sech"><h2>Requests to approve</h2><span style="font-size:12px;color:var(--gold);font-weight:800">'+pendReq.length+' pending</span></div><div style="font-size:12.5px;color:var(--ink3);margin:0 2px 10px">Approve or decline each request. Past-dated ones are shown too, so nothing stays stuck as pending.</div>'+pendReq.map(trainerAptRow).join('')+'</div>';}
   h+='<div class="sec"><div class="sech"><h2>Upcoming appointments</h2><div style="display:flex;gap:8px;align-items:center">'+naBtn+'<a onclick="setTab(\'book\')">Book another →</a></div></div>'+(up.length?up.map(aptRow).join(''):'<div class="empty">Nothing on the books — tap Book a Trainer to schedule.</div>')+'</div>';
   if(myAppt.length){h+='<div class="sec"><div class="sech"><h2>Your appointments</h2><span style="font-size:12px;color:var(--ink3)">'+myAppt.length+' upcoming</span></div>'+myAppt.map(myApptRow).join('')+'</div>';}
-  if(myTrain.length){h+='<div class="sec"><div class="sech"><h2>Sessions you\'re training</h2><span style="font-size:12px;color:var(--ink3)">'+myTrain.length+' upcoming'+(pendCount?' · '+pendCount+' to approve':'')+'</span></div><div style="font-size:12.5px;color:var(--ink3);margin:0 2px 10px">'+(pendCount?'Approve or decline pending requests below.':'Your upcoming sessions.')+'</div>'+myTrain.map(trainerAptRow).join('')+'</div>';}
+  if(myTrain.length){h+='<div class="sec"><div class="sech"><h2>Sessions you\'re training</h2><span style="font-size:12px;color:var(--ink3)">'+myTrain.length+' upcoming</span></div><div style="font-size:12.5px;color:var(--ink3);margin:0 2px 10px">Your upcoming confirmed sessions.</div>'+myTrain.map(trainerAptRow).join('')+'</div>';}
   var toReview=MYT.filter(function(b){return (b.status==='booked'||b.status==='confirmed')&&isPastBk(b);});
   if(toReview.length){h+='<div class="sec"><div class="sech"><h2>Sessions to review</h2><span style="font-size:12px;color:var(--gold);font-weight:700">'+toReview.length+'</span></div><div style="font-size:12.5px;color:var(--ink3);margin:0 2px 10px">These have passed — mark each Completed or No-show. No-shows trigger a follow-up.</div>'+toReview.map(trainerAptRow).join('')+'</div>';}
   if(!trainingBaseshopOK()){h+='<div class="sec"><div class="sech"><h2>This week’s trainings</h2></div><div class="empty" style="padding:18px 14px">Your baseshop’s trainings will appear here once your EMD adds them to the scheduler.</div></div>';}
