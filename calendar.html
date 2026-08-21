@@ -386,7 +386,7 @@ function signOut(){try{localStorage.removeItem('tsfg_code');localStorage.removeI
   document.addEventListener('keydown',function(e){if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();openSpot();}if(e.key==='Escape'){closeSpot();$('bkOv').classList.remove('on');}});
 })();
 function loadMy(cb){fetch(AT+'?action=atlas_my&code='+encodeURIComponent(CODE)).then(function(r){return r.json();}).then(function(r){MYB=(r&&r.bookings)||[];cb&&cb();}).catch(function(){cb&&cb();});}
-function loadMyTrainer(cb){fetch(AT+'?action=atlas_trainer&trainer_code='+encodeURIComponent(CODE)).then(function(r){return r.json();}).then(function(r){MYT=(r&&r.bookings)||[];cb&&cb();}).catch(function(){MYT=[];cb&&cb();});}
+function loadMyTrainer(cb){fetch('https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/trainer-bookings?trainer_code='+encodeURIComponent(CODE)).then(function(r){return r.json();}).then(function(r){MYT=(r&&r.bookings)||[];cb&&cb();}).catch(function(){MYT=[];cb&&cb();});}
 function todayStr(){return new Intl.DateTimeFormat('en-CA',{timeZone:'America/Los_Angeles'}).format(new Date());}
 function ymd(dt){return dt.toISOString().slice(0,10);}
 function addDays(n){var d=new Date(todayStr()+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d;}
@@ -1274,7 +1274,7 @@ function cancelBk(id){if(!confirm('Cancel this appointment?'))return;fetch(AT,{m
 function trainerAptRow(b){var col=avColor(b.agent_name||b.agent_code||'');
   var right;
   if(b.status==='pending'){
-    right='<div style="margin-left:auto;display:flex;gap:8px"><button class="book" style="width:auto;margin:0;padding:9px 16px;background:var(--green-soft);color:#1a9c52" onclick="doApprove(\''+b.id+'\',\'approve\')">Approve</button><button class="x can" onclick="doApprove(\''+b.id+'\',\'decline\')">Decline</button></div>';
+    right='<div style="margin-left:auto;display:flex;gap:8px"><button title="Approve" aria-label="Approve" style="border:none;cursor:pointer;width:40px;height:40px;border-radius:10px;font-size:18px;font-weight:900;background:var(--green-soft);color:#1a9c52" onclick="doApprove(\''+b.id+'\',\'approve\')">✓</button><button title="Decline" aria-label="Decline" style="border:1px solid var(--line2);cursor:pointer;width:40px;height:40px;border-radius:10px;font-size:15px;font-weight:900;background:var(--panel);color:var(--red)" onclick="doApprove(\''+b.id+'\',\'decline\')">✕</button></div>';
   } else if((b.status==='booked'||b.status==='confirmed')&&isPastBk(b)){
     right='<div style="margin-left:auto;display:flex;gap:8px"><button class="book" style="width:auto;margin:0;padding:9px 14px;background:var(--green-soft);color:#1a9c52" onclick="doMark(\''+b.id+'\',\'completed\')">Completed</button><button class="x can" onclick="doMark(\''+b.id+'\',\'no_show\')">No-show</button></div>';
   } else if((b.status==='booked'||b.status==='confirmed')&&(myRole()==='CFT'||isEmd())){
