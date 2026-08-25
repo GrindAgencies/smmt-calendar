@@ -236,5 +236,6 @@ window.addEventListener('beforeunload',function(e){if(DIRTY){e.preventDefault();
 // populate emblem datalist once loaded
 setInterval(function(){var dl=document.getElementById('emblist');if(dl&&EMBLEMS.length&&!dl.childNodes.length){dl.innerHTML=EMBLEMS.map(function(e){return '<option value="'+(e.id||'')+'">'+((e.name||e.id)||'')+'</option>';}).join('');}},700);
 </script>
+<script src="i18n.js"></script>
 </body>
 </html>

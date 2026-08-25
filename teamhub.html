@@ -558,5 +558,6 @@ document.addEventListener('dragover',function(e){var m=zf(e.target);if(!m)return
 document.addEventListener('dragleave',function(e){if(cur&&!cur.contains(e.relatedTarget)){hi(cur,false);cur=null;}},false);
 document.addEventListener('drop',function(e){var m=zf(e.target);hi(cur,false);cur=null;if(!m)return;e.preventDefault();var fs=e.dataTransfer&&e.dataTransfer.files;if(!fs||!fs.length)return;try{var dt=new DataTransfer();for(var k=0;k<fs.length;k++)dt.items.add(fs[k]);m.i.files=dt.files;}catch(_){}m.i.dispatchEvent(new Event('change',{bubbles:true}));},false);})();
 </script>
+<script src="i18n.js"></script>
 </body>
 </html>

@@ -336,6 +336,7 @@ html, body{ overflow-x: hidden; }
 <div id="gate">
   <div class="gate-orb o1"></div><div class="gate-orb o2"></div>
   <div class="gate-card">
+    <div data-no-i18n style="display:flex;justify-content:center;margin:0 0 16px"><div style="display:flex;gap:2px;border:1.5px solid var(--line2,#e5e5ea);border-radius:999px;padding:3px;background:var(--panel,#fff)"><button type="button" data-lang-btn="en" onclick="tsfgSetLang('en')" style="border:none;cursor:pointer;border-radius:999px;padding:7px 18px;font-weight:800;font-size:13px;font-family:inherit">English</button><button type="button" data-lang-btn="es" onclick="tsfgSetLang('es')" style="border:none;cursor:pointer;border-radius:999px;padding:7px 18px;font-weight:800;font-size:13px;font-family:inherit">Español</button></div></div>
     <img class="gate-logo" src="logo.png" alt="GRIND Agencies" onerror="this.style.display='none'">
     <!-- SIGN IN -->
     <div id="signinPane">
@@ -411,6 +412,7 @@ html, body{ overflow-x: hidden; }
       <div class="tb-search">${ICON.search}<input type="text" placeholder="Search agents, leads, resources…" onkeydown="if(event.key==='Enter')location.href='marketing.html'"></div>
       <div class="tb-spacer"></div>
       <div class="ctx"><button id="ctxMe" class="on" onclick="setCtx('me')">Personal</button><button id="ctxTeam" onclick="setCtx('team')">Team</button><button id="ctxShop" onclick="setCtx('shop')">Baseshop</button><button id="ctxOrg" onclick="setCtx('org')">Hierarchy</button></div>
+      <div data-no-i18n style="display:flex;gap:2px;border:1px solid var(--line2,#e5e5ea);border-radius:999px;padding:2px;margin-right:2px"><button type="button" data-lang-btn="en" onclick="tsfgSetLang('en')" style="border:none;cursor:pointer;border-radius:999px;padding:5px 10px;font-weight:800;font-size:11.5px;font-family:inherit">EN</button><button type="button" data-lang-btn="es" onclick="tsfgSetLang('es')" style="border:none;cursor:pointer;border-radius:999px;padding:5px 10px;font-weight:800;font-size:11.5px;font-family:inherit">ES</button></div>
       <button class="tb-ic" onclick="toggleTheme()" aria-label="Theme" id="themeBtn">${ICON.moon}</button>
       <button class="tb-ic" aria-label="Notifications" onclick="location.href='dashboard.html'">${ICON.bell}<span class="dot"></span></button>
     </div>
@@ -905,5 +907,6 @@ $('sBtn').addEventListener('click',doSignup);
 })();
 </script>
 <script defer src="notif.js"></script>
+<script src="i18n.js"></script>
 </body>
 </html>

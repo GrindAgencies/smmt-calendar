@@ -1371,5 +1371,6 @@ $('ov').addEventListener('click',function(e){if(e.target===this)closeDrawer();})
   if(qc&&qn){api({action:'ops_login',code:qc,name:qn}).then(function(r){if(r&&r.ok){OPS={code:r.ops.code,name:r.ops.name,title:r.ops.title,role:r.role,can_edit:r.can_edit,baseshops:r.ops.baseshops||[]};try{sessionStorage.setItem('tsfg_ops',JSON.stringify(OPS));}catch(e){}showApp();}}).catch(function(){});}
 })();
 </script>
+<script src="i18n.js"></script>
 </body>
 </html>
