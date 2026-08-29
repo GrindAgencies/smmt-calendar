@@ -165,10 +165,36 @@
     paintToggle();
   }
 
+  // Never show two language controls on one screen. Pages that carry their own
+  // visible EN/ES toggle (the welcome card, the privacy page) suppress the
+  // floating pill; once that toggle is gone — e.g. the welcome card after
+  // sign-in — the pill comes back.
+  function hasVisibleInPageToggle() {
+    var els = document.querySelectorAll("[data-lang-btn]");
+    for (var i = 0; i < els.length; i++) {
+      var el = els[i];
+      if (el.offsetParent !== null && el.getClientRects().length) return true;
+    }
+    return false;
+  }
+  function syncToggleVisibility() {
+    var pill = document.getElementById("i18nToggle");
+    if (!pill) return;
+    pill.style.display = hasVisibleInPageToggle() ? "none" : "flex";
+  }
+
   function boot() {
     document.documentElement.lang = LANG;
     injectToggle();
     paintToggle();
+    syncToggleVisibility();
+    // the welcome card hides on sign-in, so re-check as the page settles
+    [300, 900, 2000].forEach(function (ms) { setTimeout(syncToggleVisibility, ms); });
+    try {
+      new MutationObserver(syncToggleVisibility)
+        .observe(document.body, { attributes: true, childList: true, subtree: true,
+                                  attributeFilter: ["class", "style", "hidden"] });
+    } catch (e) {}
     if (LANG === "es") {
       ensureDict().then(function () {
         sweep(document.body); startObserver();
