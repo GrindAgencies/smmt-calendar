@@ -285,6 +285,7 @@
   var PRIMARY = [
     ['Home',         'index.html',       I.home],
     ['Team Hub',     'teamhub.html',     I.chat],
+    ['Scheduler',    'calendar.html',    I.calendar],
     ['New Business', 'newbusiness.html', I.dollar],
     ['My Tracker',   'checklist.html',   I.check],
     ['Resources',    'resources.html',   I.book]
@@ -292,7 +293,6 @@
 
   /* Still live, still reachable — just not competing for attention. */
   var SECONDARY = [
-    ['Scheduler',      'calendar.html',  I.calendar],
     ['PFR Builder',    'pfr.html',       I.pfr],
     ['Marketing Plan', 'marketing.html', I.users],
     ['My Team',        'team.html',      I.team],
