@@ -1,11 +1,16 @@
-# Capacitor native project — dependencies + generated native platforms.
-# These are regenerated on your Mac (see README.md). Keeping them out of the
-# repo keeps the GitHub Desktop push workflow clean.
+# Capacitor native project.
 node_modules/
-ios/
 android/
 .DS_Store
 *.log
 
-# If you DO want to version-control native customizations (signing config,
-# native tweaks), delete the ios/ and android/ lines above and commit them.
+# The iOS project IS version-controlled: it carries the App Store configuration
+# (bundle id, push entitlements, Info.plist fixes, AppDelegate APNs bridge).
+# Only per-user and generated build state is excluded.
+ios/App/build/
+ios/App/DerivedData/
+ios/App/Pods/
+ios/App/App.xcodeproj/xcuserdata/
+ios/App/App.xcodeproj/project.xcworkspace/xcuserdata/
+ios/App/App.xcworkspace/xcuserdata/
+ios/capacitor-cordova-ios-plugins/
