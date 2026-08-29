@@ -12,7 +12,7 @@
 	<true/>
 	<key>manageAppVersionAndBuildNumber</key>
 	<true/>
-	<!-- TEAM_ID goes here once the Apple membership is active:
-	<key>teamID</key><string>XXXXXXXXXX</string> -->
+	<key>teamID</key>
+	<string>A483Q9QFKT</string>
 </dict>
 </plist>
