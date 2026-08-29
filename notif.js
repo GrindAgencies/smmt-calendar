@@ -248,3 +248,168 @@
     }).catch(function(){});
   }catch(e){}
 })();
+
+/* ==========================================================================
+   UNIFIED NAVIGATION  (2026-08-29)
+   --------------------------------------------------------------------------
+   The app had grown three separate sidebar implementations with eleven links
+   each, and every agent could see the Ops Dashboard. This rewrites whichever
+   sidebar a page happens to use down to five primary destinations, hides the
+   rest behind "More", and shows Operations only to Operations.
+
+   It runs on every page because notif.js already does. Pages keep their own
+   CSS — we reuse each pattern's own link class so nothing needs restyling.
+   ========================================================================== */
+(function () {
+  var OPS_CODE = /^000[0-5]$/;           // 0000 master + 0001-0005 per-baseshop
+
+  function code(){ try { return (localStorage.getItem('tsfg_code')||'').trim(); } catch(e){ return ''; } }
+  function isOps(){ return OPS_CODE.test(code()); }
+
+  var I = {
+    home:     'M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z',
+    chat:     'M21 15a2 2 0 0 1-2 2H8l-4 4V5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z',
+    dollar:   'M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6',
+    check:    'M20 6 9 17l-5-5',
+    book:     'M4 5a2 2 0 0 1 2-2h13v18H6a2 2 0 0 1-2-2zM9 3v18',
+    chart:    'M3 3v18h18M7 13v4M12 8v9M17 11v6',
+    calendar: 'M3 4.5h18v16H3zM3 9h18M8 3v3M16 3v3',
+    pfr:      'M8 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-2M9 12h6M9 16h6M9 8h6',
+    users:    'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
+    team:     'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
+    tree:     'M9 3h6v5H9zM3 16h6v5H3zM15 16h6v5h-6zM12 8v4M6 16v-2h12v2',
+    more:     'M6 9l6 6 6-6'
+  };
+
+  /* The five that matter day to day. */
+  var PRIMARY = [
+    ['Home',         'index.html',       I.home],
+    ['Team Hub',     'teamhub.html',     I.chat],
+    ['New Business', 'newbusiness.html', I.dollar],
+    ['My Tracker',   'checklist.html',   I.check],
+    ['Resources',    'resources.html',   I.book]
+  ];
+
+  /* Still live, still reachable — just not competing for attention. */
+  var SECONDARY = [
+    ['Scheduler',      'calendar.html',  I.calendar],
+    ['PFR Builder',    'pfr.html',       I.pfr],
+    ['Marketing Plan', 'marketing.html', I.users],
+    ['My Team',        'team.html',      I.team],
+    ['Org Chart',      'org.html',       I.tree]
+  ];
+
+  function here(){
+    var p = (location.pathname.split('/').pop() || 'index.html').toLowerCase();
+    return p === '' ? 'index.html' : p;
+  }
+
+  function svg(d){
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+           'stroke-linecap="round" stroke-linejoin="round"><path d="' + d + '"/></svg>';
+  }
+
+  function link(item, cls, current){
+    var on = (item[1].toLowerCase() === current) ? ' on' : '';
+    return '<a class="' + cls + on + '" href="' + item[1] + '">' + svg(item[2]) +
+           '<span class="lbl">' + item[0] + '</span></a>';
+  }
+
+  function css(){
+    if (document.getElementById('tsfg-nav-css')) return;
+    var s = document.createElement('style'); s.id = 'tsfg-nav-css';
+    s.textContent =
+      '.tsfg-navsec{font-size:10.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;' +
+        'opacity:.55;padding:14px 12px 6px;}' +
+      '.tsfg-more{border:0;background:none;font:inherit;color:inherit;cursor:pointer;width:100%;' +
+        'display:flex;align-items:center;gap:10px;padding:14px 12px 6px;font-size:10.5px;font-weight:800;' +
+        'letter-spacing:.07em;text-transform:uppercase;opacity:.55;}' +
+      '.tsfg-more svg{width:14px;height:14px;transition:transform .18s ease;margin-left:auto;}' +
+      '.tsfg-more[aria-expanded="true"] svg{transform:rotate(180deg);}' +
+      '.tsfg-more:hover{opacity:.9;}' +
+      '.tsfg-more:focus-visible{outline:2px solid currentColor;outline-offset:2px;border-radius:6px;}' +
+      '.tsfg-morewrap[hidden]{display:none!important;}' +
+      /* roomier taps on phones — the old links were tight for thumbs */
+      '@media(max-width:860px){.sidebar a.side-link,.tsfg-side a.side-link,aside.side a.slink{' +
+        'padding-top:11px!important;padding-bottom:11px!important;}}';
+    document.head.appendChild(s);
+  }
+
+  var busy = false;
+
+  function apply(){
+    if (busy) return;
+    var nav = document.querySelector('.sidebar, .tsfg-side, aside.side#side');
+    if (!nav) return;
+
+    /* Reuse whatever link class this page already styles. */
+    var cls = nav.querySelector('a.slink') ? 'slink'
+            : (nav.querySelector('a.side-link') ? 'side-link' : 'side-link');
+    if (nav.matches('aside.side#side')) cls = 'slink';
+
+    var current = here();
+    var foot = nav.querySelector('.side-foot, .tsfg-foot, .sfoot');
+
+    busy = true;
+    try {
+      /* Drop the old link list and section headings; keep brand + footer. */
+      nav.querySelectorAll('a.side-link, a.slink, .side-sec, .tsfg-navsec, .tsfg-more, .tsfg-morewrap')
+         .forEach(function(el){ if (!foot || !foot.contains(el)) el.remove(); });
+
+      var html = '';
+      if (isOps()) {
+        html += '<div class="tsfg-navsec">Operations</div>' +
+                link(['Operations Dashboard','ops.html',I.chart], cls, current);
+        html += '<div class="tsfg-navsec">Agency</div>';
+      }
+      PRIMARY.forEach(function(it){ html += link(it, cls, current); });
+
+      var inMore = SECONDARY.some(function(it){ return it[1].toLowerCase() === current; });
+      html += '<button type="button" class="tsfg-more" aria-expanded="' + (inMore ? 'true' : 'false') +
+              '" aria-controls="tsfgMore"><span>More</span>' + svg(I.more) + '</button>' +
+              '<div class="tsfg-morewrap" id="tsfgMore"' + (inMore ? '' : ' hidden') + '>' +
+              SECONDARY.map(function(it){ return link(it, cls, current); }).join('') + '</div>';
+
+      var frag = document.createElement('div');
+      frag.innerHTML = html;
+      var nodes = Array.prototype.slice.call(frag.childNodes);
+      nodes.forEach(function(n){ foot ? nav.insertBefore(n, foot) : nav.appendChild(n); });
+
+      var btn = nav.querySelector('.tsfg-more');
+      if (btn) btn.addEventListener('click', function(){
+        var w = document.getElementById('tsfgMore');
+        var openNow = btn.getAttribute('aria-expanded') === 'true';
+        btn.setAttribute('aria-expanded', openNow ? 'false' : 'true');
+        if (w) w.hidden = openNow;
+      });
+    } finally { busy = false; }
+  }
+
+  /* Some pages build their sidebar in JS after load, so re-apply if it changes. */
+  function watch(){
+    var nav = document.querySelector('.sidebar, .tsfg-side, aside.side#side');
+    if (!nav || !window.MutationObserver) return;
+    new MutationObserver(function(){
+      if (busy) return;
+      if (!nav.querySelector('.tsfg-more')) apply();
+    }).observe(nav, { childList: true });
+  }
+
+  /* Operations signs in and lands on Operations — once, so they can still
+     browse back to the agent home without being bounced. */
+  function routeOps(){
+    if (!isOps()) return;
+    var p = here();
+    if (p !== 'index.html') return;
+    try {
+      if (sessionStorage.getItem('tsfg_ops_routed')) return;
+      sessionStorage.setItem('tsfg_ops_routed', '1');
+    } catch (e) { return; }
+    location.replace('ops.html');
+  }
+
+  function start(){ css(); apply(); watch(); routeOps(); }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
+  else start();
+})();

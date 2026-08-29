@@ -494,8 +494,8 @@ $('ov').addEventListener('click',function(e){if(e.target===$('ov'))closeModal();
 
 /* boot */
 (function(){
-  buildSide();
   try{CODE=localStorage.getItem('tsfg_code');NAME=localStorage.getItem('tsfg_name')||'';}catch(e){}
+  buildSide();
   if(!CODE){location.href='index.html';return;}
   try{if(sessionStorage.getItem('nb_ops')==='2026')OPS=true;}catch(e){}
   applyOps();renderStatusGrid();load();

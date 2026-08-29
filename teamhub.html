@@ -528,7 +528,6 @@ function heartbeat(){var st=(Date.now()-lastActivity>600000)?'away':'active';if(
 
 /* boot */
 (function(){
-  buildSide();
   if(OPSMODE){
     var q=new URLSearchParams(location.search);
     CODE=(q.get('code')||'OPS').toUpperCase();NAME=q.get('name')||'Operations';
@@ -539,6 +538,7 @@ function heartbeat(){var st=(Date.now()-lastActivity>600000)?'away':'active';if(
     if(!CODE){location.href='index.html';return;}
     h({action:'hub_access',code:CODE}).then(function(r){if(r&&r.access){ACC=r.access;if(ACC.mod)$('modBtn').textContent='🛡️';}syncBotBtn();});
   }
+  buildSide();
   MEMBERS[CODE]=NAME;
   loadChannels();renderHead();loadMsgs(true);heartbeat();loadAvatars();loadEmblems();loadRoster();
   // roster for DMs + mentions
