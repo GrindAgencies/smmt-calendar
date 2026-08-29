@@ -413,3 +413,129 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
   else start();
 })();
+
+/* ==========================================================================
+   APP FEEL  (2026-08-29)
+   --------------------------------------------------------------------------
+   "the blank bubble is hard to click on and confusing... make it more of an
+   APP experience where everything is larger and clickable and friendly."
+
+   - One unmistakable 3-line MENU button on every page, 44px tall (Apple's
+     minimum target), placed in the page's header or floated when it has none.
+   - This module OWNS the open/closed state via a single body class and its own
+     scrim. The four sidebar patterns each opened differently and their rules
+     did not always win; depending on them made the drawer unreliable. One
+     class, one !important rule, predictable everywhere.
+   - Comfortable tap targets throughout on phones. Desktop is untouched.
+   ========================================================================== */
+(function () {
+  var PHONE = 860;
+  var OPEN = 'tsfg-navopen';
+  var PANEL = '.sidebar, .tsfg-side, aside.side';
+
+  var BURGER = '<svg viewBox="0 0 24 24" width="21" height="21" fill="none" ' +
+    'stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">' +
+    '<path d="M4 7h16M4 12h16M4 17h16"/></svg>';
+
+  function isOpen(){ return document.body.classList.contains(OPEN); }
+  function setOpen(on) {
+    document.body.classList.toggle(OPEN, !!on);
+    var b = document.querySelector('.tsfg-menu');
+    if (b) b.setAttribute('aria-expanded', on ? 'true' : 'false');
+    /* keep each page's own class in step so its scrim/animation agree */
+    var app = document.getElementById('app');
+    if (app && document.querySelector('.sidebar')) app.classList.toggle('drawer', !!on);
+    else if (document.querySelector('.tsfg-side')) document.body.classList.toggle('tsfg-drawer', !!on);
+    else document.body.classList.toggle('drawer', !!on);
+  }
+  window.tsfgToggleNav = function(){ setOpen(!isOpen()); };
+
+  function css() {
+    if (document.getElementById('tsfg-app-css')) return;
+    var s = document.createElement('style'); s.id = 'tsfg-app-css';
+    s.textContent =
+      '.tsfg-menu{display:none;align-items:center;gap:7px;height:44px;padding:0 14px 0 11px;' +
+        'border-radius:12px;border:1px solid var(--line-2,var(--line2,#e3e3e8));' +
+        'background:var(--panel,#fff);color:var(--ink,#111);font:800 13.5px/1 inherit;' +
+        'cursor:pointer;flex:0 0 auto;-webkit-tap-highlight-color:transparent;}' +
+      '.tsfg-menu:active{transform:scale(.96);}' +
+      '.tsfg-menu.float{position:fixed;left:12px;z-index:1002;' +
+        'top:calc(10px + env(safe-area-inset-top));box-shadow:0 4px 16px rgba(0,0,0,.18);}' +
+      '#tsfgScrim{position:fixed;inset:0;background:rgba(0,0,0,.44);z-index:1000;display:none;}' +
+      '@media(max-width:' + PHONE + 'px){' +
+        '.tsfg-menu{display:inline-flex;}' +
+        /* our button replaces the bare icon ones */
+        '.tb-toggle,.menu{display:none!important;}' +
+        /* we own open/closed */
+        '.sidebar,.tsfg-side,aside.side{width:min(86vw,300px)!important;z-index:1001!important;}' +
+        'body.' + OPEN + ' .sidebar,body.' + OPEN + ' .tsfg-side,body.' + OPEN + ' aside.side{' +
+          'transform:none!important;}' +
+        'body.' + OPEN + ' #tsfgScrim{display:block;}' +
+        'body.' + OPEN + '{overflow:hidden;}' +
+        /* the floating button would sit on top of the open panel */
+        'body.' + OPEN + ' .tsfg-menu.float{opacity:0;pointer-events:none;}' +
+        /* app-feel: everything tappable is at least 44px */
+        '.sidebar a.side-link,.tsfg-side a.side-link,aside.side a.slink{' +
+          'min-height:50px;font-size:15px;border-radius:12px;}' +
+        '.sidebar a.side-link svg,.tsfg-side a.side-link svg,aside.side a.slink svg{width:21px;height:21px;}' +
+        '.tb-ic,.tsfg-ic,.tic{min-width:44px;min-height:44px;border-radius:12px;}' +
+        '.tb-ic svg,.tsfg-ic svg,.tic svg{width:19px;height:19px;}' +
+        '.tsfg-more{min-height:44px;}' +
+        '.tsfg-morewrap a{min-height:48px;}' +
+      '}';
+    document.head.appendChild(s);
+  }
+
+  function scrim() {
+    if (document.getElementById('tsfgScrim') || !document.body) return;
+    var el = document.createElement('div');
+    el.id = 'tsfgScrim';
+    el.addEventListener('click', function(){ setOpen(false); });
+    document.body.appendChild(el);
+  }
+
+  function build(allowFloat) {
+    if (document.querySelector('.tsfg-menu')) return;
+    if (!document.querySelector(PANEL) || !document.body) return;
+
+    /* querySelector returns document order, not selector order, and
+       offsetParent is null for position:fixed headers — so walk the
+       candidates and measure the box. */
+    var bar = null, cands = document.querySelectorAll('.topbar, .tsfg-top, .top, .ftop, header');
+    for (var i = 0; i < cands.length; i++) {
+      var r = cands[i].getBoundingClientRect();
+      if (r.width > 0 && r.height > 0) { bar = cands[i]; break; }
+    }
+    if (!bar && !allowFloat) return;   // header may still be booting
+
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'tsfg-menu' + (bar ? '' : ' float');
+    b.setAttribute('aria-label', 'Menu');
+    b.setAttribute('aria-expanded', 'false');
+    b.innerHTML = BURGER + '<span>Menu</span>';
+    b.addEventListener('click', function (e) { e.preventDefault(); setOpen(!isOpen()); });
+
+    if (bar) bar.insertBefore(b, bar.firstChild);
+    else document.body.appendChild(b);
+  }
+
+  function start() {
+    css(); scrim(); build(false);
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && isOpen()) setOpen(false);
+    });
+    if (document.querySelector('.tsfg-menu')) return;
+    var tries = 0;
+    var t = setInterval(function () {
+      tries++;
+      /* ~2s for a header to appear (Team Hub reveals its own after sign-in);
+         after that, float — PFR genuinely has no header to attach to. */
+      build(tries > 5);
+      if (document.querySelector('.tsfg-menu') || tries > 20) clearInterval(t);
+    }, 400);
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
+  else start();
+})();
