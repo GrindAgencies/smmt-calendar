@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-08-25T00:49:46.706Z",
+  "timestamp": "2026-08-28T16:41:02.325Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -19,96 +19,8 @@
     {
       "status": "M",
       "path": ".planning/HANDOFF.json"
-    },
-    {
-      "status": "M",
-      "path": "app.html"
-    },
-    {
-      "status": "M",
-      "path": "approvals.html"
-    },
-    {
-      "status": "M",
-      "path": "book.html"
-    },
-    {
-      "status": "M",
-      "path": "calendar.html"
-    },
-    {
-      "status": "M",
-      "path": "checklist.html"
-    },
-    {
-      "status": "M",
-      "path": "dashboard.html"
-    },
-    {
-      "status": "M",
-      "path": "index.html"
-    },
-    {
-      "status": "M",
-      "path": "integrity.html"
-    },
-    {
-      "status": "M",
-      "path": "marketing.html"
-    },
-    {
-      "status": "M",
-      "path": "newbusiness.html"
-    },
-    {
-      "status": "M",
-      "path": "ops.html"
-    },
-    {
-      "status": "M",
-      "path": "org.html"
-    },
-    {
-      "status": "M",
-      "path": "pfr.html"
-    },
-    {
-      "status": "M",
-      "path": "privacy.html"
-    },
-    {
-      "status": "M",
-      "path": "profile.html"
-    },
-    {
-      "status": "M",
-      "path": "resources.html"
-    },
-    {
-      "status": "M",
-      "path": "roadmap-builder.html"
-    },
-    {
-      "status": "M",
-      "path": "roadmap.html"
-    },
-    {
-      "status": "M",
-      "path": "tasks.html"
-    },
-    {
-      "status": "M",
-      "path": "team.html"
-    },
-    {
-      "status": "M",
-      "path": "teamhub.html"
-    },
-    {
-      "status": "??",
-      "path": "i18n.js"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\n6efedd8 Ops tracker: auto-archive completed tickets + editable Paid Out date\n8ca815b Scheduler approvals: fix truncated trainer feed + simple ✓/✕ buttons\n454dd49 Scheduler: 'Requests to approve' section — pending bookings can always be approved\n954718a Dashboard metrics reset monthly — every card reflects only the current month\n3369224 Ops New Business: Incomplete auto-moves off the active feed (joins Declined/Cancelled in Archived)"
+  "context_notes": "Recent commits:\n9e5816d Privacy Policy: visible English/Español toggle at top\n4335194 Platform-wide English/Spanish toggle\n6efedd8 Ops tracker: auto-archive completed tickets + editable Paid Out date\n8ca815b Scheduler approvals: fix truncated trainer feed + simple ✓/✕ buttons\n454dd49 Scheduler: 'Requests to approve' section — pending bookings can always be approved"
 }
