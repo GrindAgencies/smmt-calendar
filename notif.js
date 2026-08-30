@@ -551,3 +551,51 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
   else start();
 })();
+
+/* ==========================================================================
+   DATA BRAIN  (2026-08-30)
+   --------------------------------------------------------------------------
+   Nothing recorded that a person had actually used the platform — no login
+   write, no page record — so "who is active" could not be answered and 45 of
+   96 agents had no activity signal at all. Every screen open is now recorded,
+   which gives the dormancy sweep something true to read and builds the usage
+   history the assistant learns from.
+
+   Fire-and-forget: tracking must never slow a page down or break one.
+   ========================================================================== */
+window.tsfgTrack = function (kind, detail) {
+  try {
+    var code = localStorage.getItem('tsfg_code') || '';
+    if (!code) return;                       // signed out — nothing to attribute
+    var page = (location.pathname.split('/').pop() || 'index.html');
+    fetch('https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/brain', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'track', code: code,
+        name: localStorage.getItem('tsfg_name') || '',
+        kind: kind || 'page', page: page, detail: detail || {}
+      }),
+      keepalive: true
+    }).catch(function () {});
+  } catch (e) {}
+};
+
+(function () {
+  function start() {
+    try {
+      if (!localStorage.getItem('tsfg_code')) return;
+      /* One login per browser session, a page event per screen. */
+      var first = false;
+      try {
+        if (!sessionStorage.getItem('tsfg_session_started')) {
+          sessionStorage.setItem('tsfg_session_started', '1');
+          first = true;
+        }
+      } catch (e) {}
+      window.tsfgTrack(first ? 'login' : 'page');
+    } catch (e) {}
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
+  else start();
+})();
