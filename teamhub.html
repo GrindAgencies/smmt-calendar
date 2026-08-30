@@ -171,6 +171,25 @@ body.drawer .scrim{display:block;}
 .side{ padding-top: calc(16px + env(safe-area-inset-top)) !important; }
 html, body{ overflow-x: hidden; }
 </style>
+<style id="hub-phone-fix">
+/* The app-wide MENU button now sits next to this page's own channels toggle —
+   two near-identical hamburgers read as one confusing control. Label this one,
+   drop the redundant page title, and move rarely-used icons out of a header
+   that was overflowing on every iPhone. */
+.ct-lbl{display:none;}
+@media(max-width:860px){
+  .top{gap:8px;padding:0 12px;}
+  .top .ttl{display:none;}                       /* the channel header below already names the room */
+  .top .tic[data-drop="avIn"]{display:none!important;}   /* set-photo lives in Profile */
+  .top #botCfgBtn{display:none!important;}               /* baseshop bot settings: rare, desktop */
+  .top .tic.chan-toggle{width:auto;padding:0 12px;gap:7px;font:800 13.5px/1 inherit;color:var(--ink);}
+  .ct-lbl{display:inline;}
+}
+/* Chat is a full-bleed scrolling surface — a floating pill covers either the
+   send button or the newest message, whichever way you move it. Language is a
+   global preference that persists, and every other page still offers it. */
+#i18nToggle{display:none!important;}
+</style>
 </head>
 <body>
 <div class="scrim" onclick="drawer(false)"></div>
@@ -192,7 +211,7 @@ html, body{ overflow-x: hidden; }
 </div></div>
 <aside class="side" id="side"></aside>
 <header class="top">
-  <button class="tic" onclick="toggleRooms()" title="Show / hide channels"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg></button>
+  <button class="tic chan-toggle" onclick="toggleRooms()" title="Show / hide channels"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg><span class="ct-lbl">Channels</span></button>
   <div class="ttl">Team Hub</div><div style="flex:1"></div>
   <button class="tic" data-drop="avIn" onclick="document.getElementById('avIn').click()" title="Set your photo">📷</button>
   <input type="file" id="avIn" class="hide" accept="image/*" onchange="onAvatar(event)">
