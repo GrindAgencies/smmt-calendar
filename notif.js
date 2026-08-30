@@ -599,3 +599,156 @@ window.tsfgTrack = function (kind, detail) {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
   else start();
 })();
+
+/* ==========================================================================
+   ASK  (2026-08-30)
+   --------------------------------------------------------------------------
+   An assistant on every screen, for every agent — not just Ops, and not only
+   inside Team Hub. It knows the whole product and answers with the exact
+   screen and button. Every question, answer and thumbs rating goes to the
+   Data Brain so we learn what people actually get stuck on.
+   ========================================================================== */
+(function () {
+  var API = 'https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/assist';
+  var lastQ = '', lastA = '';
+
+  function code(){ try { return localStorage.getItem('tsfg_code') || ''; } catch (e) { return ''; } }
+  function page(){ return location.pathname.split('/').pop() || 'index.html'; }
+  function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+    return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]; }); }
+
+  function css() {
+    if (document.getElementById('tsfg-ask-css')) return;
+    var s = document.createElement('style'); s.id = 'tsfg-ask-css';
+    s.textContent =
+      '#askFab{position:fixed;right:14px;bottom:calc(14px + env(safe-area-inset-bottom));z-index:1200;' +
+        'display:flex;align-items:center;gap:8px;height:48px;padding:0 18px 0 15px;border:none;border-radius:999px;' +
+        'background:#1c2440;color:#fff;font:800 14px/1 -apple-system,system-ui,sans-serif;cursor:pointer;' +
+        'box-shadow:0 6px 22px rgba(0,0,0,.28);-webkit-tap-highlight-color:transparent;}' +
+      '#askFab:active{transform:scale(.96);}' +
+      '#askScrim{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1201;display:none;}' +
+      '#askScrim.on{display:block;}' +
+      '#askPanel{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:min(560px,100%);' +
+        'z-index:1202;background:var(--panel,#fff);color:var(--ink,#111);border-radius:20px 20px 0 0;' +
+        'box-shadow:0 -8px 40px rgba(0,0,0,.3);display:none;flex-direction:column;max-height:min(84vh,680px);' +
+        'padding-bottom:env(safe-area-inset-bottom);}' +
+      '#askPanel.on{display:flex;}' +
+      '.ask-h{display:flex;align-items:center;gap:10px;padding:16px 18px 10px;}' +
+      '.ask-h b{font-size:16px;letter-spacing:-.01em;white-space:nowrap;}' +
+      '.ask-h .sub{font-size:12.5px;opacity:.6;font-weight:600;}' +
+      '.ask-x{margin-left:auto;border:none;background:none;font-size:22px;line-height:1;cursor:pointer;' +
+        'color:inherit;opacity:.5;min-width:40px;min-height:40px;}' +
+      '.ask-body{flex:1;overflow-y:auto;padding:4px 18px 8px;font-size:14.5px;line-height:1.55;}' +
+      '.ask-a{white-space:pre-wrap;}' +
+      '.ask-a b{font-weight:800;}' +
+      '.ask-hint{opacity:.6;font-size:13.5px;}' +
+      '.ask-chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px;}' +
+      '.ask-chip{border:1px solid var(--line-2,var(--line2,#e3e3e8));background:transparent;color:inherit;' +
+        'border-radius:999px;padding:8px 13px;font:600 13px/1 inherit;cursor:pointer;}' +
+      '.ask-rate{display:flex;gap:8px;align-items:center;margin-top:14px;font-size:12.5px;opacity:.75;}' +
+      '.ask-rate button{border:1px solid var(--line-2,var(--line2,#e3e3e8));background:transparent;' +
+        'border-radius:9px;min-width:38px;min-height:34px;cursor:pointer;font-size:15px;color:inherit;}' +
+      '.ask-form{display:flex;gap:8px;padding:10px 14px 14px;border-top:1px solid var(--line,#eee);}' +
+      '.ask-form input{flex:1;min-width:0;height:46px;border-radius:12px;padding:0 14px;font:500 15px/1 inherit;' +
+        'border:1px solid var(--line-2,var(--line2,#e3e3e8));background:var(--bg,#fafafa);color:inherit;}' +
+      '.ask-form button{flex:0 0 auto;height:46px;padding:0 18px;border:none;border-radius:12px;' +
+        'background:#1c2440;color:#fff;font:800 14px/1 inherit;cursor:pointer;}' +
+      '@media(max-width:520px){#askFab span.lbl{display:none;}#askFab{padding:0;width:52px;height:52px;justify-content:center;}' +
+        '.ask-h .sub{display:none;}}';
+    document.head.appendChild(s);
+  }
+
+  function fmt(t) {
+    return esc(t).replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
+  }
+
+  function open(on) {
+    document.getElementById('askPanel').classList.toggle('on', on);
+    document.getElementById('askScrim').classList.toggle('on', on);
+    if (on) setTimeout(function () { var i = document.getElementById('askIn'); if (i) i.focus(); }, 60);
+  }
+
+  function rate(r) {
+    fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'feedback', code: code(),
+        name: (function(){try{return localStorage.getItem('tsfg_name')||'';}catch(e){return '';}})(),
+        page: page(), rating: r, q: lastQ, a: lastA }) }).catch(function () {});
+    var el = document.querySelector('.ask-rate');
+    if (el) el.innerHTML = '<span>Thanks — that helps us improve this.</span>';
+  }
+
+  function send(q) {
+    q = (q || '').trim();
+    if (!q) return;
+    lastQ = q;
+    var body = document.getElementById('askBody');
+    body.innerHTML = '<div class="ask-hint">Thinking…</div>';
+    fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: code(),
+        name: (function(){try{return localStorage.getItem('tsfg_name')||'';}catch(e){return '';}})(),
+        page: page(), q: q }) })
+      .then(function (r) { return r.json(); })
+      .then(function (r) {
+        lastA = r.answer || '';
+        body.innerHTML = '<div class="ask-a">' + fmt(lastA) + '</div>' +
+          '<div class="ask-rate"><span>Was this helpful?</span>' +
+          '<button type="button" data-r="up" aria-label="Helpful">👍</button>' +
+          '<button type="button" data-r="down" aria-label="Not helpful">👎</button></div>';
+        body.querySelectorAll('.ask-rate button').forEach(function (b) {
+          b.addEventListener('click', function () { rate(b.getAttribute('data-r')); });
+        });
+        body.scrollTop = 0;
+      })
+      .catch(function () {
+        body.innerHTML = '<div class="ask-hint">Couldn\'t reach the assistant. For anything urgent, Operations is on 858-433-4429.</div>';
+      });
+  }
+
+  var STARTERS = ['How do I log a sale?', 'How do I book a field trainer?',
+                  'Where do I set my monthly goal?', 'When is the morning huddle?'];
+
+  function build() {
+    if (document.getElementById('askFab') || !document.body) return;
+    if (!code()) return;                       // signed out — nothing to ask about
+
+    var fab = document.createElement('button');
+    fab.id = 'askFab'; fab.type = 'button'; fab.setAttribute('aria-label', 'Ask a question');
+    fab.innerHTML = '<span aria-hidden="true">💬</span><span class="lbl">Ask</span>';
+
+    var scrim = document.createElement('div'); scrim.id = 'askScrim';
+
+    var panel = document.createElement('div');
+    panel.id = 'askPanel'; panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-label', 'Ask');
+    panel.innerHTML =
+      '<div class="ask-h"><b>Ask anything</b><span class="sub">about the app or your business</span>' +
+      '<button class="ask-x" type="button" aria-label="Close">×</button></div>' +
+      '<div class="ask-body" id="askBody"><div class="ask-hint">Ask me how anything works — I know every screen.</div>' +
+      '<div class="ask-chips">' + STARTERS.map(function (s) {
+        return '<button class="ask-chip" type="button">' + esc(s) + '</button>'; }).join('') + '</div></div>' +
+      '<form class="ask-form"><input id="askIn" type="text" autocomplete="off" ' +
+      'placeholder="Type your question…"><button type="submit">Ask</button></form>';
+
+    document.body.appendChild(scrim);
+    document.body.appendChild(panel);
+    document.body.appendChild(fab);
+
+    fab.addEventListener('click', function () { open(true); });
+    scrim.addEventListener('click', function () { open(false); });
+    panel.querySelector('.ask-x').addEventListener('click', function () { open(false); });
+    panel.querySelector('.ask-form').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var i = document.getElementById('askIn');
+      send(i.value); i.value = '';
+    });
+    panel.querySelectorAll('.ask-chip').forEach(function (b) {
+      b.addEventListener('click', function () { send(b.textContent); });
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && panel.classList.contains('on')) open(false);
+    });
+  }
+
+  function start() { css(); build(); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
+  else start();
+})();
