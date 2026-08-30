@@ -198,6 +198,17 @@ html, body{ overflow-x: hidden; }
   .rxb{min-height:32px;padding:4px 11px;font-size:12.5px;}
 }
 </style>
+<style id="hub-unread-css">
+/* Unread: a badge on the channel and a line where you left off. */
+.room.unread .rn{font-weight:800;color:var(--ink);}
+.unb{margin-left:auto;flex:0 0 auto;min-width:20px;height:20px;padding:0 6px;border-radius:999px;
+  background:var(--accent,#5b6cff);color:#fff;font-size:11px;font-weight:800;
+  display:inline-flex;align-items:center;justify-content:center;font-variant-numeric:tabular-nums;}
+.newline{display:flex;align-items:center;gap:10px;margin:14px 4px 8px;
+  color:#e0483d;font-size:10.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;}
+.newline:before,.newline:after{content:"";flex:1;height:1px;background:#e0483d;opacity:.5;}
+.newline span{flex:0 0 auto;}
+</style>
 <style id="hub-phone-fix">
 /* The app-wide MENU button now sits next to this page's own channels toggle —
    two near-identical hamburgers read as one confusing control. Label this one,
@@ -303,7 +314,7 @@ html, body{ overflow-x: hidden; }
 <div class="toast" id="toast"></div>
 
 <script>
-var HUB="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/hub-api";
+var HUB="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/hub-api",UNREADAPI="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/hub-unread";
 var BOTS="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/bots-cron";
 var HUBOPS="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/hub-ops";
 var OPSMODE=false,OPSTOKEN='',OPSDMS=[];
@@ -363,7 +374,7 @@ function signOut(){try{localStorage.removeItem('tsfg_code');localStorage.removeI
 /* rooms */
 function renderRooms(){
   function cap(x){return (x||'').charAt(0).toUpperCase()+(x||'').slice(1);}
-  function chRow(c){var lbl=c.baseshop?({announcements:'Announcements',training:'Training',licensing:'Licensing',cft:'CFT Room',operations:'Operations'}[c.sub]||c.name):c.name;return '<div class="room'+(CHAN===c.id?' on':'')+'" onclick="openChan(\''+c.id+'\')"><div class="ri">'+(c.icon||'#')+'</div><div class="rn">'+esc(lbl)+'</div></div>';}
+  function chRow(c){var lbl=c.baseshop?({announcements:'Announcements',training:'Training',licensing:'Licensing',cft:'CFT Room',operations:'Operations'}[c.sub]||c.name):c.name;var u=(CHAN===c.id)?0:(UNREAD[c.id]||0);return '<div class="room'+(CHAN===c.id?' on':'')+(u?' unread':'')+'" onclick="openChan(\''+c.id+'\')"><div class="ri">'+(c.icon||'#')+'</div><div class="rn">'+esc(lbl)+'</div>'+(u?'<span class="unb">'+(u>99?'99+':u)+'</span>':'')+'</div>';}
   var hier=CHANNELS.filter(function(c){return !c.baseshop;});
   var groups={},order=[];
   CHANNELS.forEach(function(c){if(c.baseshop){if(!groups[c.baseshop]){groups[c.baseshop]=[];order.push(c.baseshop);}groups[c.baseshop].push(c);}});
@@ -391,7 +402,7 @@ function chanMeta(id){
   var SUBS={operations:'Direct line to Operations · Anais · 858-433-4429 · impactagency.ops@gmail.com',leadership:'Marketing Directors, EMDs & Operations only',licensing:'Agents completing licensing',licensed:'Licensed agents only',cft:'Certified Field Trainers only',announcements:'Company-wide announcements',main:'Everyone in the company',training:'Live training discussion'};
   var c=CHANNELS.filter(function(c){return c.id===id;})[0]||{icon:'#',name:id};var subtxt=SUBS[id];if(!subtxt&&c.baseshop){var L={announcements:'Announcements',training:'Training',licensing:'Licensing',cft:'CFT Room',operations:'Operations'}[c.sub]||'';subtxt=(c.baseshopName||'')+' baseshop \u00b7 '+L;}return {icon:c.icon||'#',name:c.name,sub:subtxt||'Channel'};
 }
-function openChan(id){CHAN=id;LASTID=0;$('mlist').innerHTML='';renderRooms();renderHead();loadMsgs(true);document.body.classList.remove('rooms-open');if(typeof heartbeat==='function')heartbeat();}
+function openChan(id){CHAN=id;LASTID=0;NEWLINE=(readMap()[id]||0);$('mlist').innerHTML='';renderRooms();renderHead();loadMsgs(true);document.body.classList.remove('rooms-open');if(typeof heartbeat==='function')heartbeat();}
 function chanNameOf(id){if(!id)return '';if(id.indexOf('dm:')===0)return 'a direct message';var c=CHANNELS.filter(function(x){return x.id===id;})[0];if(c){if(c.baseshop){var L={announcements:'Announcements',training:'Training',licensing:'Licensing',cft:'CFT Room',operations:'Operations'}[c.sub]||c.name;return (c.baseshopName?c.baseshopName+' \u00b7 ':'')+L;}return c.name;}return id;}
 function presenceList(){var codes=Object.keys(ONLINE);if(!codes.length)return '<div class="presrow"><span class="pc">No one online right now</span></div>';return codes.sort(function(a,b){return ((ONLINE[a]&&ONLINE[a].name)||'').localeCompare((ONLINE[b]&&ONLINE[b].name)||'');}).map(function(cd){var ob=ONLINE[cd]||{};var away=ob.status==='away';var ch=ob.channel?chanNameOf(ob.channel):'';var sub=away?'Away from computer':(ch?('in '+ch):'Active now');return '<div class="presrow"><span class="pdd'+(away?' away':'')+'"></span><div><div class="pn">'+esc(ob.name||cd)+(away?' <span style=\"color:#e6a700;font-weight:700\">\u2022 Away</span>':'')+'</div><div class="pc">'+esc(sub)+'</div></div></div>';}).join('');}
 function renderHead(){var m=chanMeta(CHAN);var del=(CHAN.indexOf('c_')===0)?'<button class="tic" title="Delete channel" onclick="deleteChannel()" style="margin-left:10px;flex:0 0 auto">\ud83d\uddd1\ufe0f</button>':'';$('chead').innerHTML='<div class="ci">'+(m.dm?'<div class="dmav" style="width:34px;height:34px">'+m.icon+'</div>':m.icon)+'</div><div><div class="cn">'+esc(m.name)+'</div><div class="cs">'+esc(m.sub)+'</div></div><div class="presence"><span class="pd"></span>'+Object.keys(ONLINE).length+' online<div class="preslist"><div class="preshdr">Online now</div>'+presenceList()+'</div></div>'+del;}
@@ -414,17 +425,54 @@ function rtSubscribe(){
   try{ rtChan=SB.channel(top).on('broadcast',{event:'newmsg'},function(){ if(!document.hidden)loadMsgs(false); }).subscribe(); }catch(e){rtChan=null;}
 }
 function rtEnsure(){ if(rtTopicNow!==rtTopic(CHAN))rtSubscribe(); }
+var LOADING=false;
 function loadMsgs(scroll){
   try{rtEnsure();}catch(e){}
+  /* First load of a channel — from openChan OR from boot, which doesn't go
+     through openChan — is where the unread boundary is captured. */
+  if(LASTID===0)NEWLINE=(readMap()[CHAN]||0);
+  /* Two loads used to be able to race with LASTID still 0 — both fetched the
+     full history and the second concatenated a duplicate of every message.
+     Guard the overlap, ignore responses for a channel we've since left, and
+     de-duplicate on merge as a belt-and-braces backstop. */
+  if(LOADING)return;
+  LOADING=true;
+  var reqChan=CHAN, reqAfter=LASTID;
   h({action:'hub_list',channel:CHAN,after:LASTID}).then(function(r){
+    LOADING=false;
+    if(reqChan!==CHAN)return;
     var arr=(r&&r.messages)||[];
-    if(LASTID===0){MSGS=arr;}else if(arr.length){MSGS=MSGS.concat(arr);}
+    if(reqAfter===0){MSGS=arr;}
+    else if(arr.length){
+      var seen={};MSGS.forEach(function(m){seen[m.id]=1;});
+      MSGS=MSGS.concat(arr.filter(function(m){return !seen[m.id];}));
+    }
     if(arr.length)LASTID=arr[arr.length-1].id;
-    if(LASTID===0||arr.length)renderMsgs(scroll);
-  });
+    if(reqAfter===0||arr.length)renderMsgs(scroll);
+    /* Reading a channel clears it — but only while the tab is actually visible,
+       so a background poll doesn't silently mark things read. */
+    if(arr.length&&!document.hidden){markRead(CHAN,LASTID);if(UNREAD[CHAN]){UNREAD[CHAN]=0;renderRooms();}}
+  }).catch(function(){LOADING=false;});
 }
 function findMsg(id){for(var i=0;i<MSGS.length;i++)if(MSGS[i].id===id)return MSGS[i];return null;}
 function linkify(t){t=esc(t);t=t.replace(/@([A-Za-z][A-Za-z .'-]{1,30})/g,'<span class="men">@$1</span>');return t;}
+/* --- unread tracking (2026-08-29) ---------------------------------------
+   Which messages you have already seen is per-person and per-device, so the
+   read marks live in localStorage; hub-unread turns them into counts. */
+var UNREAD={}, NEWLINE=0;
+function readMap(){try{return JSON.parse(localStorage.getItem('tsfg_hub_read')||'{}')||{};}catch(e){return {};}}
+function saveRead(m){try{localStorage.setItem('tsfg_hub_read',JSON.stringify(m));}catch(e){}}
+function markRead(ch,id){if(!ch||!id)return;var m=readMap();if((m[ch]||0)<id){m[ch]=id;saveRead(m);}}
+function loadUnread(){
+  fetch(UNREADAPI,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({code:CODE,read:readMap()})})
+    .then(function(r){return r.json();})
+    .then(function(r){ if(r&&r.ok){ UNREAD=r.counts||{}; renderRooms(); paintTitle(r.total||0); } })
+    .catch(function(){});
+}
+/* Unread count in the tab title, the way every other chat app does it. */
+function paintTitle(n){ try{ document.title=(n>0?('('+n+') '):'')+'Team Hub — The Standard'; }catch(e){} }
+
 /* --- chat polish (2026-08-29) ------------------------------------------- */
 /* Day separators: a chat with no "Today" line makes yesterday look like now. */
 function dayKey(iso){var d=new Date(iso);return d.getFullYear()+'-'+d.getMonth()+'-'+d.getDate();}
@@ -461,10 +509,14 @@ function msgTap(ev){
 }
 
 function renderMsgs(scroll){
-  var host=$('mlist');var prev=null;
+  var host=$('mlist');var prev=null;var newlineDone=false;
   host.innerHTML=MSGS.map(function(m){
     var cont=prev&&prev.author_code===m.author_code&&m.kind==='text'&&prev.kind==='text'&&(new Date(m.created_at)-new Date(prev.created_at)<360000);
     var sep=daySep(prev,m); if(sep)cont=false;
+    var nl='';
+    if(NEWLINE&&!newlineDone&&m.id>NEWLINE&&m.author_code!==CODE){
+      nl='<div class="newline"><span>New messages</span></div>'; newlineDone=true; cont=false;
+    }
     prev=m;
     var av='<div class="mav" onclick="openProfile(\''+m.author_code+'\')">'+avatarInner(m.author_code,m.author_name,m.kind)+'</div>';
     var isBot=(m.kind==='ai'||m.kind==='recognition'||m.kind==='announce'||m.kind==='coach');var pname=isBot?(m.kind==='ai'?'Bob':(m.kind==='recognition'?'Kevin':(m.kind==='coach'?'Kyle':'Stuart'))):(m.author_name||'—');var tag=isBot?'<span class="mc" style="background:var(--gold-soft);color:var(--gold)">BOT</span>':'<span class="mc">'+esc(m.author_code||'')+'</span>';var head=cont?'':'<div class="mhead"><span class="mn" onclick="openProfile(\''+m.author_code+'\')">'+esc(pname)+'</span>'+(isBot?'':miniEmb(m.author_code))+tag+'<span class="mt">'+tstr(m.created_at)+(m.edited?' · edited':'')+'</span></div>';
@@ -484,7 +536,7 @@ function renderMsgs(scroll){
     var rx='';var rk=m.reactions&&typeof m.reactions==='object'?m.reactions:{};
     var keys=Object.keys(rk);if(keys.length){rx='<div class="rx">'+keys.map(function(e){var mine=rk[e].indexOf(CODE)>=0;return '<button class="rxb'+(mine?' mine':'')+'" onclick="react('+m.id+',\''+e+'\')">'+e+' '+rk[e].length+'</button>';}).join('')+'</div>';}
     var acts=(m.deleted||m.kind==='ai')?'':'<div class="mact"><button onclick="reactPop(event,'+m.id+')" title="React">😀</button><button onclick="setReply('+m.id+')" title="Reply">↩</button>'+((m.author_code===CODE)?'<button onclick="editMsg('+m.id+')" title="Edit">✏️</button>':'')+((m.author_code===CODE||ACC.mod||MODTOKEN)?'<button onclick="delMsg('+m.id+')" title="Delete">🗑</button>':'')+'</div>';
-    return sep+'<div class="msg'+(cont?' cont':'')+(m.kind==='recognition'?' recog':'')+(m.kind==='ai'?' ai':'')+'" data-id="'+m.id+'">'+av+'<div class="mbody">'+head+inner+rx+'</div>'+acts+'</div>';
+    return nl+sep+'<div class="msg'+(cont?' cont':'')+(m.kind==='recognition'?' recog':'')+(m.kind==='ai'?' ai':'')+'" data-id="'+m.id+'">'+av+'<div class="mbody">'+head+inner+rx+'</div>'+acts+'</div>';
   }).join('');
   if(CHAN==='operations'){host.insertAdjacentHTML('afterbegin','<div class="opsbanner">⚙️ <b>Operations line.</b> Messages here go straight to the Operations team (Anais). For licensing: <b>calendly.com/impactagency-ops/licensing</b> · 858-433-4429 · impactagency.ops@gmail.com</div>');}
   if(scroll)host.scrollTop=host.scrollHeight;
@@ -625,7 +677,8 @@ function heartbeat(){var st=(Date.now()-lastActivity>600000)?'away':'active';if(
   loadChannels();renderHead();loadMsgs(true);heartbeat();loadAvatars();loadEmblems();loadRoster();
   // roster for DMs + mentions
   fetch(TA,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'team',leader:BASESHOP_LEADER})}).then(function(r){return r.json();}).then(function(d){(d&&d.agents||[]).forEach(function(a){var nm=((a.first_name||'')+' '+(a.last_name||'')).trim();if(a.code&&nm)MEMBERS[a.code]=nm;});renderRooms();});
-  POLL=setInterval(function(){if(!document.hidden)loadMsgs(false);},60000); /* fallback only — realtime broadcast drives live updates */
+  POLL=setInterval(function(){if(!document.hidden)loadMsgs(false);},60000);
+  loadUnread(); setInterval(function(){if(!document.hidden)loadUnread();},20000); /* fallback only — realtime broadcast drives live updates */
   setInterval(function(){if(!document.hidden)heartbeat();},30000);
   setInterval(function(){if(!document.hidden)loadAvatars();},120000);
   document.addEventListener('visibilitychange',function(){if(!document.hidden){loadMsgs(false);heartbeat();}});
