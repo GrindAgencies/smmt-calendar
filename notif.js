@@ -329,6 +329,9 @@
       '.tsfg-more:hover{opacity:.9;}' +
       '.tsfg-more:focus-visible{outline:2px solid currentColor;outline-offset:2px;border-radius:6px;}' +
       '.tsfg-morewrap[hidden]{display:none!important;}' +
+      '.tsfg-lang{display:flex;gap:6px;padding:2px 10px 4px;}' +
+      '.tsfg-lang button{flex:1;min-height:38px;border:1px solid var(--line-2,var(--line2,#e3e3e8));' +
+        'background:transparent;color:inherit;border-radius:10px;font:800 13px/1 inherit;cursor:pointer;}' +
       /* roomier taps on phones — the old links were tight for thumbs */
       '@media(max-width:860px){.sidebar a.side-link,.tsfg-side a.side-link,aside.side a.slink{' +
         'padding-top:11px!important;padding-bottom:11px!important;}}';
@@ -369,6 +372,15 @@
               '" aria-controls="tsfgMore"><span>More</span>' + svg(I.more) + '</button>' +
               '<div class="tsfg-morewrap" id="tsfgMore"' + (inMore ? '' : ' hidden') + '>' +
               SECONDARY.map(function(it){ return link(it, cls, current); }).join('') + '</div>';
+
+      /* Language belongs in the menu, not floating over the page. i18n.js
+         suppresses its floating pill whenever a visible [data-lang-btn] exists,
+         so putting it here removes the pill from every screen at once. */
+      html += '<div class="tsfg-navsec">Language</div>' +
+              '<div class="tsfg-lang" data-no-i18n>' +
+              '<button type="button" data-lang-btn="en" onclick="tsfgSetLang(\'en\')">English</button>' +
+              '<button type="button" data-lang-btn="es" onclick="tsfgSetLang(\'es\')">Espa\u00f1ol</button>' +
+              '</div>';
 
       var frag = document.createElement('div');
       frag.innerHTML = html;
