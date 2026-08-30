@@ -171,6 +171,33 @@ body.drawer .scrim{display:block;}
 .side{ padding-top: calc(16px + env(safe-area-inset-top)) !important; }
 html, body{ overflow-x: hidden; }
 </style>
+<style id="hub-chat-polish">
+/* Day separators — without them yesterday reads as just now. */
+.daysep{display:flex;align-items:center;gap:10px;margin:18px 4px 10px;color:var(--ink3);
+  font-size:10.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;}
+.daysep:before,.daysep:after{content:"";flex:1;height:1px;background:var(--line);}
+.daysep span{flex:0 0 auto;}
+
+/* Bot posts were walls of text that pushed every human message off screen. */
+.clipwrap{display:flex;flex-direction:column;align-items:flex-start;}
+.clip{max-height:186px;overflow:hidden;width:100%;}
+.clip.open{max-height:none;}
+.clipmore{margin-top:7px;border:1px solid var(--line2);background:var(--panel);color:var(--ink2);
+  border-radius:999px;padding:6px 15px;font:800 12px/1 inherit;cursor:pointer;}
+.clipmore:hover{color:var(--ink);}
+
+/* Touch: the action bar was hover-only, so on a phone you could not reply,
+   react, edit or delete at all. Tap a message to reveal it. */
+/* Not gated on (hover:none) — some touch devices report hover support and
+   would otherwise still have no way to reach these actions. */
+.msg.sel{background:var(--panel);border-radius:12px;}
+.msg.sel .mact{display:flex;}
+@media(hover:none){
+  .mact{gap:4px;padding:4px;}
+  .mact button{min-width:40px;min-height:40px;font-size:17px;border-radius:9px;}
+  .rxb{min-height:32px;padding:4px 11px;font-size:12.5px;}
+}
+</style>
 <style id="hub-phone-fix">
 /* The app-wide MENU button now sits next to this page's own channels toggle —
    two near-identical hamburgers read as one confusing control. Label this one,
@@ -398,18 +425,54 @@ function loadMsgs(scroll){
 }
 function findMsg(id){for(var i=0;i<MSGS.length;i++)if(MSGS[i].id===id)return MSGS[i];return null;}
 function linkify(t){t=esc(t);t=t.replace(/@([A-Za-z][A-Za-z .'-]{1,30})/g,'<span class="men">@$1</span>');return t;}
+/* --- chat polish (2026-08-29) ------------------------------------------- */
+/* Day separators: a chat with no "Today" line makes yesterday look like now. */
+function dayKey(iso){var d=new Date(iso);return d.getFullYear()+'-'+d.getMonth()+'-'+d.getDate();}
+function dayLabel(iso){
+  var d=new Date(iso), n=new Date(), y=new Date(Date.now()-86400000);
+  if(dayKey(iso)===dayKey(n.toISOString()))return 'Today';
+  if(dayKey(iso)===dayKey(y.toISOString()))return 'Yesterday';
+  var wk=(n-d)/86400000;
+  if(wk<7)return d.toLocaleDateString('en-US',{weekday:'long'});
+  return d.toLocaleDateString('en-US',{month:'long',day:'numeric'}) + (d.getFullYear()!==n.getFullYear()?(', '+d.getFullYear()):'');
+}
+function daySep(prev,m){
+  if(prev && dayKey(prev.created_at)===dayKey(m.created_at))return '';
+  return '<div class="daysep"><span>'+esc(dayLabel(m.created_at))+'</span></div>';
+}
+/* The Recognition and announcement bots post walls of text that pushed every
+   human message off the screen. Collapse anything tall behind Show more. */
+var LONG=340;
+function collapsible(html, raw, id){
+  if(!raw || raw.length<=LONG) return html;
+  return '<div class="clipwrap"><div class="clip" id="clip'+id+'">'+html+'</div>'+
+         '<button class="clipmore" id="more'+id+'" onclick="unclip('+id+')">Show more</button></div>';
+}
+function unclip(id){var el=$('clip'+id);if(el)el.classList.add('open');var b=$('more'+id);if(b)b.remove();}
+/* Tap a message on touch to reveal its actions — the action bar was hover-only,
+   so reply/react/edit/delete were unreachable on a phone. */
+function msgTap(ev){
+  var t=ev.target;
+  if(t.closest('a,button,input,textarea,img,.rxb'))return;
+  var row=t.closest('.msg'); if(!row)return;
+  var was=row.classList.contains('sel');
+  var host=$('mlist'); if(host)host.querySelectorAll('.msg.sel').forEach(function(e){e.classList.remove('sel');});
+  if(!was)row.classList.add('sel');
+}
+
 function renderMsgs(scroll){
   var host=$('mlist');var prev=null;
   host.innerHTML=MSGS.map(function(m){
     var cont=prev&&prev.author_code===m.author_code&&m.kind==='text'&&prev.kind==='text'&&(new Date(m.created_at)-new Date(prev.created_at)<360000);
+    var sep=daySep(prev,m); if(sep)cont=false;
     prev=m;
     var av='<div class="mav" onclick="openProfile(\''+m.author_code+'\')">'+avatarInner(m.author_code,m.author_name,m.kind)+'</div>';
     var isBot=(m.kind==='ai'||m.kind==='recognition'||m.kind==='announce'||m.kind==='coach');var pname=isBot?(m.kind==='ai'?'Bob':(m.kind==='recognition'?'Kevin':(m.kind==='coach'?'Kyle':'Stuart'))):(m.author_name||'—');var tag=isBot?'<span class="mc" style="background:var(--gold-soft);color:var(--gold)">BOT</span>':'<span class="mc">'+esc(m.author_code||'')+'</span>';var head=cont?'':'<div class="mhead"><span class="mn" onclick="openProfile(\''+m.author_code+'\')">'+esc(pname)+'</span>'+(isBot?'':miniEmb(m.author_code))+tag+'<span class="mt">'+tstr(m.created_at)+(m.edited?' · edited':'')+'</span></div>';
     var inner;
     if(m.deleted){inner='<div class="mtext del">message deleted</div>';}
-    else if(m.kind==='recognition'){inner='<div class="rcard"><div class="rt">🎉 Kevin · Recognition</div><div class="rb">'+linkify(m.body)+'</div></div>';}
+    else if(m.kind==='recognition'){inner=collapsible('<div class="rcard"><div class="rt">🎉 Kevin · Recognition</div><div class="rb">'+linkify(m.body)+'</div></div>',m.body,m.id);}
     else if(m.kind==='ai'){inner='<div class="aicard"><div class="at">🤖 Bob · Questions</div><div class="mtext">'+linkify(m.body)+'</div>'+(m.attach&&m.attach.source?'<div class="src">📚 Source: '+esc(m.attach.source)+'</div>':'')+'</div>';}
-    else if(m.kind==='coach'){inner='<div class="aicard" style="border-color:var(--gold-soft)"><div class="at">🐕 Kyle · Progression Coach</div><div class="mtext">'+linkify(m.body)+'</div></div>';}
+    else if(m.kind==='coach'){inner=collapsible('<div class="aicard" style="border-color:var(--gold-soft)"><div class="at">🐕 Kyle · Progression Coach</div><div class="mtext">'+linkify(m.body)+'</div></div>',m.body,m.id);}
     else{
       var q=m.reply_to?findMsg(m.reply_to):null;
       var quote=q?'<div class="quote">↩ <b>'+esc(q.author_name)+'</b> '+esc((q.body||'').slice(0,80))+'</div>':'';
@@ -421,7 +484,7 @@ function renderMsgs(scroll){
     var rx='';var rk=m.reactions&&typeof m.reactions==='object'?m.reactions:{};
     var keys=Object.keys(rk);if(keys.length){rx='<div class="rx">'+keys.map(function(e){var mine=rk[e].indexOf(CODE)>=0;return '<button class="rxb'+(mine?' mine':'')+'" onclick="react('+m.id+',\''+e+'\')">'+e+' '+rk[e].length+'</button>';}).join('')+'</div>';}
     var acts=(m.deleted||m.kind==='ai')?'':'<div class="mact"><button onclick="reactPop(event,'+m.id+')" title="React">😀</button><button onclick="setReply('+m.id+')" title="Reply">↩</button>'+((m.author_code===CODE)?'<button onclick="editMsg('+m.id+')" title="Edit">✏️</button>':'')+((m.author_code===CODE||ACC.mod||MODTOKEN)?'<button onclick="delMsg('+m.id+')" title="Delete">🗑</button>':'')+'</div>';
-    return '<div class="msg'+(cont?' cont':'')+(m.kind==='recognition'?' recog':'')+(m.kind==='ai'?' ai':'')+'">'+av+'<div class="mbody">'+head+inner+rx+'</div>'+acts+'</div>';
+    return sep+'<div class="msg'+(cont?' cont':'')+(m.kind==='recognition'?' recog':'')+(m.kind==='ai'?' ai':'')+'" data-id="'+m.id+'">'+av+'<div class="mbody">'+head+inner+rx+'</div>'+acts+'</div>';
   }).join('');
   if(CHAN==='operations'){host.insertAdjacentHTML('afterbegin','<div class="opsbanner">⚙️ <b>Operations line.</b> Messages here go straight to the Operations team (Anais). For licensing: <b>calendly.com/impactagency-ops/licensing</b> · 858-433-4429 · impactagency.ops@gmail.com</div>');}
   if(scroll)host.scrollTop=host.scrollHeight;
@@ -566,6 +629,7 @@ function heartbeat(){var st=(Date.now()-lastActivity>600000)?'away':'active';if(
   setInterval(function(){if(!document.hidden)heartbeat();},30000);
   setInterval(function(){if(!document.hidden)loadAvatars();},120000);
   document.addEventListener('visibilitychange',function(){if(!document.hidden){loadMsgs(false);heartbeat();}});
+  var _ml=$('mlist'); if(_ml)_ml.addEventListener('click',msgTap);
 })();
 </script>
 <script defer src="notif.js"></script>
