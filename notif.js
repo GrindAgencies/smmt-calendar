@@ -790,16 +790,23 @@ window.tsfgTrack = function (kind, detail) {
 /* ==========================================================================
    FIRST-RUN TOUR  (2026-08-30)
    --------------------------------------------------------------------------
-   A new agent's first screen is all zeros — nothing tells them what the app is
-   for or what to do first. This walks them through it once, in the assistant's
-   voice, anchored to the real controls rather than a wall of text.
+   A new agent's first screen is all zeros with nothing explaining what the app
+   is for. This walks them through it once, anchored to the real controls.
 
-   Runs on Home only, once per person per device. Every step is recorded to the
-   Data Brain so we can see where people drop out.
+   Two things the first version got wrong, both fixed here:
+
+   1. Nothing blocked the page underneath. The dimming was only a box-shadow on
+      a pointer-events:none element, so a tap "outside" hit whatever was under
+      it — opening the menu or navigating away while the tour was still up. A
+      real veil now swallows every interaction except the card's own buttons.
+
+   2. The spotlight was positioned once per step. Any scroll, reflow or late-
+      loading dashboard content left it framing empty space. It now tracks its
+      target every frame while the tour is open, so it stays locked on.
    ========================================================================== */
 (function () {
   var KEY = 'tsfg_tour_done';
-  var i = 0, steps = [], box = null, tip = null;
+  var i = 0, steps = [], veil = null, box = null, tip = null, raf = 0, target = null;
 
   function code(){ try { return localStorage.getItem('tsfg_code') || ''; } catch (e) { return ''; } }
   function firstName(){
@@ -808,8 +815,6 @@ window.tsfgTrack = function (kind, detail) {
   function done(){ try { return localStorage.getItem(KEY) === code(); } catch (e) { return true; } }
   function markDone(){ try { localStorage.setItem(KEY, code()); } catch (e) {} }
 
-  /* Anchors are matched leniently — if a screen changes, the step is skipped
-     rather than pointing at nothing. */
   function find(sel, text) {
     if (sel) { var el = document.querySelector(sel); if (el && el.getBoundingClientRect().width > 0) return el; }
     if (text) {
@@ -824,25 +829,19 @@ window.tsfgTrack = function (kind, detail) {
   function STEPS() {
     var n = firstName();
     return [
-      { sel: null, title: (n ? ('Welcome, ' + n + '.') : 'Welcome.'),
+      { title: (n ? ('Welcome, ' + n + '.') : 'Welcome.'),
         body: "This is The Standard — everything you need to build your business in one place. Ninety seconds and I'll show you around." },
-      { sel: '.tsfg-menu',
-        title: 'Everything lives behind Menu',
+      { sel: '.tsfg-menu', title: 'Everything lives behind Menu',
         body: 'Team Hub, Scheduler, New Business, My Tracker and Resources. Tap Menu any time to move around.' },
-      { sel: '.snap', text: "today's snapshot",
-        title: 'Your month, at a glance',
+      { sel: '.snap', text: "today's snapshot", title: 'Your month, at a glance',
         body: "Four numbers that matter: new partners, premium submitted, field trainings and families helped. Tap the pencil on any card to set your own goal." },
-      { sel: '.ctx',
-        title: 'Personal, or the whole team',
+      { sel: '.ctx', title: 'Personal, or the whole team',
         body: 'Switch between your own numbers, your team, your baseshop and the full hierarchy.' },
-      { sel: null, text: 'leaderboard',
-        title: 'Where you stand',
+      { text: 'leaderboard', title: 'Where you stand',
         body: 'The leaderboard updates live as business is written. It is the fastest way to see who is moving.' },
-      { sel: '#askFab',
-        title: "Stuck? Just ask.",
+      { sel: '#askFab', title: 'Stuck? Just ask.',
         body: "I'm here on every screen. Ask me anything — how to log a sale, when the huddle is, where a setting lives. I'll point you straight to it." },
-      { sel: null,
-        title: 'Your first three steps',
+      { title: 'Your first three steps',
         body: "1. Say hello in Team Hub.\n2. Book a field training on the Scheduler.\n3. Add your warm market to the Marketing Plan.\n\nDo those and you're properly started." }
     ];
   }
@@ -851,62 +850,102 @@ window.tsfgTrack = function (kind, detail) {
     if (document.getElementById('tsfg-tour-css')) return;
     var s = document.createElement('style'); s.id = 'tsfg-tour-css';
     s.textContent =
+      /* The veil is what actually blocks the app. It is transparent; the dimming
+         comes from the spotlight's outer shadow so the cut-out still reads. */
+      '#tourVeil{position:fixed;inset:0;z-index:1999;background:transparent;' +
+        '-webkit-tap-highlight-color:transparent;touch-action:none;}' +
       '#tourBox{position:fixed;z-index:2000;border-radius:14px;pointer-events:none;' +
-        'box-shadow:0 0 0 4px rgba(91,108,255,.9),0 0 0 9999px rgba(8,10,20,.62);transition:all .28s cubic-bezier(.2,.8,.2,1);}' +
-      '#tourTip{position:fixed;z-index:2001;left:50%;transform:translateX(-50%);width:min(440px,calc(100% - 28px));' +
-        'background:var(--panel,#fff);color:var(--ink,#111);border-radius:18px;padding:18px 18px 14px;' +
-        'box-shadow:0 18px 50px rgba(0,0,0,.34);font:400 14.5px/1.55 -apple-system,system-ui,sans-serif;}' +
+        'box-shadow:0 0 0 4px rgba(91,108,255,.95),0 0 0 9999px rgba(8,10,20,.66);}' +
+      '#tourBox.flat{box-shadow:0 0 0 9999px rgba(8,10,20,.66);}' +
+      '#tourTip{position:fixed;z-index:2001;width:min(430px,calc(100vw - 24px));' +
+        'max-height:min(70vh,520px);overflow-y:auto;-webkit-overflow-scrolling:touch;' +
+        'background:var(--panel,#fff);color:var(--ink,#111);border-radius:18px;padding:17px 17px 13px;' +
+        'box-shadow:0 18px 50px rgba(0,0,0,.36);font:400 14.5px/1.55 -apple-system,system-ui,sans-serif;}' +
       '#tourTip h4{margin:0 0 6px;font-size:17px;font-weight:800;letter-spacing:-.01em;}' +
       '#tourTip p{margin:0;white-space:pre-line;color:var(--ink-2,#555);}' +
-      '.tour-f{display:flex;align-items:center;gap:10px;margin-top:16px;}' +
-      '.tour-dots{display:flex;gap:5px;flex:1;}' +
-      '.tour-dots i{width:6px;height:6px;border-radius:50%;background:var(--line-2,#ddd);}' +
+      '.tour-f{display:flex;align-items:center;gap:10px;margin-top:15px;}' +
+      '.tour-dots{display:flex;gap:5px;flex:1;min-width:0;}' +
+      '.tour-dots i{width:6px;height:6px;border-radius:50%;background:var(--line-2,#ddd);flex:0 0 auto;}' +
       '.tour-dots i.on{background:#5b6cff;}' +
-      '.tour-b{border:none;border-radius:11px;padding:0 16px;height:40px;font:800 14px/1 inherit;cursor:pointer;}' +
+      '.tour-b{border:none;border-radius:11px;padding:0 16px;height:42px;font:800 14px/1 inherit;' +
+        'cursor:pointer;flex:0 0 auto;}' +
       '.tour-b.next{background:#1c2440;color:#fff;}' +
-      '.tour-b.skip{background:transparent;color:var(--ink-2,#666);padding:0 8px;}' +
-      '@media(prefers-reduced-motion:reduce){#tourBox{transition:none;}}';
+      '.tour-b.skip{background:transparent;color:var(--ink-2,#666);padding:0 10px;}';
     document.head.appendChild(s);
   }
 
-  function place(el) {
-    if (!el) {                                  /* centred, no spotlight */
-      box.style.opacity = '0';
-      tip.style.top = ''; tip.style.bottom = '';
-      tip.style.top = Math.max(20, (window.innerHeight / 2) - (tip.offsetHeight / 2)) + 'px';
+  /* Runs every frame while the tour is open, so the spotlight stays locked to
+     its target through smooth scrolling, reflow and late-loading content. */
+  function place() {
+    if (!tip) return;
+    var vw = window.innerWidth, vh = window.innerHeight, pad = 6, gap = 12, edge = 12;
+
+    if (!target || !target.getClientRects().length) {
+      box.className = 'flat';
+      box.style.top = '-9999px'; box.style.left = '-9999px';
+      box.style.width = '0px'; box.style.height = '0px';
+      tip.style.left = Math.round((vw - tip.offsetWidth) / 2) + 'px';
+      tip.style.top = Math.round(Math.max(edge, (vh - tip.offsetHeight) / 2)) + 'px';
       return;
     }
-    box.style.opacity = '1';
-    var r = el.getBoundingClientRect(), pad = 6;
+
+    box.className = '';
+    var r = target.getBoundingClientRect();
     box.style.top = (r.top - pad) + 'px';
     box.style.left = (r.left - pad) + 'px';
     box.style.width = (r.width + pad * 2) + 'px';
     box.style.height = (r.height + pad * 2) + 'px';
-    /* Put the card wherever there is more room, so it never covers the thing
-       it is pointing at. */
-    var below = window.innerHeight - r.bottom;
-    tip.style.top = (below > tip.offsetHeight + 30)
-      ? (r.bottom + 14) + 'px'
-      : Math.max(14, r.top - tip.offsetHeight - 14) + 'px';
+
+    /* Prefer below, fall back above, and if neither fits, centre — then clamp
+       to the viewport so it can never hang off a small screen. */
+    var h = tip.offsetHeight, top;
+    if (vh - r.bottom > h + gap + edge) top = r.bottom + gap;
+    else if (r.top > h + gap + edge) top = r.top - h - gap;
+    else top = (vh - h) / 2;
+    top = Math.max(edge, Math.min(top, vh - h - edge));
+
+    var w = tip.offsetWidth;
+    var left = r.left + r.width / 2 - w / 2;
+    left = Math.max(edge, Math.min(left, vw - w - edge));
+
+    tip.style.top = Math.round(top) + 'px';
+    tip.style.left = Math.round(left) + 'px';
   }
+
+  /* A permanent rAF loop forced a synchronous layout every frame and locked the
+     renderer up. Instead: reposition on the events that can actually move the
+     target, plus a short burst after each step to cover the smooth scroll. */
+  var burstUntil = 0;
+  function burst(ms) {
+    burstUntil = Date.now() + (ms || 900);
+    if (raf) return;
+    (function loop() {
+      place();
+      raf = (Date.now() < burstUntil) ? requestAnimationFrame(loop) : 0;
+    })();
+  }
+  function onMove(){ place(); }
 
   function render() {
     var st = steps[i];
-    var el = st.sel || st.text ? find(st.sel, st.text) : null;
-    if (el) try { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) {}
+    target = (st.sel || st.text) ? find(st.sel, st.text) : null;
+    if (target) { try { target.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) {} }
+
     tip.innerHTML =
       '<h4></h4><p></p>' +
       '<div class="tour-f"><div class="tour-dots">' +
         steps.map(function (_, j) { return '<i class="' + (j === i ? 'on' : '') + '"></i>'; }).join('') +
       '</div>' +
-      '<button class="tour-b skip" type="button">' + (i === steps.length - 1 ? '' : 'Skip') + '</button>' +
+      (i === steps.length - 1 ? '' : '<button class="tour-b skip" type="button">Skip</button>') +
       '<button class="tour-b next" type="button">' + (i === steps.length - 1 ? "Let's go" : 'Next') + '</button></div>';
     tip.querySelector('h4').textContent = st.title;
     tip.querySelector('p').textContent = st.body;
-    tip.querySelector('.next').addEventListener('click', next);
+    tip.querySelector('.next').addEventListener('click', function (e) { e.stopPropagation(); next(); });
     var sk = tip.querySelector('.skip');
-    if (sk && sk.textContent) sk.addEventListener('click', function () { finish('skipped'); });
-    setTimeout(function () { place(el); }, 60);
+    if (sk) sk.addEventListener('click', function (e) { e.stopPropagation(); finish('skipped'); });
+
+    place();
+    burst(1100);                       // covers the smooth scroll into view
     if (window.tsfgTrack) window.tsfgTrack('action', { tour: 'step', step: i + 1, of: steps.length });
   }
 
@@ -914,31 +953,44 @@ window.tsfgTrack = function (kind, detail) {
 
   function finish(how) {
     markDone();
-    if (box) box.remove(); if (tip) tip.remove();
-    box = tip = null;
-    window.removeEventListener('resize', onResize);
+    if (raf) cancelAnimationFrame(raf); raf = 0; burstUntil = 0;
+    window.removeEventListener('scroll', onMove, true);
+    window.removeEventListener('resize', onMove);
+    [veil, box, tip].forEach(function (el) { if (el && el.parentNode) el.remove(); });
+    veil = box = tip = target = null;
     if (window.tsfgTrack) window.tsfgTrack('action', { tour: how, steps: i });
   }
-
-  function onResize(){ if (tip) { var st = steps[i]; place(st.sel || st.text ? find(st.sel, st.text) : null); } }
 
   function begin() {
     css();
     steps = STEPS(); i = 0;
+
+    veil = document.createElement('div'); veil.id = 'tourVeil';
+    /* Swallow everything. Without this a tap "outside" hit the app underneath
+       and left the tour running over a page that had already navigated. */
+    ['click', 'mousedown', 'touchstart', 'pointerdown'].forEach(function (ev) {
+      veil.addEventListener(ev, function (e) { e.preventDefault(); e.stopPropagation(); }, true);
+    });
+
     box = document.createElement('div'); box.id = 'tourBox';
-    tip = document.createElement('div'); tip.id = 'tourTip'; tip.setAttribute('role', 'dialog');
-    document.body.appendChild(box); document.body.appendChild(tip);
-    window.addEventListener('resize', onResize);
+    tip = document.createElement('div'); tip.id = 'tourTip';
+    tip.setAttribute('role', 'dialog'); tip.setAttribute('aria-modal', 'true');
+
+    document.body.appendChild(veil);
+    document.body.appendChild(box);
+    document.body.appendChild(tip);
+
+    window.addEventListener('scroll', onMove, true);
+    window.addEventListener('resize', onMove);
     render();
     if (window.tsfgTrack) window.tsfgTrack('action', { tour: 'started' });
   }
-  window.tsfgStartTour = function () { try { localStorage.removeItem(KEY); } catch (e) {} begin(); };
+  window.tsfgStartTour = function () { try { localStorage.removeItem(KEY); } catch (e) {} if (!tip) begin(); };
 
   function start() {
     var p = location.pathname.split('/').pop() || 'index.html';
-    if (p !== 'index.html' && p !== '') return;         // Home only
+    if (p !== 'index.html' && p !== '') return;
     if (!code() || done()) return;
-    /* Wait for the dashboard to actually paint, or we spotlight a skeleton. */
     setTimeout(function () { if (document.querySelector('.snap, .tsfg-menu')) begin(); }, 2200);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
