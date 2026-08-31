@@ -477,7 +477,7 @@
       '@media(max-width:' + PHONE + 'px){' +
         '.tsfg-menu{display:inline-flex;}' +
         /* our button replaces the bare icon ones */
-        '.tb-toggle,.menu{display:none!important;}' +
+        '.tb-toggle,.menu,[onclick*="tsfgToggle"],[onclick*="toggleSidebar"]{display:none!important;}' +
         /* we own open/closed */
         '.sidebar,.tsfg-side,aside.side{width:min(86vw,300px)!important;z-index:1001!important;}' +
         'body.' + OPEN + ' .sidebar,body.' + OPEN + ' .tsfg-side,body.' + OPEN + ' aside.side{' +
@@ -529,11 +529,36 @@
     b.addEventListener('click', function (e) { e.preventDefault(); setOpen(!isOpen()); });
 
     if (bar) bar.insertBefore(b, bar.firstChild);
-    else document.body.appendChild(b);
+    else { document.body.appendChild(b); document.body.classList.add('tsfg-floatmenu'); }
+  }
+
+  /* Pages with no sidebar (Profile, Privacy) never received the in-menu
+     language control, so i18n.js kept showing its floating pill — which lands
+     on whatever is beneath it, e.g. the State of residence field on Profile.
+     Give those pages a compact control in their header instead. */
+  function langInHeader() {
+    if (document.querySelector('.tsfg-lang, [data-lang-btn]')) return;   // already has one
+    if (document.querySelector(PANEL)) return;                           // has a menu; handled there
+    if (typeof window.tsfgSetLang !== 'function') return;
+    var bar = null, cands = document.querySelectorAll('.topbar, .tsfg-top, .top, .ftop, header');
+    for (var i = 0; i < cands.length; i++) {
+      var r = cands[i].getBoundingClientRect();
+      if (r.width > 0 && r.height > 0) { bar = cands[i]; break; }
+    }
+    if (!bar) return;
+    var wrap = document.createElement('div');
+    wrap.className = 'tsfg-lang hdr';
+    wrap.setAttribute('data-no-i18n', '');
+    wrap.innerHTML = '<button type="button" data-lang-btn="en">EN</button>' +
+                     '<button type="button" data-lang-btn="es">ES</button>';
+    wrap.querySelectorAll('button').forEach(function (b) {
+      b.addEventListener('click', function () { window.tsfgSetLang(b.getAttribute('data-lang-btn')); });
+    });
+    bar.appendChild(wrap);
   }
 
   function start() {
-    css(); scrim(); build(false);
+    css(); scrim(); build(false); langInHeader();
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape' && isOpen()) setOpen(false);
     });
@@ -544,6 +569,7 @@
       /* ~2s for a header to appear (Team Hub reveals its own after sign-in);
          after that, float — PFR genuinely has no header to attach to. */
       build(tries > 5);
+      langInHeader();
       if (document.querySelector('.tsfg-menu') || tries > 20) clearInterval(t);
     }, 400);
   }
@@ -626,6 +652,13 @@ window.tsfgTrack = function (kind, detail) {
         'background:#1c2440;color:#fff;font:800 14px/1 -apple-system,system-ui,sans-serif;cursor:pointer;' +
         'box-shadow:0 6px 22px rgba(0,0,0,.28);-webkit-tap-highlight-color:transparent;}' +
       '#askFab:active{transform:scale(.96);}' +
+      /* Floating controls get their own space rather than covering content. */
+      'body.tsfg-hasfab{padding-bottom:78px;}' +
+      'body.tsfg-floatmenu{padding-top:66px;}' +
+      '.tsfg-lang.hdr{display:flex;gap:3px;padding:0;flex:0 0 auto;margin-left:6px;}' +
+      '.tsfg-lang.hdr button{min-height:34px;min-width:34px;padding:0 8px;border-radius:9px;' +
+        'border:1px solid var(--line-2,var(--line2,#e3e3e8));background:transparent;color:inherit;' +
+        'font:800 11.5px/1 inherit;cursor:pointer;}' +
       '#askScrim{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1201;display:none;}' +
       '#askScrim.on{display:block;}' +
       '#askPanel{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:min(560px,100%);' +
@@ -731,6 +764,7 @@ window.tsfgTrack = function (kind, detail) {
     document.body.appendChild(scrim);
     document.body.appendChild(panel);
     document.body.appendChild(fab);
+    document.body.classList.add('tsfg-hasfab');
 
     fab.addEventListener('click', function () { open(true); });
     scrim.addEventListener('click', function () { open(false); });

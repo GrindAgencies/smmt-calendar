@@ -17,7 +17,7 @@
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);-webkit-font-smoothing:antialiased;letter-spacing:-.01em}
 a{color:inherit}
-.top{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:12px;padding:13px 20px;background:color-mix(in srgb,var(--bg) 86%,transparent);backdrop-filter:saturate(1.6) blur(14px);border-bottom:1px solid var(--line)}
+.top{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:12px;padding:13px 20px;flex-wrap:wrap;row-gap:8px;min-width:0;background:color-mix(in srgb,var(--bg) 86%,transparent);backdrop-filter:saturate(1.6) blur(14px);border-bottom:1px solid var(--line)}
 .top .back{display:inline-flex;align-items:center;gap:7px;text-decoration:none;font-weight:800;font-size:14px;color:var(--ink2);padding:7px 12px;border-radius:10px;border:1px solid var(--line2);background:var(--panel)}
 .top .back:hover{color:var(--ink)}
 .top h1{font-size:16px;font-weight:800;margin:0;letter-spacing:-.02em}
@@ -75,6 +75,14 @@ input.in[readonly]{background:var(--panel2);color:var(--ink2)}
 .gate{max-width:400px;margin:12vh auto;text-align:center;padding:0 20px}
 .gate h2{font-size:20px;font-weight:800}
 .gate p{color:var(--ink2);font-size:14px}
+</style>
+<style id="profile-fit">
+/* The header was a single non-wrapping row; adding any control (the EN/ES
+   pair) pushed it past the right edge on a phone. */
+@media(max-width:560px){
+  .top{padding-left:13px;padding-right:13px;gap:8px;}
+  .top>*{flex:0 0 auto;min-width:0;}
+}
 </style>
 </head>
 <body>
@@ -334,6 +342,7 @@ document.addEventListener('dragover',function(e){var m=zf(e.target);if(!m)return
 document.addEventListener('dragleave',function(e){if(cur&&!cur.contains(e.relatedTarget)){hi(cur,false);cur=null;}},false);
 document.addEventListener('drop',function(e){var m=zf(e.target);hi(cur,false);cur=null;if(!m)return;e.preventDefault();var fs=e.dataTransfer&&e.dataTransfer.files;if(!fs||!fs.length)return;try{var dt=new DataTransfer();for(var k=0;k<fs.length;k++)dt.items.add(fs[k]);m.i.files=dt.files;}catch(_){}m.i.dispatchEvent(new Event('change',{bubbles:true}));},false);})();
 </script>
+<script src="notif.js"></script>
 <script src="i18n.js"></script>
 </body>
 </html>

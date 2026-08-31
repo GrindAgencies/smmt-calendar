@@ -49,7 +49,13 @@ a{color:inherit}
 .tbadge.emd{background:rgba(201,154,46,.16);color:#8a6d1f;border:1px solid #caa23a;}
 .tbadge.md{background:rgba(91,108,255,.12);color:#4048c0;border:1px solid #7fb0e6;}
 .tbadge.new{background:rgba(52,199,89,.16);color:#1a7f47;border:1px solid #2c6b4d;}
-.tmeta{font-size:12px;color:#6e6e73;margin-top:3px;line-height:1.5;}
+.tmeta{font-size:12px;color:#6e6e73;margin-top:3px;line-height:1.5;display:flex;flex-wrap:wrap;gap:1px 10px;}
+.tmeta span{white-space:nowrap;}
+/* Grid cells default to min-width:auto, so the 1fr column refused to shrink
+   below its content and every agent's status ran off the right edge with no
+   way to scroll to it. */
+.trow>*{min-width:0;}
+.trow .tn,.trow .ln{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .tmeta span{margin-right:11px;white-space:nowrap;}
 .tright{text-align:right;font-size:10.5px;color:#6e6e73;font-weight:700;white-space:nowrap;}
 .tright .big{font-size:18px;font-weight:900;color:#1d1d1f;display:block;line-height:1;}

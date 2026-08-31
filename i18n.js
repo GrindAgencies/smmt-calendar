@@ -162,6 +162,15 @@
     bs[0].onclick = function () { window.tsfgSetLang("en"); };
     bs[1].onclick = function () { window.tsfgSetLang("es"); };
     document.body.appendChild(w);
+    if (!document.getElementById("i18nPad")) {
+      var st = document.createElement("style"); st.id = "i18nPad";
+      st.textContent = "body.tsfg-haspill{padding-bottom:66px;}"
+        /* The Ask button owns the bottom-right corner. When it is present the
+           pill sits above it rather than on top of it. */
+        + "body.tsfg-hasfab #i18nToggle{bottom:calc(76px + env(safe-area-inset-bottom))!important;}"
+        + "body.tsfg-hasfab.tsfg-haspill{padding-bottom:132px;}";
+      document.head.appendChild(st);
+    }
     paintToggle();
   }
 
@@ -180,7 +189,11 @@
   function syncToggleVisibility() {
     var pill = document.getElementById("i18nToggle");
     if (!pill) return;
-    pill.style.display = hasVisibleInPageToggle() ? "none" : "flex";
+    var hide = hasVisibleInPageToggle();
+    pill.style.display = hide ? "none" : "flex";
+    /* Reserve space so the pill never sits on top of a form field or a button
+       on pages that have no menu to host it (Profile, Privacy). */
+    try { document.body.classList.toggle("tsfg-haspill", !hide); } catch (e) {}
   }
 
   function boot() {
