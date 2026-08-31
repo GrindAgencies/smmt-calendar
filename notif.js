@@ -987,11 +987,42 @@ window.tsfgTrack = function (kind, detail) {
   }
   window.tsfgStartTour = function () { try { localStorage.removeItem(KEY); } catch (e) {} if (!tip) begin(); };
 
+  /* Only genuinely new enrolments get the tour. Everyone already on the
+     platform has found their way around, and a walkthrough appearing on a
+     familiar app reads as a bug. Change ONBOARDED_FROM to move the line.
+     All 129 accounts existing on 2026-08-31 predate this, so none of them
+     will ever see it. */
+  var ONBOARDED_FROM = Date.parse('2026-08-31T00:00:00Z');
+  var TRACKER = 'https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/tracker-api';
+
+  function isNewEnrolment(cb) {
+    var c = code();
+    if (!c) return cb(false);
+    fetch(TRACKER, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'load', code: c })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (r) {
+        var created = r && r.agent && r.agent.created_at;
+        /* Fail closed: if we cannot establish that this is a new account, do
+           not show the tour. Better a new agent misses it than an established
+           one gets ambushed by it. */
+        if (!created) return cb(false);
+        var t = Date.parse(created);
+        cb(!isNaN(t) && t >= ONBOARDED_FROM);
+      })
+      .catch(function () { cb(false); });
+  }
+
   function start() {
     var p = location.pathname.split('/').pop() || 'index.html';
     if (p !== 'index.html' && p !== '') return;
     if (!code() || done()) return;
-    setTimeout(function () { if (document.querySelector('.snap, .tsfg-menu')) begin(); }, 2200);
+    isNewEnrolment(function (ok) {
+      if (!ok) { markDone(); return; }   // never ask again for this person
+      setTimeout(function () { if (document.querySelector('.snap, .tsfg-menu')) begin(); }, 2200);
+    });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
   else start();
