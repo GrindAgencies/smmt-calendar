@@ -171,6 +171,18 @@ body.drawer .scrim{display:block;}
 .side{ padding-top: calc(16px + env(safe-area-inset-top)) !important; }
 html, body{ overflow-x: hidden; }
 </style>
+<style id="hub-typing-css">
+.typing{height:0;overflow:hidden;font-size:12.5px;font-weight:600;color:var(--ink2);opacity:0;
+  transition:height .14s ease,opacity .14s ease;padding:0 2px;}
+.typing.on{height:18px;opacity:.85;}
+</style>
+<style id="hub-empty-css">
+.emptychan{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
+  gap:8px;padding:56px 26px;color:var(--ink2);min-height:60%;}
+.ec-ic{font-size:38px;line-height:1;opacity:.85;}
+.ec-t{font-size:16px;font-weight:800;color:var(--ink);letter-spacing:-.01em;}
+.ec-s{font-size:13.5px;max-width:34ch;line-height:1.5;opacity:.8;}
+</style>
 <style id="hub-chat-polish">
 /* Day separators — without them yesterday reads as just now. */
 .daysep{display:flex;align-items:center;gap:10px;margin:18px 4px 10px;color:var(--ink3);
@@ -223,10 +235,11 @@ html, body{ overflow-x: hidden; }
   .top .tic.chan-toggle{width:auto;padding:0 12px;gap:7px;font:800 13.5px/1 inherit;color:var(--ink);}
   .ct-lbl{display:inline;}
 }
-/* Chat is a full-bleed scrolling surface — a floating pill covers either the
-   send button or the newest message, whichever way you move it. Language is a
-   global preference that persists, and every other page still offers it. */
-#i18nToggle{display:none!important;}
+/* Chat is a full-bleed scrolling surface — anything floating bottom-right lands
+   on the send button or the newest message. Language lives in the menu now, and
+   this page already has its own assistant entry point in the "Ask Bob" chip, so
+   both floaters are suppressed here. */
+#i18nToggle,#askFab{display:none!important;}
 </style>
 </head>
 <body>
@@ -270,6 +283,7 @@ html, body{ overflow-x: hidden; }
     <div class="chead" id="chead"></div>
     <div class="mlist" id="mlist"></div>
     <div class="composer">
+      <div class="typing" id="typing" aria-live="polite"></div>
       <div class="chips">
         <button class="chip rec" onclick="openRecognize()">🎉 Recognize</button>
         <button class="chip ai" onclick="askInsert()">🤖 Ask Bob</button>
@@ -402,7 +416,7 @@ function chanMeta(id){
   var SUBS={operations:'Direct line to Operations · Anais · 858-433-4429 · impactagency.ops@gmail.com',leadership:'Marketing Directors, EMDs & Operations only',licensing:'Agents completing licensing',licensed:'Licensed agents only',cft:'Certified Field Trainers only',announcements:'Company-wide announcements',main:'Everyone in the company',training:'Live training discussion'};
   var c=CHANNELS.filter(function(c){return c.id===id;})[0]||{icon:'#',name:id};var subtxt=SUBS[id];if(!subtxt&&c.baseshop){var L={announcements:'Announcements',training:'Training',licensing:'Licensing',cft:'CFT Room',operations:'Operations'}[c.sub]||'';subtxt=(c.baseshopName||'')+' baseshop \u00b7 '+L;}return {icon:c.icon||'#',name:c.name,sub:subtxt||'Channel'};
 }
-function openChan(id){CHAN=id;LASTID=0;NEWLINE=(readMap()[id]||0);$('mlist').innerHTML='';renderRooms();renderHead();loadMsgs(true);document.body.classList.remove('rooms-open');if(typeof heartbeat==='function')heartbeat();}
+function openChan(id){CHAN=id;LASTID=0;NEWLINE=(readMap()[id]||0);renderTyping([]);$('mlist').innerHTML='';renderRooms();renderHead();loadMsgs(true);document.body.classList.remove('rooms-open');if(typeof heartbeat==='function')heartbeat();}
 function chanNameOf(id){if(!id)return '';if(id.indexOf('dm:')===0)return 'a direct message';var c=CHANNELS.filter(function(x){return x.id===id;})[0];if(c){if(c.baseshop){var L={announcements:'Announcements',training:'Training',licensing:'Licensing',cft:'CFT Room',operations:'Operations'}[c.sub]||c.name;return (c.baseshopName?c.baseshopName+' \u00b7 ':'')+L;}return c.name;}return id;}
 function presenceList(){var codes=Object.keys(ONLINE);if(!codes.length)return '<div class="presrow"><span class="pc">No one online right now</span></div>';return codes.sort(function(a,b){return ((ONLINE[a]&&ONLINE[a].name)||'').localeCompare((ONLINE[b]&&ONLINE[b].name)||'');}).map(function(cd){var ob=ONLINE[cd]||{};var away=ob.status==='away';var ch=ob.channel?chanNameOf(ob.channel):'';var sub=away?'Away from computer':(ch?('in '+ch):'Active now');return '<div class="presrow"><span class="pdd'+(away?' away':'')+'"></span><div><div class="pn">'+esc(ob.name||cd)+(away?' <span style=\"color:#e6a700;font-weight:700\">\u2022 Away</span>':'')+'</div><div class="pc">'+esc(sub)+'</div></div></div>';}).join('');}
 function renderHead(){var m=chanMeta(CHAN);var del=(CHAN.indexOf('c_')===0)?'<button class="tic" title="Delete channel" onclick="deleteChannel()" style="margin-left:10px;flex:0 0 auto">\ud83d\uddd1\ufe0f</button>':'';$('chead').innerHTML='<div class="ci">'+(m.dm?'<div class="dmav" style="width:34px;height:34px">'+m.icon+'</div>':m.icon)+'</div><div><div class="cn">'+esc(m.name)+'</div><div class="cs">'+esc(m.sub)+'</div></div><div class="presence"><span class="pd"></span>'+Object.keys(ONLINE).length+' online<div class="preslist"><div class="preshdr">Online now</div>'+presenceList()+'</div></div>'+del;}
@@ -538,6 +552,17 @@ function renderMsgs(scroll){
     var acts=(m.deleted||m.kind==='ai')?'':'<div class="mact"><button onclick="reactPop(event,'+m.id+')" title="React">😀</button><button onclick="setReply('+m.id+')" title="Reply">↩</button>'+((m.author_code===CODE)?'<button onclick="editMsg('+m.id+')" title="Edit">✏️</button>':'')+((m.author_code===CODE||ACC.mod||MODTOKEN)?'<button onclick="delMsg('+m.id+')" title="Delete">🗑</button>':'')+'</div>';
     return nl+sep+'<div class="msg'+(cont?' cont':'')+(m.kind==='recognition'?' recog':'')+(m.kind==='ai'?' ai':'')+'" data-id="'+m.id+'">'+av+'<div class="mbody">'+head+inner+rx+'</div>'+acts+'</div>';
   }).join('');
+  /* An empty channel used to render nothing at all — you'd open Leadership and
+     get a blank screen with no explanation. */
+  if(!MSGS.length){
+    var ch=(CHANNELS||[]).filter(function(c){return c.id===CHAN;})[0]||{};
+    var nm=esc(ch.name||'this channel');
+    host.innerHTML='<div class="emptychan">'+
+      '<div class="ec-ic">'+(ch.icon||'💬')+'</div>'+
+      '<div class="ec-t">No messages in '+nm+' yet</div>'+
+      '<div class="ec-s">Be the first to say something — everyone with access to this channel will see it.</div>'+
+      '</div>';
+  }
   if(CHAN==='operations'){host.insertAdjacentHTML('afterbegin','<div class="opsbanner">⚙️ <b>Operations line.</b> Messages here go straight to the Operations team (Anais). For licensing: <b>calendly.com/impactagency-ops/licensing</b> · 858-433-4429 · impactagency.ops@gmail.com</div>');}
   if(scroll)host.scrollTop=host.scrollHeight;
   else if(host.scrollHeight-host.scrollTop-host.clientHeight<160)host.scrollTop=host.scrollHeight;
@@ -554,7 +579,36 @@ function delMsg(id){if(!confirm('Delete this message?'))return;var b={action:'hu
 
 /* composer */
 function autoresize(){var t=$('cin');t.style.height='auto';t.style.height=Math.min(140,t.scrollHeight)+'px';}
-function onType(){autoresize();mentionCheck();}
+var TYPEAPI='https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/hub-typing';
+var LASTTYPE=0, TYPETIMER=null;
+function onType(){
+  autoresize();mentionCheck();
+  /* Throttled: one ping every 2.5s while someone is actually typing, not per
+     keystroke. The mark expires server-side after six seconds. */
+  var now=Date.now();
+  if(now-LASTTYPE>2500){
+    LASTTYPE=now;
+    fetch(TYPEAPI,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'set',code:CODE,name:NAME,channel:CHAN})}).catch(function(){});
+  }
+}
+function renderTyping(list){
+  var el=$('typing'); if(!el)return;
+  if(!list||!list.length){el.textContent='';el.classList.remove('on');return;}
+  var names=list.map(function(t){return (t.name||t.code||'').split(/\s+/)[0];}).filter(Boolean);
+  var txt = names.length===1 ? (names[0]+' is typing…')
+          : names.length===2 ? (names[0]+' and '+names[1]+' are typing…')
+          : (names.length+' people are typing…');
+  el.textContent=txt; el.classList.add('on');
+}
+function pollTyping(){
+  if(document.hidden||!CODE||!CHAN)return;
+  fetch(TYPEAPI,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'list',code:CODE,channel:CHAN})})
+    .then(function(r){return r.json();})
+    .then(function(r){ if(r&&r.ok)renderTyping(r.typing); })
+    .catch(function(){});
+}
 function onKey(e){
   if($('mentions').classList.contains('on')){
     if(e.key==='ArrowDown'){e.preventDefault();MENSEL=(MENSEL+1)%MENITEMS.length;renderMentions();return;}
@@ -678,7 +732,8 @@ function heartbeat(){var st=(Date.now()-lastActivity>600000)?'away':'active';if(
   // roster for DMs + mentions
   fetch(TA,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'team',leader:BASESHOP_LEADER})}).then(function(r){return r.json();}).then(function(d){(d&&d.agents||[]).forEach(function(a){var nm=((a.first_name||'')+' '+(a.last_name||'')).trim();if(a.code&&nm)MEMBERS[a.code]=nm;});renderRooms();});
   POLL=setInterval(function(){if(!document.hidden)loadMsgs(false);},60000);
-  loadUnread(); setInterval(function(){if(!document.hidden)loadUnread();},20000); /* fallback only — realtime broadcast drives live updates */
+  loadUnread(); setInterval(function(){if(!document.hidden)loadUnread();},20000);
+  pollTyping(); setInterval(pollTyping,3000); /* fallback only — realtime broadcast drives live updates */
   setInterval(function(){if(!document.hidden)heartbeat();},30000);
   setInterval(function(){if(!document.hidden)loadAvatars();},120000);
   document.addEventListener('visibilitychange',function(){if(!document.hidden){loadMsgs(false);heartbeat();}});
