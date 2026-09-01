@@ -336,6 +336,28 @@ body{ padding-top: calc(60px + env(safe-area-inset-top)) !important; }
 .tsfg-side{ padding-top: calc(16px + env(safe-area-inset-top)) !important; }
 html, body{ overflow-x: hidden; }
 </style>
+<style id="tsfg-dark-fix">
+/* My Tracker renders this file (checklist.html redirects here), and it had no
+   dark theme at all — which is why choosing dark on Home and opening My Tracker
+   flipped you to white. Values match Home. --tsfg-side is a WIDTH, left alone. */
+:root[data-theme="dark"]{
+  --bg:#0a0a0c; --panel:#161618; --panel2:#1c1c1f; --panel-2:#1c1c1f;
+  --ink:#f5f5f7; --text:#f5f5f7; --ink2:#a1a1a8; --ink3:#77777e;
+  --muted:#a1a1a8; --muted2:#77777e;
+  --line:#26262a; --line2:#2e2e33; --line-2:#2e2e33;
+  --accent:#7c8bff; --tsfg-accent:#7c8bff;
+  --gold:#e4be6e; --green:#4fd08a;
+}
+:root[data-theme="dark"] body{background:var(--bg);color:var(--ink);}
+/* The header and its buttons hard-code light colours, so the page went dark
+   around a light bar. Half-dark reads worse than not doing it at all. */
+:root[data-theme="dark"] .tsfg-top{background:rgba(22,22,24,.85)!important;
+  border-bottom-color:var(--line)!important;}
+:root[data-theme="dark"] .tsfg-title{color:var(--ink)!important;}
+:root[data-theme="dark"] .tsfg-ic{background:var(--panel)!important;color:var(--ink2)!important;
+  border-color:var(--line2)!important;}
+:root[data-theme="dark"] .tsfg-ic svg{stroke:currentColor;}
+</style>
 </head>
 <body>
 <div class="tsfg-scrim" onclick="tsfgDrawer(false)"></div>

@@ -1,3 +1,19 @@
+/* ==========================================================================
+   THEME BOOTSTRAP  (2026-09-01)
+   --------------------------------------------------------------------------
+   Six pages never read the saved theme, so choosing dark on Home and opening
+   My Tracker or Resources flipped you back to white. Applied here, before
+   anything renders, so every screen honours the same choice.
+   ========================================================================== */
+(function () {
+  try {
+    var t = localStorage.getItem('gfi_theme');
+    if (t === 'dark' || t === 'light') {
+      document.documentElement.setAttribute('data-theme', t);
+    }
+  } catch (e) {}
+})();
+
 /* ============================================================
    The Standard — Notification bell (shared across all pages)
    Emulates the Agency Pulse notification center.
