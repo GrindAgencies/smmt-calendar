@@ -342,8 +342,8 @@ html, body{ overflow-x: hidden; }
    flipped you to white. Values match Home. --tsfg-side is a WIDTH, left alone. */
 :root[data-theme="dark"]{
   --bg:#0a0a0c; --panel:#161618; --panel2:#1c1c1f; --panel-2:#1c1c1f;
-  --ink:#f5f5f7; --text:#f5f5f7; --ink2:#a1a1a8; --ink3:#77777e;
-  --muted:#a1a1a8; --muted2:#77777e;
+  --ink:#f5f5f7; --text:#f5f5f7; --ink2:#a1a1a8; --ink3:#8e8e96;
+  --muted:#a1a1a8; --muted2:#8e8e96;   /* #77777e fell under 4.5:1 on --panel */
   --line:#26262a; --line2:#2e2e33; --line-2:#2e2e33;
   --accent:#7c8bff; --tsfg-accent:#7c8bff;
   --gold:#e4be6e; --green:#4fd08a;
@@ -357,6 +357,18 @@ html, body{ overflow-x: hidden; }
 :root[data-theme="dark"] .tsfg-ic{background:var(--panel)!important;color:var(--ink2)!important;
   border-color:var(--line2)!important;}
 :root[data-theme="dark"] .tsfg-ic svg{stroke:currentColor;}
+/* The level sheet — the panel that opens when you tap a box on the journey —
+   hard-codes a white background. In dark mode its text is near-white, so the
+   whole panel rendered white-on-white and read as blank. --panel was correct
+   all along; these rules simply never consulted it. */
+:root[data-theme="dark"] .sheet{background:var(--panel)!important;}
+:root[data-theme="dark"] .sh-x{background:var(--panel2)!important;
+  border-color:var(--line2)!important;color:var(--ink2)!important;}
+/* Light mode only: --gold and --ink3 are tuned for dark grounds and fall to
+   2.6:1 and 3.3:1 on white. Darker equivalents, same roles. */
+html:not([data-theme="dark"]) .cx{color:#8a6a1f;}
+html:not([data-theme="dark"]) .occ-pct,
+html:not([data-theme="dark"]) .occ-note{color:#6e6e73;}
 </style>
 </head>
 <body>
@@ -673,7 +685,10 @@ function levelIcon(l){
   if(w==='cashflow'){if(/👑|millionaire|1,000,000/.test(n))return '👑';if(/💎/.test(n))return '💎';if(/💍|ring/.test(n))return '💍';if(/⌚|watch|50,000|50k/.test(n))return '⌚';return '💵';}
   return (worldById(w).icon||'⭐');
 }
-function stuckColor(d){if(d>=30)return '#ef4444';if(d>=14)return '#f97316';if(d>=7)return '#eab308';return '#22c55e';}
+/* Deeper shades of the same four colours. The 500-weight ramp carried white
+   text at 1.9-3.8:1 — the yellow chip in particular was unreadable. These
+   read as the same red/orange/amber/green, with white legible on each. */
+function stuckColor(d){if(d>=30)return '#b91c1c';if(d>=14)return '#c2410c';if(d>=7)return '#a16207';return '#15803d';}
 function occFor(lid){var roster=OCC.occupancy&&OCC.occupancy[lid];var cnt=(OCC.counts&&OCC.counts[lid])||(roster?roster.length:0);return {roster:roster,cnt:cnt,max:(roster&&roster.length)?roster[0].days:-1};}
 function occBadge(lid){var o=occFor(lid);if(!o.cnt)return '';var col=(o.max>=0)?stuckColor(o.max):'#8b93a7';return '<span class="cc-badge" style="--bc:'+col+'">'+(o.cnt>1?('👥 '+o.cnt):'👤')+'</span>';}
 function buildBoard(){
