@@ -385,6 +385,23 @@ html, body{ overflow-x: hidden; }
   .content{padding:14px 11px !important;}
 }
 </style>
+<style id="pin-css">
+#pinOv{position:fixed;inset:0;background:rgba(8,10,20,.66);z-index:3000;display:none;
+  align-items:center;justify-content:center;padding:18px;}
+#pinOv.on{display:flex;}
+.pin-card{width:min(380px,100%);background:var(--panel,#fff);color:var(--ink,#111);
+  border-radius:20px;padding:24px 22px 18px;box-shadow:0 20px 60px rgba(0,0,0,.4);text-align:center;}
+.pin-card h3{margin:0 0 6px;font-size:19px;font-weight:800;letter-spacing:-.01em;}
+.pin-sub{margin:0 0 16px;font-size:13.5px;line-height:1.5;color:var(--ink-2,#666);}
+.pin-in{width:100%;height:56px;border-radius:14px;border:1px solid var(--line-2,#e3e3e8);
+  background:var(--bg,#fafafa);color:inherit;text-align:center;letter-spacing:.5em;
+  font:800 24px/1 inherit;margin-bottom:10px;}
+.pin-msg{min-height:18px;font-size:13px;color:#e0483d;font-weight:600;margin-bottom:8px;}
+.pin-go{width:100%;min-height:50px;border:none;border-radius:13px;background:#1c2440;color:#fff;
+  font:800 15px/1 inherit;cursor:pointer;}
+.pin-cancel{width:100%;min-height:42px;margin-top:8px;border:none;background:transparent;
+  color:var(--ink-2,#666);font:700 13.5px/1 inherit;cursor:pointer;}
+</style>
 </head>
 <body>
 
@@ -890,6 +907,81 @@ function gatePending(status, firstName){
   var b=$('gBtn'); if(b){ b.disabled=false; b.textContent='Enter dashboard →'; }
 }
 document.addEventListener('visibilitychange',function(){if(!document.hidden&&CODE)loadLeaderboard();});
+
+/* ==========================================================================
+   SIGN-IN PIN  (2026-09-01)
+   --------------------------------------------------------------------------
+   Sign-in is now name + GFI code + a 4-digit PIN. Anyone who has not chosen
+   one yet is asked to, once, and that becomes their permanent PIN. Operations
+   can clear a forgotten PIN from the agent's profile in the Ops dashboard.
+
+   The PIN is bcrypt-hashed server-side and never stored on the device. It is
+   deliberately NOT kept in localStorage: a PIN you never have to type again
+   protects nothing.
+   ========================================================================== */
+var PINAPI='https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/pin';
+function pinApi(b){return fetch(PINAPI,{method:'POST',headers:{'Content-Type':'application/json'},
+  body:JSON.stringify(b)}).then(function(r){return r.json();});}
+
+function pinGate(code, first, last, proceed){
+  pinApi({action:'status',code:code}).then(function(st){
+    if(!st||!st.ok){ pinShow(code,first,last,proceed,false,(st&&st.error)||'Could not check your PIN.'); return; }
+    pinShow(code, first, last, proceed, !st.has_pin, st.locked?'This account is locked for a few minutes after too many wrong PINs.':'');
+  }).catch(function(){
+    pinShow(code,first,last,proceed,false,'Could not reach the server. Try again in a moment.');
+  });
+}
+
+function pinShow(code, first, last, proceed, creating, err){
+  var ov=document.getElementById('pinOv');
+  if(!ov){
+    ov=document.createElement('div'); ov.id='pinOv';
+    document.body.appendChild(ov);
+  }
+  ov.className='on';
+  ov.innerHTML=
+    '<div class="pin-card" role="dialog" aria-modal="true">'+
+      '<h3>'+(creating?'Choose your 4-digit PIN':'Enter your PIN')+'</h3>'+
+      '<p class="pin-sub">'+(creating
+        ? 'You will use this every time you sign in. Pick something you will remember — Operations can reset it if you forget.'
+        : 'Signing in as '+String(first||'')+' '+String(last||''))+'</p>'+
+      '<input id="pin1" class="pin-in" type="password" inputmode="numeric" autocomplete="off" '+
+        'maxlength="4" placeholder="••••" aria-label="PIN">'+
+      (creating?'<input id="pin2" class="pin-in" type="password" inputmode="numeric" autocomplete="off" maxlength="4" placeholder="Confirm" aria-label="Confirm PIN">':'')+
+      '<div class="pin-msg" id="pinMsg">'+(err?String(err):'')+'</div>'+
+      '<button class="pin-go" id="pinGo" type="button">'+(creating?'Save my PIN':'Sign in')+'</button>'+
+      '<button class="pin-cancel" type="button" id="pinCancel">Back</button>'+
+    '</div>';
+
+  var go=document.getElementById('pinGo');
+  var m=document.getElementById('pinMsg');
+  function fail(t){ m.textContent=t; go.disabled=false; go.textContent=creating?'Save my PIN':'Sign in'; }
+  function submit(){
+    var p1=(document.getElementById('pin1').value||'').trim();
+    if(!/^[0-9]{4}$/.test(p1)) return fail('Your PIN must be 4 digits.');
+    if(creating){
+      var p2=(document.getElementById('pin2').value||'').trim();
+      if(p1!==p2) return fail('Those two PINs do not match.');
+    }
+    go.disabled=true; go.textContent='Checking…'; m.textContent='';
+    pinApi(creating
+      ? {action:'set',code:code,first:first,last:last,pin:p1}
+      : {action:'verify',code:code,pin:p1})
+      .then(function(r){
+        if(r&&r.ok){ ov.className=''; ov.innerHTML=''; proceed(); return; }
+        if(r&&r.needs_pin){ pinShow(code,first,last,proceed,true,'Choose a PIN to finish signing in.'); return; }
+        fail((r&&r.error)||'That did not work.');
+      })
+      .catch(function(){ fail('Could not reach the server.'); });
+  }
+  go.addEventListener('click',submit);
+  document.getElementById('pin1').addEventListener('keydown',function(e){if(e.key==='Enter')submit();});
+  var p2el=document.getElementById('pin2');
+  if(p2el)p2el.addEventListener('keydown',function(e){if(e.key==='Enter')submit();});
+  document.getElementById('pinCancel').addEventListener('click',function(){ ov.className=''; ov.innerHTML=''; });
+  setTimeout(function(){var f=document.getElementById('pin1'); if(f)f.focus();},80);
+}
+
 function doLogin(){
   var first=$('gFirst').value.trim(),last=$('gLast').value.trim(),code=($('gCode').value||'').trim().toUpperCase();
   var msg=$('gMsg');msg.className='gmsg';
@@ -902,10 +994,15 @@ function doLogin(){
     if(res&&res.ok&&res.agent){
       var acc=(res.agent.access_status||'approved');
       if(acc!=='approved'){ gatePending(acc,(res.agent.first_name||first)); return; }
-      CODE=code;NAME=(res.agent.first_name||first)+' '+(res.agent.last_name||last);NAME=NAME.trim();
-      try{localStorage.setItem('tsfg_code',CODE);localStorage.setItem('tsfg_name',NAME);}catch(e){}
-      try{if(window.__pushReattach)window.__pushReattach();}catch(e){}  // link this device's push token to the code
-      showApp();
+      var fullName=((res.agent.first_name||first)+' '+(res.agent.last_name||last)).trim();
+      /* The account is real and approved — now the PIN. Everything below only
+         runs once the PIN is set or verified. */
+      pinGate(code, (res.agent.first_name||first), (res.agent.last_name||last), function(){
+        CODE=code;NAME=fullName;
+        try{localStorage.setItem('tsfg_code',CODE);localStorage.setItem('tsfg_name',NAME);}catch(e){}
+        try{if(window.__pushReattach)window.__pushReattach();}catch(e){}  // link this device's push token to the code
+        showApp();
+      });
     } else if(res&&res.notfound){
       msg.textContent='No agent with that code yet — add your first & last name to create it.';
     } else {msg.textContent=(res&&res.error)||'Could not sign you in. Check your code.';}

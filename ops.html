@@ -1169,7 +1169,7 @@ function paintAgent(r){
   if(canEdit()){
     h+='<div class="dsec" style="margin-top:26px;border-top:1px solid var(--line);padding-top:18px">'
       +'<div style="display:flex;align-items:center;gap:10px;margin:0 0 12px"><label style="font-size:12.5px;font-weight:700;color:var(--ink2)">Row highlight</label><input type="color" value="'+((a.custom&&a.custom.__rowcolor)||'#ffffff')+'" onchange="setRowColor(\''+esc(a.code)+'\',this.value)" style="width:44px;height:30px;border:1px solid var(--line);border-radius:8px;cursor:pointer;padding:2px"><span onclick="setRowColor(\''+esc(a.code)+'\',\'\')" style="cursor:pointer;color:var(--ink3);font-size:12.5px">Clear</span></div>'
-      +'<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><button class="dbtn" onclick="saveAgent(\''+esc(a.code)+'\')">Save field changes</button><button class="dbtn ghost" onclick="closeDrawer()">Close</button><button class="dbtn" style="background:var(--red);margin-left:auto" onclick="removeAgentMenu(\''+esc(a.code)+'\')">Remove agent…</button></div></div>';
+      +'<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><button class="dbtn" onclick="saveAgent(\''+esc(a.code)+'\')">Save field changes</button><button class="dbtn ghost" onclick="closeDrawer()">Close</button><button class="dbtn ghost" onclick="resetPin(\''+esc(a.code)+'\')" title="Clear this agent's sign-in PIN so they can choose a new one">🔑 Reset PIN</button><button class="dbtn" style="background:var(--red);margin-left:auto" onclick="removeAgentMenu(\''+esc(a.code)+'\')">Remove agent…</button></div></div>';
   } else {
     h+='<div class="dsec" style="margin-top:26px;border-top:1px solid var(--line);padding-top:18px"><button class="dbtn blue" onclick="requestEdit(\''+esc(a.code)+'\')">✏️ Request a field edit</button></div>';
   }
@@ -1282,6 +1282,25 @@ function changeCode(oldCode,name){
   });
 }
 function agName(code){return (CUR&&CUR.agent)?CUR.agent.name:code;}
+
+/* ---- PIN reset (2026-09-01) ------------------------------------------------
+   Agents sign in with name + GFI code + a 4-digit PIN. PINs are hashed, so a
+   forgotten one cannot be looked up or read out — it can only be CLEARED, after
+   which the agent chooses a new one the next time they sign in. */
+function resetPin(code){
+  if(!code)return;
+  if(!confirm('Clear the sign-in PIN for '+code+'?\n\nThey will be asked to choose a new one next time they sign in. Nobody can read their old PIN — it is hashed.'))return;
+  fetch('https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/pin',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'reset',code:code,token:'2026'})})
+   .then(function(r){return r.json();})
+   .then(function(r){
+     if(r&&r.ok)toast('PIN cleared — '+code+' will set a new one at next sign-in.');
+     else toast((r&&r.error)||'Could not reset that PIN.');
+   })
+   .catch(function(){toast('Could not reach the server.');});
+}
+
 function removeAgentMenu(code){var nm=agName(code);
   var host=$('drawer');var db=host.querySelector('.dbody')||host;var ex=$('rmMenu');if(ex)ex.remove();
   var box=document.createElement('div');box.id='rmMenu';
