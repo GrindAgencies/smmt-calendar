@@ -100,6 +100,32 @@ body{padding-left:var(--tsfg-side);padding-top:60px;}
 .cv-tag.key{background:rgba(120,120,140,.14);color:var(--ink3);}
 .lvl-guide{margin-top:12px;background:rgba(91,108,255,.08);border:1px solid rgba(91,108,255,.22);border-radius:13px;padding:12px 14px;font-size:13.5px;line-height:1.5;color:var(--ink2);}
 .lvl-guide-h{font-size:11px;font-weight:900;letter-spacing:.04em;text-transform:uppercase;color:var(--accent);margin-bottom:5px;}
+/* ---- checkpoint outcome: the chutes and ladders of the board ---- */
+.oc{margin-top:14px;border:1px solid var(--line2);border-radius:14px;padding:13px 14px;background:var(--panel2,#f7f7fa);}
+.oc-h{font-size:11px;font-weight:900;letter-spacing:.04em;text-transform:uppercase;color:var(--ink3);margin-bottom:3px;}
+.oc-q{font-size:14px;font-weight:800;color:var(--ink);margin-bottom:2px;}
+.oc-help{font-size:12px;color:var(--ink3);margin-bottom:10px;line-height:1.45;}
+.oc-btn{display:flex;align-items:center;gap:10px;width:100%;text-align:left;margin-top:8px;padding:12px 14px;
+  border-radius:12px;border:1.5px solid var(--line2);background:var(--panel);color:var(--ink);
+  font:800 13.5px/1.3 inherit;cursor:pointer;transition:.15s;}
+.oc-btn:hover{transform:translateY(-1px);}
+.oc-btn:active{transform:scale(.99);}
+.oc-btn .oc-em{font-size:18px;flex:0 0 auto;}
+.oc-btn.up{border-color:rgba(26,156,82,.5);}
+.oc-btn.up:hover{background:rgba(26,156,82,.10);}
+.oc-btn.down{border-color:rgba(201,154,46,.55);}
+.oc-btn.down:hover{background:rgba(201,154,46,.12);}
+.oc-btn[disabled]{opacity:.55;cursor:default;transform:none;}
+.oc-hist{margin-top:11px;font-size:11.5px;color:var(--ink3);line-height:1.5;}
+.oc-hist b{color:var(--ink2);}
+.oc-res{margin-top:12px;border-radius:12px;padding:12px 14px;font-size:13px;line-height:1.5;}
+.oc-res.up{background:rgba(26,156,82,.12);border:1px solid rgba(26,156,82,.4);color:var(--ink);}
+.oc-res.down{background:rgba(201,154,46,.14);border:1px solid rgba(201,154,46,.45);color:var(--ink);}
+.oc-res .oc-res-h{font-weight:900;margin-bottom:3px;}
+/* a checkpoint tile is marked on the board so the stakes are visible before you tap */
+.gnode .ccmark{position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;
+  background:var(--panel);border:1.5px solid var(--line2);display:flex;align-items:center;
+  justify-content:center;font-size:10px;line-height:1;z-index:4;}
 .lvl-cta{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:12px;padding:14px 16px;border-radius:14px;background:linear-gradient(135deg,#5b6cff,#7c8bff);color:#fff;font-weight:800;font-size:15px;text-decoration:none;box-shadow:0 10px 24px rgba(91,108,255,.32);}
 .lvl-cta:active{transform:scale(.98);}
 .locknote{margin-top:14px;text-align:center;color:var(--ink3);font-size:13px;font-weight:600;padding:12px;background:#f2f2f5;border-radius:12px;}
@@ -400,6 +426,9 @@ var AVATAR="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/avatar";
 var OCCAPI="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/tracker-occupancy";
 var OCC={eligible:false,occupancy:{},counts:{}};
 var KEYS=new Set();var CTAMAP={};
+var OUTCOME_API="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/roadmap-outcome";
+/* Checkpoints where a real-world "no" can happen, and the history of what did. */
+var OUTCOMES={},EVENTS=[];
 var CODE="",NAME="";
 try{CODE=(localStorage.getItem('tsfg_code')||'').toUpperCase();NAME=localStorage.getItem('tsfg_name')||'';}catch(e){}
 /* 🎓 Coaching Notes — feedback trainers leave after field trainings (read-only for the trainee) */
@@ -441,7 +470,7 @@ function load(){
     AGENT=(res[2]&&res[2].agent)||{};PROGRESS=(AGENT.progress&&typeof AGENT.progress==='object')?AGENT.progress:{};
     TEAM=(res[3]&&res[3].ok)?res[3]:null;
     OCC=(res[4]&&res[4].ok)?res[4]:{eligible:false,occupancy:{},counts:{}};
-    CTAMAP={};var _cfg=res[5];if(_cfg&&_cfg.levels)_cfg.levels.forEach(function(l){if(l.cta)CTAMAP[l.id]=l.cta;});
+    CTAMAP={};OUTCOMES={};var _cfg=res[5];if(_cfg&&_cfg.levels)_cfg.levels.forEach(function(l){if(l.cta)CTAMAP[l.id]=l.cta;if(l.outcome)OUTCOMES[l.id]=l.outcome;});loadEvents();
     render();maybePromo();
   }).catch(function(){$('wrap').innerHTML='<div class="spin">Network error — try again.</div>';});
 }
@@ -728,7 +757,8 @@ function buildBoard(){
     else if(l.status==='done'){inner='<span class="cc-ic">'+ic+'</span><span class="cc-check">✓</span>';}
     else{inner='<span class="cc-ic">'+ic+'</span>';}
     var st='left:'+p.x+'%;top:'+p.y+'px;'+(FIRST?'animation-delay:'+((animN++)*0.03).toFixed(2)+'s':'');
-    body+='<div class="gnode ccn '+l.status+(FIRST?' pop':'')+(l.id===JUSTID?' just':'')+'" style="'+st+'" onclick="openLevel(\''+l.id+'\')">'
+    var _ck=OUTCOMES[l.id]?'<span class="ccmark" title="This step can go either way">🎲</span>':'';
+    body+='<div class="gnode ccn '+l.status+(FIRST?' pop':'')+(l.id===JUSTID?' just':'')+'" style="'+st+'" onclick="openLevel(\''+l.id+'\')">'+_ck
       +'<div class="cc-tile" style="--wc:'+w2.color+'">'+inner+'</div>'
       +'<span class="cc-num">'+(i3+1)+'</span>'+occBadge(l.id)+'</div>';
   }
@@ -766,13 +796,109 @@ function openLevel(id){
   if(_cta&&_cta.url){var u=_cta.url;var ext=/^https?:/i.test(u);if(ext&&/calendly\.com/.test(u)){var nm=(PLAYER&&PLAYER.name)||'';if(nm)u+=(u.indexOf('?')>=0?'&':'?')+'name='+encodeURIComponent(nm);}cta='<a class="lvl-cta" href="'+esc(u)+'"'+(ext?' target="_blank" rel="noopener"':'')+'>'+esc(_cta.label||'Open')+'</a>';}
   $('sheet').innerHTML='<div class="sh-h"><div class="sh-ic" style="background:'+w.color+'">'+(l.status==='done'?'✓':(locked?'🔒':levelIcon(l)))+'</div>'
     +'<div style="min-width:0"><h3>'+esc(l.name)+'</h3><div class="d">'+esc(w.icon+' '+w.name)+(l.difficulty==='hard'?' · ⚡ Hard':'')+'</div></div><button class="sh-x" onclick="closeSheet()">✕</button></div>'
-    +(l.desc?'<div class="lvl-guide"><div class="lvl-guide-h">📋 How to complete this step</div>'+esc(l.desc)+'</div>':'')+cta+reward
+    +(l.desc?'<div class="lvl-guide"><div class="lvl-guide-h">📋 How to complete this step</div>'+esc(l.desc)+'</div>':'')+outcomeBlock(l)+cta+reward
     +'<div class="chl">'+chl+'</div>'
     +(locked?'<div style="font-size:11.5px;color:var(--ink3);text-align:center;margin-top:14px">🔒 Unlocks once you finish the earlier spots.</div>':'<div style="font-size:11.5px;color:var(--ink3);text-align:center;margin-top:14px">Checking a challenge saves to your tracker instantly.</div>')
     +occPanel(l.id);
   $('ov').classList.add('on');
 }
 function closeSheet(){$('ov').classList.remove('on');OPENLVL=null;}
+
+/* ===== CHECKPOINT OUTCOMES =================================================
+   Most of this board only moves forward. A few steps are different: the state
+   exam, the licence application, carrier contracting and the first client are
+   places where the real answer can be "no". On those, the broker says what
+   actually happened and the marker moves accordingly — forward on a yes, back
+   to the step they have to redo on a no. Nothing they genuinely finished is
+   erased; only the thing that has to happen again is un-ticked.
+   ========================================================================= */
+function loadEvents(){
+  if(!CODE)return Promise.resolve();
+  return fetch(OUTCOME_API,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'events',code:CODE})})
+    .then(function(r){return r.json();})
+    .then(function(d){ if(d&&d.ok)EVENTS=d.events||[]; })
+    .catch(function(){ /* history is a nicety — never block the board on it */ });
+}
+function shortDate(iso){
+  try{var d=new Date(iso);return d.toLocaleDateString(undefined,{month:'short',day:'numeric'});}catch(e){return '';}
+}
+function outcomeHistory(levelId){
+  var mine=EVENTS.filter(function(e){return e.level===levelId;});
+  if(!mine.length)return '';
+  var last=mine[mine.length-1];
+  var times=mine.length===1?'1 attempt':(mine.length+' attempts');
+  return '<div class="oc-hist">📖 <b>'+times+'</b> — last: '+esc(last.label||last.choice)+
+         ' on '+esc(shortDate(last.at))+(last.by&&last.by!=='self'?(' · recorded by '+esc(last.by)):'')+'</div>';
+}
+function outcomeBlock(l){
+  var oc=l.outcome||OUTCOMES[l.id];
+  if(!oc||!oc.options||!oc.options.length)return '';
+  var locked=(l.status==='locked');
+  var btns=oc.options.map(function(o){
+    var tone=(o.tone==='down')?'down':'up';
+    return '<button class="oc-btn '+tone+'"'+(locked?' disabled':'')+
+           ' onclick="recordOutcome(\''+esc(l.id)+'\',\''+esc(o.key)+'\')">'+
+           '<span class="oc-em">'+esc(o.emoji||(tone==='up'?'✅':'↩️'))+'</span>'+
+           '<span>'+esc(o.label||o.key)+'</span></button>';
+  }).join('');
+  return '<div class="oc" id="ocBox">'+
+    '<div class="oc-h">🎲 This one can go either way</div>'+
+    '<div class="oc-q">'+esc(oc.prompt||'What happened?')+'</div>'+
+    (oc.help?'<div class="oc-help">'+esc(oc.help)+'</div>':'<div class="oc-help">Say what actually happened — the board moves with you either way.</div>')+
+    btns+outcomeHistory(l.id)+
+    (locked?'<div class="oc-hist">🔒 Available once you reach this step.</div>':'')+
+  '</div>';
+}
+var RECORDING=false;
+function recordOutcome(levelId,choiceKey){
+  if(RECORDING)return; RECORDING=true;
+  var box=document.getElementById('ocBox');
+  if(box)box.querySelectorAll('.oc-btn').forEach(function(b){b.setAttribute('disabled','');});
+  fetch(OUTCOME_API,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'record',code:CODE,level:levelId,choice:choiceKey})})
+   .then(function(r){return r.json();})
+   .then(function(d){
+     if(!d||!d.ok){RECORDING=false;if(box)box.querySelectorAll('.oc-btn').forEach(function(b){b.removeAttribute('disabled');});
+       alert((d&&d.error)||'Could not save that just now.');return;}
+     return loadEvents().then(function(){
+       return fetch(ROADMAP,{method:'POST',headers:{'Content-Type':'application/json'},
+         body:JSON.stringify({action:'player',code:CODE})}).then(function(r){return r.json();})
+        .then(function(pd){
+          RECORDING=false;
+          if(pd&&pd.ok){PLAYER=pd.player;LABELS=pd.labels||LABELS;WORLDS=pd.worlds||WORLDS;
+            PROGRESS=PROGRESS||{};
+            (d.set||[]).forEach(function(id){PROGRESS[id]=1;});
+            (d.cleared||[]).forEach(function(id){delete PROGRESS[id];});
+            JUSTID=PLAYER.current_level;
+            render();
+          }
+          showOutcomeResult(d);
+        });
+     });
+   })
+   .catch(function(){RECORDING=false;
+     if(box)box.querySelectorAll('.oc-btn').forEach(function(b){b.removeAttribute('disabled');});
+     alert('Could not reach the server — nothing was saved.');});
+}
+/* Land the player on wherever they ended up, and say plainly why. */
+function showOutcomeResult(d){
+  var down=!!d.moved_back;
+  var dest=(PLAYER.levels||[]).filter(function(x){return x.id===(d.next||'');})[0];
+  var where=dest?dest.name:'';
+  var head=down?('⬇️ You moved back'+(where?(' to '+where):'')):('⬆️ You moved ahead'+(where?(' to '+where):''));
+  var target=(d.next&&(PLAYER.levels||[]).some(function(x){return x.id===d.next;}))?d.next:d.level;
+  openLevel(target);
+  var sheet=$('sheet');
+  if(sheet){
+    var res=document.createElement('div');
+    res.className='oc-res '+(down?'down':'up');
+    res.innerHTML='<div class="oc-res-h">'+esc(head)+'</div>'+esc(d.say||'')+
+      (d.attempts&&d.attempts>1?('<div class="oc-hist" style="margin-top:7px">That was attempt '+d.attempts+' on this step.</div>'):'');
+    sheet.insertBefore(res,sheet.firstChild?sheet.firstChild.nextSibling:null);
+    try{res.scrollIntoView({block:'nearest',behavior:'smooth'});}catch(e){}
+  }
+}
 
 var SAVING=false;
 function toggleChallenge(id){
