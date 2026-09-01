@@ -302,10 +302,10 @@ html, body{ overflow-x: hidden; }
   </header>
   <div class="content">
     <div class="tabs">
-      <button id="tab_me" class="on" onclick="setTab('me')">My Schedule</button>
+      <button id="tab_cal" class="on" onclick="setTab('cal')">Calendar</button>
+      <button id="tab_me" onclick="setTab('me')">My Schedule</button>
       <button id="tab_book" onclick="setTab('book')">Book a Trainer</button>
       <button id="tab_ops" onclick="setTab('ops')" style="display:none">Base Ops</button>
-      <button id="tab_cal" onclick="setTab('cal')">Calendar</button>
       <button id="tab_clients" onclick="setTab('clients')" style="display:none">Clients</button>
       <button id="tab_avail" onclick="setTab('avail')" style="display:none">My Availability</button>
     </div>
@@ -323,7 +323,7 @@ var GOAUTH="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/google-oauth";
 var TZLIST=[['America/Los_Angeles','Pacific (PT)'],['America/Denver','Mountain (MT)'],['America/Phoenix','Arizona (no DST)'],['America/Chicago','Central (CT)'],['America/New_York','Eastern (ET)'],['America/Anchorage','Alaska (AKT)'],['Pacific/Honolulu','Hawaii (HT)'],['America/Puerto_Rico','Atlantic (AST)']];
 function tzLabel(tz){for(var i=0;i<TZLIST.length;i++)if(TZLIST[i][0]===tz)return TZLIST[i][1];return tz?tz.split('/').pop().replace(/_/g,' '):'';}
 function tzAbbrev(tz){var m={'America/Los_Angeles':'PT','America/Denver':'MT','America/Phoenix':'MST','America/Chicago':'CT','America/New_York':'ET','America/Anchorage':'AKT','Pacific/Honolulu':'HT','America/Puerto_Rico':'AST'};return m[tz]||'PT';}
-var CODE=null,NAME="",TRAINERS=[],TZ="America/Los_Angeles (PT)",MYB=[],MYT=[],MYAPPTS=[],EMDS=[],TAB='me',CALWEEK=0;
+var CODE=null,NAME="",TRAINERS=[],TZ="America/Los_Angeles (PT)",MYB=[],MYT=[],MYAPPTS=[],EMDS=[],TAB='cal',CALWEEK=0;
 var PROFILE=null,OPS_BASE=null;
 var SELDATE=null,SELTIME=null,SELCAT='Field Training',DAYBOOKED=[];
 var CATS=['Field Training','New Agent Orientation','1-on-1 Coaching','Licensing Help','Phone Zone'];
