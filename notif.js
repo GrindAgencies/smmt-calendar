@@ -327,8 +327,9 @@
 
   function link(item, cls, current){
     var on = (item[1].toLowerCase() === current) ? ' on' : '';
-    return '<a class="' + cls + on + '" href="' + item[1] + '">' + svg(item[2]) +
-           '<span class="lbl">' + item[0] + '</span></a>';
+    /* title carries the name when the sidebar is collapsed to an icon rail. */
+    return '<a class="' + cls + on + '" href="' + item[1] + '" title="' + item[0] + '">' +
+           svg(item[2]) + '<span class="lbl">' + item[0] + '</span></a>';
   }
 
   function css(){
@@ -1040,6 +1041,200 @@ window.tsfgTrack = function (kind, detail) {
       setTimeout(function () { if (document.querySelector('.snap, .tsfg-menu')) begin(); }, 2200);
     });
   }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
+  else start();
+})();
+
+/* ==========================================================================
+   SIDEBAR RAIL + SIDEBAR DARK CHROME  (2026-09-01)
+   --------------------------------------------------------------------------
+   Two things were broken here.
+
+   1. Retraction. Home could collapse its sidebar to a 76px icon rail, but the
+      unified-nav rewrite added elements Home had never styled for that state
+      ("More", the section headings, the language buttons), so the rail spilled
+      and looked broken. The seven .tsfg-side pages never had retraction at all
+      — their tsfgToggle() returns early above 860px, so on a desktop the menu
+      button did nothing. Retraction now lives here, once, for both patterns.
+
+      The .tsfg-side pages drive width, body padding and the topbar offset from
+      a single --tsfg-side variable, so re-pointing that one value collapses the
+      whole layout in step. Home keeps its own .collapsed class so its existing
+      grid transition still runs. The choice is remembered in 'gfi_side' — the
+      key Home already used — so it carries across every page.
+
+   2. Dark chrome. Those pages paint the sidebar and topbar with literal light
+      hexes (#fff, #ececf0, #6e6e73), which no variable override can reach. The
+      dark fix set --tsfg-side to a COLOUR to try to darken the sidebar, but
+      that variable is its WIDTH: in dark mode the width, the body padding and
+      the topbar offset all became invalid and the layout fell apart. The bad
+      declaration is gone from those pages; the real dark values are below.
+   ========================================================================== */
+(function () {
+  var PHONE = 860;
+  var RAIL  = 'tsfg-rail';
+  var KEY   = 'gfi_side';
+  var SIDE  = '.tsfg-side';
+  var ASIDE = 'aside.side#side';        /* Scheduler, Team Hub, New Business, PFR */
+
+  function wide(){ return window.innerWidth > PHONE; }
+  function saved(){ try { return localStorage.getItem(KEY) === '1'; } catch(e){ return false; } }
+  function remember(on){ try { localStorage.setItem(KEY, on ? '1' : '0'); } catch(e){} }
+
+  function css() {
+    if (document.getElementById('tsfg-rail-css')) return;
+    var s = document.createElement('style'); s.id = 'tsfg-rail-css';
+    s.textContent =
+      /* ---------- self-correcting layout default ----------
+         --tsfg-side is the sidebar WIDTH. On several pages it had been declared
+         inside the light-theme-only block, so switching to dark left it
+         undefined and width / body padding / topbar offset all became invalid —
+         the page appeared to fall apart. The pages are fixed, but this floor
+         means a page can never lose the value again: :root is weaker than the
+         pages' own html:not([data-theme="dark"]) rule, so it only fills a gap,
+         and body.tsfg-rail below still overrides it when the rail is on. */
+      ':root{--tsfg-side:248px;}' +
+      /* ---------- the rail (desktop only) ---------- */
+      '@media(min-width:' + (PHONE + 1) + 'px){' +
+        SIDE + '{transition:width .22s cubic-bezier(.2,.8,.2,1);}' +
+        '.tsfg-top{transition:left .22s cubic-bezier(.2,.8,.2,1);}' +
+        'body.' + RAIL + '{--tsfg-side:76px;}' +
+        'body.' + RAIL + ' ' + SIDE + '{padding-left:8px;padding-right:8px;overflow-x:hidden;}' +
+        'body.' + RAIL + ' .tsfg-brand{justify-content:center;padding-left:0;padding-right:0;}' +
+        'body.' + RAIL + ' .tsfg-brand .bn{display:none;}' +
+        'body.' + RAIL + ' ' + SIDE + ' .side-link{justify-content:center;padding-left:0;padding-right:0;}' +
+        'body.' + RAIL + ' ' + SIDE + ' .side-link .lbl{display:none;}' +
+        /* Scheduler / Team Hub / New Business drive their layout from --side. */
+        'body.' + RAIL + '{--side:76px;}' +
+        'aside.side{transition:width .22s cubic-bezier(.2,.8,.2,1);}' +
+        'body.' + RAIL + ' aside.side{padding-left:8px;padding-right:8px;overflow-x:hidden;}' +
+        'body.' + RAIL + ' aside.side .slink{justify-content:center;padding-left:0;padding-right:0;}' +
+        'body.' + RAIL + ' aside.side .slink .lbl{display:none;}' +
+        'body.' + RAIL + ' aside.side .brand .bn{display:none;}' +
+        'body.' + RAIL + ' aside.side .brand{justify-content:center;}' +
+        /* PFR hardcodes 248px instead of using a variable, so it needs telling. */
+        'body.' + RAIL + '.tsfg-fixedside{padding-left:76px!important;}' +
+        'body.' + RAIL + '.tsfg-fixedside aside.side{width:76px!important;}' +
+      '}' +
+      /* elements the unified nav injects — collapse them in BOTH patterns */
+      '@media(min-width:' + (PHONE + 1) + 'px){' +
+        'body.' + RAIL + ' .tsfg-navsec,#app.collapsed .tsfg-navsec{display:none;}' +
+        /* The language buttons must stay VISIBLE, just narrow. i18n.js only
+           suppresses its floating pill while a visible [data-lang-btn] exists,
+           so display:none here brought the pill back over the page content. */
+        'body.' + RAIL + ' .tsfg-lang,#app.collapsed .tsfg-lang{flex-direction:column;gap:4px;padding:2px 4px 6px;}' +
+        'body.' + RAIL + ' .tsfg-lang button,#app.collapsed .tsfg-lang button{font-size:0;min-height:30px;}' +
+        'body.' + RAIL + ' .tsfg-lang button[data-lang-btn="en"]::after,' +
+        '#app.collapsed .tsfg-lang button[data-lang-btn="en"]::after{content:"EN";font-size:11px;font-weight:800;}' +
+        'body.' + RAIL + ' .tsfg-lang button[data-lang-btn="es"]::after,' +
+        '#app.collapsed .tsfg-lang button[data-lang-btn="es"]::after{content:"ES";font-size:11px;font-weight:800;}' +
+        'body.' + RAIL + ' .tsfg-more span,#app.collapsed .tsfg-more span{display:none;}' +
+        'body.' + RAIL + ' .tsfg-more,#app.collapsed .tsfg-more{justify-content:center;padding-left:0;padding-right:0;}' +
+        'body.' + RAIL + ' .tsfg-more svg,#app.collapsed .tsfg-more svg{margin-left:0;}' +
+        '#app.collapsed .tsfg-morewrap .side-link{justify-content:center;}' +
+      '}' +
+      /* ---------- dark chrome for the .tsfg-side pages ---------- */
+      ':root[data-theme="dark"] ' + SIDE + '{background:#131315!important;border-right-color:#2e2e33!important;}' +
+      ':root[data-theme="dark"] .tsfg-brand{color:#f5f5f7!important;}' +
+      ':root[data-theme="dark"] ' + SIDE + ' .side-link{color:#a1a1a8!important;}' +
+      ':root[data-theme="dark"] ' + SIDE + ' .side-link:hover{background:#1e1e22!important;color:#f5f5f7!important;}' +
+      ':root[data-theme="dark"] ' + SIDE + ' .side-link.on{background:rgba(124,139,255,.16)!important;color:#7c8bff!important;}' +
+      ':root[data-theme="dark"] .tsfg-foot{border-top-color:#2e2e33!important;}' +
+      ':root[data-theme="dark"] .tsfg-top{background:rgba(19,19,21,.82)!important;border-bottom-color:#2e2e33!important;}' +
+      ':root[data-theme="dark"] .tsfg-title{color:#f5f5f7!important;}' +
+      ':root[data-theme="dark"] .tsfg-ic{background:#1e1e22!important;border-color:#2e2e33!important;color:#a1a1a8!important;}' +
+      ':root[data-theme="dark"] .tsfg-ic:hover{color:#f5f5f7!important;}' +
+      ':root[data-theme="dark"] .tsfg-lang button{border-color:#2e2e33!important;color:#f5f5f7!important;}';
+    document.head.appendChild(s);
+  }
+
+  function isRail(){ return document.body.classList.contains(RAIL); }
+
+  function setRail(on) {
+    if (!document.body) return;
+    document.body.classList.toggle(RAIL, !!on);
+    var app = document.getElementById('app');
+    if (app) app.classList.toggle('collapsed', !!on);   // Home's own grid transition
+    remember(!!on);
+  }
+
+  /* The one control. Phones still get the drawer; desktops get the rail. */
+  window.tsfgRail = function () {
+    if (!wide()) {
+      if (typeof window.tsfgToggleNav === 'function') window.tsfgToggleNav();
+      return;
+    }
+    setRail(!isRail());
+  };
+
+  function start() {
+    if (!document.querySelector(SIDE) && !document.querySelector(ASIDE) &&
+        !document.getElementById('app')) return;
+    css();
+
+    /* PFR writes the sidebar width as a literal rather than a variable, so the
+       variable swap cannot reach it; mark it and the CSS above handles it. */
+    if (document.querySelector(ASIDE) &&
+        !getComputedStyle(document.documentElement).getPropertyValue('--side').trim()) {
+      document.body.classList.add('tsfg-fixedside');
+    }
+
+    /* These pages call drawer(true) straight from the button's onclick, so
+       there is no toggle function to replace. Intercept in the capture phase —
+       that runs before the inline handler — and rail instead on a desktop. */
+    if (document.querySelector(ASIDE)) {
+      document.addEventListener('click', function (e) {
+        if (!wide() || !e.target || !e.target.closest) return;
+        var b = e.target.closest('[onclick*="drawer(true)"],[onclick*="drawer()"]');
+        if (!b) return;
+        e.preventDefault(); e.stopPropagation();
+        setRail(!isRail());
+      }, true);
+    }
+
+    /* Home already had a working collapse, but it flips only #app.collapsed.
+       This module also sets body.tsfg-rail, and the injected "More"/language
+       controls hide off that class — so left alone, Home's own button would
+       expand the sidebar while those stayed hidden. Route Home's button
+       through setRail() as well so the two classes can never drift apart. */
+    if (document.getElementById('app') && document.querySelector('.sidebar')) {
+      window.toggleSidebar = function () {
+        var a = document.getElementById('app');
+        if (!wide()) { if (a) a.classList.toggle('drawer'); return; }
+        setRail(!isRail());
+      };
+    }
+
+    /* Take over the per-page menu buttons. Their own tsfgToggle() bails out
+       above 860px, which is exactly why retraction appeared to be gone; the
+       declaration is hoisted at parse time, so reassigning here wins. */
+    if (document.querySelector(SIDE)) {
+      window.tsfgToggle = function () {
+        if (!wide()) {
+          if (typeof window.tsfgDrawer === 'function') {
+            window.tsfgDrawer(!document.body.classList.contains('tsfg-drawer'));
+          } else if (typeof window.tsfgToggleNav === 'function') {
+            window.tsfgToggleNav();
+          }
+          return;
+        }
+        setRail(!isRail());
+      };
+    }
+
+    if (wide() && saved()) setRail(true);
+
+    /* Dropping to phone width hands control back to the drawer. */
+    var last = wide();
+    window.addEventListener('resize', function () {
+      var now = wide();
+      if (now === last) return;
+      last = now;
+      if (!now) document.body.classList.remove(RAIL);
+      else if (saved()) setRail(true);
+    });
+  }
+
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
   else start();
 })();

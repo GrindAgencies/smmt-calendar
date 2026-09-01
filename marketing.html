@@ -139,6 +139,10 @@
 
 
 <style id="tsfg-skin">
+/* --tsfg-side is a WIDTH, not a colour: it must be declared for BOTH
+   themes. Scoped to the light block it vanished in dark mode, and the
+   sidebar width, body padding and topbar offset all went invalid. */
+:root{--tsfg-side:248px;}
 html:not([data-theme="dark"]){
   --bg:#f5f5f7!important;--panel:#ffffff!important;--panel2:#fbfbfd!important;--panel-2:#fbfbfd!important;
   --ink:#1d1d1f!important;--text:#1d1d1f!important;--muted:#6e6e73!important;--muted2:#8e8e93!important;
@@ -146,7 +150,7 @@ html:not([data-theme="dark"]){
   --gold:#c99a2e!important;--gold-bright:#c99a2e!important;--gold-deep:#e6dcc2!important;--today:#c99a2e!important;
   --green:#34c759!important;--red:#ff3b30!important;--blue:#5b6cff!important;--silver:#8e8e93!important;
   --ga-gold:#c99a2e!important;--ga-gold-br:#c99a2e!important;--ga-gold-dp:#e6dcc2!important;--ga-muted:#6e6e73!important;--ga-line:#ececf0!important;
-  --tsfg-accent:#5b6cff;--tsfg-side:248px;
+  --tsfg-accent:#5b6cff;
 }
 html:not([data-theme="dark"]),html:not([data-theme="dark"]) body{background:#f5f5f7!important;color:#1d1d1f!important;}
 body{padding-left:var(--tsfg-side)!important;padding-top:60px!important;-webkit-font-smoothing:antialiased;}
@@ -314,9 +318,51 @@ html, body{ overflow-x: hidden; }
   --ga-line:#2e2e33!important; --ga-muted:#a1a1a8!important;
   --blue:#7c8bff!important; --green:#4fd08a!important; --red:#ff6b60!important;
   --silver:#c8c8d0!important; --today:#7c8bff!important;
-  --tsfg-accent:#7c8bff!important; --tsfg-side:#131315!important;
+  --tsfg-accent:#7c8bff!important;
 }
 :root[data-theme="dark"] body{background:var(--bg)!important;color:var(--ink)!important;}
+/* These were written as literal light values, so no variable override could
+   reach them: in dark mode the row buttons stayed white boxes and the agent
+   name was near-black on near-black. */
+:root[data-theme="dark"] #whoAmI{color:#f5f5f7!important;}
+:root[data-theme="dark"] .lead-del,
+:root[data-theme="dark"] .lead-call{background:#1e1e22!important;border-color:#2e2e33!important;}
+:root[data-theme="dark"] .lead-chev{color:#6e6e73!important;}
+:root[data-theme="dark"] .lead-dot{background:#26262b!important;}
+:root[data-theme="dark"] .wm-chip{background:#1e1e22!important;border-color:#2e2e33!important;color:#a1a1a8!important;}
+:root[data-theme="dark"] .wm-chip.on{background:rgba(124,139,255,.16)!important;color:#f5f5f7!important;}
+:root[data-theme="dark"] .ntf-bd,
+:root[data-theme="dark"] .ntf-tm{color:#a1a1a8!important;}
+/* Dark ink on a transparent background: fine on white, invisible on dark. */
+:root[data-theme="dark"] .mp-tab.on{color:#f5f5f7!important;}
+:root[data-theme="dark"] .marker b{color:#f5f5f7!important;}
+:root[data-theme="dark"] .wm-score,
+:root[data-theme="dark"] .wm-goal-top,
+:root[data-theme="dark"] .lead-name{color:#f5f5f7!important;}
+/* Containers that hardcode a white background instead of var(--panel). The
+   page's dark variables were correct all along — these rules simply never
+   consulted them, so cards stayed white and their light text vanished. */
+:root[data-theme="dark"] .lead,
+:root[data-theme="dark"] .hero,
+:root[data-theme="dark"] .wm-goal,
+:root[data-theme="dark"] .wm-card,
+:root[data-theme="dark"] .wm-log,
+:root[data-theme="dark"] .mp-tab,
+:root[data-theme="dark"] .modeswitch button:not(.on),
+:root[data-theme="dark"] .wm-add,
+:root[data-theme="dark"] .wm-save,
+:root[data-theme="dark"] .mp-addrow button,
+:root[data-theme="dark"] .mp-imp-btn.alt,
+:root[data-theme="dark"] #impPasteBox,
+:root[data-theme="dark"] .pz-card,
+:root[data-theme="dark"] .pz-refresh,
+:root[data-theme="dark"] .pz-tag,
+:root[data-theme="dark"] .toolbar button,
+:root[data-theme="dark"] .switch a,
+:root[data-theme="dark"] .signedout{background:var(--panel)!important;border-color:var(--line)!important;}
+/* the active tab keeps its gold wash, just on a dark ground; the active
+   mode button keeps its gold gradient and is deliberately untouched. */
+:root[data-theme="dark"] .mp-tab.on{background:rgba(212,175,55,.14)!important;}
 </style>
 </head>
 <body>
