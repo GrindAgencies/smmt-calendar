@@ -9,8 +9,13 @@
 //   • Cross-origin requests (Supabase, fonts, etc.) -> untouched (live).
 //   • Same-origin page loads (.html shell) -> fetched fresh with cache:'no-store', so a new
 //     deploy is picked up immediately and the browser's own disk cache can't pin an old copy.
+//   • Same-origin scripts/styles (.js/.css) -> revalidated on every load, because GitHub
+//     Pages serves them with max-age=600. That ten minutes is enough for a deploy to go
+//     out while every open browser keeps running the previous notif.js — which is exactly
+//     what happened on 2026-09-01: the new HTML shipped and the old script kept loading,
+//     so the sidebar rail and the dark sidebar silently did not exist for anyone.
 // Bump VERSION whenever this file changes so browsers roll the new worker out.
-const VERSION = 'tsfg-sw-v2-live-first';
+const VERSION = 'tsfg-sw-v3-revalidate-assets';
 
 self.addEventListener('install', function () { self.skipWaiting(); });
 
@@ -38,5 +43,13 @@ self.addEventListener('fetch', function (e) {
       fetch(req, { cache: 'no-store' }).catch(function () { return fetch(req); })
     );
   }
-  // Everything else same-origin (js/css/img): plain passthrough — no caching.
+  // Same-origin scripts and styles: always ask the server whether our copy is current.
+  // 'no-cache' still allows a conditional request, so an unchanged file comes back as a
+  // cheap 304 rather than a full download — fresh code without the bandwidth of no-store.
+  else if (/\.(?:js|css)(?:$|\?)/i.test(url.pathname + url.search)) {
+    e.respondWith(
+      fetch(req, { cache: 'no-cache' }).catch(function () { return fetch(req); })
+    );
+  }
+  // Everything else same-origin (images, fonts): plain passthrough — no caching.
 });
