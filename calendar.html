@@ -289,6 +289,46 @@ textarea.ma-in{resize:vertical}
 .side{ padding-top: calc(16px + env(safe-area-inset-top)) !important; }
 html, body{ overflow-x: hidden; }
 </style>
+<style id="cal-addevent-css">
+/* Add-event sheet — the Google Calendar gesture: press +, or press a day, fill
+   it in where you are, save. Previously the only way to get anything on the
+   calendar was to leave it for the Book tab. */
+#addOv{position:fixed;inset:0;background:rgba(8,10,20,.5);z-index:1400;display:none;}
+#addOv.on{display:block;}
+#addSheet{position:fixed;left:50%;transform:translateX(-50%);bottom:0;z-index:1401;
+  width:min(520px,100%);max-height:88vh;overflow-y:auto;background:var(--panel);color:var(--ink);
+  border-radius:20px 20px 0 0;box-shadow:0 -10px 44px rgba(0,0,0,.34);display:none;
+  padding-bottom:calc(14px + env(safe-area-inset-bottom));}
+#addSheet.on{display:block;}
+.ae-h{display:flex;align-items:center;gap:10px;padding:16px 18px 8px;}
+.ae-h b{font-size:17px;letter-spacing:-.01em;}
+.ae-x{margin-left:auto;border:none;background:none;font-size:22px;line-height:1;cursor:pointer;
+  color:inherit;opacity:.5;min-width:40px;min-height:40px;}
+.ae-b{padding:4px 18px 8px;display:flex;flex-direction:column;gap:12px;}
+.ae-f{display:flex;flex-direction:column;gap:5px;}
+.ae-f label{font-size:11.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;opacity:.6;}
+.ae-f input,.ae-f select,.ae-f textarea{width:100%;min-height:46px;border-radius:12px;padding:11px 13px;
+  font:500 15px/1.3 inherit;border:1px solid var(--line2);background:var(--bg);color:inherit;}
+.ae-f textarea{min-height:74px;resize:vertical;}
+.ae-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.ae-foot{display:flex;gap:10px;padding:8px 18px 16px;}
+.ae-foot button{flex:1;min-height:48px;border:none;border-radius:13px;font:800 15px/1 inherit;cursor:pointer;}
+.ae-save{background:var(--accent,#5b6cff);color:#fff;}
+.ae-cancel{background:transparent;color:var(--ink2);border:1px solid var(--line2)!important;}
+.ae-note{font-size:12.5px;color:var(--ink3);padding:0 18px 6px;}
+@media(max-width:520px){.ae-row{grid-template-columns:1fr;}}
+
+/* Calendar sizing + pinch. The grid used a fixed layout that overflowed small
+   phones; it now fits the frame and can be pinched like a map. */
+#calWrap{max-width:100%;overflow:auto;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y pinch-zoom;}
+#calZoomInner{transform-origin:0 0;will-change:transform;}
+.calgrid{min-width:0;}
+.calzoom{position:absolute;right:14px;bottom:calc(78px + env(safe-area-inset-bottom));z-index:60;
+  display:flex;flex-direction:column;gap:6px;}
+.calzoom button{width:40px;height:40px;border-radius:11px;border:1px solid var(--line2);
+  background:var(--panel);color:var(--ink);font:800 17px/1 inherit;cursor:pointer;}
+@media(max-width:520px){.calgrid{gap:4px!important;}}
+</style>
 </head>
 <body>
 <div class="scrim" onclick="drawer(false)"></div>
@@ -614,9 +654,15 @@ function daysInRange(from,to){var out=[];var d=new Date(from+'T12:00:00Z');var e
 function renderCal(){
   var r=calRange();
   var sw='<div class="calviews">'+[['month','Month'],['week','Week'],['day','Day']].map(function(v){return '<button class="calvbtn'+(CALVIEW===v[0]?' on':'')+'" onclick="calSetView(\''+v[0]+'\')">'+v[1]+'</button>';}).join('')+'</div>';
-  var h='<div class="calhdr"><div><h2 style="font-size:20px;font-weight:800;margin:0;letter-spacing:-.02em">'+esc(calLabel())+'</h2><div style="font-size:12.5px;color:var(--ink3);margin-top:2px">All bookings + Calendly appointments · live · '+tzNote()+'</div></div><div class="calctrls">'+sw+'<div class="calnavg"><button class="calnav" onclick="calNav(-1)">‹</button><button class="calnav" onclick="calNav(0)">Today</button><button class="calnav" onclick="calNav(1)">›</button></div><button class="qbtn" style="margin:0" onclick="setTab(\'book\')">+ Book</button></div></div>';
-  $('view').innerHTML=h+'<div id="calWrap"><div class="spin">Loading your calendar…</div></div>';
-  loadCompanyEvents(r.from,r.to,function(){loadCalEvents(function(){if(CALVIEW==='month')paintMonth();else paintTimeGrid(CALVIEW==='week'?daysInRange(r.from,r.to):[calAnchor()]);});});
+  var h='<div class="calhdr"><div><h2 style="font-size:20px;font-weight:800;margin:0;letter-spacing:-.02em">'+esc(calLabel())+'</h2><div style="font-size:12.5px;color:var(--ink3);margin-top:2px">All bookings + Calendly appointments · live · '+tzNote()+'</div></div><div class="calctrls">'+sw+'<div class="calnavg"><button class="calnav" onclick="calNav(-1)">‹</button><button class="calnav" onclick="calNav(0)">Today</button><button class="calnav" onclick="calNav(1)">›</button></div><button class="qbtn" style="margin:0" onclick="openAdd()">+ Add</button></div></div>';
+  $('view').innerHTML=h+'<div id="calWrap"><div class="spin">Loading your calendar…</div></div>'+
+    '<div class="calzoom"><button type="button" onclick="calZoom(.2)" aria-label="Zoom in">+</button>'+
+    '<button type="button" onclick="calZoom(-.2)" aria-label="Zoom out">\u2212</button></div>';
+  loadCompanyEvents(r.from,r.to,function(){loadCalEvents(function(){
+    if(CALVIEW==='month')paintMonth();else paintTimeGrid(CALVIEW==='week'?daysInRange(r.from,r.to):[calAnchor()]);
+    /* pinch/zoom wiring has to happen after the grid exists */
+    setTimeout(calWrapReady,60);
+  });});
 }
 function calLegend(){return '<div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:14px;font-size:11.5px;color:var(--ink3)"><span><span class="cdot" style="background:var(--accent)"></span>Your booking</span><span><span class="cdot" style="background:var(--gold)"></span>Calendly appt</span><span><span class="cdot" style="background:var(--green)"></span>Confirmed</span><span><span class="cdot" style="background:var(--red)"></span>Canceled</span></div>';}
 function paintMonth(){
@@ -1666,6 +1712,134 @@ function spotSearch(){var q=($('spotI').value||'').toLowerCase();var items=[];
   $('spotR').innerHTML=SPOTITEMS.length?SPOTITEMS.map(function(x,i){return '<div class="sres'+(i===0?' sel':'')+'" onclick="SPOTITEMS['+i+'].act()"><div class="si">'+esc((x.k[0]||'?'))+'</div><div><div class="st">'+esc(x.t)+'</div><div class="ss">'+esc(x.s)+'</div></div><span class="kind">'+esc(x.k)+'</span></div>';}).join(''):'<div class="empty" style="border:none">No matches.</div>';}
 function spotKey(e){if(e.key==='ArrowDown'){e.preventDefault();SPOTSEL=Math.min(SPOTITEMS.length-1,SPOTSEL+1);spotHi();}else if(e.key==='ArrowUp'){e.preventDefault();SPOTSEL=Math.max(0,SPOTSEL-1);spotHi();}else if(e.key==='Enter'){if(SPOTITEMS[SPOTSEL])SPOTITEMS[SPOTSEL].act();}}
 function spotHi(){[].forEach.call($('spotR').children,function(el,i){el.classList.toggle('sel',i===SPOTSEL);});}
+
+/* ==========================================================================
+   ADD TO CALENDAR  (2026-09-01)
+   --------------------------------------------------------------------------
+   Christopher: "Scheduler can only add to calendar... make it exactly like
+   Google Calendar. More user friendly and simple when it comes to booking with
+   a trainer. With the plus add event spot and fill the info as needed."
+
+   Press +, or press any day, and fill it in where you already are. Trainer
+   bookings go through the same atlas_book path the Book tab uses, so nothing
+   about how bookings are stored or approved changes.
+   ========================================================================== */
+function pad2(n){return (n<10?'0':'')+n;}
+function todayISO(){var d=new Date();return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate());}
+
+function openAdd(dateStr, timeStr){
+  var ov=document.getElementById('addOv'), sh=document.getElementById('addSheet');
+  if(!ov||!sh)return;
+  var date=dateStr||(typeof SELDATE!=='undefined'&&SELDATE)||todayISO();
+  var time=timeStr||(typeof SELTIME!=='undefined'&&SELTIME)||'18:00';
+  var cats=(typeof CATS!=='undefined'&&CATS.length)?CATS:['Field Training'];
+  var trainers=(typeof TRAINERS!=='undefined'&&TRAINERS)?TRAINERS:[];
+
+  sh.innerHTML=
+    '<div class="ae-h"><b>Add to calendar</b>'+
+    '<button class="ae-x" type="button" onclick="closeAdd()" aria-label="Close">&times;</button></div>'+
+    '<div class="ae-b">'+
+      '<div class="ae-f"><label for="ae_cat">What is it</label>'+
+        '<select id="ae_cat">'+cats.map(function(c){return '<option>'+esc(c)+'</option>';}).join('')+'</select></div>'+
+      '<div class="ae-row">'+
+        '<div class="ae-f"><label for="ae_date">Date</label><input id="ae_date" type="date" value="'+esc(date)+'"></div>'+
+        '<div class="ae-f"><label for="ae_time">Start</label><input id="ae_time" type="time" value="'+esc(time)+'"></div>'+
+      '</div>'+
+      '<div class="ae-f"><label for="ae_trainer">Trainer</label>'+
+        '<select id="ae_trainer"><option value="">— no trainer (just my calendar) —</option>'+
+        trainers.map(function(t){return '<option value="'+esc(t.name)+'">'+esc(t.name)+(t.role?(' · '+esc(roleLabel(t.role))):'')+'</option>';}).join('')+
+        '</select></div>'+
+      '<div class="ae-f"><label for="ae_guests">Guests (optional)</label>'+
+        '<input id="ae_guests" type="text" placeholder="Names or emails, comma separated"></div>'+
+      '<div class="ae-f"><label for="ae_notes">Notes (optional)</label>'+
+        '<textarea id="ae_notes" placeholder="Anything the trainer should know"></textarea></div>'+
+    '</div>'+
+    '<div class="ae-note">Picking a trainer books them and asks for approval, exactly as the Book tab does. '+
+      (typeof tzNote==='function'?esc(String(tzNote()).replace(/^[^A-Za-z]+/,'')):'')+'</div>'+
+    '<div class="ae-foot">'+
+      '<button class="ae-cancel" type="button" onclick="closeAdd()">Cancel</button>'+
+      '<button class="ae-save" type="button" id="ae_save" onclick="saveAdd()">Add to calendar</button>'+
+    '</div>';
+  ov.classList.add('on'); sh.classList.add('on');
+}
+function closeAdd(){
+  var ov=document.getElementById('addOv'), sh=document.getElementById('addSheet');
+  if(ov)ov.classList.remove('on'); if(sh)sh.classList.remove('on');
+}
+function saveAdd(){
+  var g=function(id){var e=document.getElementById(id);return e?(e.value||'').trim():'';};
+  var cat=g('ae_cat'), date=g('ae_date'), time=g('ae_time'), trainer=g('ae_trainer');
+  if(!date||!time){toast('Pick a date and a time.');return;}
+  var btn=document.getElementById('ae_save');
+  if(btn){btn.disabled=true;btn.textContent='Adding…';}
+  var t=(typeof TRAINERS!=='undefined'?TRAINERS:[]).filter(function(x){return x.name===trainer;})[0];
+  var notes=[g('ae_notes'), g('ae_guests')?('Guests: '+g('ae_guests')):''].filter(Boolean).join(' · ');
+
+  fetch(AT,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'atlas_book',code:CODE,agent_name:NAME,
+      trainer_name:trainer||NAME, trainer_calendly:(t&&t.calendly)||'',
+      category:cat, date:date, time:time, notes:notes, guests:g('ae_guests')})})
+   .then(function(r){return r.json();})
+   .then(function(r){
+      if(btn){btn.disabled=false;btn.textContent='Add to calendar';}
+      if(r&&r.taken){toast(r.error||'That time was just taken.');return;}
+      if(!r||!r.ok){toast((r&&r.error)||'Could not add that.');return;}
+      closeAdd();
+      toast(trainer?('Booked with '+trainer):'Added to your calendar');
+      if(typeof renderCal==='function')renderCal();
+   })
+   .catch(function(){
+      if(btn){btn.disabled=false;btn.textContent='Add to calendar';}
+      toast('Could not reach the server — nothing was added.');
+   });
+}
+
+/* ---- pinch to zoom, and fit the frame -------------------------------------
+   The grid overflowed narrow phones with no way to see the edges. It now fits
+   the frame, and can be pinched like a map (or zoomed with the buttons). */
+var CALZOOM=1;
+function calApplyZoom(){
+  var inner=document.getElementById('calZoomInner');
+  if(inner)inner.style.transform='scale('+CALZOOM+')';
+}
+function calZoom(delta){
+  CALZOOM=Math.max(0.6,Math.min(2.5, CALZOOM+delta));
+  calApplyZoom();
+}
+function calWrapReady(){
+  var wrap=document.getElementById('calWrap');
+  if(!wrap||wrap.dataset.zoomWired)return;
+  wrap.dataset.zoomWired='1';
+  /* wrap the painted grid so we scale the content, not the scroller */
+  if(!document.getElementById('calZoomInner')){
+    var inner=document.createElement('div'); inner.id='calZoomInner';
+    while(wrap.firstChild) inner.appendChild(wrap.firstChild);
+    wrap.appendChild(inner);
+  }
+  var pts={}, startDist=0, startZoom=1;
+  function dist(){
+    var k=Object.keys(pts); if(k.length<2)return 0;
+    var a=pts[k[0]], b=pts[k[1]];
+    return Math.hypot(a.x-b.x, a.y-b.y);
+  }
+  wrap.addEventListener('pointerdown',function(e){ pts[e.pointerId]={x:e.clientX,y:e.clientY};
+    if(Object.keys(pts).length===2){startDist=dist();startZoom=CALZOOM;} });
+  wrap.addEventListener('pointermove',function(e){
+    if(!pts[e.pointerId])return;
+    pts[e.pointerId]={x:e.clientX,y:e.clientY};
+    if(Object.keys(pts).length===2&&startDist>0){
+      e.preventDefault();
+      CALZOOM=Math.max(0.6,Math.min(2.5, startZoom*(dist()/startDist)));
+      calApplyZoom();
+    }
+  },{passive:false});
+  ['pointerup','pointercancel','pointerleave'].forEach(function(ev){
+    wrap.addEventListener(ev,function(e){ delete pts[e.pointerId]; if(Object.keys(pts).length<2)startDist=0; });
+  });
+  calApplyZoom();
+}
+
+
 </script>
 <script defer src="notif.js"></script>
 <script>
@@ -1677,5 +1851,7 @@ document.addEventListener('dragleave',function(e){if(cur&&!cur.contains(e.relate
 document.addEventListener('drop',function(e){var m=zf(e.target);hi(cur,false);cur=null;if(!m)return;e.preventDefault();var fs=e.dataTransfer&&e.dataTransfer.files;if(!fs||!fs.length)return;try{var dt=new DataTransfer();for(var k=0;k<fs.length;k++)dt.items.add(fs[k]);m.i.files=dt.files;}catch(_){}m.i.dispatchEvent(new Event('change',{bubbles:true}));},false);})();
 </script>
 <script src="i18n.js"></script>
+<div id="addOv" onclick="closeAdd()"></div>
+<div id="addSheet" role="dialog" aria-label="Add to calendar"></div>
 </body>
 </html>

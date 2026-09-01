@@ -455,7 +455,7 @@ function rtSubscribe(){
   try{ rtChan=SB.channel(top).on('broadcast',{event:'newmsg'},function(){ if(!document.hidden)loadMsgs(false); }).subscribe(); }catch(e){rtChan=null;}
 }
 function rtEnsure(){ if(rtTopicNow!==rtTopic(CHAN))rtSubscribe(); }
-var LOADING=false;
+var LOADING=false, LOADSTART=0;
 function loadMsgs(scroll){
   try{rtEnsure();}catch(e){}
   /* First load of a channel — from openChan OR from boot, which doesn't go
@@ -465,8 +465,12 @@ function loadMsgs(scroll){
      full history and the second concatenated a duplicate of every message.
      Guard the overlap, ignore responses for a channel we've since left, and
      de-duplicate on merge as a belt-and-braces backstop. */
-  if(LOADING)return;
-  LOADING=true;
+  /* Time-bound the guard. It was cleared only in .then/.catch, so a request
+     that never settles (dropped connection, sleeping phone) pinned it true and
+     the message list stopped refreshing FOREVER. Sending still posted, but you
+     never saw your own message arrive — indistinguishable from "can't send". */
+  if(LOADING && (Date.now()-LOADSTART) < 12000)return;
+  LOADING=true; LOADSTART=Date.now();
   var reqChan=CHAN, reqAfter=LASTID;
   h({action:'hub_list',channel:CHAN,after:LASTID}).then(function(r){
     LOADING=false;
@@ -706,7 +710,20 @@ function sendNow(){
   if(PENDATTACH){msg.attach=PENDATTACH;}
   t.value='';autoresize();clearReply();PENDATTACH=null;
   // Bob (Questions AI) auto-answers server-side when the message is a question or @Question
-  h(msg).then(function(rr){if(rr&&rr.ok===false){toast(rr.error||'Message not sent');}loadMsgs(true);if(rr&&rr.bot){setTimeout(function(){loadMsgs(true);},400);}});
+  h(msg).then(function(rr){
+    if(rr&&rr.ok===false){
+      toast(rr.error||'Message not sent');
+      t.value=body;                      // give them their text back rather than losing it
+      autoresize();
+    }
+    loadMsgs(true);
+    if(rr&&rr.bot){setTimeout(function(){loadMsgs(true);},400);}
+  }).catch(function(){
+    /* A rejected request used to fall through silently: the box cleared, no
+       toast, nothing appeared. It looked exactly like "I can't send". */
+    toast('Could not reach the server — your message was not sent.');
+    t.value=body; autoresize();
+  });
 }
 function onFile(ev){var f=ev.target.files[0];if(!f)return;if(f.size>2600000){toast('File too large (max ~2.5MB for now)');ev.target.value='';return;}
   var rd=new FileReader();rd.onload=function(){PENDATTACH=(f.type.indexOf('image')===0)?{type:'image',url:rd.result,name:f.name}:{type:'file',url:rd.result,name:f.name};toast('Attached: '+f.name+' — press Send');};rd.readAsDataURL(f);ev.target.value='';}
