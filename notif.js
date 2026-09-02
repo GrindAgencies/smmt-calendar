@@ -775,7 +775,10 @@ window.tsfgTrack = function (kind, detail) {
        observed, this would re-trigger itself forever. Stop watching while we touch
        anything; disconnect() also drops the records we are about to create. */
     if (fabObs) fabObs.disconnect();
-    try { measureFabLiftInner(fab); } catch (_) { /* never let this break the page */ }
+    // Never let this break the page — but do not swallow it silently either, or a
+    // broken measurement just looks like a feature that quietly does nothing.
+    try { measureFabLiftInner(fab); }
+    catch (e) { try { console.warn('[tsfg] Ask button placement failed:', e); } catch (_) {} }
     if (fabObs) fabObs.observe(document.body,
       { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'style', 'hidden'] });
   }
@@ -789,36 +792,52 @@ window.tsfgTrack = function (kind, detail) {
     fab.style.visibility = 'hidden';               // so we can see what is underneath
     var pts = [[r.left + r.width / 2, r.top + r.height / 2],
                [r.left + 4, r.top + 4], [r.right - 4, r.bottom - 4]];
+    /* Something under the button only matters if it is never going to move on its own.
+       Two ways that happens: it is pinned there, or the page does not scroll at all —
+       which is exactly the PFR case, where Back and Continue sit in normal flow at the
+       bottom of a screen that always fits. Only checking for pinned missed it entirely. */
+    var scrolls = document.documentElement.scrollHeight > vh + 2;
     var lift = 0;
     for (var i = 0; i < pts.length; i++) {
       var hits = document.elementsFromPoint(pts[i][0], pts[i][1]) || [];
       for (var j = 0; j < hits.length; j++) {
-        var el = hits[j], pinned = null;
+        var el = hits[j], bar = null, inPinnedLayout = false;
+        /* Walk the whole way up, not just to the first pinned ancestor. PFR wraps its
+           screen in a full-height position:fixed #flow, so stopping at the first pinned
+           thing found a container, judged it "not a bar", and never looked at the
+           Continue button sitting inside it — which is the button being covered. */
         for (var n = el; n && n !== document.body; n = n.parentElement) {
           var pos = getComputedStyle(n).position;
-          if (pos === 'fixed' || pos === 'sticky') { pinned = n; break; }
+          if (pos !== 'fixed' && pos !== 'sticky') continue;
+          var pr = n.getBoundingClientRect();
+          if (pr.height > vh * 0.4) { inPinnedLayout = true; continue; }   // a layout shell
+          if (pr.bottom < vh - 80) continue;                              // floats mid-page
+          if (!n.querySelector('button,a,input,select,textarea,[role="button"],[onclick]') &&
+              !/^(BUTTON|A|INPUT|SELECT|TEXTAREA)$/.test(n.tagName)) continue;
+          bar = n; break;                                                  // a real bottom bar
         }
-        if (!pinned) continue;
-        var pr = pinned.getBoundingClientRect();
-        /* Must actually be a bottom BAR. Team Hub and the dashboard pin full-height
-           layout panels; matching those would shove the button to the top of the
-           screen, which is far worse than the problem being solved. */
-        if (pr.height > vh * 0.4) continue;
-        if (pr.top < vh * 0.5) continue;
-        if (pr.bottom < vh - 80) continue;                     // floats mid-page, not pinned low
-        if (!pinned.querySelector('button,a,input,select,textarea,[role="button"],[onclick]') &&
-            !/^(BUTTON|A|INPUT|SELECT|TEXTAREA)$/.test(pinned.tagName)) continue;
-        lift = Math.max(lift, Math.max(0, vh - pr.top) + 12);
+        var target = bar;
+        /* No bar, but the control still cannot get out of the way — either the page does
+           not scroll at all, or it lives inside a pinned layout shell. Avoid it directly. */
+        if (!target && (inPinnedLayout || !scrolls) && el.closest) {
+          target = el.closest('button,a,input,select,textarea,[role="button"]');
+        }
+        if (!target) continue;
+        var tr = target.getBoundingClientRect();
+        if (tr.top < vh * 0.5) continue;                       // only things low on the screen
+        lift = Math.max(lift, Math.max(0, vh - tr.top) + 12);
       }
     }
     if (lift > vh * 0.45) lift = 0;   // nothing sane needs that much room; leave it be
     fab.style.visibility = '';
     // Only write when something actually changed, so we are not thrashing layout
     // on every scroll frame.
+    /* Deliberately NOT touching body padding. Growing the page would change whether it
+       scrolls, which is one of the things measured above — the button would lift, the
+       page would become scrollable, the reason to lift would vanish, and it would
+       oscillate. The resting 78px from body.tsfg-hasfab is enough. */
     var wantBottom = lift ? ('calc(' + lift + 'px + env(safe-area-inset-bottom))') : '';
-    var wantPad = lift ? (lift + 64) + 'px' : '';
     if (fab.style.bottom !== wantBottom) fab.style.bottom = wantBottom;
-    if (document.body.style.paddingBottom !== wantPad) document.body.style.paddingBottom = wantPad;
   }
   function keepFabClear() {
     if (fabRAF) return;                       // already scheduled
@@ -856,7 +875,13 @@ window.tsfgTrack = function (kind, detail) {
     document.body.appendChild(fab);
     document.body.classList.add('tsfg-hasfab');
 
+    /* The first measurement lands before the button has been laid out at its resting
+       position, so it sees nothing underneath and finds nothing to avoid. Measure again
+       once layout, fonts and any late content have settled. */
     keepFabClear();
+    setTimeout(keepFabClear, 250);
+    setTimeout(keepFabClear, 1200);
+    window.addEventListener('load', keepFabClear);
     fab.addEventListener('click', function () { open(true); });
     scrim.addEventListener('click', function () { open(false); });
     panel.querySelector('.ask-x').addEventListener('click', function () { open(false); });
