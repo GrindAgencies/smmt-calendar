@@ -424,7 +424,49 @@ function renderRooms(){
     $('dmList').innerHTML='<div class="bshdr">All conversations ('+OPSDMS.length+')</div>'+coachPin+OPSDMS.filter(function(dm){return dm.parts.indexOf('KYLE')<0;}).map(function(dm){return '<div class="room'+(CHAN===dm.channel?' on':'')+'" onclick="openChan(\''+esc(dm.channel)+'\')" title="'+esc(dm.label)+'"><div class="dmav">'+esc(initials(dm.names[0]||'?'))+'</div><div class="rn" style="font-size:12.5px">'+esc(dm.label)+'</div><span class="chev">'+dm.count+'</span></div>';}).join('')+OPSDMS.filter(function(dm){return dm.parts.indexOf('KYLE')>=0;}).map(function(dm){return '<div class="room'+(CHAN===dm.channel?' on':'')+'" onclick="openChan(\''+esc(dm.channel)+'\')" title="'+esc(dm.label)+' (Kyle coach thread)"><div class="dmav" style="background:linear-gradient(135deg,#c79a2e,#8a6d1f);color:#fff">📣</div><div class="rn" style="font-size:12.5px">'+esc(dm.names.filter(function(n){return n!=='Coach';})[0]||'')+' · Kyle</div><span class="chev">'+dm.count+'</span></div>';}).join('');
     return;
   }
-  $('dmList').innerHTML=kylePin+active+'<select class="dmsel" onchange="if(this.value){openChan(dmId(this.value));this.value=\'\';}"><option value="">＋ Message a teammate…</option>'+mem.map(function(cd){return '<option value="'+cd+'">'+esc(MEMBERS[cd]||cd)+(ONLINE[cd]?' ●':'')+'</option>';}).join('')+'</select>';
+  $('dmList').innerHTML=coachPin+active+dmPicker();
+}
+/* One flat list of 86 names was unusable. Pick a baseshop first, then the
+   person — the reader's own baseshop is preselected because that is who they
+   message most. Falls back to the flat list until the roster (which carries
+   baseshop) has loaded. */
+var DMBASE='';
+function dmRosterByBase(){
+  var by={},seen={};
+  (ROSTER||[]).forEach(function(m){
+    var c=(m.code||'').toUpperCase();
+    if(!c||c===CODE||c==='KYLE'||seen[c])return;
+    seen[c]=1;
+    var b=(m.baseshop||'').toUpperCase()||'UNASSIGNED';
+    (by[b]=by[b]||[]).push({code:c,name:m.name||c});
+  });
+  Object.keys(by).forEach(function(b){by[b].sort(function(x,y){return x.name.localeCompare(y.name);});});
+  return by;
+}
+function myBaseshop(){
+  var me=(ROSTER||[]).filter(function(m){return (m.code||'').toUpperCase()===CODE;})[0];
+  return me?((me.baseshop||'').toUpperCase()):'';
+}
+function dmPicker(){
+  var by=dmRosterByBase(), bases=Object.keys(by).sort();
+  if(!bases.length){
+    // roster not in yet — keep the old behaviour rather than showing nothing
+    var mem=Object.keys(MEMBERS).filter(function(cd){return cd!==CODE;})
+      .sort(function(a,b){return (MEMBERS[a]||'').localeCompare(MEMBERS[b]||'');});
+    return '<select class="dmsel" onchange="if(this.value){openChan(dmId(this.value));this.value=\'\';}">'+
+      '<option value="">＋ Message a teammate…</option>'+
+      mem.map(function(cd){return '<option value="'+cd+'">'+esc(MEMBERS[cd]||cd)+'</option>';}).join('')+'</select>';
+  }
+  if(!DMBASE||bases.indexOf(DMBASE)<0)DMBASE=(bases.indexOf(myBaseshop())>=0?myBaseshop():bases[0]);
+  var people=by[DMBASE]||[];
+  return '<select class="dmsel" onchange="DMBASE=this.value;renderRooms();">'+
+      bases.map(function(b){
+        return '<option value="'+esc(b)+'"'+(b===DMBASE?' selected':'')+'>'+esc(b)+' · '+by[b].length+'</option>';
+      }).join('')+'</select>'+
+    '<select class="dmsel" onchange="if(this.value){openChan(dmId(this.value));this.value=\'\';}">'+
+      '<option value="">＋ Message someone in '+esc(DMBASE)+'…</option>'+
+      people.map(function(p){return '<option value="'+p.code+'">'+esc(p.name)+'</option>';}).join('')+
+    '</select>';
 }
 function dmId(other){return 'dm:'+[CODE,other].sort().join('|');}
 function chanMeta(id){
@@ -768,7 +810,7 @@ function fillMembers(){var host=$('chMembers');if(!host)return;var list=ROSTER.f
 function createChannel(){var n=$('chName').value.trim();if(!n){toast('Name it');return;}var priv=$('chPriv').checked;var mem=[].slice.call(document.querySelectorAll('#chMembers input:checked')).map(function(x){return x.value;});h({action:'hub_createchannel',name:n,private:priv,members:mem,code:CODE,by:NAME}).then(function(r){if(r&&r.ok){$('chOv').classList.remove('on');$('chName').value='';$('chPriv').checked=false;$('chMembersWrap').style.display='none';loadChannels();toast(priv?'Private channel created \ud83d\udd12':'Channel created');if(r.id){CHAN=r.id;renderHead();loadMsgs(true);}}else toast((r&&r.error)||'Could not create');});}
 /* profile settings + roster */
 var ROSTER=[];
-function loadRoster(){h({action:'hub_roster'}).then(function(r){ROSTER=(r&&r.members)||[];});}
+function loadRoster(){h({action:'hub_roster'}).then(function(r){ROSTER=(r&&r.members)||[];try{renderRooms();}catch(e){}});}
 function openProfileSettings(){$('psAv').innerHTML=avatarInner(CODE,NAME,'');$('psName').value=NAME;var open=function(){h({action:'hub_profile',code:CODE}).then(function(r){var pf=(r&&r.profile)||{};$('psTitle').value=pf.title||'';$('psEmail').value=pf.email||'';$('psPhone').value=pf.phone||'';$('psCal').value=pf.cal_link||'';var sel=$('psDirect');sel.innerHTML='<option value="">\u2014 Select your direct upline \u2014</option>'+ROSTER.filter(function(m){return m.code!==CODE;}).map(function(m){return '<option value="'+m.code+'"'+(pf.direct_to===m.code?' selected':'')+'>'+esc(m.name)+' ('+m.code+')</option>';}).join('');});$('psOv').classList.add('on');};if(!ROSTER.length){h({action:'hub_roster'}).then(function(r){ROSTER=(r&&r.members)||[];open();});}else open();}
 function saveProfile(){var sel=$('psDirect');var dc=sel.value;var dn=dc?sel.options[sel.selectedIndex].text.replace(/\s*\([^)]*\)\s*$/,'').trim():'';h({action:'hub_setprofile',code:CODE,title:$('psTitle').value.trim(),email:$('psEmail').value.trim(),phone:$('psPhone').value.trim(),cal_link:$('psCal').value.trim(),direct_to:dc,direct_to_name:dn}).then(function(r){if(r&&r.ok){$('psOv').classList.remove('on');toast('Profile saved \u2713');loadRoster();}else toast((r&&r.error)||'Could not save');});}
 function deleteChannel(){if(CHAN.indexOf('c_')!==0)return;if(!confirm('Delete this channel for everyone? This cannot be undone.'))return;h({action:'hub_deletechannel',id:CHAN,code:CODE,token:MODTOKEN||''}).then(function(r){if(r&&r.ok){toast('Channel deleted');CHAN='main';loadChannels();renderHead();loadMsgs(true);}else toast((r&&r.error)||'Could not delete');});}
