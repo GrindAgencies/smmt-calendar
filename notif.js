@@ -759,6 +759,77 @@ window.tsfgTrack = function (kind, detail) {
   var STARTERS = ['How do I log a sale?', 'How do I book a field trainer?',
                   'Where do I set my monthly goal?', 'When is the morning huddle?'];
 
+  /* Keep the Ask button off whatever is pinned to the bottom of THIS page.
+     It used to sit 14px up on every screen, which is fine until a page pins its own
+     controls down there — PFR's Continue, a drawer's Save — and then the one button
+     you need is underneath a chat bubble. Rather than hand-tune each page (and get it
+     wrong the next time someone adds a bar), the button looks at what is actually
+     beneath it and lifts above it.
+     Only PINNED things count. A button that merely scrolled under it will scroll away
+     again, and lifting for those would make the FAB twitch down the whole page. */
+  var fabRAF = null, fabObs = null;
+  function measureFabLift() {
+    var fab = document.getElementById('askFab');
+    if (!fab) return;
+    /* Measuring writes styles, and those writes are themselves mutations — left
+       observed, this would re-trigger itself forever. Stop watching while we touch
+       anything; disconnect() also drops the records we are about to create. */
+    if (fabObs) fabObs.disconnect();
+    try { measureFabLiftInner(fab); } catch (_) { /* never let this break the page */ }
+    if (fabObs) fabObs.observe(document.body,
+      { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'style', 'hidden'] });
+  }
+  function measureFabLiftInner(fab) {
+    // NOT offsetParent: that is always null for a position:fixed element, so testing it
+    // would skip the measurement every single time.
+    if (!fab.offsetWidth && !fab.offsetHeight) return;   // hidden or detached
+    var vh = window.innerHeight || document.documentElement.clientHeight;
+
+    var r = fab.getBoundingClientRect();
+    fab.style.visibility = 'hidden';               // so we can see what is underneath
+    var pts = [[r.left + r.width / 2, r.top + r.height / 2],
+               [r.left + 4, r.top + 4], [r.right - 4, r.bottom - 4]];
+    var lift = 0;
+    for (var i = 0; i < pts.length; i++) {
+      var hits = document.elementsFromPoint(pts[i][0], pts[i][1]) || [];
+      for (var j = 0; j < hits.length; j++) {
+        var el = hits[j], pinned = null;
+        for (var n = el; n && n !== document.body; n = n.parentElement) {
+          var pos = getComputedStyle(n).position;
+          if (pos === 'fixed' || pos === 'sticky') { pinned = n; break; }
+        }
+        if (!pinned) continue;
+        var pr = pinned.getBoundingClientRect();
+        /* Must actually be a bottom BAR. Team Hub and the dashboard pin full-height
+           layout panels; matching those would shove the button to the top of the
+           screen, which is far worse than the problem being solved. */
+        if (pr.height > vh * 0.4) continue;
+        if (pr.top < vh * 0.5) continue;
+        if (pr.bottom < vh - 80) continue;                     // floats mid-page, not pinned low
+        if (!pinned.querySelector('button,a,input,select,textarea,[role="button"],[onclick]') &&
+            !/^(BUTTON|A|INPUT|SELECT|TEXTAREA)$/.test(pinned.tagName)) continue;
+        lift = Math.max(lift, Math.max(0, vh - pr.top) + 12);
+      }
+    }
+    if (lift > vh * 0.45) lift = 0;   // nothing sane needs that much room; leave it be
+    fab.style.visibility = '';
+    // Only write when something actually changed, so we are not thrashing layout
+    // on every scroll frame.
+    var wantBottom = lift ? ('calc(' + lift + 'px + env(safe-area-inset-bottom))') : '';
+    var wantPad = lift ? (lift + 64) + 'px' : '';
+    if (fab.style.bottom !== wantBottom) fab.style.bottom = wantBottom;
+    if (document.body.style.paddingBottom !== wantPad) document.body.style.paddingBottom = wantPad;
+  }
+  function keepFabClear() {
+    if (fabRAF) return;                       // already scheduled
+    /* rAF coalesces with the next paint, which is what we want — but Chrome freezes it
+       entirely in a background tab, so a page that changed while hidden would come back
+       with the button still parked over a bottom bar. Fall back to a timer when hidden. */
+    if (document.hidden) { fabRAF = setTimeout(function () { fabRAF = null; measureFabLift(); }, 0); return; }
+    fabRAF = requestAnimationFrame(function () { fabRAF = null; measureFabLift(); });
+  }
+  window.tsfgKeepFabClear = keepFabClear;      // pages that reveal a bar can nudge it
+
   function build() {
     if (document.getElementById('askFab') || !document.body) return;
     if (!code()) return;                       // signed out — nothing to ask about
@@ -785,6 +856,7 @@ window.tsfgTrack = function (kind, detail) {
     document.body.appendChild(fab);
     document.body.classList.add('tsfg-hasfab');
 
+    keepFabClear();
     fab.addEventListener('click', function () { open(true); });
     scrim.addEventListener('click', function () { open(false); });
     panel.querySelector('.ask-x').addEventListener('click', function () { open(false); });
@@ -801,7 +873,20 @@ window.tsfgTrack = function (kind, detail) {
     });
   }
 
-  function start() { css(); build(); }
+  function start() {
+    css(); build();
+    // Bars appear and disappear as people move around a page, so re-measure on the
+    // things that change what is pinned at the bottom.
+    ['resize', 'orientationchange'].forEach(function (e) { window.addEventListener(e, keepFabClear, { passive: true }); });
+    window.addEventListener('scroll', keepFabClear, { passive: true });
+    // Coming back to a tab that changed while it was hidden.
+    document.addEventListener('visibilitychange', keepFabClear);
+    try {
+      fabObs = new MutationObserver(keepFabClear);
+      fabObs.observe(document.body,
+        { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'style', 'hidden'] });
+    } catch (_) { /* older browser — the resize and scroll hooks still cover most of it */ }
+  }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
   else start();
 })();
