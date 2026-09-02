@@ -129,6 +129,13 @@ tbody tr{cursor:pointer;}tbody tr:hover{background:var(--bg);}
 .mact .del{flex:0 0 auto;background:var(--red-soft);color:var(--red);border:none;}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--panel);padding:12px 20px;border-radius:12px;font-weight:600;font-size:14px;box-shadow:var(--shadow-lg);z-index:1100;opacity:0;transition:.2s;pointer-events:none;}
 .toast.on{opacity:1;}
+/* Split-agent match status: green when resolved to a real person, amber when
+   more than one could be meant, red when nobody matches (that split would
+   otherwise save and credit no one). */
+.splitmatch{font-size:12px;font-weight:600;margin-top:6px;min-height:16px;color:var(--ink3,#8e8e93);}
+.splitmatch.ok{color:#1a7f47;}
+.splitmatch.warn{color:#b8891f;}
+.splitmatch.bad{color:#c0392b;}
 </style>
 <style id="mobile-safe-fix">
 .top{ height: calc(60px + env(safe-area-inset-top)); padding-top: env(safe-area-inset-top); }
@@ -186,8 +193,8 @@ html, body{ overflow-x: hidden; }
   <div class="sec-l">Sale Source</div>
   <div class="fg"><label>How did this sale come to you? *</label><select id="f_source"><option value="">Select source</option><option>Warm Market</option><option>Referral</option><option>Lead — Purchased</option><option>Lead — Free</option><option>Social Media</option><option>Client of a Client</option><option>Cross-sell</option><option>Other</option></select></div>
   <label class="chk"><input type="checkbox" id="f_writingoff"> Writing agent not on The Standard</label>
-  <label class="chk" id="splitToggle"><input type="checkbox" id="f_splitflag" onchange="document.getElementById('splitWrap').style.display=this.checked?'block':'none';calcComm()"> Split this sale with another agent</label>
-  <div id="splitWrap" style="display:none"><div class="fg" style="margin-top:8px"><label>Split agent (name or code)</label><input id="f_split" placeholder="e.g. Courtney Whitbey or H1772" oninput="updSplitShare()"></div><div class="frow" style="margin-top:8px"><div class="fg"><label>Your share of this sale (%)</label><input id="f_splitpct" type="number" min="0" max="100" value="50" oninput="updSplitShare();calcComm()"></div><div class="fg"><label>Partner's contract % (optional)</label><input id="f_partner_contract" type="number" inputmode="decimal" placeholder="defaults to your rate" oninput="calcComm()"><div class="hint">Their comp rate — used for their side of the split</div></div></div><div id="splitShareHint" style="font-size:12px;color:var(--muted,#6e6e73);margin-top:7px;line-height:1.45"></div></div>
+  <label class="chk" id="splitToggle"><input type="checkbox" id="f_splitflag" onchange="if(this.checked)loadAgentRoster();document.getElementById('splitWrap').style.display=this.checked?'block':'none';calcComm()"> Split this sale with another agent</label>
+  <div id="splitWrap" style="display:none"><div class="fg" style="margin-top:8px"><label>Split agent (name or code)</label><input id="f_split" placeholder="Start typing a name or GFI code" list="tsfgAgents" autocomplete="off" oninput="updSplitShare();splitLookup()" onchange="splitLookup(true)" onblur="splitLookup(true)"><datalist id="tsfgAgents"></datalist><input type="hidden" id="f_split_code"><div id="splitMatch" class="splitmatch"></div></div><div class="frow" style="margin-top:8px"><div class="fg"><label>Your share of this sale (%)</label><input id="f_splitpct" type="number" min="0" max="100" value="50" oninput="updSplitShare();calcComm()"></div><div class="fg"><label>Partner's contract % (optional)</label><input id="f_partner_contract" type="number" inputmode="decimal" placeholder="defaults to your rate" oninput="calcComm()"><div class="hint">Their comp rate — used for their side of the split</div></div></div><div id="splitShareHint" style="font-size:12px;color:var(--muted,#6e6e73);margin-top:7px;line-height:1.45"></div></div>
   <div class="sec-l">Policy Details</div>
   <div class="frow"><div class="fg"><label>Carrier *</label><input id="f_carrier" placeholder="Type or select a carrier" list="carriers"><datalist id="carriers"><option>American National</option><option>American Equity</option><option>Americo</option><option>Ethos</option><option>Foresters</option><option>Mutual of Omaha</option><option>National Life Group</option><option>North American</option><option>F&G</option><option>Corebridge</option></datalist></div><div class="fg"><label>Product *</label><select id="f_product"><option value="">Select product</option><option>Term Life</option><option>IUL</option><option>Whole Life</option><option>Final Expense</option><option>GUL</option><option>Annuity — FIA</option><option>Annuity — MYGA</option><option>Other</option></select></div></div>
   <div class="frow"><div class="fg"><label>State *</label><input id="f_state" maxlength="2" placeholder="CA" style="text-transform:uppercase"></div><div class="fg"><label>Policy # *</label><input id="f_polnum" placeholder="Policy number"></div><div class="fg"><label>Carrier code</label><input id="f_ccode" placeholder="Optional"></div></div>
@@ -220,7 +227,94 @@ var NB="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/newbiz-api";
 var PFRAPI="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/pfr-api";
 var RECOS={};
 var BASESHOP_LEADER="Elijah Cox";
-var TA="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/tracker-api";var MYMD="",MYEMD="";
+var TA="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/tracker-api";
+var ORGAPI="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/org-api";
+
+/* ===== SPLIT AGENT LOOKUP ==================================================
+   The split partner was a free-text box, and the server matched the typed name
+   against the roster afterwards. When that match failed the policy saved with
+   no split_agent_code — and the leaderboard credits a split by CODE, so the
+   partner silently got none of it. Three live records had already gone that
+   way: a middle name ("Vesenta Watson" vs "Vesenta Cornelius Watson"), a code
+   typed from memory that does not exist, and a name with a near-duplicate on
+   the roster ("Abbey Coker" alongside "Abagael Coker").
+
+   So the field now resolves against the real roster as you type, fills in the
+   canonical name, and keeps the code alongside it. If it cannot find them it
+   says so plainly rather than saving a split that credits nobody.
+   ========================================================================= */
+var TSFG_AGENTS=[],TSFG_AGENTS_BY=null;
+function splitNorm(x){return (x||'').toString().trim().toLowerCase().replace(/\s+/g,' ');}
+function loadAgentRoster(){
+  if(TSFG_AGENTS.length)return Promise.resolve(TSFG_AGENTS);
+  return fetch(ORGAPI,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'tree',code:(CODE||'')})})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      var nodes=(d&&d.nodes)||[];
+      TSFG_AGENTS=nodes.filter(function(n){return n&&n.code&&n.name;})
+        .map(function(n){return {code:String(n.code).toUpperCase(),name:String(n.name).trim(),
+                                 title:n.title||n.level||'',baseshop:n.baseshop||''};})
+        .sort(function(a,b){return a.name.localeCompare(b.name);});
+      TSFG_AGENTS_BY={byCode:{},byName:{}};
+      TSFG_AGENTS.forEach(function(a){
+        TSFG_AGENTS_BY.byCode[a.code]=a;
+        (TSFG_AGENTS_BY.byName[splitNorm(a.name)]=TSFG_AGENTS_BY.byName[splitNorm(a.name)]||[]).push(a);
+      });
+      var dl=document.getElementById('tsfgAgents');
+      if(dl)dl.innerHTML=TSFG_AGENTS.map(function(a){
+        return '<option value="'+esc(a.name)+' · '+esc(a.code)+'">'+esc(a.title||'')+(a.baseshop?(' · '+esc(a.baseshop)):'')+'</option>';
+      }).join('');
+      return TSFG_AGENTS;
+    }).catch(function(){return TSFG_AGENTS;});
+}
+/* Find one agent from whatever was typed: "Name · CODE", a bare code, an exact
+   name, or an unambiguous partial. Ambiguity is reported, never guessed. */
+function splitResolve(raw){
+  var q=splitNorm(raw);
+  if(!q||!TSFG_AGENTS_BY)return {state:'empty'};
+  var dot=raw.lastIndexOf('·');
+  if(dot>=0){var c=raw.slice(dot+1).trim().toUpperCase();
+    if(TSFG_AGENTS_BY.byCode[c])return {state:'ok',agent:TSFG_AGENTS_BY.byCode[c]};}
+  var up=raw.trim().toUpperCase();
+  if(TSFG_AGENTS_BY.byCode[up])return {state:'ok',agent:TSFG_AGENTS_BY.byCode[up]};
+  var exact=TSFG_AGENTS_BY.byName[q];
+  if(exact&&exact.length===1)return {state:'ok',agent:exact[0]};
+  if(exact&&exact.length>1)return {state:'ambiguous',matches:exact};
+  var parts=q.split(' ').filter(Boolean);
+  var hits=TSFG_AGENTS.filter(function(a){var n=splitNorm(a.name);
+    return parts.every(function(p){return n.indexOf(p)>=0;});});
+  if(hits.length===1)return {state:'ok',agent:hits[0]};
+  if(hits.length>1&&hits.length<=6)return {state:'ambiguous',matches:hits};
+  if(hits.length>6)return {state:'typing'};
+  return {state:'none'};
+}
+function splitLookup(commit){
+  var el=document.getElementById('f_split'),out=document.getElementById('splitMatch'),
+      hid=document.getElementById('f_split_code');
+  if(!el||!out)return;
+  if(!TSFG_AGENTS.length){loadAgentRoster().then(function(){splitLookup(commit);});return;}
+  var res=splitResolve(el.value);
+  if(res.state==='ok'){
+    if(hid)hid.value=res.agent.code;
+    if(commit)el.value=res.agent.name;          // store the canonical spelling
+    out.className='splitmatch ok';
+    out.textContent='✓ '+res.agent.name+' · '+res.agent.code+(res.agent.title?(' · '+res.agent.title):'');
+  } else if(res.state==='ambiguous'){
+    if(hid)hid.value='';
+    out.className='splitmatch warn';
+    out.textContent='Which one? '+res.matches.slice(0,4).map(function(a){return a.name+' ('+a.code+')';}).join(' · ');
+  } else if(res.state==='none'){
+    if(hid)hid.value='';
+    out.className='splitmatch bad';
+    out.textContent='Not found in TSFG — this split will not be credited to anyone. Check the spelling or code.';
+  } else {
+    if(hid)hid.value='';
+    out.className='splitmatch';
+    out.textContent=res.state==='typing'?'Keep typing…':'';
+  }
+}
+var MYMD="",MYEMD="";
 var CODE=null,NAME="",BIZ="life",SCOPE="me",TAB="pendingbiz",POLICIES=[],SORT={k:'submitted_date',dir:-1},OPS=false,EDIT=null,STATUS='pending';
 var $=function(i){return document.getElementById(i);};
 function api(b){return fetch(NB,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();}).catch(function(){return{ok:false};});}
@@ -468,7 +562,7 @@ function openEdit(p){if(!p)return;EDIT=p;var own=canEdit(p);$('mTitle').textCont
   if(p.split_flag){var mine=myShare(p);sub='🤝 Split · '+esc(p.agent_name||'writer')+' '+mine+'% + '+esc(p.split_agent||'partner')+' '+(100-mine)+'%'+(p.split_role==='received'?' · shared with you':'');}
   $('mSub').innerHTML=sub;$('mDel').classList.toggle('hide',!own);$('saveBtn').textContent=own?'Save Changes':'Close';fillForm(p);$('ov').classList.add('on');}
 function closeModal(){$('ov').classList.remove('on');}
-function collect(){var v=function(i){return $(i).value.trim();};return {client_name:v('f_client'),phone:v('f_phone'),email:v('f_email'),gender:v('f_gender'),dob:v('f_dob'),source:v('f_source'),status:STATUS,business_type:BIZ,writing_off:$('f_writingoff').checked,split_flag:$('f_splitflag').checked,split_agent:v('f_split'),split_pct:v('f_splitpct'),partner_contract_pct:v('f_partner_contract'),carrier:v('f_carrier'),product:v('f_product'),state:v('f_state'),policy_number:v('f_polnum'),carrier_code:v('f_ccode'),coverage:v('f_cov'),annual_premium:v('f_prem'),monthly_contribution:v('f_monthly'),lump_sum_contribution:v('f_lump'),contract_pct:v('f_contract'),advance_pct:'100',date_written:v('f_written'),first_draft_date:v('f_draft'),notes:v('f_notes'),
+function collect(){var v=function(i){return $(i).value.trim();};return {client_name:v('f_client'),phone:v('f_phone'),email:v('f_email'),gender:v('f_gender'),dob:v('f_dob'),source:v('f_source'),status:STATUS,business_type:BIZ,writing_off:$('f_writingoff').checked,split_flag:$('f_splitflag').checked,split_agent:v('f_split'),split_agent_code:v('f_split_code'),split_pct:v('f_splitpct'),partner_contract_pct:v('f_partner_contract'),carrier:v('f_carrier'),product:v('f_product'),state:v('f_state'),policy_number:v('f_polnum'),carrier_code:v('f_ccode'),coverage:v('f_cov'),annual_premium:v('f_prem'),monthly_contribution:v('f_monthly'),lump_sum_contribution:v('f_lump'),contract_pct:v('f_contract'),advance_pct:'100',date_written:v('f_written'),first_draft_date:v('f_draft'),notes:v('f_notes'),
   paid_out_date:v('f_paidout'),trailing_months:v('f_trmonths'),trailing_status:v('f_trstatus'),
   chargeback_type:v('f_cbtype'),chargeback_amount:v('f_cbamt'),chargeback_date:v('f_cbdate'),chargeback_note:v('f_cbnote'),
   suitability_ok:$('f_suit').checked};}
