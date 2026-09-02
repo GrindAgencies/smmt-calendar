@@ -75,6 +75,19 @@ input.in[readonly]{background:var(--panel2);color:var(--ink2)}
 .gate{max-width:400px;margin:12vh auto;text-align:center;padding:0 20px}
 .gate h2{font-size:20px;font-weight:800}
 .gate p{color:var(--ink2);font-size:14px}
+/* EMD control: announcements waiting, and the bots in their channel */
+.annrow{border:1px solid var(--line2);border-radius:13px;padding:14px;margin-bottom:12px;background:var(--panel2)}
+.anntitle{font-weight:800;font-size:15px}
+.annmeta{font-size:12px;color:var(--ink3);margin-top:2px}
+.annbody{font-size:13.5px;line-height:1.55;margin-top:9px;white-space:pre-wrap}
+.annacts{display:flex;gap:9px;flex-wrap:wrap;margin-top:13px}
+.btn.ghost{background:transparent;color:var(--ink2);border:1.5px solid var(--line2)}
+.botrow{display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:11px 0;border-top:1px solid var(--line)}
+.botrow:first-of-type{border-top:none}
+.sw{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:800;color:var(--ink2);cursor:pointer}
+.sw input{width:18px;height:18px;accent-color:var(--accent)}
+#emdCtrlSec textarea.in{resize:vertical;line-height:1.5}
 </style>
 <style id="profile-fit">
 /* The header was a single non-wrapping row; adding any control (the EN/ES
@@ -172,10 +185,11 @@ function paintProfile(p){
   if(p.is_trainer){
     h+='<div class="sec"><div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap"><div><div style="font-weight:800;font-size:14px">Manage your booking availability</div><div style="font-size:12.5px;color:var(--ink3)">Weekly hours, blackouts & vacations live in the Scheduler.</div></div><a class="btn ghost" style="text-decoration:none" href="calendar.html?tab=avail">Open My Availability →</a></div></div>';
   }
-  h+='<div id="baseBrandSec"></div>';
+  h+='<div id="emdCtrlSec"></div><div id="baseBrandSec"></div>';
   $('profBody').innerHTML=h+'<datalist id="statelist">'+US_STATES.map(function(s){return '<option value="'+s+'">';}).join('')+'</datalist>';
   loadCalendlyStatus();
   loadBaseBrand();
+  loadEmdControl();
 }
 /* ===== YOUR BASESHOP =======================================================
    An EMD runs their baseshop as its own operating space: the colour their team
@@ -276,6 +290,104 @@ function saveBaseBrand(){
     if(fEl)fEl.value='';
     try{ if(window.tsfgBrandRefresh)window.tsfgBrandRefresh(); }catch(e){}
   }).catch(function(e){btn.disabled=false;st.textContent=String(e.message||e);});
+}
+/* ===== EMD CONTROL: announcements + the bots ================================
+   An EMD owns what reaches their team. Two things live here:
+
+   1. Announcements waiting on them. Anything proposed hierarchy-wide arrives as
+      a decision, not as a post — it reaches their people only when they approve
+      it, and declining affects nobody else's baseshop.
+   2. The bots in their own channel. Stuart's training reminders and the daily
+      highlights are per-baseshop settings, so each EMD decides what runs in
+      their room rather than inheriting the company default.
+   ========================================================================= */
+var ANN="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/announce";
+var BOTS="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/bots-cron";
+var ANNDATA=null,BOTDATA=null;
+
+function loadEmdControl(){
+  var sec=document.getElementById('emdCtrlSec'); if(!sec)return;
+  fetch(ANN,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'pending',code:CODE})})
+   .then(function(r){return r.json();})
+   .then(function(d){
+     if(!d||!d.ok||!(d.is_emd)){sec.innerHTML='';return;}
+     ANNDATA=d;
+     return fetch(BOTS,{method:'POST',headers:{'Content-Type':'application/json'},
+       body:JSON.stringify({action:'get',code:CODE})})
+       .then(function(r){return r.json();})
+       .then(function(b){ BOTDATA=b; renderEmdControl(); });
+   }).catch(function(){sec.innerHTML='';});
+}
+function renderEmdControl(){
+  var sec=document.getElementById('emdCtrlSec'); if(!sec)return;
+  var pend=(ANNDATA&&ANNDATA.pending)||[];
+  var h='<div class="sec"><div class="sech"><h2>Waiting on you</h2>'+
+        '<span style="font-size:12px;color:var(--ink3);font-weight:700">'+pend.length+' to decide</span></div><div class="card">';
+  if(!pend.length){
+    h+='<div style="font-size:13px;color:var(--ink3)">Nothing waiting. Anything announced across the hierarchy comes here first — it reaches your team only when you approve it.</div>';
+  } else {
+    h+=pend.map(function(p){
+      var a=p.announcement||{};
+      return '<div class="annrow">'+
+        '<div class="anntitle">'+bEsc(a.title||'')+'</div>'+
+        '<div class="annmeta">for <b>'+bEsc(p.baseshop)+'</b> · proposed by '+bEsc(a.created_by_name||'Operations')+'</div>'+
+        '<div class="annbody">'+bEsc(a.body||'')+'</div>'+
+        '<div class="annacts">'+
+          '<button class="btn" onclick="decideAnn(\''+bEsc(p.id)+'\',\'approve\')">Approve &amp; post to '+bEsc(p.baseshop)+'</button>'+
+          '<button class="btn ghost" onclick="decideAnn(\''+bEsc(p.id)+'\',\'decline\')">Not for my team</button>'+
+        '</div></div>';
+    }).join('');
+  }
+  h+='</div></div>';
+
+  // per-baseshop bot controls
+  var mine=(ANNDATA&&ANNDATA.mine)||[];
+  if(mine.length){
+    var cfg=(BOTDATA&&BOTDATA.config)||{};
+    h+='<div class="sec"><div class="sech"><h2>Your channel bots</h2></div><div class="card">'+
+       '<div style="font-size:12.5px;color:var(--ink3);line-height:1.5;margin-bottom:12px">'+
+       'What runs in your baseshop\'s announcements channel. The company chat is separate and stays clear.</div>';
+    mine.forEach(function(bs){
+      var c=cfg[bs.toLowerCase()]||{};
+      var on=(c.announce!==false);
+      h+='<div class="botrow">'+
+         '<div><div style="font-weight:800;font-size:14px">'+bEsc(bs)+'</div>'+
+         '<div style="font-size:12px;color:var(--ink3)">Stuart posts training reminders here</div></div>'+
+         '<label class="sw"><input type="checkbox" '+(on?'checked':'')+
+           ' onchange="setBot(\''+bEsc(bs)+'\',this.checked)"><span>'+(on?'On':'Off')+'</span></label>'+
+         '</div>'+
+         '<div class="fld"><label class="lbl">Today\'s highlights for '+bEsc(bs)+
+           ' <span style="font-weight:500;color:var(--ink3)">— one per line, posted each morning</span></label>'+
+         '<textarea class="in" id="hl_'+bEsc(bs)+'" rows="3">'+bEsc((c.highlights||[]).join('\n'))+'</textarea>'+
+         '<button class="btn" style="margin-top:8px" onclick="saveHighlights(\''+bEsc(bs)+'\')">Save highlights</button>'+
+         '<span id="hlst_'+bEsc(bs)+'" style="margin-left:10px;font-size:12.5px;font-weight:700;color:var(--ink3)"></span></div>';
+    });
+    h+='</div></div>';
+  }
+  sec.innerHTML=h;
+}
+function decideAnn(targetId,decision){
+  fetch(ANN,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'decide',code:CODE,target_id:targetId,decision:decision})})
+   .then(function(r){return r.json();})
+   .then(function(d){ if(!d||!d.ok){alert((d&&d.error)||'Could not save that.');return;} loadEmdControl(); })
+   .catch(function(){alert('Network error.');});
+}
+function setBot(bs,on){
+  fetch(BOTS,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'set',code:CODE,baseshop:bs,config:{announce:on}})})
+   .then(function(r){return r.json();})
+   .then(function(d){ if(!d||!d.ok)alert((d&&d.error)||'Could not save.'); loadEmdControl(); });
+}
+function saveHighlights(bs){
+  var el=document.getElementById('hl_'+bs), st=document.getElementById('hlst_'+bs);
+  var lines=(el.value||'').split('\n').map(function(x){return x.trim();}).filter(Boolean).slice(0,8);
+  st.textContent='Saving…';
+  fetch(BOTS,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'set',code:CODE,baseshop:bs,config:{highlights:lines}})})
+   .then(function(r){return r.json();})
+   .then(function(d){ st.textContent=(d&&d.ok)?'Saved — posts tomorrow morning.':((d&&d.error)||'Could not save.'); });
 }
 function loadCalendlyStatus(){
   var el=$('calendlyStatus');if(!el)return;
