@@ -826,7 +826,7 @@ function loadData(){
 }
 
 /* ---------- CONTEXT TOGGLE ---------- */
-function setCtx(c){CTX=c;$('ctxMe').classList.toggle('on',c==='me');$('ctxShop').classList.toggle('on',c==='shop');var o=$('ctxOrg');if(o)o.classList.toggle('on',c==='org');var tm=$('ctxTeam');if(tm)tm.classList.toggle('on',c==='team');renderSnapshot();renderPerf();loadLeaderboard();}
+function setCtx(c){CTX=c;try{if(window.tsfgBrandScope)window.tsfgBrandScope(c==='org'?'hierarchy':'base');}catch(e){}$('ctxMe').classList.toggle('on',c==='me');$('ctxShop').classList.toggle('on',c==='shop');var o=$('ctxOrg');if(o)o.classList.toggle('on',c==='org');var tm=$('ctxTeam');if(tm)tm.classList.toggle('on',c==='team');renderSnapshot();renderPerf();loadLeaderboard();}
 
 /* ---------- LEADERBOARD (live, game-like) ---------- */
 var LB="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/leaderboard-api";

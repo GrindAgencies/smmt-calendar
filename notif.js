@@ -277,7 +277,9 @@
    CSS — we reuse each pattern's own link class so nothing needs restyling.
    ========================================================================== */
 (function () {
-  var OPS_CODE = /^000[0-5]$/;           // 0000 master + 0001-0005 per-baseshop
+  var OPS_CODE = /^(000[0-5]|9999)$/;    // 0000 master + 0001-0005 per-baseshop,
+                                       // plus 9999, the creator account used for
+                                       // building and testing on others' behalf
 
   function code(){ try { return (localStorage.getItem('tsfg_code')||'').trim(); } catch(e){ return ''; } }
   function isOps(){ return OPS_CODE.test(code()); }
@@ -1272,6 +1274,7 @@ window.tsfgTrack = function (kind, detail) {
     }
     if (brand.logo_url) {
       document.querySelectorAll('.side-brand img, .tsfg-brand img, .brand img').forEach(function(img){
+        if (!img.dataset.tsfgOrig) img.dataset.tsfgOrig = img.getAttribute('src') || '';
         img.src = brand.logo_url; img.style.visibility = 'visible';
       });
     }
@@ -1282,14 +1285,15 @@ window.tsfgTrack = function (kind, detail) {
     var c = code(); if (!c) return;
     var cached = null;
     try { cached = JSON.parse(sessionStorage.getItem(KEY)||'null'); } catch(e){}
-    if (cached && cached.code === c) { apply(cached.brand); return; }
+    if (cached && cached.code === c) { BASE_BRAND = cached.brand; if (SCOPE !== 'hierarchy') apply(cached.brand); return; }
     fetch(API, { method:'POST', headers:{'Content-Type':'application/json'},
                  body: JSON.stringify({ action:'get', code:c }) })
       .then(function(r){ return r.json(); })
       .then(function(d){
         if (!d || !d.ok || !d.brand) return;
         try { sessionStorage.setItem(KEY, JSON.stringify({ code:c, brand:d.brand })); } catch(e){}
-        apply(d.brand);
+        BASE_BRAND = d.brand; ROOT_NAME = (d.root || 'STANDARD');
+        if (SCOPE !== 'hierarchy') apply(d.brand);
       })
       .catch(function(){ /* branding is a nicety — never block a page on it */ });
   }
@@ -1298,8 +1302,40 @@ window.tsfgTrack = function (kind, detail) {
      change immediately rather than being told to sign out and back in. */
   window.tsfgBrandRefresh = function(){
     try { sessionStorage.removeItem(KEY); } catch(e){}
-    start();
+    BASE_BRAND = null; start();
   };
+
+  /* Looking at the whole hierarchy is not looking at your baseshop, so the
+     branding steps back to STANDARD for that view. Home and My Tracker call
+     this when the scope tabs change; anything else keeps the baseshop brand. */
+  var BASE_BRAND = null, ROOT_BRAND = null, SCOPE = 'base';
+  function paint(){
+    var b = (SCOPE === 'hierarchy') ? (ROOT_BRAND || null) : (BASE_BRAND || null);
+    if (b) apply(b);
+    else clearBrand();
+  }
+  function clearBrand(){
+    var r = document.documentElement;
+    ['--accent','--tsfg-accent','--brand','--accent-soft','--accent-soft-2']
+      .forEach(function(v){ r.style.removeProperty(v); });
+    document.querySelectorAll('.side-brand img, .tsfg-brand img, .brand img')
+      .forEach(function(img){ if (img.dataset.tsfgOrig) img.src = img.dataset.tsfgOrig; });
+    try { r.removeAttribute('data-baseshop'); } catch(e){}
+  }
+  window.tsfgBrandScope = function(scope){
+    SCOPE = (scope === 'hierarchy') ? 'hierarchy' : 'base';
+    if (SCOPE === 'hierarchy' && !ROOT_BRAND) {
+      // fetch STANDARD once, then repaint
+      fetch(API, { method:'POST', headers:{'Content-Type':'application/json'},
+                   body: JSON.stringify({ action:'for', baseshop: ROOT_NAME }) })
+        .then(function(r){ return r.json(); })
+        .then(function(d){ ROOT_BRAND = (d && d.brand) || { baseshop: ROOT_NAME }; paint(); })
+        .catch(function(){ clearBrand(); });
+      return;
+    }
+    paint();
+  };
+  var ROOT_NAME = 'STANDARD';
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
   else start();
