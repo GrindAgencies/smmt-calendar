@@ -54,6 +54,7 @@ body.tsfg-drawer .tsfg-scrim{display:block;}
 .upblock label .opt{font-weight:500;color:var(--ink3,#8e8e93);}
 .upblock input[type=text],.upblock input:not([type]),.upblock textarea{width:100%;padding:10px 12px;border-radius:10px;
   border:1px solid var(--line2,#e3e3e8);background:var(--panel,#fff);color:inherit;font:inherit;box-sizing:border-box;}
+.upblock select{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--line2,#e3e3e8);background:var(--panel,#fff);color:inherit;font:inherit;box-sizing:border-box;}
 .upblock textarea{resize:vertical;line-height:1.5;}
 .uprow{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
 .upstatus{font-size:12.5px;font-weight:600;color:var(--ink3,#8e8e93);flex:1;min-width:0;}
@@ -211,8 +212,7 @@ html, body{ overflow-x: hidden; }
     <button class="rtab on" data-t="carrier" onclick="rTab('carrier')">🏛️ Carriers</button>
     <button class="rtab" data-t="script" onclick="rTab('script')">📜 Scripts</button>
     <button class="rtab" data-t="agent" onclick="rTab('agent')">🧭 Agent Resources</button>
-    <button class="rtab" data-t="recording" onclick="rTab('recording')">🎥 Recordings</button>
-    <button class="rtab" data-t="training" onclick="rTab('training')">🎓 Team Trainings</button>
+    <button class="rtab" data-t="training" onclick="rTab('training')">🎥 Recordings</button>
   </div>
 
   <div class="rpanel on" id="p-carrier">
@@ -229,8 +229,6 @@ html, body{ overflow-x: hidden; }
   </div>
 
   <div class="rpanel" id="p-agent"><div id="agentPane"><div class="empty">Loading…</div></div></div>
-
-  <div class="rpanel" id="p-recording"><div id="recPane"><div class="empty">Loading recordings…</div></div></div>
 
   <div class="rpanel" id="p-training"><div id="trainPane"><div class="empty">Loading trainings…</div></div></div>
 
@@ -261,7 +259,6 @@ function rTab(t){TAB=t;document.querySelectorAll('.rtab').forEach(function(b){b.
   if(t==='carrier')loadKind('carrier',renderCarriers);
   else if(t==='script')loadKind('script',renderScripts);
   else if(t==='agent')loadAgent();
-  else if(t==='recording')loadRecordings();
   else if(t==='training')loadTrainings();}
 function loadKind(kind,cb){rapi({action:'list',kind:kind}).then(function(r){DATA[kind]=(r&&r.items)||[];if(r&&r.leader)LEADER=true;cb&&cb();});}
 
@@ -379,12 +376,12 @@ function saveHow(id){var title=($('e_title').value||'').trim();if(!title){toast(
    teach the assistant anything (nothing here transcribes audio).
    ========================================================================= */
 var BRAIN="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/brain-learn";
-var TRAIN={items:[],learned:[],can:false};
+var TRAIN={items:[],learned:[],can:false,root:'STANDARD',bases:[],me:null};
 function bapi(b){b=b||{};if(CODE)b.code=CODE;if(NAME)b.name=NAME;
   return fetch(BRAIN,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();});}
 function loadTrainings(){
   bapi({action:'list'}).then(function(r){
-    TRAIN.items=(r&&r.items)||[];TRAIN.learned=(r&&r.learned)||[];TRAIN.can=!!(r&&r.can_upload);
+    TRAIN.items=(r&&r.items)||[];TRAIN.learned=(r&&r.learned)||[];TRAIN.can=!!(r&&r.can_upload);TRAIN.root=(r&&r.root)||'STANDARD';TRAIN.bases=(r&&r.bases)||[];TRAIN.me=(r&&r.me)||null;
     renderTrainings();
   }).catch(function(){document.getElementById('trainPane').innerHTML='<div class="empty">Could not load trainings.</div>';});
 }
@@ -398,6 +395,8 @@ function renderTrainings(){
        '<div class="upsub">Your team can watch it, and the assistant learns from it so it can answer questions using your material.</div>'+
        '<div class="fg"><label>Title</label><input id="tr_title" placeholder="e.g. Handling I Need To Think About It"></div>'+
        '<div class="fg"><label>Category</label><input id="tr_cat" placeholder="e.g. Objection Handling" value="Team Training"></div>'+
+       '<div class="fg"><label>Who sees this</label><select id="tr_base" onchange="trBaseNote()">'+baseOptions()+'</select>'+
+       '<div class="upnote" id="tr_basenote"></div></div>'+
        '<div class="fg"><label>Recording or document <span class="opt">(optional)</span></label><input type="file" id="tr_file" onchange="trPick()"></div>'+
        '<div id="tr_filenote" class="upnote"></div>'+
        '<div class="fg"><label>Transcript or teaching notes <span class="opt">— this is what the assistant learns from</span></label>'+
@@ -416,7 +415,7 @@ function renderTrainings(){
       var badge=k?'<span class="lrn ok">🧠 assistant learned this'+(k.uses?(' · used '+k.uses+'×'):'')+'</span>'
                  :'<span class="lrn no">not learned — no transcript</span>';
       return '<div class="tcard"><div class="trow"><div style="min-width:0"><div class="ttitle">'+esc(it.title)+'</div>'+
-        '<div class="tmeta">'+esc(it.category||'Team Training')+' · '+esc(it.created_by_name||'')+
+        '<div class="tmeta">'+esc(it.category||'Team Training')+' · '+esc(it.created_by_name||'')+' · '+((d.whole_hierarchy||!d.base)?('🌐 '+esc(TRAIN.root)+' hierarchy'):('🏠 '+esc(d.base)))+
         (d.filename?(' · '+esc(d.filename)):'')+'</div>'+
         (k&&k.summary?('<div class="tsum">'+esc(k.summary)+'</div>'):'')+'</div>'+
         (d.path?('<button class="chip" onclick="trOpen(\''+esc(d.path)+'\')">▶ Open</button>'):'')+
@@ -424,6 +423,28 @@ function renderTrainings(){
     }).join('');
   }
   pane.innerHTML=h;
+  if(TRAIN.can)trBaseNote();
+}
+function baseOptions(){
+  var mine=(TRAIN.me&&TRAIN.me.baseshop)||'';
+  var out=[];
+  // A leader's own baseshop is the default — that is who they teach.
+  if(mine&&mine!==TRAIN.root)out.push('<option value="'+esc(mine)+'" selected>'+esc(mine)+' · my baseshop</option>');
+  (TRAIN.bases||[]).forEach(function(b){
+    if(b===mine)return;
+    out.push('<option value="'+esc(b)+'">'+esc(b)+'</option>');
+  });
+  // Publishing to the root reaches every baseshop.
+  out.push('<option value="'+esc(TRAIN.root)+'"'+((!mine||mine===TRAIN.root)?' selected':'')+'>'+
+           esc(TRAIN.root)+' Hierarchy · every baseshop</option>');
+  return out.join('');
+}
+function trBaseNote(){
+  var sel=document.getElementById('tr_base'),n=document.getElementById('tr_basenote');
+  if(!sel||!n)return;
+  n.textContent=(sel.value===TRAIN.root)
+    ? 'Goes to every baseshop in the hierarchy.'
+    : 'Only '+sel.value+' will see this.';
 }
 function trPick(){
   var f=document.getElementById('tr_file'),n=document.getElementById('tr_filenote');
@@ -465,7 +486,8 @@ function trSave(){
     }):Promise.resolve({path:'',filename:''});
   step.then(function(f){
     st.textContent=text?'Teaching the assistant…':'Saving…';
-    return bapi({action:'save',title:title,category:cat,notes:'',text:text,path:f.path,filename:f.filename});
+    var bs=document.getElementById('tr_base');
+    return bapi({action:'save',title:title,category:cat,notes:'',text:text,path:f.path,filename:f.filename,base:bs?bs.value:''});
   }).then(function(r){
     btn.disabled=false;
     if(!r||!r.ok){st.textContent=(r&&r.error)||'Could not save.';return;}
