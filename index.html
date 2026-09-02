@@ -133,7 +133,18 @@ button{font-family:inherit;cursor:pointer;}
 
 /* snapshot cards */
 .grid{display:grid;gap:16px;}
-.snap{grid-template-columns:repeat(auto-fill,minmax(210px,1fr));}
+/* auto-FILL was creating empty tracks on a wide screen, so the four cards
+   stayed 210px in the corner instead of growing. auto-FIT collapses the empty
+   tracks and lets them share the full width — this row is the face of the app. */
+.snap{grid-template-columns:repeat(auto-fit,minmax(212px,1fr));gap:18px;}
+.snap .stat{padding:26px 24px;}
+.snap .stat .ic{width:46px;height:46px;border-radius:14px;}
+.snap .stat .ic svg{width:23px;height:23px;}
+.snap .stat .num{font-size:42px;letter-spacing:-.035em;}
+.snap .stat .num small{font-size:21px;}
+.snap .stat .num .gtar{font-size:19px;}
+.snap .stat .lbl{font-size:14px;margin-top:9px;}
+.snap .gbar{height:7px;margin-top:14px;}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow-sm);transition:transform .2s cubic-bezier(.2,.8,.2,1),box-shadow .2s;}
 .card:hover{transform:translateY(-3px);box-shadow:var(--shadow);}
 .stat{padding:20px;}
@@ -223,6 +234,28 @@ button{font-family:inherit;cursor:pointer;}
 
 /* ===== LEADERBOARD ===== */
 .lb-card{padding:18px;overflow:hidden;position:relative;}
+/* Personal view shows all five metrics at once. At the old 345px minimum they
+   wrapped onto two rows and stopped reading as one board, so the compact
+   variant trims the chrome until five fit across. The team and company views
+   are a single full-width card and are deliberately untouched. */
+/* 25 rows would swallow the screen, so the tail collapses behind one tap. */
+.lb-tail[hidden]{display:none!important;}
+.lb-more{display:block;width:100%;margin-top:10px;padding:11px 14px;border-radius:12px;
+  border:1px dashed var(--line-2);background:transparent;color:var(--accent);
+  font:800 12.5px/1 inherit;cursor:pointer;transition:.15s;}
+.lb-more:hover{background:var(--accent-soft);border-style:solid;}
+.lb-counted{margin-top:9px;text-align:center;font-size:11.5px;color:var(--ink-3);font-weight:600;}
+.lb-row .lb-val.zero,.lb-row.zero .lb-val{opacity:.55;}
+.lb-grid-compact{gap:13px!important;}
+.lb-grid-compact .lb-card{padding:14px 13px;}
+.lb-grid-compact .lb-head{gap:9px;margin-bottom:11px;}
+.lb-grid-compact .lb-ic{width:34px;height:34px;border-radius:10px;font-size:17px;}
+.lb-grid-compact .lb-title{font-size:12.5px;line-height:1.25;}
+.lb-grid-compact .lb-sub{display:none;}
+.lb-grid-compact .lb-you-val{font-size:29px;}
+.lb-grid-compact .lb-you-ranks{gap:5px;}
+.lb-grid-compact .lb-chip{font-size:9.5px;padding:2px 7px;}
+.lb-grid-compact .lb-you-leader{font-size:11px;margin-top:8px;line-height:1.4;}
 .lb-head{display:flex;align-items:center;gap:11px;margin-bottom:14px;}
 .lb-ic{font-size:21px;width:42px;height:42px;border-radius:12px;background:var(--panel-2);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
 .lb-title{font-size:14.5px;font-weight:800;letter-spacing:-.01em;}
@@ -511,7 +544,7 @@ html, body{ overflow-x: hidden; }
             <span class="muted"><span id="lbCtxLbl">Loading…</span> · <span class="lb-synced" id="lbSynced"></span></span>
           </div>
         </div>
-        <div class="grid" id="lbGrid" style="grid-template-columns:repeat(auto-fit,minmax(345px,1fr));gap:18px;"><div class="lb-skel"></div><div class="lb-skel"></div><div class="lb-skel"></div><div class="lb-skel"></div></div>
+        <div class="grid" id="lbGrid" style="grid-template-columns:repeat(auto-fit,minmax(176px,1fr));gap:13px;"><div class="lb-skel"></div><div class="lb-skel"></div><div class="lb-skel"></div><div class="lb-skel"></div></div>
       </section>
 
       <!-- QUICK ACTIONS -->
@@ -813,6 +846,18 @@ function fireConfetti(){
   var t0=Date.now();
   (function fr(){var el=Date.now()-t0;ctx.clearRect(0,0,c.width,c.height);for(var i=0;i<P.length;i++){var p=P[i];p.x+=p.vx;p.y+=p.vy;p.vy+=.06;p.rot+=p.vr;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.rot);ctx.globalAlpha=Math.max(0,1-el/2900);ctx.fillStyle=p.col;ctx.fillRect(-p.r/2,-p.r/2,p.r,p.r*.62);ctx.restore();}if(el<2900)requestAnimationFrame(fr);else ctx.clearRect(0,0,c.width,c.height);})();
 }
+/* Which category lists are expanded. Kept across re-renders so the board
+   refreshing every few seconds does not collapse a list you just opened. */
+var LBEXPANDED={};
+function lbToggleMore(key){
+  LBEXPANDED[key]=!LBEXPANDED[key];
+  var open=LBEXPANDED[key];
+  var tail=document.getElementById("lbTail-"+key);
+  if(tail)tail.hidden=!open;
+  var btn=document.querySelector('.lb-more[onclick*="'+key+'"]');
+  if(btn){btn.setAttribute("aria-expanded",open?"true":"false");
+    btn.textContent=open?"Show less":(btn.getAttribute("data-collapsed")||"Show all");}
+}
 var LBMETRICS=[
  {key:'recruiter',title:'Direct Business Partners',sub:'New partners this period',ic:'🤝',money:false},
  {key:'premium',title:'Submitted Premium',sub:'AP submitted this period',ic:'💰',money:true},
@@ -831,7 +876,10 @@ function loadAvatars(){fetch(HUB,{method:'POST',headers:{'Content-Type':'applica
 function loadLeaderboard(){
   var scope=scopeFromCtx();var host=$('lbGrid');
   if(LBSCOPEPREV!==scope){LBPREV={};LBSCOPEPREV=scope;LBCHAMPSEEN={};}
-  fetch(scope==='team'?TB:LB,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(scope==='team'?{code:CODE,period:LBPERIOD}:{action:'board',code:CODE,scope:scope,period:LBPERIOD})})
+  /* Every scope goes through leaderboard-api. The team tab used to call a
+     separate team-board function that duplicated the ranking and capped it at
+     10 without zeros, so it drifted from the other tabs. */
+  fetch(LB,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'board',code:CODE,scope:scope,period:LBPERIOD})})
     .then(function(r){return r.json();}).then(function(r){if(!r||!r.ok){if(host&&!LBDATA)host.innerHTML='<div class="lb-empty" style="grid-column:1/-1">Leaderboard unavailable right now.</div>';return;}LBDATA=r;renderLeaderboard(r);LBLAST=Date.now();paintSynced();})
     .catch(function(){if(host&&!LBDATA)host.innerHTML='<div class="lb-empty" style="grid-column:1/-1">Leaderboard unavailable right now.</div>';});
 }
@@ -844,8 +892,8 @@ function lbCaptureRects(){var m={},host=$('lbGrid');if(!host)return m;var els=ho
 function lbPlayFlip(oldR){if(!oldR||(window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches))return;var host=$('lbGrid');if(!host)return;var els=host.querySelectorAll('[data-rowkey]');for(var i=0;i<els.length;i++){(function(el){var k=el.getAttribute('data-rowkey');if(oldR[k]==null)return;var d=oldR[k]-el.getBoundingClientRect().top;if(Math.abs(d)<1)return;el.style.transform='translateY('+d+'px)';el.style.transition='none';requestAnimationFrame(function(){requestAnimationFrame(function(){el.style.transition='transform .55s cubic-bezier(.2,.8,.2,1)';el.style.transform='';});});})(els[i]);}}
 function renderLeaderboard(r){
   var host=$('lbGrid');if(!host)return;var meCode=(CODE||'').toUpperCase();var _oldR=lbCaptureRects();
-  var lbl=$('lbCtxLbl');if(lbl)lbl.textContent=(r.scope==='personal'?'Your standing':(r.scope==='team'?('Your team · all levels · '+(r.team_size||0)+' members'):(r.scope==='baseshop'?('Baseshop · '+r.base):'Whole company')))+' · '+r.month;
-  if(r.scope==='personal'){var _g=$('lbGrid');if(_g)_g.style.gridTemplateColumns='repeat(auto-fit,minmax(345px,1fr))';
+  var lbl=$('lbCtxLbl');if(lbl)lbl.textContent=(r.scope==='personal'?'Your standing':(r.scope==='team'?('Your team · all levels · '+(r.team_size||((r.boards&&r.boards.recruiter&&r.boards.recruiter.total)||0))+' members'):(r.scope==='baseshop'?('Baseshop · '+r.base):'Whole company')))+' · '+r.month;
+  if(r.scope==='personal'){var _g=$('lbGrid');if(_g){_g.style.gridTemplateColumns='repeat(auto-fit,minmax(176px,1fr))';_g.classList.add('lb-grid-compact');}
     host.innerHTML=LBMETRICS.map(function(m){
       var b=(r.boards&&r.boards[m.key])||{value:0,rank_company:0,of_company:0,rank_base:0,of_base:0,leader:null};
       var prev=LBPREV[m.key];var fr=(prev&&prev.__you!=null)?prev.__you:0;
@@ -862,7 +910,7 @@ function renderLeaderboard(r){
     host.querySelectorAll('.lb-you-val[data-to]').forEach(animateVal);
     return;
   }
-  host.style.gridTemplateColumns='1fr';
+  host.style.gridTemplateColumns='1fr';host.classList.remove('lb-grid-compact');
   var sel=LBMETRIC;if(!LBMETRICS.some(function(x){return x.key===sel;}))sel='recruiter';
   var m=LBMETRICS.filter(function(x){return x.key===sel;})[0];
   var b=(r.boards&&r.boards[sel])||{top:[],me:{rank:0,value:0},total:0};var top=b.top||[];var prev=LBPREV[sel];
@@ -873,12 +921,23 @@ function renderLeaderboard(r){
     var max=top[0].value||1;var champ=top[0];var cc=(champ.code||'').toUpperCase();var champMe=(cc===meCode);
     var cfr=(prev&&prev[cc])?prev[cc].value:0;var flash=(prev&&prev.__champ&&prev.__champ!==cc)?' lb-champ-flash':'';
     var hero='<div class="lb-hero'+flash+'"><div class="lb-sheen"></div><span class="lb-crown">👑</span><span class="lb-champ-ribbon">🏆 CHAMPION</span><div class="lb-av-hero">'+lbAv(champ.code,champ.name)+'</div><div class="lb-hero-meta"><div class="lb-hero-name"><span class="lb-nametext">'+lbEsc(champ.name)+(champMe?' · You':'')+'</span>'+miniEmb(champ.emb)+deltaChip(prev,cc,1)+'</div><div class="lb-hero-base">'+lbEsc(champ.baseshop||'')+' · Leader</div></div><div class="lb-hero-val" data-to="'+champ.value+'" data-from="'+cfr+'" data-money="'+(m.money?1:0)+'">'+fmtFull(champ.value,m.money)+'</div></div>';
-    var rest=top.slice(1,10).map(function(t){var rank=t.rank;var pct=Math.max(6,Math.round((t.value/max)*100));var code=(t.code||'').toUpperCase();var meRow=(code===meCode);var badge=rank===2?'🥈':rank===3?'🥉':rank;var changed=(prev&&prev[code]&&prev[code].value!==t.value);return '<div class="lb-row'+(rank===2?' silver':rank===3?' bronze':'')+(meRow?' me':'')+'" data-rowkey="'+sel+':'+code+'"><span class="lb-rank">'+badge+'</span><span class="lb-av-sm">'+lbAv(t.code,t.name)+'</span><span class="lb-name"><span class="lb-nametext">'+lbEsc(t.name)+(meRow?' <b>· You</b>':'')+'</span>'+miniEmb(t.emb)+deltaChip(prev,code,rank)+'</span><span class="lb-bar"><span style="width:'+pct+'%"></span></span><span class="lb-val'+(changed?' bump':'')+'">'+lbVal(t.value,m.money)+'</span></div>';}).join('');
+    var restArr=top.slice(1).map(function(t){var rank=t.rank;var pct=Math.max(6,Math.round((t.value/max)*100));var code=(t.code||'').toUpperCase();var meRow=(code===meCode);var badge=rank===2?'🥈':rank===3?'🥉':rank;var changed=(prev&&prev[code]&&prev[code].value!==t.value);return '<div class="lb-row'+(rank===2?' silver':rank===3?' bronze':'')+(meRow?' me':'')+'" data-rowkey="'+sel+':'+code+'"><span class="lb-rank">'+badge+'</span><span class="lb-av-sm">'+lbAv(t.code,t.name)+'</span><span class="lb-name"><span class="lb-nametext">'+lbEsc(t.name)+(meRow?' <b>· You</b>':'')+'</span>'+miniEmb(t.emb)+deltaChip(prev,code,rank)+'</span><span class="lb-bar"><span style="width:'+pct+'%"></span></span><span class="lb-val'+(changed?' bump':'')+'">'+lbVal(t.value,m.money)+'</span></div>';});
     var youRow='';
     if(b.me&&b.me.rank>10){youRow='<div class="lb-row me you-out" data-rowkey="'+sel+':'+meCode+'"><span class="lb-rank">'+b.me.rank+'</span><span class="lb-av-sm">'+lbAv(CODE,NAME)+'</span><span class="lb-name"><span class="lb-nametext"><b>You</b></span></span><span class="lb-bar"><span style="width:'+Math.max(6,Math.round((b.me.value/max)*100))+'%"></span></span><span class="lb-val">'+lbVal(b.me.value,m.money)+'</span></div>';}
     var celeb='<div class="lb-celebrate">🎉 <b>'+lbEsc(champ.name)+'</b> leads '+lbEsc(m.title)+' — chasing the 🏆 Champion emblem</div>';
     var tie='<div class="lb-tie">Emblems show rank &amp; achievements earned · win a category to claim the 🏆 Champion emblem</div>';
-    bodyHTML=celeb+hero+'<div class="lb-list">'+rest+youRow+'</div>'+tie;
+    /* All 25 are rendered so nobody is invisible, but a 25-row list would swallow
+       the screen — so ranks 2-5 stay open and the rest sit behind one tap. The
+       count of people actually on the board is shown either way. */
+    var LBHEAD=4;
+    var headRows=restArr.slice(0,LBHEAD).join(''),tailRows=restArr.slice(LBHEAD).join('');
+    var nTail=Math.max(0,restArr.length-LBHEAD);
+    var openNow=!!LBEXPANDED[sel];
+    var moreBtn=nTail?('<button class="lb-more" onclick="lbToggleMore(\''+sel+'\')" data-collapsed="Show all '+top.length+' \u00b7 '+nTail+' more" aria-expanded="'+(openNow?'true':'false')+'">'+
+      (openNow?'Show less':('Show all '+top.length+' \u00b7 '+nTail+' more'))+'</button>'):'';
+    var tailWrap=nTail?('<div class="lb-tail"'+(openNow?'':' hidden')+' id="lbTail-'+sel+'">'+tailRows+'</div>'):'';
+    var counted='<div class="lb-counted">'+(b.scored||0)+' of '+(b.total||0)+' on the board this period</div>';
+    bodyHTML=celeb+hero+'<div class="lb-list">'+headRows+tailWrap+youRow+'</div>'+moreBtn+counted+tie;
   }
   host.innerHTML='<div class="card lb-card lb-central">'+tabs+lbHead(m)+bodyHTML+'</div>';
   var mp={};(top||[]).forEach(function(t){mp[(t.code||'').toUpperCase()]={rank:t.rank,value:t.value};});if(top&&top[0])mp.__champ=(top[0].code||'').toUpperCase();LBPREV[sel]=mp;
