@@ -12,10 +12,12 @@
   "ios": {
     "contentInset": "always",
     "backgroundColor": "#0b0f1a",
-    "limitsNavigationsToAppBoundDomains": false
+    "limitsNavigationsToAppBoundDomains": false,
+    "zoomEnabled": true
   },
   "android": {
-    "backgroundColor": "#0b0f1a"
+    "backgroundColor": "#0b0f1a",
+    "zoomEnabled": true
   },
   "plugins": {
     "SplashScreen": {
@@ -25,7 +27,11 @@
       "androidScaleType": "CENTER_CROP"
     },
     "PushNotifications": {
-      "presentationOptions": ["badge", "sound", "alert"]
+      "presentationOptions": [
+        "badge",
+        "sound",
+        "alert"
+      ]
     },
     "StatusBar": {
       "style": "DARK",
