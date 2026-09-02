@@ -45,6 +45,28 @@ body.tsfg-drawer .tsfg-scrim{display:block;}
   body.tsfg-drawer .tsfg-side{transform:none;}
   .tsfg-top{left:0;}
 }
+/* ---- team trainings ---- */
+.upblock{background:var(--panel2,#f7f7fa);border:1px solid var(--line2,#e3e3e8);border-radius:14px;padding:16px;margin-bottom:14px;}
+.uph{font-weight:800;font-size:15px;margin-bottom:3px;}
+.upsub{font-size:12.5px;color:var(--ink3,#8e8e93);margin-bottom:12px;line-height:1.45;}
+.upblock .fg{margin-bottom:10px;}
+.upblock label{display:block;font-size:12px;font-weight:700;margin-bottom:4px;}
+.upblock label .opt{font-weight:500;color:var(--ink3,#8e8e93);}
+.upblock input[type=text],.upblock input:not([type]),.upblock textarea{width:100%;padding:10px 12px;border-radius:10px;
+  border:1px solid var(--line2,#e3e3e8);background:var(--panel,#fff);color:inherit;font:inherit;box-sizing:border-box;}
+.upblock textarea{resize:vertical;line-height:1.5;}
+.uprow{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.upstatus{font-size:12.5px;font-weight:600;color:var(--ink3,#8e8e93);flex:1;min-width:0;}
+.upnote{font-size:12px;color:var(--ink3,#8e8e93);margin:-4px 0 10px;line-height:1.45;}
+.upnote.warn{color:#b8891f;}
+.tcard{border:1px solid var(--line2,#e3e3e8);border-radius:13px;padding:13px 14px;margin-bottom:10px;background:var(--panel,#fff);}
+.trow{display:flex;align-items:flex-start;gap:12px;}
+.ttitle{font-weight:800;font-size:14.5px;}
+.tmeta{font-size:12px;color:var(--ink3,#8e8e93);margin-top:2px;}
+.tsum{font-size:12.5px;color:var(--ink2,#6e6e73);margin-top:7px;line-height:1.5;}
+.lrn{display:inline-block;margin-top:9px;font-size:11px;font-weight:800;padding:3px 9px;border-radius:999px;}
+.lrn.ok{background:rgba(26,156,82,.13);color:#1a7f47;}
+.lrn.no{background:rgba(142,142,147,.14);color:var(--ink3,#8e8e93);}
 </style>
 <style id="res-page">
   .wrap{max-width:1060px;margin:0 auto;padding:22px 22px 80px;}
@@ -190,6 +212,7 @@ html, body{ overflow-x: hidden; }
     <button class="rtab" data-t="script" onclick="rTab('script')">📜 Scripts</button>
     <button class="rtab" data-t="agent" onclick="rTab('agent')">🧭 Agent Resources</button>
     <button class="rtab" data-t="recording" onclick="rTab('recording')">🎥 Recordings</button>
+    <button class="rtab" data-t="training" onclick="rTab('training')">🎓 Team Trainings</button>
   </div>
 
   <div class="rpanel on" id="p-carrier">
@@ -208,6 +231,8 @@ html, body{ overflow-x: hidden; }
   <div class="rpanel" id="p-agent"><div id="agentPane"><div class="empty">Loading…</div></div></div>
 
   <div class="rpanel" id="p-recording"><div id="recPane"><div class="empty">Loading recordings…</div></div></div>
+
+  <div class="rpanel" id="p-training"><div id="trainPane"><div class="empty">Loading trainings…</div></div></div>
 
   <div class="foot">Build Momentum. Create Results. Lead From the Front.</div>
 </div>
@@ -236,7 +261,8 @@ function rTab(t){TAB=t;document.querySelectorAll('.rtab').forEach(function(b){b.
   if(t==='carrier')loadKind('carrier',renderCarriers);
   else if(t==='script')loadKind('script',renderScripts);
   else if(t==='agent')loadAgent();
-  else if(t==='recording')loadRecordings();}
+  else if(t==='recording')loadRecordings();
+  else if(t==='training')loadTrainings();}
 function loadKind(kind,cb){rapi({action:'list',kind:kind}).then(function(r){DATA[kind]=(r&&r.items)||[];if(r&&r.leader)LEADER=true;cb&&cb();});}
 
 /* ---------- CARRIERS ---------- */
@@ -346,6 +372,110 @@ function editHow(id){if(!LEADER){toast('Leaders only');return;}var x=id?DATA.how
 function saveHow(id){var title=($('e_title').value||'').trim();if(!title){toast('Enter a title');return;}rapi({action:'save',kind:'how',id:id||undefined,title:title,category:($('e_cat').value||'').trim(),body:($('e_body').value||'').trim()}).then(function(r){if(r&&r.ok){toast('Saved ✓');closeModal();loadAgent();}else toast('Could not save');});}
 
 /* ---------- RECORDINGS ---------- */
+/* ===== TEAM TRAININGS ======================================================
+   MDs and EMDs upload what they teach, and the assistant learns from it. The
+   file is shared with the team either way; the LEARNING half needs text, so the
+   form asks for a transcript or notes and is honest that a video alone cannot
+   teach the assistant anything (nothing here transcribes audio).
+   ========================================================================= */
+var BRAIN="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/brain-learn";
+var TRAIN={items:[],learned:[],can:false};
+function bapi(b){b=b||{};if(CODE)b.code=CODE;if(NAME)b.name=NAME;
+  return fetch(BRAIN,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();});}
+function loadTrainings(){
+  bapi({action:'list'}).then(function(r){
+    TRAIN.items=(r&&r.items)||[];TRAIN.learned=(r&&r.learned)||[];TRAIN.can=!!(r&&r.can_upload);
+    renderTrainings();
+  }).catch(function(){document.getElementById('trainPane').innerHTML='<div class="empty">Could not load trainings.</div>';});
+}
+function renderTrainings(){
+  var pane=document.getElementById('trainPane');if(!pane)return;
+  var learnedBy={};TRAIN.learned.forEach(function(k){if(k.source_id)learnedBy[k.source_id]=k;});
+  var h='';
+  if(TRAIN.can){
+    h+='<div class="upblock">'+
+       '<div class="uph">🎓 Upload a training for your team</div>'+
+       '<div class="upsub">Your team can watch it, and the assistant learns from it so it can answer questions using your material.</div>'+
+       '<div class="fg"><label>Title</label><input id="tr_title" placeholder="e.g. Handling I Need To Think About It"></div>'+
+       '<div class="fg"><label>Category</label><input id="tr_cat" placeholder="e.g. Objection Handling" value="Team Training"></div>'+
+       '<div class="fg"><label>Recording or document <span class="opt">(optional)</span></label><input type="file" id="tr_file" onchange="trPick()"></div>'+
+       '<div id="tr_filenote" class="upnote"></div>'+
+       '<div class="fg"><label>Transcript or teaching notes <span class="opt">— this is what the assistant learns from</span></label>'+
+       '<textarea id="tr_text" rows="5" placeholder="Paste the transcript, or type the key points you taught. Without this the file is shared but teaches the assistant nothing."></textarea></div>'+
+       '<div class="uprow"><button class="addb" id="tr_go" onclick="trSave()">Upload &amp; teach the assistant</button>'+
+       '<span id="tr_status" class="upstatus"></span></div>'+
+       '</div>';
+  } else {
+    h+='<div class="hint">Trainings are uploaded by Marketing Directors and above. Everything they publish shows up here.</div>';
+  }
+  if(!TRAIN.items.length){h+='<div class="empty">No team trainings uploaded yet.</div>';}
+  else{
+    h+='<div class="count">'+TRAIN.items.length+' training'+(TRAIN.items.length===1?'':'s')+'</div>';
+    h+=TRAIN.items.map(function(it){
+      var d=it.data||{};var k=learnedBy[it.id];
+      var badge=k?'<span class="lrn ok">🧠 assistant learned this'+(k.uses?(' · used '+k.uses+'×'):'')+'</span>'
+                 :'<span class="lrn no">not learned — no transcript</span>';
+      return '<div class="tcard"><div class="trow"><div style="min-width:0"><div class="ttitle">'+esc(it.title)+'</div>'+
+        '<div class="tmeta">'+esc(it.category||'Team Training')+' · '+esc(it.created_by_name||'')+
+        (d.filename?(' · '+esc(d.filename)):'')+'</div>'+
+        (k&&k.summary?('<div class="tsum">'+esc(k.summary)+'</div>'):'')+'</div>'+
+        (d.path?('<button class="chip" onclick="trOpen(\''+esc(d.path)+'\')">▶ Open</button>'):'')+
+        '</div>'+badge+'</div>';
+    }).join('');
+  }
+  pane.innerHTML=h;
+}
+function trPick(){
+  var f=document.getElementById('tr_file'),n=document.getElementById('tr_filenote');
+  if(!f||!n)return;var file=f.files&&f.files[0];
+  if(!file){n.textContent='';return;}
+  var mb=(file.size/1048576).toFixed(1);
+  var isAV=/\.(mp4|mov|m4v|webm|avi|mkv|mp3|m4a|wav|aac|ogg)$/i.test(file.name);
+  n.className='upnote'+(isAV?' warn':'');
+  n.textContent=isAV
+    ? file.name+' · '+mb+' MB — video and audio cannot be transcribed here, so paste the transcript below if you want the assistant to learn it.'
+    : file.name+' · '+mb+' MB';
+  if(!isAV&&/\.(txt|md|vtt|srt|csv)$/i.test(file.name)){
+    var rd=new FileReader();
+    rd.onload=function(){var t=document.getElementById('tr_text');if(t&&!t.value.trim())t.value=String(rd.result||'').slice(0,190000);};
+    rd.readAsText(file);
+    n.textContent+=' — text pulled in below.';
+  }
+}
+function trOpen(path){
+  bapi({action:'file_url',path:path}).then(function(r){
+    if(r&&r.ok&&r.url)window.open(r.url,'_blank');else alert((r&&r.error)||'Could not open that file.');
+  });
+}
+function trSave(){
+  var btn=document.getElementById('tr_go'),st=document.getElementById('tr_status');
+  var title=(document.getElementById('tr_title').value||'').trim();
+  if(!title){st.textContent='Give it a title first.';return;}
+  var cat=(document.getElementById('tr_cat').value||'').trim();
+  var text=(document.getElementById('tr_text').value||'').trim();
+  var fEl=document.getElementById('tr_file');var file=fEl&&fEl.files&&fEl.files[0];
+  btn.disabled=true;st.textContent=file?'Uploading…':'Saving…';
+  var step=file?bapi({action:'sign_upload',filename:file.name,content_type:file.type||'application/octet-stream'})
+    .then(function(sg){
+      if(!sg||!sg.ok)throw new Error((sg&&sg.error)||'Could not start the upload');
+      return fetch(sg.upload_url,{method:'PUT',body:file}).then(function(up){
+        if(!up.ok)throw new Error('Upload failed ('+up.status+')');
+        return {path:sg.path,filename:file.name};
+      });
+    }):Promise.resolve({path:'',filename:''});
+  step.then(function(f){
+    st.textContent=text?'Teaching the assistant…':'Saving…';
+    return bapi({action:'save',title:title,category:cat,notes:'',text:text,path:f.path,filename:f.filename});
+  }).then(function(r){
+    btn.disabled=false;
+    if(!r||!r.ok){st.textContent=(r&&r.error)||'Could not save.';return;}
+    st.textContent=r.note||'Saved.';
+    ['tr_title','tr_text'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
+    if(fEl)fEl.value='';
+    var fn=document.getElementById('tr_filenote');if(fn)fn.textContent='';
+    loadTrainings();
+  }).catch(function(e){btn.disabled=false;st.textContent=String(e.message||e);});
+}
 function loadRecordings(){rapi({action:'list',kind:'recording'}).then(function(r){
   if(r&&r.restricted){$('recPane').innerHTML='<div class="locked"><div class="lk">🔒</div><b>Recordings are for MDs &amp; EMDs.</b><div style="margin-top:6px;font-size:13px">Your leadership can review the team\'s recorded calls here.</div></div>';return;}
   LEADER=true;DATA.recording=(r&&r.items)||[];renderRecordings();});}
