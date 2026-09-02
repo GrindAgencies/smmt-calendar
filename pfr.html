@@ -148,17 +148,24 @@ input[type=range]{width:100%;accent-color:var(--accent);height:6px;}
 .moneyhdr.out{color:var(--gold);}
 .mgroup .gh2{display:flex;align-items:center;justify-content:space-between;padding:13px 18px;border-bottom:1px solid var(--line);font-weight:800;font-size:14px;}
 .mgroup .gh2 .gt{font-size:15px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--accent);}
-.mrow{display:flex;align-items:center;justify-content:space-between;padding:9px 18px;border-bottom:1px solid var(--line);}
+.mrow{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:9px 18px;border-bottom:1px solid var(--line);}
 .mrow:last-child{border-bottom:none;}
 .mrow label{font-size:13.5px;color:var(--ink2);font-weight:500;}
 .mrow .inp{display:flex;align-items:center;gap:2px;}
 .mrow .inp .c{color:var(--ink3);font-size:13px;}
 .mrow input{border:none;background:none;outline:none;text-align:right;width:110px;font-size:14.5px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;padding:6px 2px;border-bottom:1px solid transparent;}
 .mrow input:focus{border-bottom-color:var(--accent);}
-.mrow .mnum{border:none;background:none;outline:none;text-align:right;width:150px;font-size:15px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums;padding:9px 2px;border-bottom:1px solid transparent;letter-spacing:-.01em;}
+/* flex:0 0 auto is the point — a flex item shrinks by default, so when the label was
+   long the AMOUNT is what gave way and big figures were cut off mid-number. The amount
+   now holds its width and the label yields instead. */
+.mrow .mnum{flex:0 0 auto;border:none;background:none;outline:none;text-align:right;width:150px;max-width:52%;font-size:15px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums;padding:9px 2px;border-bottom:1px solid transparent;letter-spacing:-.01em;}
 .mrow .mnum:focus{border-bottom-color:var(--accent);}
 .mrow .mnum::placeholder{color:var(--ink3);font-weight:500;}
-.mrow label{flex:1;padding-right:14px;}
+/* A flex item will not shrink below its own content unless you say so — min-width
+   defaults to auto. Without this a long item name ("Rental property in Scottsdale")
+   refused to give ground and ran straight into the amount. It wraps now instead, so
+   the row grows taller rather than the two colliding, and nothing is hidden. */
+.mrow label{flex:1 1 auto;min-width:0;overflow-wrap:anywhere;}
 .mrow .delitem{flex:0 0 auto;margin-left:10px;width:22px;height:22px;border-radius:7px;border:1px solid var(--line);background:var(--panel2);color:var(--ink3);font-size:15px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.12s;}
 .mrow .delitem:hover{border-color:var(--red);color:var(--red);background:#fff;}
 .mrow.custom label{color:var(--accent);font-weight:600;}
