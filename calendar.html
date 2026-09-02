@@ -357,6 +357,7 @@ html, body{ overflow-x: hidden; }
   </div>
 </div>
 <div class="ov" id="bkOv"><div class="drawer" id="bkDrawer"></div></div>
+<div class="ov" id="cfOv" style="z-index:95"><div class="drawer" id="cfDrawer"></div></div>
 <div class="spot" id="spot"><div class="spotbox"><div class="spotin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input id="spotI" placeholder="Search everything…" oninput="spotSearch()" onkeydown="spotKey(event)"></div><div class="spotres" id="spotR"></div></div></div>
 <div class="toast" id="toast"></div>
 <script>
@@ -1322,32 +1323,66 @@ function finishBook(){$('bkOv').classList.remove('on');SELTIME=null;setTab('me')
    the field-training tab and the leaderboard counts, drops any reminder still
    queued for it, and tombstones the Calendly event so the half-hourly sync
    cannot quietly bring it back. It cannot be undone from here. */
+/* A confirmation that survives an await.
+   The native confirm() only opens while the browser still counts a user gesture as
+   live. purgeBk asked AFTER awaiting the preview fetch, by which point the gesture had
+   expired — so on phones and in the installed app the dialog was suppressed, the Delete
+   button sat there greyed out, and the page looked frozen. This is a real element, so
+   it does not depend on gesture timing and it never blocks the event loop. */
+var _cfResolve=null;
+function askConfirm(o){
+  return new Promise(function(res){
+    _cfResolve=res;
+    var lines=(o.lines||[]).map(function(l){return '<div style="margin:5px 0">'+esc(l)+'</div>';}).join('');
+    $('cfDrawer').innerHTML='<h3>'+esc(o.title||'Are you sure?')+'</h3>'+
+      (o.sub?'<p class="dsub">'+esc(o.sub)+'</p>':'')+
+      (lines?'<div style="font-size:13px;color:var(--ink3);margin:12px 2px 2px">'+lines+'</div>':'')+
+      '<div class="dact" style="margin-top:20px;gap:8px">'+
+        '<button class="x can" onclick="cfDone(false)">'+esc(o.cancel||'Keep it')+'</button>'+
+        '<button class="go"'+(o.danger?' style="background:var(--red);color:#fff"':'')+' onclick="cfDone(true)">'+esc(o.ok||'Delete')+'</button>'+
+      '</div>';
+    $('cfOv').classList.add('on');
+  });
+}
+function cfDone(v){$('cfOv').classList.remove('on');var f=_cfResolve;_cfResolve=null;if(f)f(v);}
+
 function purgeBk(id){
   var BP=AT.replace('atlas-api','booking-purge');
   fetch(BP,{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({action:'preview',id:id})})
    .then(function(r){return r.json();})
    .then(function(p){
-     if(!p||!p.ok){toast((p&&p.error)||'Could not read that appointment');return;}
+     if(!p||!p.ok){toast((p&&p.error)||'Could not read that appointment');return null;}
      var a=p.appointment||{},w=p.will_clear||{};
      var when=a.date?(a.date+(a.time?(' at '+a.time):'')):'';
-     var bits=['This removes it from the scheduler and every tracker that counts it.'];
+     var bits=['The time slot opens back up straight away, so someone else can book it.',
+               'It also comes off every tracker that counts it.'];
      if(w.scheduled_reminders>0)bits.push(w.scheduled_reminders+' queued reminder'+(w.scheduled_reminders===1?'':'s')+' will not be sent.');
      if(w.coaching_notes>0)bits.push(w.coaching_notes+' coaching note'+(w.coaching_notes===1?'':'s')+' will be deleted.');
-     if(w.blocks_calendly_reimport)bits.push('It came from Calendly, so it will also be blocked from syncing back in.');
+     if(w.blocks_calendly_reimport)bits.push('It came from Calendly, so it is blocked from syncing back in.');
      bits.push('This cannot be undone.');
-     if(!confirm('Delete '+(a.category||'appointment')+' with '+(a.trainer_name||a.trainer||'trainer')+
-                 (when?(' on '+when):'')+'?\n\n'+bits.join('\n')))return;
-     fetch(BP,{method:'POST',headers:{'Content-Type':'application/json'},
+     return askConfirm({
+       title:'Delete this appointment?',
+       sub:(a.category||'Appointment')+' with '+(a.trainer_name||a.trainer||'trainer')+(when?(' · '+when):''),
+       lines:bits, ok:'Delete it', cancel:'Keep it', danger:true
+     });
+   })
+   .then(function(yes){
+     if(!yes)return;
+     return fetch(BP,{method:'POST',headers:{'Content-Type':'application/json'},
        body:JSON.stringify({action:'delete',id:id,by:(NAME||CODE||'broker')})})
       .then(function(r){return r.json();})
       .then(function(d){
         if(!d||!d.ok){toast((d&&d.error)||'Could not delete');return;}
-        toast('Appointment deleted ✓');
+        toast('Deleted — that slot is free again ✓');
         var ov=$('bkOv'); if(ov)ov.classList.remove('on');
+        /* The row is gone server-side, but the availability we cached for that day still
+           shows the slot taken. Drop it so the freed time is bookable without a reload. */
+        DAYBOOKED=[];
         loadMy(function(){if(TAB==='cal')renderCal();else render();});
-      }).catch(function(){toast('Network error — nothing was deleted');});
-   }).catch(function(){toast('Network error');});
+      });
+   })
+   .catch(function(){toast('Network error — nothing was deleted');});
 }
 function cancelBk(id){if(!confirm('Cancel this appointment?'))return;fetch(AT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'atlas_setstatus',id:id,status:'canceled',code:CODE})}).then(function(r){return r.json();}).then(function(){toast('Appointment canceled');loadMy(function(){render();});});}
 // === Approvals + Transfer engine (Phase 1/2) ===
@@ -1374,6 +1409,44 @@ function doApprove(id,decision){
     if(r&&r.taken){toast(r.error||'You have a conflict at that time.');return;}
     if(!r||!r.ok){toast((r&&r.error)||'Could not update.');return;}
     toast(decision==='approve'?'Approved ✓':'Declined');
+    loadMyTrainer(function(){loadMy(function(){render();
+      /* Declining used to end the agent's session — they were told to pick another time
+         and the slot they had already committed to went to waste. Offer to hand it to a
+         CFT who is free at exactly that time instead, so the appointment survives. */
+      if(decision==='decline')offerHandoff(id);
+    });});
+  }).catch(function(){toast('Network error — try again.');});}
+
+var HANDOFF=null;
+function handoffApi(b){return fetch(AT.replace('atlas-api','booking-handoff'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();});}
+function offerHandoff(id){
+  $('bkDrawer').innerHTML='<h3>Pass this training on?</h3><div class="spin">Finding a CFT who is free at that time…</div>';
+  $('bkOv').classList.add('on');
+  handoffApi({action:'candidates',id:id,code:CODE}).then(function(r){
+    if(!r||!r.ok){$('bkOv').classList.remove('on');return;}   /* declining still succeeded */
+    HANDOFF=r.booking;renderHandoff(r);
+  }).catch(function(){$('bkOv').classList.remove('on');});
+}
+function renderHandoff(r){
+  var b=r.booking,cands=r.candidates||[];
+  var head='<h3>Pass this training on?</h3><p class="dsub">'+esc(b.agent_name||b.agent_code||'Agent')+' · '+esc(b.category||'Training')+' · '+prettyDate(b.date)+' at '+esc(b.time)+tzTag()+'</p>'+
+    '<div style="font-size:12.5px;color:var(--ink3);margin:0 2px 12px">You declined this. Anyone below is free at exactly that time — handing it over keeps '+esc((b.agent_name||'the agent').split(' ')[0])+'’s slot instead of sending them back to start over.</div>';
+  var body;
+  if(!cands.length){
+    body='<div class="empty">No CFT has '+esc(b.time)+' open on '+prettyDate(b.date)+'. '+esc((b.agent_name||'The agent').split(' ')[0])+' has been told to pick another time.</div>';
+  } else {
+    body='<div class="grid g3">'+cands.map(function(c){var col=avColor(c.name);
+      return '<div class="tcard"><div class="th"><div class="tav" style="background:'+col+'">'+initials(c.name)+'</div><div><div class="tn">'+esc(c.name)+'</div><div class="tr">'+esc(roleLabel(c.role))+'</div></div></div>'+
+       '<div class="tmeta"><span class="m">'+esc(b.time)+' free</span></div>'+
+       '<button class="book" onclick="doHandoff(\''+b.id+'\',\''+encodeURIComponent(c.name)+'\')">Hand to '+esc(c.name.split(' ')[0])+'</button></div>';}).join('')+'</div>';
+  }
+  $('bkDrawer').innerHTML=head+body+'<div class="dact" style="margin-top:18px"><button class="x can" onclick="$(\'bkOv\').classList.remove(\'on\')">'+(cands.length?'No thanks':'Close')+'</button></div>';
+}
+function doHandoff(id,encName){var name=decodeURIComponent(encName);
+  handoffApi({action:'handoff',id:id,code:CODE,to_trainer_name:name}).then(function(r){
+    if(r&&r.taken){toast(r.error||'That trainer was just booked.');offerHandoff(id);return;}
+    if(!r||!r.ok){toast((r&&r.error)||'Could not hand it off.');return;}
+    toast('Handed to '+name.split(' ')[0]+' ✓');$('bkOv').classList.remove('on');DAYBOOKED=[];
     loadMyTrainer(function(){loadMy(function(){render();});});
   }).catch(function(){toast('Network error — try again.');});}
 var XFER=null,XMODE='peer',MANAGE=[];

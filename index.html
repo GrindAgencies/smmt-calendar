@@ -618,6 +618,21 @@ var ICON=I;
 
 var API="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/tracker-api";
 var NBAPI="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/newbiz-api";
+var GOALSAPI="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/goals-api";
+/* This page called toast() when you took the top of a leaderboard, but never defined it —
+   so the one moment worth celebrating threw instead. Defined once, here. */
+function toast(msg){
+  var e=document.getElementById('tsfgToast');
+  if(!e){e=document.createElement('div');e.id='tsfgToast';
+    e.style.cssText='position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(10px);'+
+      'background:var(--ink,#141a20);color:#fff;padding:12px 18px;border-radius:12px;font-weight:600;'+
+      'font-size:14px;z-index:200;box-shadow:0 8px 30px rgba(0,0,0,.28);opacity:0;pointer-events:none;'+
+      'transition:opacity .18s ease,transform .18s ease;max-width:min(90vw,420px);text-align:center';
+    document.body.appendChild(e);}
+  e.textContent=msg;
+  requestAnimationFrame(function(){e.style.opacity='1';e.style.transform='translateX(-50%) translateY(0)';});
+  clearTimeout(e._t);e._t=setTimeout(function(){e.style.opacity='0';e.style.transform='translateX(-50%) translateY(10px)';},2600);
+}
 var PA="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/profile-api";
 var BASESHOP_LEADER="Elijah Cox";
 var CODE=null, NAME="", CTX="me", ME=null, SHOP=null, RAW=null, SNAP=null, GOALS={personal:{},shop:{},company:{}};
@@ -673,17 +688,31 @@ function setPremium(){
   try{if(v==='')localStorage.removeItem(premiumKey());else localStorage.setItem(premiumKey(),v);}catch(e){}
   renderSnapshot();
 }
-function goalOf(key){var o=(CTX==='me')?GOALS.personal:(CTX==='org'?GOALS.company:GOALS.shop);return (o&&o[key]!=null)?Number(o[key]):null;}
+/* Each level of goal belongs to the person accountable for it: you set your own,
+   your Marketing Director sets the team's, the EMD sets the baseshop's, and Eli sets
+   the hierarchy's. The server decides — this only mirrors the answer so the pencil is
+   hidden where you cannot use it, and says who to ask instead. */
+function goalScope(){return CTX==='me'?'personal':(CTX==='team'?'team':(CTX==='shop'?'baseshop':'hierarchy'));}
+function goalLevel(){return GOALS[goalScope()]||{};}
+function goalOf(key){var t=goalLevel().targets;return (t&&t[key]!=null)?Number(t[key]):null;}
+function canEditGoal(){return !!goalLevel().can_edit;}
+var GOALNOUN={personal:'your',team:'your team’s',baseshop:'your baseshop’s',hierarchy:'the hierarchy’s'};
 function editGoal(key,label,isMoney){
-  var scope=(CTX==='me')?'me':(CTX==='org'?'company':'shop');var cur=goalOf(key);
-  var noun=(scope==='me')?'monthly':(scope==='company'?'company-wide':'team');
-  var v=prompt('Set the '+noun+' goal for '+label+':',cur!=null?cur:'');
+  var lv=goalLevel(),scope=goalScope();
+  if(!lv.can_edit){toast(lv.why||'You cannot set that goal.');return;}
+  var cur=goalOf(key);
+  var v=prompt('Set '+(GOALNOUN[scope]||'the')+' monthly goal for '+label+':',cur!=null?cur:'');
   if(v===null)return; v=(v+'').replace(/[^0-9.]/g,'');
-  var goals={}; goals[key]=(v===''?0:Number(v));
-  nbapi({action:'goals_set',scope:scope,code:CODE,by:NAME,month:monthKey(),goals:goals}).then(function(r){
-    if(r&&r.ok){ if(scope==='me'){GOALS.personal[key]=goals[key];}else if(scope==='company'){GOALS.company[key]=goals[key];}else{GOALS.shop[key]=goals[key];} renderSnapshot(); }
-    else { alert((r&&r.error)||'Could not save goal'); }
-  });
+  fetch(GOALSAPI,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'set',code:CODE,scope:scope,metric:key,target:(v===''?0:Number(v)),month:monthKey()})})
+   .then(function(r){return r.json();})
+   .then(function(r){
+     if(!r||!r.ok){toast((r&&r.error)||'Could not save that goal.');return;}
+     if(!lv.targets)lv.targets={};
+     lv.targets[key]=r.target; lv.set_by=r.set_by_name;
+     renderSnapshot();
+     toast('Goal saved ✓');
+   }).catch(function(){toast('Network error — the goal was not saved.');});
 }
 function goalCard(o){
   // o: {ic,tone,num,goalKey,goalLabel,lbl,money,link}
@@ -692,8 +721,13 @@ function goalCard(o){
   var pctFill=(goal&&goal>0)?Math.min(100,Math.round(actual*100/goal)):0;
   var big=o.money?money2(actual):actual;
   var goalTxt=(goal!=null)?('<span class="gtar"> / '+(o.money?money2(goal):goal)+'</span>'):'';
-  var edit=o.goalKey?('<button class="cardedit" title="Edit goal" onclick="editGoal(\''+o.goalKey+'\',\''+o.goalLabel+'\','+(o.money?'true':'false')+')">'+I.pencil+'</button>'):'';
-  var bar=(o.goalKey)?('<div class="gbar"><span style="width:'+pctFill+'%"></span></div><div class="gmeta">'+(goal!=null?(pctFill+'% of goal'):'Set a monthly goal →')+'</div>'):'';
+  var mine=canEditGoal();
+  var edit=(o.goalKey&&mine)?('<button class="cardedit" title="Edit goal" onclick="editGoal(\''+o.goalKey+'\',\''+o.goalLabel+'\','+(o.money?'true':'false')+')">'+I.pencil+'</button>'):'';
+  /* When it is not yours to set, say whose it is rather than showing a pencil that
+     bounces you back with an error. */
+  var owner=goalLevel().why||'';
+  var meta=(goal!=null)?(pctFill+'% of goal'):(mine?'Set a monthly goal →':(owner||'No goal set yet'));
+  var bar=(o.goalKey)?('<div class="gbar"><span style="width:'+pctFill+'%"></span></div><div class="gmeta">'+lbEsc(meta)+'</div>'):'';
   var body='<div class="stat"><div class="top"><div class="ic '+(o.tone||'')+'">'+o.ic+'</div>'+edit+'</div>'+
     '<div class="num">'+big+goalTxt+'</div><div class="lbl">'+o.lbl+'</div>'+bar+'</div>';
   var d=document.createElement(o.link?'a':'div');d.className='card'+(o.link?' clk':'');if(o.link)d.href=o.link;
@@ -800,12 +834,12 @@ function loadData(){
     fetch(API+'?action=pulse').then(function(r){return r.json();}).catch(function(){return{};}),
     nbapi({action:'newbiz_summary',code:CODE,since:since}),
     nbapi({action:'newbiz_summary',leader:BASESHOP_LEADER,since:since}),
-    nbapi({action:'goals_get',code:CODE,month:monthKey()}),
+    fetch(GOALSAPI,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'get',code:CODE,month:monthKey()})}).then(function(r){return r.json();}).catch(function(){return{ok:false};}),
     fetch(LB,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'snapshot',code:CODE})}).then(function(r){return r.json();}).catch(function(){return{ok:false};})
   ]).then(function(res){
     var meRes=res[0],team=res[1],pulse=res[2],nbMe=res[3],nbShop=res[4],goals=res[5],snap=res[6];
     if(snap&&snap.ok)SNAP=snap;
-    if(goals&&goals.ok){GOALS.personal=goals.personal||{};GOALS.shop=goals.shop||{};GOALS.company=goals.company||{};}
+    if(goals&&goals.ok&&goals.levels)GOALS=goals.levels;
     if(meRes&&meRes.ok&&meRes.agent){RAW=meRes.agent;ME=computeMeFromRaw(meRes.agent);}
     else{ME={families:0,pct:0,agents:1,leads:0,ft:0,ft30:0,tasks:0,onStreak:0,added7:0,added14:0,added30:0,ftSeries:[0,0,0,0]};}
     SHOP=computeShop(team,pulse);
