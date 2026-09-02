@@ -1238,3 +1238,69 @@ window.tsfgTrack = function (kind, detail) {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
   else start();
 })();
+
+/* ==========================================================================
+   BASESHOP BRANDING  (2026-09-02)
+   --------------------------------------------------------------------------
+   Every baseshop is its own operating space inside one platform. The EMD who
+   owns it picks the colour, logo and name their team sees; this applies that
+   choice on every screen the moment the page loads.
+
+   Only presentation lives here. Who reports to whom is not an EMD's to change —
+   that is Operations and Eli Cox (org-api v4) — so nothing in this module
+   touches the hierarchy.
+
+   The brand is cached in sessionStorage so the colour does not flicker in on
+   every navigation; a change by the EMD shows up on the next fresh session.
+   ========================================================================== */
+(function () {
+  var API = 'https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/base-brand';
+  var KEY = 'tsfg_brand_v1';
+
+  function code(){ try { return (localStorage.getItem('tsfg_code')||'').trim(); } catch(e){ return ''; } }
+
+  function apply(brand){
+    if (!brand) return;
+    var r = document.documentElement;
+    if (brand.accent && /^#[0-9a-f]{6}$/i.test(brand.accent)) {
+      // every accent name in use across the pages, so one setting covers them all
+      ['--accent','--tsfg-accent','--brand'].forEach(function(v){ r.style.setProperty(v, brand.accent); });
+      if (brand.accent_soft) ['--accent-soft','--accent-soft-2'].forEach(function(v){ r.style.setProperty(v, brand.accent_soft); });
+    }
+    if (brand.display_name) {
+      document.querySelectorAll('[data-brand-name]').forEach(function(el){ el.textContent = brand.display_name; });
+    }
+    if (brand.logo_url) {
+      document.querySelectorAll('.side-brand img, .tsfg-brand img, .brand img').forEach(function(img){
+        img.src = brand.logo_url; img.style.visibility = 'visible';
+      });
+    }
+    try { r.setAttribute('data-baseshop', (brand.baseshop||'').toLowerCase()); } catch(e){}
+  }
+
+  function start(){
+    var c = code(); if (!c) return;
+    var cached = null;
+    try { cached = JSON.parse(sessionStorage.getItem(KEY)||'null'); } catch(e){}
+    if (cached && cached.code === c) { apply(cached.brand); return; }
+    fetch(API, { method:'POST', headers:{'Content-Type':'application/json'},
+                 body: JSON.stringify({ action:'get', code:c }) })
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if (!d || !d.ok || !d.brand) return;
+        try { sessionStorage.setItem(KEY, JSON.stringify({ code:c, brand:d.brand })); } catch(e){}
+        apply(d.brand);
+      })
+      .catch(function(){ /* branding is a nicety — never block a page on it */ });
+  }
+
+  /* The EMD's own settings screen calls this after saving, so they see the
+     change immediately rather than being told to sign out and back in. */
+  window.tsfgBrandRefresh = function(){
+    try { sessionStorage.removeItem(KEY); } catch(e){}
+    start();
+  };
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
+  else start();
+})();

@@ -172,8 +172,110 @@ function paintProfile(p){
   if(p.is_trainer){
     h+='<div class="sec"><div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap"><div><div style="font-weight:800;font-size:14px">Manage your booking availability</div><div style="font-size:12.5px;color:var(--ink3)">Weekly hours, blackouts & vacations live in the Scheduler.</div></div><a class="btn ghost" style="text-decoration:none" href="calendar.html?tab=avail">Open My Availability →</a></div></div>';
   }
+  h+='<div id="baseBrandSec"></div>';
   $('profBody').innerHTML=h+'<datalist id="statelist">'+US_STATES.map(function(s){return '<option value="'+s+'">';}).join('')+'</datalist>';
   loadCalendlyStatus();
+  loadBaseBrand();
+}
+/* ===== YOUR BASESHOP =======================================================
+   An EMD runs their baseshop as its own operating space: the colour their team
+   sees, their logo, the name they go by, the greeting on Home, and what the
+   team is pushing this month. It appears only for someone who actually owns a
+   baseshop.
+
+   It also states the boundary out loud, because "total control" needs an edge:
+   the look and the dashboard are theirs; who reports to whom is Operations and
+   Eli Cox. Better said here than discovered when a button refuses. */
+var BRAND="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/base-brand";
+var BRANDDATA=null,BRANDBASE='';
+function loadBaseBrand(){
+  var sec=document.getElementById('baseBrandSec'); if(!sec)return;
+  fetch(BRAND,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'get',code:CODE})})
+   .then(function(r){return r.json();})
+   .then(function(d){
+     if(!d||!d.ok||!d.can_edit){sec.innerHTML='';return;}
+     BRANDDATA=d;
+     // the config carries a duplicate STANDARD row for the super grant
+     var list=[];(d.editable_baseshops||[]).forEach(function(b){if(list.indexOf(b)<0)list.push(b);});
+     BRANDBASE=(list.indexOf(d.baseshop)>=0)?d.baseshop:(list[0]||d.baseshop);
+     renderBaseBrand(list);
+   }).catch(function(){sec.innerHTML='';});
+}
+function bEsc(x){return (x==null?'':String(x)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+function renderBaseBrand(list){
+  var sec=document.getElementById('baseBrandSec'); if(!sec)return;
+  var b=(BRANDDATA&&BRANDDATA.brand)||{};
+  var picker = (list.length>1)
+    ? '<div class="fld"><label class="lbl">Baseshop</label><select class="in" id="bb_base" onchange="switchBaseBrand(this.value)">'+
+      list.map(function(x){return '<option value="'+bEsc(x)+'"'+(x===BRANDBASE?' selected':'')+'>'+bEsc(x)+'</option>';}).join('')+
+      '</select></div>' : '';
+  sec.innerHTML =
+    '<div class="sec"><div class="sech"><h2>Your baseshop</h2>'+
+      '<span style="font-size:12px;color:var(--ink3);font-weight:700">'+bEsc(BRANDBASE)+'</span></div>'+
+    '<div class="card">'+
+      '<div style="font-size:12.5px;color:var(--ink3);line-height:1.5;margin-bottom:14px">'+
+        bEsc(BRANDDATA.hierarchy_note||'')+'</div>'+
+      picker+
+      '<div class="fld"><label class="lbl">Team name</label><input class="in" id="bb_name" value="'+bEsc(b.display_name||BRANDBASE)+'" placeholder="What your team calls itself"></div>'+
+      '<div class="fld"><label class="lbl">Tagline</label><input class="in" id="bb_tag" value="'+bEsc(b.tagline||'')+'" placeholder="Build Momentum. Create Results."></div>'+
+      '<div class="fld"><label class="lbl">Team colour</label>'+
+        '<div style="display:flex;align-items:center;gap:10px">'+
+          '<input type="color" id="bb_accent" value="'+bEsc(b.accent||'#5b6cff')+'" style="width:52px;height:38px;padding:2px;border-radius:10px">'+
+          '<input class="in" id="bb_accent_hex" value="'+bEsc(b.accent||'#5b6cff')+'" style="flex:1" oninput="document.getElementById(\'bb_accent\').value=this.value">'+
+        '</div><div class="lbl" style="margin-top:5px;font-weight:400;color:var(--ink3)">Applies across the whole app for everyone in this baseshop.</div></div>'+
+      '<div class="fld"><label class="lbl">Welcome message on Home</label>'+
+        '<input class="in" id="bb_welcome" value="'+bEsc(b.welcome||'')+'" placeholder="What your team should see first each morning"></div>'+
+      '<div class="fld"><label class="lbl">What you are pushing this month <span style="font-weight:500;color:var(--ink3)">— comma separated</span></label>'+
+        '<input class="in" id="bb_focus" value="'+bEsc((b.focus||[]).join(', '))+'" placeholder="Field trainings, Top 6 appointments"></div>'+
+      '<div class="fld"><label class="lbl">Team logo</label><input class="in" type="file" id="bb_logo" accept="image/*">'+
+        (b.logo_url?('<div class="lbl" style="margin-top:5px;font-weight:400;color:var(--ink3)">Current: <a href="'+bEsc(b.logo_url)+'" target="_blank">view</a></div>'):'')+'</div>'+
+      '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">'+
+        '<button class="btn" onclick="saveBaseBrand()" id="bb_save">Save baseshop settings</button>'+
+        '<span id="bb_status" style="font-size:12.5px;font-weight:700;color:var(--ink3)"></span></div>'+
+    '</div></div>';
+  document.getElementById('bb_accent').addEventListener('input',function(){
+    document.getElementById('bb_accent_hex').value=this.value;});
+}
+function switchBaseBrand(bs){
+  BRANDBASE=bs;
+  fetch(BRAND,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'get',code:CODE,baseshop:bs})})
+   .then(function(r){return r.json();})
+   .then(function(d){ if(d&&d.ok){BRANDDATA=d;var l=[];(d.editable_baseshops||[]).forEach(function(x){if(l.indexOf(x)<0)l.push(x);});renderBaseBrand(l);} });
+}
+function saveBaseBrand(){
+  var btn=document.getElementById('bb_save'),st=document.getElementById('bb_status');
+  var hex=(document.getElementById('bb_accent_hex').value||'').trim();
+  if(hex&&!/^#[0-9a-fA-F]{6}$/.test(hex)){st.textContent='Colour must look like #5b6cff.';return;}
+  btn.disabled=true;st.textContent='Saving…';
+  var payload={action:'save',code:CODE,baseshop:BRANDBASE,
+    display_name:document.getElementById('bb_name').value,
+    tagline:document.getElementById('bb_tag').value,
+    welcome:document.getElementById('bb_welcome').value,
+    accent:hex,
+    focus:(document.getElementById('bb_focus').value||'').split(',').map(function(x){return x.trim();}).filter(Boolean)};
+  var fEl=document.getElementById('bb_logo'),file=fEl&&fEl.files&&fEl.files[0];
+  var step=file?fetch(BRAND,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'logo_url',code:CODE,baseshop:BRANDBASE,filename:file.name})})
+      .then(function(r){return r.json();})
+      .then(function(sg){
+        if(!sg||!sg.ok)throw new Error(sg&&sg.error||'Could not start the logo upload');
+        return fetch(sg.upload_url,{method:'PUT',body:file}).then(function(up){
+          if(!up.ok)throw new Error('Logo upload failed ('+up.status+')');
+          payload.logo_url=sg.public_url; });
+      }):Promise.resolve();
+  step.then(function(){
+    return fetch(BRAND,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+      .then(function(r){return r.json();});
+  }).then(function(d){
+    btn.disabled=false;
+    if(!d||!d.ok){st.textContent=(d&&d.error)||'Could not save.';return;}
+    st.textContent='Saved — your team sees this now.';
+    BRANDDATA.brand=d.brand;
+    if(fEl)fEl.value='';
+    try{ if(window.tsfgBrandRefresh)window.tsfgBrandRefresh(); }catch(e){}
+  }).catch(function(e){btn.disabled=false;st.textContent=String(e.message||e);});
 }
 function loadCalendlyStatus(){
   var el=$('calendlyStatus');if(!el)return;
