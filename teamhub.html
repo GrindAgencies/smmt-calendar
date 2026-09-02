@@ -426,29 +426,69 @@ function renderRooms(){
   }
   $('dmList').innerHTML=coachPin+active+dmPicker();
 }
-/* One flat list of 86 names was unusable. Pick a baseshop first, then the
-   person — the reader's own baseshop is preselected because that is who they
-   message most. Falls back to the flat list until the roster (which carries
-   baseshop) has loaded. */
-var DMBASE='';
+/* One flat list of 86 names was unusable, and grouping on the raw baseshop field
+   was worse: it produced LORENZ, COX, ZAVALA and UNASSIGNED sitting beside the
+   real baseshops, because 42 people still carry a legacy team name there.
+
+   The real baseshops are the ones the sidebar already lists as channels, so that
+   is the source of truth here. Anyone whose baseshop is not one of them is
+   resolved by walking UP their upline until an ancestor is on a real baseshop —
+   which places 32 of those 42 correctly. The handful with no such ancestor fall
+   into "Other" rather than inventing a home for them.
+
+   This is a display fix. The underlying baseshop field is still wrong for those
+   people and still needs a proper cleanup. */
+var DMBASE='',DMBASE_CHOSEN=false;
+function realBaseshops(){
+  var seen={},out=[];
+  (CHANNELS||[]).forEach(function(c){
+    if(!c.baseshop)return;
+    var k=String(c.baseshop).toUpperCase();
+    if(seen[k])return; seen[k]=1;
+    out.push({key:k,name:(c.baseshopName||k).toUpperCase()});
+  });
+  return out;
+}
 function dmRosterByBase(){
+  var reals=realBaseshops(), realSet={};
+  reals.forEach(function(r){realSet[r.key]=r.name;});
+  var byCode={};
+  (ROSTER||[]).forEach(function(m){ var c=(m.code||'').toUpperCase(); if(c)byCode[c]=m; });
+
+  function resolve(m,depth){
+    if(!m||depth>8)return '';
+    var b=(m.baseshop||'').toUpperCase();
+    if(b&&realSet[b])return b;
+    var up=(m.direct_to||'').toUpperCase();
+    if(!up||up===(m.code||'').toUpperCase())return '';
+    return resolve(byCode[up],depth+1);
+  }
+
   var by={},seen={};
   (ROSTER||[]).forEach(function(m){
     var c=(m.code||'').toUpperCase();
     if(!c||c===CODE||c==='KYLE'||seen[c])return;
     seen[c]=1;
-    var b=(m.baseshop||'').toUpperCase()||'UNASSIGNED';
+    var b=resolve(m,0)||'OTHER';
     (by[b]=by[b]||[]).push({code:c,name:m.name||c});
   });
   Object.keys(by).forEach(function(b){by[b].sort(function(x,y){return x.name.localeCompare(y.name);});});
-  return by;
+  return {by:by, reals:reals};
 }
 function myBaseshop(){
+  var r=dmRosterByBase();
   var me=(ROSTER||[]).filter(function(m){return (m.code||'').toUpperCase()===CODE;})[0];
-  return me?((me.baseshop||'').toUpperCase()):'';
+  if(!me)return '';
+  var b=(me.baseshop||'').toUpperCase();
+  var ok=r.reals.some(function(x){return x.key===b;});
+  return ok?b:'';
 }
 function dmPicker(){
-  var by=dmRosterByBase(), bases=Object.keys(by).sort();
+  var r=dmRosterByBase(), by=r.by;
+  // real baseshops in the sidebar's own order, then Other, and only if occupied
+  var bases=r.reals.map(function(x){return x.key;}).filter(function(k){return (by[k]||[]).length;});
+  if((by.OTHER||[]).length)bases.push('OTHER');
+
   if(!bases.length){
     // roster not in yet — keep the old behaviour rather than showing nothing
     var mem=Object.keys(MEMBERS).filter(function(cd){return cd!==CODE;})
@@ -457,14 +497,18 @@ function dmPicker(){
       '<option value="">＋ Message a teammate…</option>'+
       mem.map(function(cd){return '<option value="'+cd+'">'+esc(MEMBERS[cd]||cd)+'</option>';}).join('')+'</select>';
   }
-  if(!DMBASE||bases.indexOf(DMBASE)<0)DMBASE=(bases.indexOf(myBaseshop())>=0?myBaseshop():bases[0]);
+  var mine=myBaseshop();
+  if(!DMBASE_CHOSEN||!DMBASE||bases.indexOf(DMBASE)<0){
+    DMBASE=(mine&&bases.indexOf(mine)>=0)?mine:bases[0];
+  }
   var people=by[DMBASE]||[];
-  return '<select class="dmsel" onchange="DMBASE=this.value;renderRooms();">'+
+  var label=function(k){ if(k==='OTHER')return 'Other'; var f=r.reals.filter(function(x){return x.key===k;})[0]; return f?f.name:k; };
+  return '<select class="dmsel" onchange="DMBASE=this.value;DMBASE_CHOSEN=true;renderRooms();">'+
       bases.map(function(b){
-        return '<option value="'+esc(b)+'"'+(b===DMBASE?' selected':'')+'>'+esc(b)+' · '+by[b].length+'</option>';
+        return '<option value="'+esc(b)+'"'+(b===DMBASE?' selected':'')+'>'+esc(label(b))+' · '+by[b].length+'</option>';
       }).join('')+'</select>'+
     '<select class="dmsel" onchange="if(this.value){openChan(dmId(this.value));this.value=\'\';}">'+
-      '<option value="">＋ Message someone in '+esc(DMBASE)+'…</option>'+
+      '<option value="">＋ Message someone in '+esc(label(DMBASE))+'…</option>'+
       people.map(function(p){return '<option value="'+p.code+'">'+esc(p.name)+'</option>';}).join('')+
     '</select>';
 }
