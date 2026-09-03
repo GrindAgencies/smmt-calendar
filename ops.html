@@ -616,6 +616,7 @@ function onSearch(){if(TAB==='bookings')renderBookingsTable();else if(TAB==='inf
 /* ---- New Business feed (Operations back-end) — column-driven, fully editable ---- */
 var NB="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/ops-newbiz";
 var NBFEED="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/ops-nbfeed";
+var IMPORT_URL="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/ops-import";
 var NBT=[],NBCOLS=[],NBEDIT=false,NBSORT={k:'client_name',dir:1},NBCUR=null,NBCOLDRAFT=[],NBBOARD='newbiz',NBARCH=false,NBARCHCOUNT=0,NBLIVE=false;
 function nbApi(body){var b=body||{};b.board=NBBOARD;if(OPS&&OPS.role==='ops')b.token='2026';if(OPS){b.by_code=OPS.code;b.by_name=OPS.name;}return fetch(NBLIVE?NBFEED:NB,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();});}
 function nbVal(t,k){return (t.data&&t.data[k]!=null)?t.data[k]:'';}
@@ -654,7 +655,7 @@ function paintNewbiz(){var host=$('newbizHost');if(!host)return;var rows=nbFilte
   var body=rows.length?rows.map(function(t){var rc=(t.data&&t.data._color)||'';return '<tr'+(rc?(' style="background:'+rc+'22"'):'')+'>'+NBCOLS.map(function(col){return '<td'+(col.type==='money'?' style="text-align:right;white-space:nowrap"':(col.key==='status'||col.type==='select'?'':' style="white-space:nowrap"'))+'>'+nbCell(t,col)+'</td>';}).join('')+'<td onclick="openTicket(\''+t.id+'\')" style="cursor:pointer;white-space:nowrap;color:var(--ink3,#8e8e93)">💬 '+((t.notes&&t.notes.length)||0)+'</td></tr>';}).join(''):'<tr><td colspan="'+(NBCOLS.length+1)+'" class="empty">No records'+(NBEDIT?' yet — click ＋ Add.':'.')+'</td></tr>';
   var noun=NBLIVE?'policy':(NBBOARD==='gfi'?'ticket':'record');var nouns=NBLIVE?'policies':(noun+'s');
   var liveArchBtn='<button class="dbtn ghost" style="padding:6px 12px;font-size:12.5px'+(NBARCH?';border-color:var(--gold);color:var(--gold)':'')+'" onclick="nbToggleArch()" title="Incomplete, Declined &amp; Cancelled policies — auto-moved off the active feed">🗄 '+(NBARCH?'Viewing archive — back to active':'Archived ('+NBARCHCOUNT+')')+'</button>';
-  var toolbar=NBLIVE?('<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span style="font-size:12px;color:var(--green);font-weight:800">🔄 Live · two-way synced with agents</span>'+liveArchBtn+(NBEDIT?'<button class="dbtn ghost" style="padding:6px 12px;font-size:12.5px" onclick="openNbCols()">⚙ Reorder columns</button>':'')+'</div>'):(NBEDIT?('<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="dbtn ghost" style="padding:6px 12px;font-size:12.5px'+(NBARCH?';border-color:var(--gold);color:var(--gold)':'')+'" onclick="nbToggleArch()">🗄 '+(NBARCH?'Viewing archive — back to active':'Archived ('+NBARCHCOUNT+')')+'</button><button class="dbtn ghost" style="padding:6px 12px;font-size:12.5px" onclick="openNbCols()">⚙ Edit columns</button></div>'):'');
+  var toolbar=NBLIVE?('<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span style="font-size:12px;color:var(--green);font-weight:800">🔄 Live · two-way synced with agents</span>'+liveArchBtn+(NBEDIT?'<button class="dbtn ghost" style="padding:6px 12px;font-size:12.5px" onclick="openNbCols()">⚙ Reorder columns</button>':'')+'</div>'):(NBEDIT?('<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="dbtn ghost" style="padding:6px 12px;font-size:12.5px" onclick="openSheetImport()" title="Bring your existing Google Sheet onto this board">📥 Import from Google Sheets</button><button class="dbtn ghost" style="padding:6px 12px;font-size:12.5px'+(NBARCH?';border-color:var(--gold);color:var(--gold)':'')+'" onclick="nbToggleArch()">🗄 '+(NBARCH?'Viewing archive — back to active':'Archived ('+NBARCHCOUNT+')')+'</button><button class="dbtn ghost" style="padding:6px 12px;font-size:12.5px" onclick="openNbCols()">⚙ Edit columns</button></div>'):'');
   host.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin:0 0 10px;flex-wrap:wrap"><div style="font-size:12.5px;color:var(--ink3,#8e8e93)">'+rows.length+' '+(NBARCH?'archived ':'')+(rows.length===1?noun:nouns)+' · click the first cell to open '+(NBLIVE?'notes &amp; history':(NBBOARD==='gfi'?'the ticket &amp; update history':'notes'))+(NBEDIT&&!NBARCH?(NBLIVE?' · every field edits inline &amp; syncs to the agent side (Writing Agent &amp; Baseshop are derived)':' · cells edit inline'):'')+'</div>'+toolbar+'</div>'+
     '<div class="tablewrap" style="overflow-x:auto"><table class="ptable" style="min-width:1200px"><thead><tr>'+head+'</tr></thead><tbody>'+body+'</tbody></table></div>';}
 function nbSet(id,field,val){nbApi({action:'nb_update',id:id,field:field,value:val}).then(function(r){if(!r||!r.ok){toast((r&&r.error)||'Save failed');return;}var t=NBT.filter(function(x){return x.id===id;})[0];if(t){t.data=t.data||{};t.data[field]=val;}if(r.archived){NBT=NBT.filter(function(x){return x.id!==id;});NBARCHCOUNT++;closeDrawer();toast('✅ Completed — moved to Archived');paintNewbiz();return;}paintNewbiz();if(field!=='_color')toast('Saved ✓');});}
@@ -1067,6 +1068,66 @@ function openAgent(code){
   api(auth({action:'agent_get',code:code})).then(function(r){if(!r||!r.ok){$('drawer').innerHTML='<div class="dbody"><div class="empty">Could not load agent.</div></div>';return;}CUR=r;paintAgent(r);});
 }
 function closeDrawer(){$('ov').classList.remove('on');CUR=null;}
+
+/* ---- Import an existing Google Sheet onto THIS seat's board (2026-09-03) ----------
+   The new baseshop Operations staff each run their book out of a spreadsheet. Retyping
+   it is how a handover goes wrong, so the sheet is read directly and shown back before
+   anything is written — headers, row count, and which spreadsheet column it thinks is
+   which — so a mistake is caught at the preview rather than after 400 rows land. */
+var SHEET={src:'',csv:'',headers:[],cols:[],map:{},rows:0};
+function impApi(b){b=b||{};b.code=(OPS&&OPS.code)||'';b.board=NBBOARD;
+  return fetch(IMPORT_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();}).catch(function(){return{ok:false,error:'Network error'};});}
+function openSheetImport(){
+  SHEET={src:'',csv:'',headers:[],cols:[],map:{},rows:0};
+  $('drawer').innerHTML='<div class="dbody"><div style="font-weight:800;font-size:16px">📥 Import from Google Sheets</div>'+
+    '<div class="sub" style="margin:4px 0 14px">This lands on <b>your</b> board only — nobody else’s Operations view changes.</div>'+
+    '<label style="font-size:12px;font-weight:800;color:var(--ink3)">Paste your Google Sheets link</label>'+
+    '<input id="impUrl" placeholder="https://docs.google.com/spreadsheets/d/..." style="width:100%;margin:6px 0 4px;padding:11px;border:1px solid var(--line2);border-radius:10px;background:var(--panel2);color:var(--ink);font:inherit">'+
+    '<div style="font-size:11.5px;color:var(--ink3);margin-bottom:12px">In the sheet: <b>Share → General access → Anyone with the link → Viewer</b>. Nothing is written to your sheet — it is only read.</div>'+
+    '<div style="font-size:12px;color:var(--ink3);margin-bottom:6px">…or paste the rows straight from the spreadsheet (headers in the first row):</div>'+
+    '<textarea id="impCsv" placeholder="Client Name	Writing Agent	Carrier	Premium…" style="width:100%;min-height:80px;padding:10px;border:1px solid var(--line2);border-radius:10px;background:var(--panel2);color:var(--ink);font:12px/1.5 ui-monospace,monospace;resize:vertical"></textarea>'+
+    '<div class="dact" style="margin-top:14px;gap:8px"><button class="dbtn ghost" onclick="closeDrawer()">Cancel</button><button class="dbtn" onclick="impPreview()">Read the sheet →</button></div>'+
+    '<div id="impOut" style="margin-top:14px"></div></div>';
+  $('ov').classList.add('on');
+}
+function impPreview(){
+  SHEET.src=($('impUrl').value||'').trim(); SHEET.csv=($('impCsv').value||'').trim();
+  if(!SHEET.src&&!SHEET.csv){toast('Paste a link or the rows first');return;}
+  $('impOut').innerHTML='<div class="spin">Reading…</div>';
+  impApi({action:'preview',url:SHEET.src,csv:SHEET.csv}).then(function(r){
+    if(!r||!r.ok){$('impOut').innerHTML='<div style="color:var(--red);font-size:13px">'+esc((r&&r.error)||'Could not read that.')+'</div>';return;}
+    SHEET.headers=r.headers||[];SHEET.cols=r.columns||[];SHEET.map=r.suggested||{};SHEET.rows=r.row_count||0;
+    impRenderMap(r);
+  });
+}
+function impRenderMap(r){
+  var opts=function(sel){return '<option value="">— skip —</option>'+SHEET.cols.map(function(c){
+    return '<option value="'+esc(c.key)+'"'+(sel===c.key?' selected':'')+'>'+esc(c.label)+'</option>';}).join('');};
+  var rowsHtml=SHEET.headers.map(function(h,i){
+    var sample=(r.sample&&r.sample[0]&&r.sample[0][i])||'';
+    return '<tr><td style="padding:5px 8px 5px 0;font-weight:700;font-size:12.5px;white-space:nowrap">'+esc(h||('Column '+(i+1)))+
+      '</td><td style="padding:5px 8px;color:var(--ink3);font-size:12px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(sample)+
+      '</td><td style="padding:5px 0"><select id="impM'+i+'" style="padding:6px 8px;border:1px solid var(--line2);border-radius:8px;background:var(--panel2);color:var(--ink);font:inherit;font-size:12.5px">'+opts(SHEET.map[String(i)]||'')+'</select></td></tr>';
+  }).join('');
+  $('impOut').innerHTML='<div style="font-weight:800;font-size:13.5px">Found '+SHEET.rows+' row'+(SHEET.rows===1?'':'s')+
+      (r.truncated?' (showing the first 5,000)':'')+'</div>'+
+    '<div class="sub" style="margin:2px 0 10px">Lands on: <b>'+esc(r.lands_on||'your board')+'</b>. Check the matches below — the middle column is the first row of your sheet.</div>'+
+    '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">'+rowsHtml+'</table></div>'+
+    '<label style="display:flex;align-items:center;gap:8px;margin-top:12px;font-size:12.5px"><input type="checkbox" id="impAppend"> Add to what is already on my board (otherwise it replaces it)</label>'+
+    '<div class="dact" style="margin-top:14px;gap:8px"><button class="dbtn ghost" onclick="closeDrawer()">Cancel</button><button class="dbtn" onclick="impCommit()">Import '+SHEET.rows+' row'+(SHEET.rows===1?'':'s')+'</button></div>';
+}
+function impCommit(){
+  var map={};
+  SHEET.headers.forEach(function(_h,i){var el=$('impM'+i);if(el&&el.value)map[String(i)]=el.value;});
+  if(!Object.keys(map).length){toast('Match at least one column first');return;}
+  var append=!!($('impAppend')&&$('impAppend').checked);
+  $('impOut').innerHTML='<div class="spin">Importing…</div>';
+  impApi({action:'commit',url:SHEET.src,csv:SHEET.csv,mapping:map,append:append}).then(function(r){
+    if(!r||!r.ok){$('impOut').innerHTML='<div style="color:var(--red);font-size:13px">'+esc((r&&r.error)||'Import failed.')+'</div>';return;}
+    toast('Imported '+r.imported+' row'+(r.imported===1?'':'s')+' ✓');
+    closeDrawer(); renderNewbiz();
+  });
+}
 /* ===== Client Profile (keyed by name; opens from any policy tab) + commission tickets/tasks ===== */
 var CLIENT=null;
 function taskCall(b){b=b||{};if(canEdit())b.token='2026';if(OPS&&OPS.code){b.code=OPS.code;b.by_code=OPS.code;}return fetch(TASKAPI,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();}).catch(function(){return{ok:false};});}
