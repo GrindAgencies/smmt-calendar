@@ -411,7 +411,7 @@ function fmtDate(s){if(!s)return '';try{return new Date(s).toLocaleDateString('e
 function delPFR(id){if(!confirm('Delete this PFR? This cannot be undone.'))return;var p={action:'pfr_delete',id:id,code:CODE};if(OPS)p.token='2026';api(p).then(function(){toast('Deleted');loadPFRs();});}
 
 /* ===== data model ===== */
-function blank(){return {client:{name:'',phone:'',email:''},
+function blank(){return {client:{name:'',phone:'',email:'',dob:''},
   retire:{best:60,worst:67,clientAge:35,deathAge:90},
   goal:{bestMo:8000,worstMo:5000},
   lifestyle:[],confidence:0,confidenceWhy:'',producerNotes:[],hasBudget:'',
@@ -531,9 +531,32 @@ var RENDER={},AFTER={};
 RENDER.welcome=function(){return '<div class="eyebrow">Personal Financial Review</div>'+
   '<h1 class="qh">Let’s build a picture of your financial future.</h1>'+
   '<p class="qsub">Over the next few minutes we’ll look at where you are today and where you’d like to be. There are no right or wrong answers — just an honest snapshot so we can have a better conversation. Takes about 10–15 minutes.</p>'+
-  '<div class="wform">'+wfield('Client name','name','First & last','text')+wfield('Phone','phone','(555) 555-5555','tel')+wfield('Email','email','name@email.com','email')+'</div>';
+  '<div class="wform">'+wfield('Client name','name','First & last','text')+
+    wfield('Date of birth','dob','','date')+
+    wfield('Phone','phone','(555) 555-5555','tel')+
+    wfield('Email','email','name@email.com','email')+
+    '<div id="dobAge" style="font-size:12.5px;color:var(--ink3);margin-top:-6px">'+dobNote()+'</div></div>';
 };
-function wfield(label,key,ph,type){return '<div class="wfield"><label>'+label+'</label><input type="'+type+'" placeholder="'+ph+'" value="'+esc(d().client[key])+'" oninput="d().client[\''+key+'\']=this.value;scheduleSave()"></div>';}
+/* Age drives every projection in here and used to be typed in by hand on the Vision
+   step, where it could disagree with the birthday nobody had asked for. Ask once, up
+   front — carriers need the date anyway — and let the age follow from it. */
+function ageFromDob(dob){
+  if(!dob)return null;
+  var d0=new Date(dob+'T12:00:00'); if(isNaN(d0))return null;
+  var t=new Date(), a=t.getFullYear()-d0.getFullYear();
+  var m=t.getMonth()-d0.getMonth();
+  if(m<0||(m===0&&t.getDate()<d0.getDate()))a--;
+  return (a>=0&&a<120)?a:null;
+}
+function dobNote(){var a=ageFromDob(d().client.dob);return a==null?'':('Age '+a+' — used for the retirement projections.');}
+function syncAgeFromDob(){
+  var a=ageFromDob(d().client.dob);
+  if(a==null)return;
+  d().retire.clientAge=a;
+  var n=$('dobAge'); if(n)n.textContent=dobNote();
+}
+function wfield(label,key,ph,type){var extra=(key==='dob')?'syncAgeFromDob();':'';
+  return '<div class="wfield"><label>'+label+'</label><input type="'+type+'" placeholder="'+ph+'" value="'+esc(d().client[key])+'" oninput="d().client[\''+key+'\']=this.value;'+extra+'scheduleSave()"></div>';}
 
 RENDER.import=function(){
   return '<div class="eyebrow">Getting Started</div>'+

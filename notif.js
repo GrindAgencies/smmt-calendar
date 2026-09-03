@@ -839,13 +839,15 @@ window.tsfgTrack = function (kind, detail) {
     var wantBottom = lift ? ('calc(' + lift + 'px + env(safe-area-inset-bottom))') : '';
     if (fab.style.bottom !== wantBottom) fab.style.bottom = wantBottom;
   }
+  /* A TRAILING debounce, deliberately. Measuring on the next tick fires on the first
+     mutation of a batch — so when a page swaps screens the measurement lands before the
+     new screen has laid out, finds nothing under the button, and then nothing else
+     changes to trigger a retry. That is how PFR kept ending up with the button over
+     Continue. Waiting for the changes to stop measures the layout people actually see.
+     A timer, not requestAnimationFrame: Chrome freezes rAF outright in a hidden tab. */
   function keepFabClear() {
-    if (fabRAF) return;                       // already scheduled
-    /* rAF coalesces with the next paint, which is what we want — but Chrome freezes it
-       entirely in a background tab, so a page that changed while hidden would come back
-       with the button still parked over a bottom bar. Fall back to a timer when hidden. */
-    if (document.hidden) { fabRAF = setTimeout(function () { fabRAF = null; measureFabLift(); }, 0); return; }
-    fabRAF = requestAnimationFrame(function () { fabRAF = null; measureFabLift(); });
+    if (fabRAF) clearTimeout(fabRAF);
+    fabRAF = setTimeout(function () { fabRAF = null; measureFabLift(); }, 120);
   }
   window.tsfgKeepFabClear = keepFabClear;      // pages that reveal a bar can nudge it
 
