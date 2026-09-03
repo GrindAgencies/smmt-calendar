@@ -1388,9 +1388,31 @@ function cancelBk(id){if(!confirm('Cancel this appointment?'))return;fetch(AT,{m
 // === Approvals + Transfer engine (Phase 1/2) ===
 // pending -> Approve/Decline (the booked MD/EMD). booked/confirmed -> Transfer
 // (CFT can peer-transfer own session to another CFT; EMD/Ops transfer anything).
+/* A request that already overlaps something you confirmed can NEVER be approved — the
+   database refuses to double-book you. It used to sit in "Requests to approve" offering
+   a ✓ that always failed, and the refusal named the request's own time rather than the
+   appointment it clashed with, so there was no way to work out what to do. Two of these
+   stranded the schedule on 2026-09-02. Now the clash is named up front and the tick is
+   not offered at all. */
+function clashFor(b){
+  if(!b||b.status!=='pending'||!b.date||!b.time)return null;
+  var s=t2min(b.time), e=s+(Number(b.duration_minutes)||60);
+  for(var i=0;i<MYT.length;i++){var o=MYT[i];
+    if(o.id===b.id||o.date!==b.date)continue;
+    if(o.status!=='booked'&&o.status!=='confirmed')continue;
+    var os=t2min(o.time), oe=os+(Number(o.duration_minutes)||60);
+    if(os<0||s<0)continue;
+    if(s<oe&&os<e)return o;
+  }
+  return null;
+}
 function trainerAptRow(b){var col=avColor(b.agent_name||b.agent_code||'');
-  var right;
-  if(b.status==='pending'){
+  var right, clash=clashFor(b);
+  if(b.status==='pending'&&clash){
+    right='<div style="margin-left:auto;display:flex;gap:8px;align-items:center">'+
+      '<button class="x can" onclick="doApprove(\''+b.id+'\',\'decline\')">Decline</button>'+
+      '<button class="x" onclick="offerHandoff(\''+b.id+'\')">Hand off</button></div>';
+  } else if(b.status==='pending'){
     right='<div style="margin-left:auto;display:flex;gap:8px"><button title="Approve" aria-label="Approve" style="border:none;cursor:pointer;width:40px;height:40px;border-radius:10px;font-size:18px;font-weight:900;background:var(--green-soft);color:#1a9c52" onclick="doApprove(\''+b.id+'\',\'approve\')">✓</button><button title="Decline" aria-label="Decline" style="border:1px solid var(--line2);cursor:pointer;width:40px;height:40px;border-radius:10px;font-size:15px;font-weight:900;background:var(--panel);color:var(--red)" onclick="doApprove(\''+b.id+'\',\'decline\')">✕</button></div>';
   } else if((b.status==='booked'||b.status==='confirmed')&&isPastBk(b)){
     right='<div style="margin-left:auto;display:flex;gap:8px"><button class="book" style="width:auto;margin:0;padding:9px 14px;background:var(--green-soft);color:#1a9c52" onclick="doMark(\''+b.id+'\',\'completed\')">Completed</button><button class="x can" onclick="doMark(\''+b.id+'\',\'no_show\')">No-show</button></div>';
@@ -1400,7 +1422,8 @@ function trainerAptRow(b){var col=avColor(b.agent_name||b.agent_code||'');
     right='<span class="conf" style="margin-left:auto">'+esc(b.status)+'</span>';
   }
   return '<div class="apt"><div class="tav" style="width:42px;height:42px;font-size:14px;background:'+col+'">'+initials(b.agent_name||b.agent_code||'')+'</div>'+
-   '<div><div style="font-weight:700;font-size:14.5px">'+esc(b.agent_name||b.agent_code||'Agent')+' · '+esc(b.category||'Training')+(b.status==='pending'?' <span style="color:var(--gold);font-weight:800">· needs approval</span>':'')+'</div>'+
+   '<div><div style="font-weight:700;font-size:14.5px">'+esc(b.agent_name||b.agent_code||'Agent')+' · '+esc(b.category||'Training')+(b.status==='pending'?(clash?' <span style="color:var(--red);font-weight:800">· can’t be approved</span>':' <span style="color:var(--gold);font-weight:800">· needs approval</span>'):'')+'</div>'+
+   (clash?'<div style="font-size:12px;color:var(--red);margin-top:2px">Clashes with your '+esc(dispTime(clash))+' '+esc(clash.category||'appointment')+' — decline it, or hand it to a CFT who is free.</div>':'')+
    '<div style="font-size:12.5px;color:var(--ink3)">'+prettyDate(dispDate(b))+' · '+esc(dispTime(b))+tzTag()+' <span class="conf">· '+esc(b.conf||'')+'</span></div></div>'+right+'</div>';}
 function isPastBk(b){var t=todayStr();if(b.date<t)return true;if(b.date===t)return (t2min(b.time)+(Number(b.duration_minutes)||60))<=nowPTmin();return false;}
 function doMark(id,status){fetch(AT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'atlas_setstatus',id:id,status:status,code:CODE})}).then(function(r){return r.json();}).then(function(r){if(!r||!r.ok){toast((r&&r.error)||'Could not update');return;}toast(status==='completed'?'Marked completed':'Marked no-show');loadMyTrainer(function(){render();});}).catch(function(){toast('Network error');});}
