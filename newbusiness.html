@@ -414,9 +414,17 @@ function applyOps(){
 }
 
 /* KPIs + pipeline + tabs (computed from filtered list) */
-function inWindow(p){
+/* WHICH DATE PUTS A POLICY IN THE PERIOD depends on which number you are reading.
+   Submitted business is dated by when it was submitted. Business that went in
+   force is dated by when it actually went in force. Everything used to be filtered
+   by submitted_date, so a policy submitted in July and paid in September counted
+   in JULY's In Force and Paid Commission and was missing from September's — and
+   17 of the 24 dated paid policies are paid in a different month than they were
+   submitted, so most of the paid figures were landing in the wrong month. */
+function inforceDate(p){return String(p.paid_out_date||p.first_draft_date||'').slice(0,10);}
+function inPeriod(d){
   var w=$('timefil').value;if(w==='all')return true;
-  var d=(p.submitted_date||'').slice(0,10);if(!d)return false;
+  if(!d)return false;
   var t=ptToday();var now=new Date(t+'T00:00:00Z');
   var dd=new Date(d+'T00:00:00Z');var diff=(now-dd)/86400000;
   if(w==='week')return diff<=7&&diff>=-1;
@@ -425,16 +433,36 @@ function inWindow(p){
   if(w==='quarter'){var q=function(m){return Math.floor(m/3);};return dd.getUTCFullYear()===now.getUTCFullYear()&&q(dd.getUTCMonth())===q(now.getUTCMonth());}
   return true;
 }
+function inSubWindow(p){return inPeriod(String(p.submitted_date||'').slice(0,10));}
+function inForceWindow(p){return isInforce(p.status)&&inPeriod(inforceDate(p));}
+/* A row belongs to the period by the date that matches its own list. */
+function inWindow(p){return isInforce(p.status)?inForceWindow(p):inSubWindow(p);}
 function windowed(){return POLICIES.filter(inWindow);}
+/* Paid policies with no in-force date recorded cannot be placed in any month;
+   they are only ever counted under All Time. Surfaced on the In Force card. */
+function undatedInforce(){return POLICIES.filter(function(p){return isInforce(p.status)&&!inforceDate(p);}).length;}
 function renderKpis(){
   var rows=windowed();
   var sum=function(arr,k){return arr.reduce(function(t,r){return t+(Number(r[k])||0);},0);};
   var sumf=function(arr,fn){return arr.reduce(function(t,r){return t+(Number(fn(r))||0);},0);};
-  var openR=rows.filter(function(r){return r.status!=='closed';});
-  var byB=function(b){return rows.filter(function(r){return bucket(r.status)===b;});};
-  var forceR=rows.filter(function(r){return isInforce(r.status);});
-  var cards=[['AP Submitted',moneyK(sumf(openR,myAp)),'blue'],['Pending Comm.',moneyK(sumf(byB('pending'),myComm)),'gold'],['Approved AP',moneyK(sumf(byB('approved'),myAp)),'green'],['In Force',moneyK(sumf(forceR,myAp)),'green'],['Paid Comm.',moneyK(sumf(forceR,myComm)),'gold'],['Chargebacks',moneyK(sum(rows,'chargeback_amount')),'red'],['Closed AP',moneyK(sumf(byB('closed'),myAp)),'red'],['Total Coverage',moneyK(sum(openR,'coverage')),'blue']];
-  $('kpis').innerHTML=cards.map(function(c){return '<div class="kpi '+c[2]+'"><div class="kl">'+c[0]+'</div><div class="kv">'+c[1]+'</div></div>';}).join('');
+  /* Submitted-dated set drives the submitted/pipeline cards; in-force-dated set
+     drives In Force and Paid Commission. They are deliberately different windows. */
+  var subR=POLICIES.filter(inSubWindow);
+  var openR=subR.filter(function(r){return r.status!=='closed';});
+  var byB=function(b){return subR.filter(function(r){return bucket(r.status)===b;});};
+  var forceR=POLICIES.filter(inForceWindow);
+  var SUBD='Counted by submitted date', FORD='Counted by in-force date (paid out)';
+  var und=undatedInforce();
+  var cards=[
+    ['AP Submitted',moneyK(sumf(openR,myAp)),'blue',SUBD],
+    ['Pending Comm.',moneyK(sumf(byB('pending'),myComm)),'gold',SUBD],
+    ['Approved AP',moneyK(sumf(byB('approved'),myAp)),'green',SUBD],
+    ['In Force',moneyK(sumf(forceR,myAp)),'green',FORD+(und?(' \u00b7 '+und+' paid polic'+(und===1?'y has':'ies have')+' no in-force date yet, so they only show under All Time'):'')],
+    ['Paid Comm.',moneyK(sumf(forceR,myComm)),'gold',FORD],
+    ['Chargebacks',moneyK(sum(subR,'chargeback_amount')),'red',SUBD],
+    ['Closed AP',moneyK(sumf(byB('closed'),myAp)),'red',SUBD],
+    ['Total Coverage',moneyK(sum(openR,'coverage')),'blue',SUBD]];
+  $('kpis').innerHTML=cards.map(function(c){return '<div class="kpi '+c[2]+'" title="'+esc(c[3])+'"><div class="kl">'+c[0]+'</div><div class="kv">'+c[1]+'</div></div>';}).join('');
   var cnt=function(b){return byB(b).length;};
   var stages=[['submitted','Submitted',openR.length,'M9 3h6v4H9zM7 7h10v13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1z'],['pending','Pending',cnt('pending'),'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 2'],['approved','Approved',cnt('approved'),'M20 6 9 17l-5-5'],['paid','Paid Out',cnt('paid'),'M3 10.5 12 4l9 6.5V20H3zM9 20v-6h6v6'],['closed','Closed',cnt('closed'),'M18 6 6 18M6 6l12 12']];
   var h='';stages.forEach(function(st,i){h+='<div class="pstage s-'+st[0]+'"><div class="pic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="'+st[3]+'"/></svg></div><div><div class="pn">'+st[2]+'</div><div class="pt">'+st[1]+'</div></div></div>';if(i<stages.length-1)h+='<div class="parrow"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>';});
