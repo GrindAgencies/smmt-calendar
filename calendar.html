@@ -290,6 +290,13 @@ textarea.ma-in{resize:vertical}
 .hchip.on{background:var(--accent);color:#fff;border-color:var(--accent);}
 </style>
 <style id="mobile-safe-fix">
+/* Installed as a PWA the app runs standalone, so the page starts at y=0 —
+   underneath the iPhone status bar. .top is a 60px sticky header, which put the
+   menu button at roughly y=8-52: almost entirely beneath the status bar, where
+   taps go to the system and never reach the button. The menu simply did not
+   respond. Every other page already pads its header for the inset; the Scheduler
+   padded only the sidebar. Same treatment as Team Hub's .top. */
+.top{ height: calc(60px + env(safe-area-inset-top)); padding-top: env(safe-area-inset-top); }
 .side{ padding-top: calc(16px + env(safe-area-inset-top)) !important; }
 html, body{ overflow-x: hidden; }
 </style>

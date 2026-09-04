@@ -278,6 +278,9 @@ input[type=range]{width:100%;accent-color:var(--accent);height:6px;}
 }
 </style>
 <style id="mobile-safe-fix">
+/* Standalone PWA: the page starts under the status bar, so the header row
+   needs the inset too or its controls sit beneath it and cannot be tapped. */
+.ftop{ padding-top: calc(16px + env(safe-area-inset-top)); }
 .side{ padding-top: calc(16px + env(safe-area-inset-top)) !important; }
 html, body{ overflow-x: hidden; }
 </style>
