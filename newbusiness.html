@@ -204,7 +204,7 @@ html, body{ overflow-x: hidden; }
   <div class="frow"><div class="fg"><label>Your contract % *</label><input id="f_contract" type="number" inputmode="decimal" placeholder="80" oninput="calcComm()"><div class="hint">Your comp rate at the carrier · all business is 100% advance</div></div></div>
   <div class="commbox"><div class="cl" id="commLbl">Expected Commission</div><div class="cv" id="commOut">$0</div><div id="commPartner" style="display:none;font-size:12.5px;font-weight:700;color:#1a9c52;margin-top:6px"></div></div>
   <div class="sec-l">Dates</div>
-  <div class="frow"><div class="fg"><label>Date written *</label><input id="f_written" type="date"></div><div class="fg"><label>First draft date</label><input id="f_draft" type="date"></div></div>
+  <div class="frow"><div class="fg"><label>Date written *</label><input id="f_written" type="date"></div><div class="fg"><label>Submitted date *</label><input id="f_submitted" type="date"><div class="hint" style="font-size:11.5px;color:var(--muted,#888);margin-top:4px">When it was submitted to the carrier — not today's date. Drives Submitted Premium.</div></div><div class="fg"><label>First draft date</label><input id="f_draft" type="date"></div></div>
   <label class="chk" id="suitToggle" style="display:none"><input type="checkbox" id="f_suit"> ✅ Annuity suitability reviewed &amp; on file</label>
   <div class="sec-l">Deposit · Chargeback · Trailing <span style="font-weight:500;color:var(--ink3);text-transform:none;letter-spacing:0">— optional, for issued business</span></div>
   <div class="frow"><div class="fg"><label>Paid-out date</label><input id="f_paidout" type="date"></div><div class="fg"><label>Trailing months</label><input id="f_trmonths" type="number" placeholder="e.g. 9"></div><div class="fg"><label>Trailing status</label><select id="f_trstatus"><option value="">—</option><option>On track</option><option>Behind</option><option>Complete</option></select></div></div>
@@ -576,32 +576,42 @@ function fillForm(p){
   set('f_source',p.source);$('f_writingoff').checked=!!p.writing_off;$('f_splitflag').checked=!!p.split_flag;$('splitWrap').style.display=p.split_flag?'block':'none';set('f_split',p.split_agent);set('f_splitpct',p.split_pct!=null?p.split_pct:50);set('f_partner_contract',p.partner_contract_pct!=null?p.partner_contract_pct:'');updSplitShare();
   set('f_carrier',p.carrier);set('f_product',p.product);set('f_state',p.state);set('f_polnum',p.policy_number);set('f_ccode',p.carrier_code);
   set('f_cov',p.coverage);set('f_prem',p.annual_premium);set('f_monthly',p.monthly_contribution);set('f_lump',p.lump_sum_contribution);set('f_contract',p.contract_pct);
-  set('f_written',(p.date_written||'').slice(0,10));set('f_draft',(p.first_draft_date||'').slice(0,10));set('f_notes',p.notes);
+  set('f_written',(p.date_written||'').slice(0,10));set('f_submitted',(p.submitted_date||'').slice(0,10));set('f_draft',(p.first_draft_date||'').slice(0,10));set('f_notes',p.notes);
   set('f_paidout',(p.paid_out_date||'').slice(0,10));set('f_trmonths',p.trailing_months);set('f_trstatus',p.trailing_status);
   set('f_cbtype',p.chargeback_type);set('f_cbamt',p.chargeback_amount);set('f_cbdate',(p.chargeback_date||'').slice(0,10));set('f_cbnote',p.chargeback_note);
   $('f_suit').checked=!!p.suitability_ok; suitVis();
   calcComm();
 }
 function suitVis(){$('suitToggle').style.display=(BIZ==='annuity')?'flex':'none';}
-function clearForm(){STATUS='pending';['f_client','f_phone','f_email','f_gender','f_dob','f_source','f_split','f_partner_contract','f_carrier','f_product','f_state','f_polnum','f_ccode','f_cov','f_prem','f_monthly','f_lump','f_notes','f_paidout','f_trmonths','f_trstatus','f_cbtype','f_cbamt','f_cbdate','f_cbnote'].forEach(function(i){$(i).value='';});$('f_contract').value='80';$('f_writingoff').checked=false;$('f_splitflag').checked=false;$('f_suit').checked=false;$('splitWrap').style.display='none';if($('f_splitpct'))$('f_splitpct').value='50';$('f_written').value=ptToday();suitVis();renderStatusGrid();calcComm();}
+function clearForm(){STATUS='pending';['f_client','f_phone','f_email','f_gender','f_dob','f_source','f_split','f_partner_contract','f_carrier','f_product','f_state','f_polnum','f_ccode','f_cov','f_prem','f_monthly','f_lump','f_notes','f_paidout','f_trmonths','f_trstatus','f_cbtype','f_cbamt','f_cbdate','f_cbnote'].forEach(function(i){$(i).value='';});$('f_contract').value='80';$('f_writingoff').checked=false;$('f_splitflag').checked=false;$('f_suit').checked=false;$('splitWrap').style.display='none';if($('f_splitpct'))$('f_splitpct').value='50';$('f_written').value=ptToday();$('f_submitted').value=ptToday();suitVis();renderStatusGrid();calcComm();}
 function openNew(){EDIT=null;$('mTitle').textContent='New Sale';$('mSub').textContent='Log a fresh app to track through to commission.';$('mDel').classList.add('hide');$('saveBtn').textContent='Save Sale';clearForm();$('ov').classList.add('on');}
 function openEdit(p){if(!p)return;EDIT=p;var own=canEdit(p);$('mTitle').textContent=own?'Edit Sale':'View Sale';
   var sub=(p.agent_name||'')+(OPS?' · Operations edit':'');
   if(p.split_flag){var mine=myShare(p);sub='🤝 Split · '+esc(p.agent_name||'writer')+' '+mine+'% + '+esc(p.split_agent||'partner')+' '+(100-mine)+'%'+(p.split_role==='received'?' · shared with you':'');}
   $('mSub').innerHTML=sub;$('mDel').classList.toggle('hide',!own);$('saveBtn').textContent=own?'Save Changes':'Close';fillForm(p);$('ov').classList.add('on');}
 function closeModal(){$('ov').classList.remove('on');}
-function collect(){var v=function(i){return $(i).value.trim();};return {client_name:v('f_client'),phone:v('f_phone'),email:v('f_email'),gender:v('f_gender'),dob:v('f_dob'),source:v('f_source'),status:STATUS,business_type:BIZ,writing_off:$('f_writingoff').checked,split_flag:$('f_splitflag').checked,split_agent:v('f_split'),split_agent_code:v('f_split_code'),split_pct:v('f_splitpct'),partner_contract_pct:v('f_partner_contract'),carrier:v('f_carrier'),product:v('f_product'),state:v('f_state'),policy_number:v('f_polnum'),carrier_code:v('f_ccode'),coverage:v('f_cov'),annual_premium:v('f_prem'),monthly_contribution:v('f_monthly'),lump_sum_contribution:v('f_lump'),contract_pct:v('f_contract'),advance_pct:'100',date_written:v('f_written'),first_draft_date:v('f_draft'),notes:v('f_notes'),
+function collect(){var v=function(i){return $(i).value.trim();};return {client_name:v('f_client'),phone:v('f_phone'),email:v('f_email'),gender:v('f_gender'),dob:v('f_dob'),source:v('f_source'),status:STATUS,business_type:BIZ,writing_off:$('f_writingoff').checked,split_flag:$('f_splitflag').checked,split_agent:v('f_split'),split_agent_code:v('f_split_code'),split_pct:v('f_splitpct'),partner_contract_pct:v('f_partner_contract'),carrier:v('f_carrier'),product:v('f_product'),state:v('f_state'),policy_number:v('f_polnum'),carrier_code:v('f_ccode'),coverage:v('f_cov'),annual_premium:v('f_prem'),monthly_contribution:v('f_monthly'),lump_sum_contribution:v('f_lump'),contract_pct:v('f_contract'),advance_pct:'100',date_written:v('f_written'),submitted_date:v('f_submitted'),first_draft_date:v('f_draft'),notes:v('f_notes'),
   paid_out_date:v('f_paidout'),trailing_months:v('f_trmonths'),trailing_status:v('f_trstatus'),
   chargeback_type:v('f_cbtype'),chargeback_amount:v('f_cbamt'),chargeback_date:v('f_cbdate'),chargeback_note:v('f_cbnote'),
   suitability_ok:$('f_suit').checked};}
 function saveSale(){
   if(EDIT&&!canEdit(EDIT)){closeModal();return;}
   /* required intake fields — everything except carrier code, gender & DOB */
-  var need=[['f_client','a client name'],['f_phone','a phone number'],['f_email','an email'],['f_source','how the sale came to you'],['f_carrier','a carrier'],['f_product','a product'],['f_state','a state'],['f_polnum','a policy number'],['f_cov','a coverage amount'],['f_prem','a target premium'],['f_contract','your contract %'],['f_written','the date written']];
+  var need=[['f_client','a client name'],['f_phone','a phone number'],['f_email','an email'],['f_source','how the sale came to you'],['f_carrier','a carrier'],['f_product','a product'],['f_state','a state'],['f_polnum','a policy number'],['f_cov','a coverage amount'],['f_prem','a target premium'],['f_contract','your contract %'],['f_written','the date written'],['f_submitted','the submitted date']];
   for(var i=0;i<need.length;i++){var el=$(need[i][0]);if(!el||el.value.trim()===''){toast('Enter '+need[i][1]);if(el){try{el.scrollIntoView({block:'center'});}catch(e){}el.focus();}return;}}
   if($('f_email').value.indexOf('@')<1){toast('Enter a valid email');try{$('f_email').scrollIntoView({block:'center'});}catch(e){}$('f_email').focus();return;}
   if($('f_monthly').value.trim()===''){toast('Enter a monthly contribution (enter 0 if none)');return;}
   if($('f_lump').value.trim()===''){toast('Enter a lump sum contribution (enter 0 if none)');return;}
+  /* A policy cannot draft or pay before it was submitted. When that ordering is
+     inverted it means the submitted date was recorded as the day it was typed in,
+     which is what put months of back-entered business into the wrong month. Catch
+     it here rather than let the reporting inherit it. */
+  var sd=$('f_submitted').value.trim(), fd=$('f_draft').value.trim(), po=$('f_paidout').value.trim();
+  var earliest=[fd,po].filter(Boolean).sort()[0]||'';
+  if(sd&&earliest&&earliest<sd){
+    if(!confirm('This policy went in force on '+earliest+', which is BEFORE the submitted date of '+sd+'.\n\nThat usually means the submitted date is the day it was entered rather than the day it was submitted. Submitted Premium is reported by this date.\n\nSave it anyway?'))
+      {try{$('f_submitted').scrollIntoView({block:'center'});}catch(e){}$('f_submitted').focus();return;}
+  }
   var b=collect();
   if(EDIT){b.action='newbiz_update';b.id=EDIT.id;}else{b.action='newbiz_add';}
   b.code=CODE; if(OPS)b.token='2026';
