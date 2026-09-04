@@ -502,6 +502,10 @@
         'body.' + OPEN + ' .sidebar,body.' + OPEN + ' .tsfg-side,body.' + OPEN + ' aside.side{' +
           'transform:none!important;}' +
         'body.' + OPEN + ' #tsfgScrim{display:block;}' +
+        /* setOpen() also sets each page's own drawer class, which reveals that
+           page's scrim too — two dark sheets stacked, noticeably murkier than
+           either alone. When this module owns the drawer it owns the scrim. */
+        'body.' + OPEN + ' .scrim{display:none!important;}' +
         'body.' + OPEN + '{overflow:hidden;}' +
         /* the floating button would sit on top of the open panel */
         'body.' + OPEN + ' .tsfg-menu.float{opacity:0;pointer-events:none;}' +
@@ -1191,7 +1195,23 @@ window.tsfgTrack = function (kind, detail) {
   var SIDE  = '.tsfg-side';
   var ASIDE = 'aside.side#side';        /* Scheduler, Team Hub, New Business, PFR */
 
-  function wide(){ return window.innerWidth > PHONE; }
+  /* Whether the sidebar is actually DOCKED in the layout right now.
+     This used to be `innerWidth > 860`, which guessed. The pages do not agree on
+     one breakpoint — the Scheduler and friends go off-canvas below 900px — so
+     between 861 and 899 the guess said "desktop" while the panel was already a
+     drawer. The interceptor below then swallowed the menu tap and railed a panel
+     that was off-screen: it slid from -248 to -76, still invisible, with no scrim
+     to dismiss. The menu looked frozen. Measure the panel instead of guessing:
+     when it is off-canvas its right edge sits at ~0, so let the page's own
+     drawer() handler run and open it. */
+  function panelEl(){ return document.querySelector(SIDE) || document.querySelector(ASIDE); }
+  function docked() {
+    var el = panelEl();
+    if (!el) return window.innerWidth > PHONE;   /* Home uses .sidebar; unchanged */
+    var r = el.getBoundingClientRect();
+    return r.width > 0 && r.right > 8;
+  }
+  function wide(){ return window.innerWidth > PHONE && docked(); }
   function saved(){ try { return localStorage.getItem(KEY) === '1'; } catch(e){ return false; } }
   function remember(on){ try { localStorage.setItem(KEY, on ? '1' : '0'); } catch(e){} }
 
