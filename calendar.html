@@ -946,7 +946,7 @@ function gcalRender(st){var box=$('gcalBox');if(!box)return;
       +'</div>';
   }else{
     box.innerHTML='<button onclick="connectGoogleCal(this)" style="width:100%;border:none;padding:13px;border-radius:12px;font-weight:800;font-size:14.5px;background:var(--accent);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px"><span style="font-size:18px">📅</span> Connect Google Calendar — 1 click</button>'
-      +'<div style="font-size:11.5px;color:var(--ink3);margin-top:8px;line-height:1.45">One tap, then choose your Google account and press <b>Allow</b>. We only read your <b>busy times</b> to block bookings — never your event details, and we can\'t change anything.<br><span style="color:var(--gold)">First time:</span> Google shows a <b>“not verified”</b> notice (it’s our own new app) — tap <b>Advanced → Continue</b>, then <b>Allow</b>.</div>';
+      +'<div style="font-size:11.5px;color:var(--ink3);margin-top:8px;line-height:1.45">One tap, then choose your Google account and press <b>Allow</b>. We only read your <b>busy times</b> to block bookings — never your event details, and we can\'t change anything.<br><span style="color:var(--gold)">What Google asks:</span> pick your account, then press <b>Allow</b>. Google only shares <b>when you are busy</b> — no titles, no guests, and we cannot change anything.</div>';
   }}
 function loadGcal(){if(!CODE)return;var box=$('gcalBox');if(box)box.innerHTML='<div class="spin" style="padding:10px">Checking Google…</div>';
   fetch(GOAUTH,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'status',code:CODE})}).then(function(r){return r.json();}).then(gcalRender).catch(function(){var b=$('gcalBox');if(b)b.innerHTML='';});}
@@ -970,17 +970,33 @@ function openCalSync(){
       +'<div style="padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--panel);margin-bottom:12px"><label style="'+_LST+'">Apple Calendar — public link (optional)</label><input id="cs_apple" style="'+_IST+'" value="'+esc(r.apple_ics||'')+'" placeholder="webcal://… or https://…ics"><div style="font-size:11.5px;color:var(--ink3);margin-top:7px;line-height:1.4">On Mac: right-click the calendar → <b>Share Calendar</b> → tick <b>Public Calendar</b> → copy the link.</div></div>'
       +'</details><div id="cs_msg" style="font-size:12.5px;font-weight:700;color:var(--ink3);min-height:16px"></div>'
       +'<div class="dact" style="margin-top:12px;gap:8px"><button class="go" id="cs_save" onclick="saveCalSync()">Save &amp; sync link</button><button class="x can" onclick="$(\'bkOv\').classList.remove(\'on\')">Close</button></div>';
-    $('bkOv').classList.add('on');loadGcal();
+    $('bkOv').classList.add('on');loadGcal();if(r.google_ics||r.apple_ics)csHealth();
   }).catch(function(){toast('Could not open sync setup');});
 }
+function csProbHtml(probs,busy){
+  var h=probs.map(function(p){
+    var extra=(p.fix&&String(p.problem||'').indexOf(p.fix)<0)?('<div style="color:var(--ink3);font-weight:600;margin-top:4px">'+esc(p.fix)+'</div>'):'';
+    return '<b>'+esc(p.label)+' didn\u2019t connect.</b> '+esc(p.problem||'')+extra;
+  }).join('<div style="height:9px"></div>');
+  if(busy)h+='<div style="color:var(--green,#1a9c52);margin-top:9px">Your other calendar is syncing \u2014 '+busy+' busy block'+(busy===1?'':'s')+' imported.</div>';
+  return h;
+}
+/* Check the saved links the moment the panel opens, so nobody sits on a silently dead feed. */
+function csHealth(){var msg=$('cs_msg');if(!msg)return;msg.style.color='var(--ink3)';msg.textContent='Checking your calendar links\u2026';
+  fetch(CS,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'sync',code:CODE})}).then(function(r){return r.json();}).then(function(r){
+    msg=$('cs_msg');if(!msg)return;if(!r||!r.ok){msg.textContent='';return;}
+    var probs=r.problems||[];
+    if(probs.length){msg.style.color='var(--gold)';msg.innerHTML=csProbHtml(probs,r.busy_count);}
+    else{msg.style.color='var(--green,#1a9c52)';msg.textContent='\u2713 Connected \u2014 '+r.busy_count+' busy block'+(r.busy_count===1?'':'s')+' imported.';}
+  }).catch(function(){var m=$('cs_msg');if(m)m.textContent='';});}
 function saveCalSync(){
   var g=($('cs_google').value||'').trim(),a=($('cs_apple').value||'').trim();var msg=$('cs_msg'),btn=$('cs_save');
   msg.style.color='var(--ink3)';msg.textContent='Syncing your calendar…';if(btn)btn.disabled=true;
   fetch(CS,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'save_feeds',code:CODE,google_ics:g,apple_ics:a})}).then(function(r){return r.json();}).then(function(r){
     if(btn)btn.disabled=false;
     if(!r||!r.ok){msg.style.color='var(--red)';msg.textContent='Could not save — check the links and try again.';return;}
-    var errSrc=(r.sources||[]).filter(function(s){return !s.ok;});
-    if(errSrc.length){msg.style.color='var(--gold)';msg.textContent='Saved, but a link didn’t load ('+esc(errSrc[0].err||'error')+'). Make sure it’s the iCal/ICS URL.';}
+    var probs=r.problems||[];
+    if(probs.length){msg.style.color='var(--gold)';msg.innerHTML=csProbHtml(probs,r.busy_count);}
     else{msg.style.color='var(--green,#1a9c52)';msg.textContent='✓ Synced — '+r.busy_count+' busy block'+(r.busy_count===1?'':'s')+' imported. Those times are now blocked.';}
     fetch(TA,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'cftavail'})}).then(function(x){return x.json();}).then(function(rr){var v=rr&&rr.value;TRAINERS=(v&&Array.isArray(v.cfts))?v.cfts:[];loadCalSyncStatus();});
   }).catch(function(){if(btn)btn.disabled=false;msg.style.color='var(--red)';msg.textContent='Network error — try again.';});
