@@ -435,6 +435,23 @@ html, body{ overflow-x: hidden; }
 .pin-cancel{width:100%;min-height:42px;margin-top:8px;border:none;background:transparent;
   color:var(--ink-2,#666);font:700 13.5px/1 inherit;cursor:pointer;}
 </style>
+<style id="app-search-css">
+/* The search box used to ignore what you typed and jump to the Marketing Plan on
+   Enter. It now searches the whole app: every destination, the sections inside
+   them, and the people on your leaderboard. */
+.as-res{position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:3000;max-height:min(60vh,420px);overflow-y:auto;
+  background:var(--panel,#fff);border:1px solid var(--line-2,var(--line,#e4e4e9));border-radius:14px;
+  box-shadow:0 18px 44px rgba(0,0,0,.18);padding:6px;}
+.as-res[hidden]{display:none;}
+.as-sec{font-size:10.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;opacity:.5;padding:8px 10px 4px;}
+.as-i{display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:10px;cursor:pointer;min-height:44px;}
+.as-i:hover,.as-i.on{background:var(--panel-2,var(--panel2,rgba(127,127,127,.10)));}
+.as-ic{width:30px;height:30px;flex:0 0 auto;border-radius:9px;display:flex;align-items:center;justify-content:center;
+  background:var(--accent-soft,rgba(91,108,255,.13));font-size:15px;}
+.as-t{font-weight:700;font-size:14px;line-height:1.25;}
+.as-s{font-size:11.5px;opacity:.62;line-height:1.3;}
+.as-none{padding:14px 12px;font-size:13px;opacity:.65;}
+</style>
 </head>
 <body>
 
@@ -515,7 +532,7 @@ html, body{ overflow-x: hidden; }
   <div class="main">
     <div class="topbar">
       <button class="tb-toggle" onclick="toggleSidebar()" aria-label="Menu">${ICON.menu}</button>
-      <div class="tb-search">${ICON.search}<input type="text" placeholder="Search agents, leads, resources…" onkeydown="if(event.key==='Enter')location.href='marketing.html'"></div>
+      <div class="tb-search" style="position:relative">${ICON.search}<input id="appSearch" type="text" autocomplete="off" placeholder="Search the app — scripts, leads, policies, people…" oninput="appSearch()" onkeydown="appSearchKey(event)" onfocus="appSearch()"><div id="appSearchRes" class="as-res" hidden></div></div>
       <div class="tb-spacer"></div>
       <div class="ctx"><button id="ctxMe" class="on" onclick="setCtx('me')">Personal</button><button id="ctxTeam" onclick="setCtx('team')">Team</button><button id="ctxShop" onclick="setCtx('shop')">Baseshop</button><button id="ctxOrg" onclick="setCtx('org')">Hierarchy</button></div>
       <button class="tb-ic" onclick="toggleTheme()" aria-label="Theme" id="themeBtn">${ICON.moon}</button>
@@ -748,7 +765,7 @@ function renderSnapshot(){
   var cards=[
     {ic:I.team,tone:'',num:src.partners,goalKey:'partners',goalLabel:'Business Partners',lbl:pLbl+' · this month'},
     {ic:I.dollar,tone:'gold',num:src.premium,money:true,goalKey:'premium',goalLabel:'Premium Submitted',lbl:'Premium Submitted · this month'},
-    {ic:I.dumbbell,tone:'',num:src.trainings,goalKey:'fta',goalLabel:'Field Trainings',lbl:'Field Trainings · this month'},
+    {ic:I.dumbbell,tone:'',num:src.trainings,goalKey:'fta',goalLabel:'Field Trainings',lbl:'Field Trainings ran · this month'},
     {ic:I.heart,tone:'g',num:src.families,goalKey:'families',goalLabel:'Families Helped',lbl:'Families Helped · this month'}
   ];
   cards.forEach(function(c){g.appendChild(c.goalKey!==undefined||c.link?goalCard(c):statCard(c));});
@@ -896,7 +913,8 @@ var LBMETRICS=[
  {key:'recruiter',title:'Direct Business Partners',sub:'New partners this period',ic:'🤝',money:false},
  {key:'premium',title:'Submitted Premium',sub:'AP submitted · by submitted date',ic:'💰',money:true},
  {key:'points_paid',title:'Points Paid',sub:'Commission paid · by in-force date',ic:'💵',money:true},
- {key:'trainings',title:'Field Trainings Booked',sub:'Trainings this period',ic:'🏋️',money:false},
+ {key:'trainings_ran',title:'Field Trainings Ran',sub:'Trainings you ran · incl. Calendly',ic:'🏋️',money:false},
+ {key:'trainings_attended',title:'Field Trainings Attended',sub:'Trainings you were trained on',ic:'🎓',money:false},
  {key:'licensed',title:'Licensed Agents',sub:'Licensed on the team',ic:'🎫',money:false},
  {key:'net_licenses',title:'Net Licensed Agents',sub:'Team at $1K+ business',ic:'🏅',money:false}
 ];
@@ -1154,5 +1172,95 @@ $('sBtn').addEventListener('click',doSignup);
 </script>
 <script defer src="notif.js"></script>
 <script src="i18n.js"></script>
+<script>
+/* ==========================================================================
+   APP-WIDE SEARCH  (2026-09-04)
+   Christopher: "the top left search bar needs to be fixed or reallocated to
+   everything within the application/site itself since it only populates to the
+   marketing plan even if you type 'scripts', 'leads', etc."
+   It was a stub: onkeydown Enter -> marketing.html, whatever you typed.
+   Now it indexes every destination plus the sections inside them, matches on
+   plain-language synonyms (what people actually type, not what we named the
+   page), and searches the people already loaded on the leaderboard.
+   ========================================================================== */
+var AS_INDEX=[
+ {t:'Home',i:'\u{1F3E0}',s:'Your snapshot, goals and leaderboard',h:'index.html',k:'home dashboard snapshot goals leaderboard rank ranking champion champions standings numbers'},
+ {t:'Team Hub',i:'\u{1F4AC}',s:'Company chat, channels and DMs',h:'teamhub.html',k:'chat message messages hub channel channels dm direct announcements recognition pins'},
+ {t:'Scheduler',i:'\u{1F4C5}',s:'Book trainings and appointments',h:'calendar.html',k:'calendar schedule scheduler booking book appointment appointments trainer trainers field training fta availability calendly sync'},
+ {t:'New Business',i:'\u{1F4B0}',s:'Log policies, premium and commission',h:'newbusiness.html',k:'new business policy policies premium ap annual commission in force inforce paid points chargeback carrier annuity life submitted deposits'},
+ {t:'PFR Builder',i:'\u{1F4C4}',s:'Personal Financial Review',h:'pfr.html',k:'pfr personal financial review budget income needs analysis presentation client illustration'},
+ {t:'My Tracker',i:'\u2705',s:'Your fast-start checklist and levels',h:'checklist.html',k:'tracker checklist fast start licensing license exam prelicensing prelicense carriers writing code onboarding levels promotion'},
+ {t:'Marketing Plan',i:'\u{1F4C7}',s:'Your Top 100 and warm market',h:'marketing.html',k:'marketing plan leads lead top 100 warm market prospects contacts names list namelist calls'},
+ {t:'My Team',i:'\u{1F465}',s:'Your downline and their numbers',h:'team.html',k:'team downline recruits agents roster my team stats partners'},
+ {t:'Org Chart',i:'\u{1F3DB}',s:'The full hierarchy',h:'org.html',k:'org chart hierarchy upline downline structure tree baseshop base shop reporting'},
+ {t:'Resources',i:'\u{1F4DA}',s:'Carriers, scripts, recordings',h:'resources.html',k:'resources library tools documents'},
+ {t:'Scripts',i:'\u{1F4DC}',s:'In Resources \u00b7 phone and objection scripts',h:'resources.html?tab=script',k:'scripts script objection objections rebuttal rebuttals phone call talk track wording what to say'},
+ {t:'Carriers',i:'\u{1F3E6}',s:'In Resources \u00b7 contacts and writing codes',h:'resources.html?tab=carrier',k:'carrier carriers underwriting rep contact writing code appointment products'},
+ {t:'Agent Resources',i:'\u{1F9ED}',s:'In Resources \u00b7 guides and tools',h:'resources.html?tab=agent',k:'agent resources guides forms tools how to'},
+ {t:'Recordings',i:'\u{1F3A5}',s:'In Resources \u00b7 call and training recordings',h:'resources.html?tab=training',k:'recordings recording video videos fathom replay call review training video'},
+ {t:'Profile',i:'\u{1F464}',s:'Photo, contact, Calendly, emblems',h:'profile.html',k:'profile settings account photo avatar picture calendly email phone timezone time zone pin password emblems badges'},
+ {t:'Ops Dashboard',i:'\u{1F4CA}',s:'Operations tracker',h:'ops.html',k:'ops operations admin tracker licensing new business in force approvals'}
+];
+var AS_ITEMS=[],AS_SEL=0;
+function asPeople(q){
+  /* whoever is already loaded on the leaderboard \u2014 no extra request */
+  var out=[],seen={};
+  try{
+    if(!window.LBDATA||!LBDATA.boards)return out;
+    Object.keys(LBDATA.boards).forEach(function(k){
+      var b=LBDATA.boards[k];if(!b||!b.top)return;
+      b.top.forEach(function(r){
+        if(!r||!r.name)return;var key=String(r.code||r.name).toUpperCase();if(seen[key])return;
+        if(String(r.name).toLowerCase().indexOf(q)<0&&String(r.code||'').toLowerCase().indexOf(q)<0)return;
+        seen[key]=1;
+        out.push({t:r.name,i:'\u{1F464}',s:(r.code||'')+(r.baseshop?(' \u00b7 '+r.baseshop):''),h:'org.html',kind:'Person'});
+      });
+    });
+  }catch(e){}
+  return out.slice(0,6);
+}
+function appSearch(){
+  var el=document.getElementById('appSearch'),box=document.getElementById('appSearchRes');
+  if(!el||!box)return;
+  var q=(el.value||'').trim().toLowerCase();
+  if(!q){box.hidden=true;box.innerHTML='';AS_ITEMS=[];return;}
+  var dest=AS_INDEX.filter(function(x){
+    return x.t.toLowerCase().indexOf(q)>=0 || x.k.indexOf(q)>=0 || x.s.toLowerCase().indexOf(q)>=0;
+  }).map(function(x){var y={};for(var p in x)y[p]=x[p];y.kind='Go to';return y;});
+  /* an exact-ish title match should outrank a keyword-only hit */
+  dest.sort(function(a,b){
+    var at=a.t.toLowerCase().indexOf(q)===0?0:(a.t.toLowerCase().indexOf(q)>=0?1:2);
+    var bt=b.t.toLowerCase().indexOf(q)===0?0:(b.t.toLowerCase().indexOf(q)>=0?1:2);
+    return at-bt;
+  });
+  AS_ITEMS=dest.concat(asPeople(q)).slice(0,10);
+  AS_SEL=0;
+  if(!AS_ITEMS.length){
+    box.innerHTML='<div class="as-none">Nothing matches \u201c'+String(el.value).replace(/[&<>"]/g,'')+'\u201d. Try a page name, a person, or a word like scripts, leads, policies or trainings.</div>';
+    box.hidden=false;return;
+  }
+  box.innerHTML=AS_ITEMS.map(function(x,i){
+    return '<div class="as-i'+(i===0?' on':'')+'" onmousedown="event.preventDefault();asGo('+i+')">'+
+      '<div class="as-ic">'+x.i+'</div><div style="min-width:0"><div class="as-t">'+x.t+'</div>'+
+      '<div class="as-s">'+x.s+'</div></div></div>';
+  }).join('');
+  box.hidden=false;
+}
+function asGo(i){var x=AS_ITEMS[i];if(x&&x.h)location.href=x.h;}
+function asHi(){var box=document.getElementById('appSearchRes');if(!box)return;
+  [].forEach.call(box.querySelectorAll('.as-i'),function(el,i){el.classList.toggle('on',i===AS_SEL);
+    if(i===AS_SEL&&el.scrollIntoView)try{el.scrollIntoView({block:'nearest'});}catch(e){}});}
+function appSearchKey(e){
+  if(e.key==='ArrowDown'){e.preventDefault();AS_SEL=Math.min(AS_ITEMS.length-1,AS_SEL+1);asHi();}
+  else if(e.key==='ArrowUp'){e.preventDefault();AS_SEL=Math.max(0,AS_SEL-1);asHi();}
+  else if(e.key==='Enter'){e.preventDefault();if(AS_ITEMS[AS_SEL])asGo(AS_SEL);}
+  else if(e.key==='Escape'){var b=document.getElementById('appSearchRes');if(b)b.hidden=true;}
+}
+document.addEventListener('click',function(e){
+  var box=document.getElementById('appSearchRes'),el=document.getElementById('appSearch');
+  if(!box||!el)return;
+  if(e.target!==el&&!box.contains(e.target))box.hidden=true;
+});
+</script>
 </body>
 </html>

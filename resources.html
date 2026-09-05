@@ -530,6 +530,11 @@ function closeModal(){$('rov').classList.remove('on');}
 /* init */
 if(!CODE){ $('cgrid').innerHTML='<div class="empty">Please sign in on the Home page first.</div>'; }
 else { loadKind('carrier',renderCarriers); }
+/* Deep link: the app search links straight to a tab, e.g. resources.html?tab=script */
+(function(){try{
+  var t=new URLSearchParams(location.search).get('tab');
+  if(t&&['carrier','script','agent','training'].indexOf(t)>=0) rTab(t);
+}catch(e){}})();
 </script>
 <script>
 function tsfgToggle(){ if(window.innerWidth<=860){tsfgDrawer(!document.body.classList.contains('tsfg-drawer'));} }
