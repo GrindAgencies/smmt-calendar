@@ -344,7 +344,7 @@ var STATUS_LIST=[
   ['approved','Approved','approved'],
   ['declined','Declined','closed'],
   ['other','Other','pending'],
-  ['cancelled','Cancelled','closed'],
+  ['cancelled','Canceled','closed'],
   ['incomplete','Incomplete','stuck'],
   ['paid','Paid Out','paid'],
   ['suitability_needed','Suitability Needed','pending'],
@@ -361,7 +361,7 @@ function stLabel(k){for(var i=0;i<STATUSES.length;i++)if(STATUSES[i][0]===k)retu
 function bucket(k){for(var i=0;i<STATUSES.length;i++)if(STATUSES[i][0]===k)return STATUSES[i][2];return 'pending';}
 /* Three-way business separation (client tabs):
    In Force = status 'paid' (Paid Out) only — Policy Issued / Premium Drafted stay in Pending.
-   Dead     = Cancelled + Declined + Closed — leave Pending completely.
+   Dead     = Canceled + Declined + Closed — leave Pending completely.
    Pending Business = everything else (workable pipeline). Membership is derived from
    status, so the only way to move a policy back is to change its status. */
 function isInforce(st){return st==='paid';}
@@ -470,7 +470,7 @@ function renderKpis(){
   var nPend=rows.filter(function(p){return isPendingBiz(p.status);}).length;
   var nForce=rows.filter(function(p){return isInforce(p.status);}).length;
   var nDead=rows.filter(function(p){return isDead(p.status);}).length;
-  $('tabs').innerHTML=[['pendingbiz','Pending Business',nPend],['inforce','✅ In Force',nForce],['closed','Cancelled / Closed',nDead],['all','All',rows.length]].map(function(t){return '<button class="'+(TAB===t[0]?'on':'')+'" onclick="setTab(\''+t[0]+'\')">'+t[1]+'<span class="c">'+t[2]+'</span></button>';}).join('');
+  $('tabs').innerHTML=[['pendingbiz','Pending Business',nPend],['inforce','✅ In Force',nForce],['closed','Canceled / Closed',nDead],['all','All',rows.length]].map(function(t){return '<button class="'+(TAB===t[0]?'on':'')+'" onclick="setTab(\''+t[0]+'\')">'+t[1]+'<span class="c">'+t[2]+'</span></button>';}).join('');
 }
 function passTab(p){var st=p.status;if(TAB==='all')return true;if(TAB==='inforce')return isInforce(st);if(TAB==='closed')return isDead(st);return isPendingBiz(st);/* pendingbiz */}
 
