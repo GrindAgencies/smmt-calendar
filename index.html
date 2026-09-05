@@ -38,6 +38,11 @@ a{color:inherit;text-decoration:none;}
 button{font-family:inherit;cursor:pointer;}
 ::selection{background:var(--accent-soft);}
 .hide{display:none!important;}
+/* The sign-in gate is position:fixed;inset:0 and visible by default, so it painted
+   on EVERY load and was then hidden by JS — the login screen flashed before the
+   dashboard settled. Decide before the first paint instead. */
+html.tsfg-session #gate{display:none!important;}
+html.tsfg-session #app{display:block!important;}
 
 /* ============ LOGIN GATE ============ */
 #gate{position:fixed;inset:0;z-index:1000;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px;}
@@ -452,6 +457,7 @@ html, body{ overflow-x: hidden; }
 .as-s{font-size:11.5px;opacity:.62;line-height:1.3;}
 .as-none{padding:14px 12px;font-size:13px;opacity:.65;}
 </style>
+<script>try{if(localStorage.getItem('tsfg_code'))document.documentElement.className+=' tsfg-session';}catch(e){}</script>
 </head>
 <body>
 
@@ -1163,8 +1169,21 @@ $('sBtn').addEventListener('click',doSignup);
         if(acc!=='approved'){ gatePending(acc,(res.agent.first_name||'')); return; }
         NAME=(res.agent.first_name||'')+' '+(res.agent.last_name||'');NAME=NAME.trim()||n;try{localStorage.setItem('tsfg_name',NAME);}catch(e){}showApp();
       }
-      else{try{localStorage.removeItem('tsfg_code');}catch(e){} } // fall through to gate
-    });
+      else if(res&&(res.notfound||res.ok===false)){
+        /* The comment here used to say "fall through to gate" — but showApp() had
+           already run optimistically, so this quietly deleted the session and left
+           the dashboard on screen. Every link out of Home then hit a page with no
+           session and bounced the user to sign-in, which is what "none of the
+           buttons work" looked like. Sign out properly and say so. */
+        try{localStorage.removeItem('tsfg_code');localStorage.removeItem('tsfg_name');}catch(e){}
+        CODE=null;NAME='';
+        document.documentElement.classList.remove('tsfg-session');
+        showGate();
+        var gm=$('gMsg'); if(gm){gm.className='gmsg';gm.textContent='Your session expired — please sign in again.';}
+      }
+      /* Anything else (network dropped, server hiccup) leaves the session ALONE.
+         Losing your sign-in because the wifi blipped is worse than a stale name. */
+    }).catch(function(){ /* offline: keep the session and the dashboard */ });
     // optimistic reveal so it feels instant
     NAME=n;showApp();
   }

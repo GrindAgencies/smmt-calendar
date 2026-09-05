@@ -1125,12 +1125,27 @@ function doShare(title,text){
   if(navigator.share){navigator.share({title:title,text:text}).catch(function(){});return;}
   if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(function(){toast('Copied — paste to share with your broker 📋');},function(){window.prompt('Copy this to share:',text);});return;}
   window.prompt('Copy this to share:',text);}
+/* Appointment statuses were printed straight from the database, so the tracker
+   showed raw values like "canceled" and "no_show". Both spellings of cancelled are
+   mapped so a row reads the same however it was stored. */
+var BK_STATUS={booked:'Booked',confirmed:'Confirmed',pending:'Pending approval',canceled:'Canceled',cancelled:'Canceled',declined:'Declined',no_show:'No-show',completed:'Completed',transferred:'Transferred'};
+function bkStatus(v){var k=String(v||'').toLowerCase();if(BK_STATUS[k])return BK_STATUS[k];
+  return k?k.charAt(0).toUpperCase()+k.slice(1).replace(/_/g,' '):'';}
+/* (5) An appointment can open the client it belongs to. openClient() reads the
+   trainer's own client list, so only offer it when this booking is mine to open. */
+function aptClientKey(b){
+  if(!b||!(b.client_email||b.client_phone))return '';
+  if(String(b.trainer_name||'').trim().toLowerCase()!==String(NAME||'').trim().toLowerCase())return '';
+  return clientKey(b);
+}
 function aptRow(b){var col=avColor(b.trainer_name);
   var right;
   if(b.status==='pending')right='<span class="tstat" style="margin-left:auto;background:var(--gold-soft);color:var(--gold)"><span class="d"></span>Pending approval</span><button class="x can" style="margin-left:8px" onclick="cancelBk(\''+b.id+'\')">Cancel</button>';
   else if(b.status==='booked'||b.status==='confirmed')right='<button class="x can" style="margin-left:auto" onclick="cancelBk(\''+b.id+'\')">Cancel</button><button class="x del" style="margin-left:8px" onclick="purgeBk(\''+b.id+'\')">Delete</button>';
-  else right='<span class="conf" style="margin-left:auto">'+esc(b.status)+'</span>';
-  return '<div class="apt"><div class="tav" style="width:42px;height:42px;font-size:14px;background:'+col+'">'+initials(b.trainer_name)+'</div><div><div style="font-weight:700;font-size:14.5px">'+esc(b.trainer_name)+' · '+esc(b.category||'Training')+(b.status==='confirmed'?' <span style="color:var(--green);font-weight:800">✓</span>':'')+'</div><div style="font-size:12.5px;color:var(--ink3)">'+prettyDate(dispDate(b))+' · '+esc(dispTime(b))+tzTag()+' <span class="conf">· '+esc(b.conf||'')+'</span></div></div>'+right+'</div>';}
+  else right='<span class="conf" style="margin-left:auto">'+esc(bkStatus(b.status))+'</span>';
+  var ck=aptClientKey(b);
+  var who=ck?('<button onclick="event.stopPropagation();openClient(\''+esc(ck)+'\')" title="Open this client" style="border:none;background:none;padding:0;font:inherit;font-size:12.5px;font-weight:700;color:var(--accent);cursor:pointer">'+esc(b.agent_name||'Client')+' →</button>'):'';
+  return '<div class="apt"><div class="tav" style="width:42px;height:42px;font-size:14px;background:'+col+'">'+initials(b.trainer_name)+'</div><div style="min-width:0"><div style="font-weight:700;font-size:14.5px">'+esc(b.trainer_name)+' · '+esc(b.category||'Training')+(b.status==='confirmed'?' <span style="color:var(--green);font-weight:800">✓</span>':'')+'</div><div style="font-size:12.5px;color:var(--ink3)">'+prettyDate(dispDate(b))+' · '+esc(dispTime(b))+tzTag()+' <span class="conf">· '+esc(b.conf||'')+'</span></div>'+(who?('<div style="margin-top:3px">'+who+'</div>'):'')+'</div>'+right+'</div>';}
 function renderBook(){
   if(!SELDATE)SELDATE=todayStr();
   var h='<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap"><div style="font-size:12.5px;color:var(--ink3)">Booking a training for yourself? Use the steps below. Booking a client appointment for someone else?</div><button class="qbtn" style="margin:0" onclick="openStaffBook()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Book for a client</button></div>';

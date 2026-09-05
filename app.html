@@ -15,21 +15,29 @@
     --ink:#f5f6fa; --ink2:#aab0c0; --gold:#c99a2e; --gold2:#e4be6e; --accent:#5b6cff;
     --font:'Inter',-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',system-ui,sans-serif; }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-  html,body{margin:0;height:100%;}
+  /* The dark has to live on <html>, not just <body>. Painting it on body alone left
+     the page's own background showing through wherever body did not reach — behind
+     the status bar, past the home indicator, and on the iOS rubber-band overscroll —
+     so the black stopped short of the edges. color-scheme keeps the browser's own
+     chrome dark to match. */
+  html{background:var(--bg); color-scheme:dark;}
+  html,body{margin:0;min-height:100%;}
   body{ font-family:var(--font); color:var(--ink);
     background:
       radial-gradient(1100px 600px at 50% -10%, rgba(201,154,46,.10), transparent 60%),
       radial-gradient(900px 700px at 100% 110%, rgba(91,108,255,.10), transparent 55%),
       var(--bg);
-    min-height:100%; padding:calc(env(safe-area-inset-top) + 22px) 20px calc(env(safe-area-inset-bottom) + 26px);
+    background-attachment:fixed;
+    min-height:100vh; min-height:100dvh;
+    padding:calc(env(safe-area-inset-top) + 22px) 20px calc(env(safe-area-inset-bottom) + 26px);
     -webkit-font-smoothing:antialiased; }
-  header{ display:flex; align-items:center; gap:12px; margin:6px 2px 26px; }
-  .mark{ width:44px;height:44px;border-radius:13px;border:1.5px solid var(--gold);
+  header{ display:flex; align-items:center; gap:15px; margin:10px 2px 28px; }
+  .mark{ width:72px;height:72px;border-radius:20px;border:1.5px solid var(--gold);
     display:flex;align-items:center;justify-content:center;color:var(--gold2);
     font-weight:800;font-size:17px;letter-spacing:.5px;background:rgba(201,154,46,.06); }
   .brand{line-height:1.05;}
-  .brand b{display:block;font-size:17px;font-weight:800;letter-spacing:.2px;}
-  .brand span{font-size:12px;color:var(--ink2);}
+  .brand b{display:block;font-size:21px;font-weight:800;letter-spacing:.2px;}
+  .brand span{font-size:13px;color:var(--ink2);}
   h1{font-size:15px;font-weight:600;color:var(--ink2);margin:0 2px 14px;}
   .grid{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
   .tile{ appearance:none;-webkit-appearance:none;text-align:left;cursor:pointer;
@@ -51,7 +59,7 @@
 </head>
 <body>
   <header>
-    <div class="mark" style="border:none;background:none;padding:0;overflow:hidden"><img src="apple-touch-icon.png" alt="The Standard" style="width:44px;height:44px;border-radius:13px;object-fit:cover"></div>
+    <div class="mark" style="border:none;background:none;padding:0;overflow:hidden"><img src="apple-touch-icon.png" alt="The Standard" style="width:72px;height:72px;border-radius:20px;object-fit:cover"></div>
     <div class="brand"><b>The Standard</b><span>Financial Group</span></div>
   </header>
   <h1>Welcome — what do you need?</h1>
