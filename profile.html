@@ -96,6 +96,13 @@ input.in[readonly]{background:var(--panel2);color:var(--ink2)}
   .top{padding-left:13px;padding-right:13px;gap:8px;}
   .top>*{flex:0 0 auto;min-width:0;}
 }
+/* Installed as a PWA the app runs standalone, so the page starts at y=0 —
+   underneath the iPhone status bar. .top is a sticky header, which put Back and
+   the header controls beneath the status bar, where taps go to the system and
+   never reach the button. This never reproduces in a desktop browser, where
+   env(safe-area-inset-top) is simply 0. Same treatment as the Scheduler and
+   Team Hub. */
+.top{padding-top:calc(13px + env(safe-area-inset-top));}
 </style>
 </head>
 <body>
