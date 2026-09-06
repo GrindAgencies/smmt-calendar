@@ -185,8 +185,10 @@ function paintProfile(p){
   if(p.is_trainer){
     h+='<div class="sec"><div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap"><div><div style="font-weight:800;font-size:14px">Manage your booking availability</div><div style="font-size:12.5px;color:var(--ink3)">Weekly hours, blackouts & vacations live in the Scheduler.</div></div><a class="btn ghost" style="text-decoration:none" href="calendar.html?tab=avail">Open My Availability →</a></div></div>';
   }
+  h+='<div id="notifPrefsSec"></div>';
   h+='<div id="emdCtrlSec"></div><div id="baseBrandSec"></div>';
   $('profBody').innerHTML=h+'<datalist id="statelist">'+US_STATES.map(function(s){return '<option value="'+s+'">';}).join('')+'</datalist>';
+  loadNotifPrefs();
   loadCalendlyStatus();
   loadBaseBrand();
   loadEmdControl();
@@ -558,5 +560,112 @@ document.addEventListener('drop',function(e){var m=zf(e.target);hi(cur,false);cu
 </script>
 <script src="notif.js"></script>
 <script src="i18n.js"></script>
+<script>
+/* ==========================================================================
+   NOTIFICATION SETTINGS  (2026-09-05)
+   Christopher: "create a notification settings to be able to control all push
+   notifications and be notified for each task."
+   Your phone, your rules. Everything here is yours alone — Operations cannot
+   change it. Turning something off never hides it from the bell in the app; it
+   only stops the phone buzzing, so nothing is ever lost.
+   ========================================================================== */
+var NP_URL='https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/notif-prefs';
+var NPREFS=null;
+var NP_TYPES=[
+ ['booking','Bookings & appointments','Booked, approved, moved or cancelled'],
+ ['task','Tasks','Assigned to you, and what is due'],
+ ['sale','New business','Policies submitted on your team'],
+ ['recruit','New partners','Someone joins your team'],
+ ['mention','Mentions','When someone @s you in Team Hub'],
+ ['announcement','Announcements','Company and baseshop news'],
+ ['reminder','Reminders','Before an appointment starts']
+];
+function npApi(b){b=b||{};b.code=CODE;return fetch(NP_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();}).catch(function(){return{ok:false};});}
+function hr12(h){h=Number(h)||0;var ap=h<12?'am':'pm';var d=h%12;if(d===0)d=12;return d+ap;}
+function npHourOpts(sel){var o='';for(var i=0;i<24;i++){o+='<option value="'+i+'"'+(Number(sel)===i?' selected':'')+'>'+hr12(i)+'</option>';}return o;}
+function loadNotifPrefs(){
+  var host=document.getElementById('notifPrefsSec'); if(!host)return;
+  npApi({action:'get'}).then(function(r){
+    host=document.getElementById('notifPrefsSec'); if(!host)return;
+    if(!r||!r.ok){host.innerHTML='';return;}
+    NPREFS=r.prefs||{};
+    renderNotifPrefs(r);
+  });
+}
+function renderNotifPrefs(r){
+  var host=document.getElementById('notifPrefsSec'); if(!host)return;
+  var p=NPREFS||{}, t=p.types||{};
+  var devices=r.devices||0;
+  var sw=function(id,on,label,sub){
+    return '<label style="display:flex;align-items:flex-start;gap:12px;padding:11px 0;cursor:pointer;border-top:1px solid var(--line)">'
+      +'<input type="checkbox" id="'+id+'"'+(on?' checked':'')+' style="width:20px;height:20px;margin-top:2px;flex:0 0 auto;accent-color:var(--accent)">'
+      +'<span style="min-width:0"><span style="display:block;font-weight:700;font-size:14px">'+label+'</span>'
+      +'<span style="display:block;font-size:12px;color:var(--ink3);line-height:1.4">'+sub+'</span></span></label>';
+  };
+  var h='<div class="sec"><div class="sech"><h2>Notifications</h2>'
+   +'<span style="font-size:12px;color:var(--ink3);font-weight:700">'+(devices?(devices+' device'+(devices===1?'':'s')+' registered'):'No device yet')+'</span></div><div class="card">';
+  if(!devices){
+    h+='<div style="font-size:12.5px;color:var(--ink2);background:var(--panel2,rgba(127,127,127,.08));border-radius:10px;padding:11px 12px;margin-bottom:14px;line-height:1.5">'
+      +'Open the app on your phone once and it will register automatically. Until then these settings are saved but nothing can be delivered.</div>';
+  }
+  h+='<label style="display:flex;align-items:center;gap:12px;cursor:pointer;padding-bottom:4px">'
+   +'<input type="checkbox" id="np_master"'+(p.push_enabled!==false?' checked':'')+' style="width:22px;height:22px;accent-color:var(--accent)">'
+   +'<span style="font-weight:800;font-size:15px">Push notifications on my phone</span></label>'
+   +'<div style="font-size:12px;color:var(--ink3);margin:0 0 6px 34px;line-height:1.45">Turning this off never hides anything — everything still appears in the app. It just stops your phone buzzing.</div>';
+
+  h+='<div id="np_detail"'+(p.push_enabled===false?' style="opacity:.45;pointer-events:none"':'')+'>';
+  h+='<div style="font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);margin:16px 0 2px">What to notify me about</div>';
+  NP_TYPES.forEach(function(x){ h+=sw('np_t_'+x[0], t[x[0]]!==false, x[1], x[2]); });
+
+  h+='<div style="font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);margin:18px 0 2px">Quiet hours</div>';
+  h+=sw('np_quiet', p.quiet_enabled!==false, 'Stay silent overnight', 'Anything that arrives while you are asleep waits in the app instead of waking you.');
+  h+='<div id="np_quietrow" style="display:flex;align-items:center;gap:8px;padding:4px 0 2px 32px;font-size:13px;color:var(--ink2)'+(p.quiet_enabled===false?';opacity:.45;pointer-events:none':'')+'">'
+   +'From <select id="np_qs" style="padding:7px 9px;border-radius:9px;border:1px solid var(--line2);background:var(--panel);color:var(--ink);font-weight:700">'+npHourOpts(p.quiet_start!=null?p.quiet_start:21)+'</select>'
+   +' to <select id="np_qe" style="padding:7px 9px;border-radius:9px;border:1px solid var(--line2);background:var(--panel);color:var(--ink);font-weight:700">'+npHourOpts(p.quiet_end!=null?p.quiet_end:7)+'</select></div>';
+
+  h+='<div style="font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);margin:18px 0 2px">How often</div>';
+  h+=sw('np_digest', p.digest!==false, 'Group them together', 'When several things happen at once you get one summary instead of a buzz for each. Recommended.');
+  h+='</div>';
+
+  h+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px">'
+   +'<button class="btn" onclick="saveNotifPrefs()">Save settings</button>'
+   +(devices?'<button class="btn ghost" onclick="testNotifPush(this)">Send me a test</button>':'')
+   +'</div><div id="np_msg" style="font-size:12.5px;font-weight:700;color:var(--ink3);min-height:16px;margin-top:8px"></div>';
+  h+='</div></div>';
+  host.innerHTML=h;
+  var m=document.getElementById('np_master');
+  if(m)m.addEventListener('change',function(){var d=document.getElementById('np_detail');if(d){d.style.opacity=m.checked?'':'.45';d.style.pointerEvents=m.checked?'':'none';}});
+  var q=document.getElementById('np_quiet');
+  if(q)q.addEventListener('change',function(){var rw=document.getElementById('np_quietrow');if(rw){rw.style.opacity=q.checked?'':'.45';rw.style.pointerEvents=q.checked?'':'none';}});
+}
+function saveNotifPrefs(){
+  var msg=document.getElementById('np_msg'); if(msg){msg.style.color='var(--ink3)';msg.textContent='Saving…';}
+  var types={}; NP_TYPES.forEach(function(x){var el=document.getElementById('np_t_'+x[0]); if(el)types[x[0]]=el.checked;});
+  var g=function(id){var e=document.getElementById(id);return e;};
+  npApi({action:'save',
+    push_enabled:g('np_master')?g('np_master').checked:true,
+    types:types,
+    quiet_enabled:g('np_quiet')?g('np_quiet').checked:true,
+    quiet_start:g('np_qs')?Number(g('np_qs').value):21,
+    quiet_end:g('np_qe')?Number(g('np_qe').value):7,
+    digest:g('np_digest')?g('np_digest').checked:true
+  }).then(function(r){
+    var m2=document.getElementById('np_msg'); if(!m2)return;
+    if(r&&r.ok){NPREFS=r.prefs;m2.style.color='var(--green,#1a9c52)';m2.textContent='✓ Saved.';}
+    else {m2.style.color='var(--red)';m2.textContent=(r&&r.error)||'Could not save.';}
+  });
+}
+function testNotifPush(btn){
+  var msg=document.getElementById('np_msg');
+  if(btn){btn.disabled=true;btn.textContent='Sending…';}
+  if(msg){msg.style.color='var(--ink3)';msg.textContent='Sending a test to your phone…';}
+  npApi({action:'test'}).then(function(r){
+    if(btn){btn.disabled=false;btn.textContent='Send me a test';}
+    var m2=document.getElementById('np_msg'); if(!m2)return;
+    if(r&&r.ok&&r.sent){m2.style.color='var(--green,#1a9c52)';m2.textContent='✓ Sent — check your phone.';}
+    else {m2.style.color='var(--gold)';m2.textContent='Could not deliver. Open the app on your phone once, then try again.';}
+  });
+}
+</script>
 </body>
 </html>
