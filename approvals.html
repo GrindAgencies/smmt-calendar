@@ -42,6 +42,7 @@
   .allclear p{margin:0 0 18px;font-size:13.5px;color:var(--ink2);}
   .backbtn{display:inline-block;background:var(--accent);color:#fff;font-weight:800;font-size:14px;padding:12px 22px;border-radius:12px;text-decoration:none;}
 </style>
+<script src="ops-session.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -73,7 +74,9 @@ function $(id){return document.getElementById(id);}
 function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
 function isOps(c){return /^000[0-5]$/.test(c);}
 /* Ops codes carry the master token; EMD GFI codes authorize by their code (server checks base-owner / contract level). */
-function api(b){var c=(OPS||'').toUpperCase();if(isOps(c))b.token='2026';if(c)b.approver=c;return fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();}).catch(function(){return{ok:false};});}
+/* Ops codes carried the shared literal; they carry their own session now. */
+function opsTok(){try{return (window.tsfgOps?tsfgOps.token():'')||'';}catch(e){return '';}}
+function api(b){var c=(OPS||'').toUpperCase();if(isOps(c)&&opsTok())b.token=opsTok();if(c)b.approver=c;return fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();}).catch(function(){return{ok:false};});}
 function enterConsole(){ $('gate').style.display='none'; $('console').style.display='block'; var bt=$('backTop'); if(bt)bt.style.display='inline-block'; }
 function opsIn(){
   var c=($('opsCode').value||'').trim().toUpperCase();
@@ -82,7 +85,8 @@ function opsIn(){
   OPS=c;
   api({action:'whoami'}).then(function(r){
     if(!r||!r.ok||!r.can_approve){ OPS=''; $('gErr').textContent='That code can’t approve access. Use an Operations code or an EMD GFI code.'; return; }
-    APPROVER_BY=r.by||''; try{sessionStorage.setItem('tsfg_approver',c);}catch(e){}
+    APPROVER_BY=r.by||'';
+    if(isOps(c)&&window.tsfgOps)tsfgOps.ensure();   /* Ops seats need a live session */ try{sessionStorage.setItem('tsfg_approver',c);}catch(e){}
     $('gErr').textContent=''; enterConsole(); load();
   });
 }

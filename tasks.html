@@ -118,6 +118,7 @@ html,body{overflow-x:hidden}
 .seg button.on{background:var(--ink);color:var(--panel)}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#1d1d1f;color:#fff;padding:11px 18px;border-radius:12px;font-size:13.5px;font-weight:700;opacity:0;pointer-events:none;transition:.2s;z-index:400}.toast.on{opacity:1}
 </style>
+<script src="ops-session.js"></script>
 </head>
 <body>
 <!-- GATE -->
@@ -184,13 +185,17 @@ function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){retu
 function toast(m){var t=$('toast');t.textContent=m;t.classList.add('on');clearTimeout(t._t);t._t=setTimeout(function(){t.classList.remove('on');},2200);}
 function toggleTheme(){var r=document.documentElement;var d=r.getAttribute('data-theme')==='dark';r.setAttribute('data-theme',d?'light':'dark');try{localStorage.setItem('tsfg_theme',d?'light':'dark');}catch(e){}}
 (function(){try{var t=localStorage.getItem('tsfg_theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
-function apiCall(b){b=b||{};if(OPS)b.token='2026';if(CODE)b.code=CODE;return fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();}).catch(function(){return{ok:false};});}
+/* Operations authority is a signed-in session, not a word in this file. */
+function opsTok(){try{return (window.tsfgOps?tsfgOps.token():'')||'';}catch(e){return '';}}
+function apiCall(b){b=b||{};if(OPS&&opsTok())b.token=opsTok();if(CODE)b.code=CODE;return fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();}).catch(function(){return{ok:false};});}
 
 function enter(){
   var c=($('gCode').value||'').trim().toUpperCase();
   if(!c){$('gErr').textContent='Enter a code.';return;}
   if(/^\d{4}$/.test(c)){ // Ops code
-    OPS=true;CODE='';NAME='Operations';startApp();return;
+    OPS=true;CODE='';NAME='Operations';
+    if(window.tsfgOps)tsfgOps.ensure();   /* mint a real session for the admin calls */
+    startApp();return;
   }
   // agent GFI code — verify it exists via a lightweight counts call
   CODE=c;OPS=false;
@@ -210,7 +215,7 @@ function signOut(){try{sessionStorage.removeItem('tsfg_tasks_id');}catch(e){}loc
 
 function loadPickers(){
   fetch(HUB,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'hub_roster'})}).then(function(r){return r.json();}).then(function(d){ROSTER=(d&&d.members)||[];if(OPS&&TASKS.length){populateAgentFilter();renderList();}}).catch(function(){});
-  var b={action:'newbiz_list'};if(OPS)b.token='2026';else b.code=CODE;
+  var b={action:'newbiz_list'};if(OPS&&opsTok())b.token=opsTok();else b.code=CODE;
   fetch(NB,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();}).then(function(d){
     var pols=(d&&d.policies)||[];POLICIES=pols.map(function(p){return {id:String(p.id),client:p.client_name||'(no name)',agent:p.agent_name||'',carrier:p.carrier||''};});
     var seen={};CLIENTS=[];pols.forEach(function(p){var n=(p.client_name||'').trim();if(n&&!seen[n.toLowerCase()]){seen[n.toLowerCase()]=1;CLIENTS.push(n);}});CLIENTS.sort();

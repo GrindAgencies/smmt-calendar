@@ -284,6 +284,7 @@ input[type=range]{width:100%;accent-color:var(--accent);height:6px;}
 .side{ padding-top: calc(16px + env(safe-area-inset-top)) !important; }
 html, body{ overflow-x: hidden; }
 </style>
+<script src="ops-session.js"></script>
 </head>
 <body>
 
@@ -371,14 +372,19 @@ function signOut(){try{localStorage.removeItem('tsfg_code');localStorage.removeI
   try{CODE=localStorage.getItem('tsfg_code');NAME=localStorage.getItem('tsfg_name')||'';}catch(e){}
   if(!CODE){location.href='index.html';return;}
   CODE=CODE.toUpperCase();
+/* This granted itself Operations rights from a localStorage flag anyone could
+   set. The flag still selects the Ops VIEW, but the authority behind the calls
+   is now a signed-in session. */
+function opsTok(){try{return (window.tsfgOps?tsfgOps.token():'')||'';}catch(e){return '';}}
   try{OPS=(localStorage.getItem('tsfg_ops')==='1');}catch(e){}
+  if(OPS&&window.tsfgOps)tsfgOps.ensure();
   buildSide();loadPFRs();
   fetch('https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/hub-api?action=hub_profile&code='+encodeURIComponent(CODE)).then(function(r){return r.json();}).then(function(r){var pf=(r&&r.profile)||{};AGENT={name:pf.name||NAME,email:pf.email||'',phone:pf.phone||'',cal:pf.cal_link||''};}).catch(function(){AGENT={name:NAME};});
 })();
 
 /* ===== gallery ===== */
 function loadPFRs(){
-  var p={action:'pfr_list',code:CODE};if(OPS)p.token='2026';
+  var p={action:'pfr_list',code:CODE};if(OPS&&opsTok())p.token=opsTok();
   api(p).then(function(r){PFRS=(r&&r.pfrs)||[];renderGallery();});
 }
 function pfrNotesArr(x){try{return (x.data&&x.data.producerNotes)||[];}catch(e){return [];}}
@@ -411,7 +417,7 @@ function renderGallery(){
 function togglePop(id){var p=$('pop_'+id);document.querySelectorAll('.pop').forEach(function(x){if(x!==p)x.classList.add('hide');});p.classList.toggle('hide');}
 document.addEventListener('click',function(){document.querySelectorAll('.pop').forEach(function(x){x.classList.add('hide');});});
 function fmtDate(s){if(!s)return '';try{return new Date(s).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});}catch(e){return '';}}
-function delPFR(id){if(!confirm('Delete this PFR? This cannot be undone.'))return;var p={action:'pfr_delete',id:id,code:CODE};if(OPS)p.token='2026';api(p).then(function(){toast('Deleted');loadPFRs();});}
+function delPFR(id){if(!confirm('Delete this PFR? This cannot be undone.'))return;var p={action:'pfr_delete',id:id,code:CODE};if(OPS&&opsTok())p.token=opsTok();api(p).then(function(){toast('Deleted');loadPFRs();});}
 
 /* ===== data model ===== */
 function blank(){return {client:{name:'',phone:'',email:'',dob:''},
@@ -520,7 +526,7 @@ function saveNow(silent){
     var _s=buildStrategy(c,_sd);
     if(_s&&_s.recs&&_s.recs[0]){p.recommended_carrier=_s.recs[0].carrier||'';p.recommended_product=_s.recs[0].label||'';p.recommended_strategy=_s.headline||'';}
   }catch(e){}
-  if(OPS)p.token='2026';
+  if(OPS&&opsTok())p.token=opsTok();
   setSaveLbl('Saving…','');
   api(p).then(function(r){if(r&&r.pfr&&r.pfr.id){CUR.id=r.pfr.id;}
     var t=new Date().toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});

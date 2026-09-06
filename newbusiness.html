@@ -143,6 +143,7 @@ tbody tr{cursor:pointer;}tbody tr:hover{background:var(--bg);}
 .side{ padding-top: calc(16px + env(safe-area-inset-top)) !important; }
 html, body{ overflow-x: hidden; }
 </style>
+<script src="ops-session.js"></script>
 </head>
 <body>
 <div class="scrim" onclick="drawer(false)"></div>
@@ -392,17 +393,36 @@ function signOut(){try{localStorage.removeItem('tsfg_code');localStorage.removeI
 function setBiz(b){BIZ=b;$('bLife').classList.toggle('on',b==='life');$('bAnn').classList.toggle('on',b==='annuity');load();}
 function setScope(s){SCOPE=s;load();}
 function setTab(t){TAB=t;render();}
-function tokenIf(){return OPS?{token:'2026'}:{code:CODE};}
+/* Operations authority is a signed-in session now, not a passcode typed into a
+   prompt and kept in the tab. opsTok() is the 8-hour token minted by ops-auth. */
+function opsTok(){try{return (window.tsfgOps?tsfgOps.token():'')||'';}catch(e){return '';}}
+function tokenIf(){return (OPS&&opsTok())?{token:opsTok()}:{code:CODE};}
 function canEdit(p){return OPS||(p.agent_code===CODE);}
 
 /* OPS unlock */
 function toggleOps(){
-  if(OPS){OPS=false;try{sessionStorage.removeItem('nb_ops');}catch(e){}applyOps();load();toast('Operations mode off');return;}
-  var pc=prompt('Enter Operations passcode for full control of all policies:');
-  if(!pc)return;
-  api({action:'opscheck',token:pc}).then(function(r){
-    if(r&&r.ok){OPS=true;try{sessionStorage.setItem('nb_ops',pc);}catch(e){}applyOps();load();toast('Operations mode — full control unlocked');}
-    else toast('Incorrect passcode');
+  if(OPS){OPS=false;try{sessionStorage.removeItem('nb_ops');}catch(e){}
+    if(window.tsfgOps)tsfgOps.logout();
+    applyOps();load();toast('Operations mode off');return;}
+  if(!window.tsfgOps){toast('Sign-in unavailable — reload the page.');return;}
+  /* Already signed in on this tab (Ops Dashboard, say)? Then no need to ask again. */
+  tsfgOps.check().then(function(c){
+    if(c&&c.ok){OPS=true;try{sessionStorage.setItem('nb_ops','1');}catch(e){}applyOps();load();toast('Operations mode — full control unlocked');return;}
+    var code=prompt('Operations code (0000–0005, or your own if you have Operations rights):');
+    if(!code)return;
+    code=String(code).trim();
+    tsfgOps.status(code).then(function(st){
+      if(!st||!st.ok){toast((st&&st.error)||'That Operations code is not recognised.');return;}
+      if(st.locked){toast('Too many wrong PINs on this seat. Try again shortly.');return;}
+      var pin=prompt(st.has_pin?('PIN for '+(st.label||code)+':'):('First sign-in for '+(st.label||code)+' — choose a 6-digit PIN:'));
+      if(!pin)return; pin=String(pin).trim();
+      var go=st.has_pin?tsfgOps.signIn(code,pin):tsfgOps.createPin(code,pin);
+      go.then(function(r){
+        if(!r||!r.ok){toast((r&&r.error)||'Could not sign in.');return;}
+        OPS=true;try{sessionStorage.setItem('nb_ops','1');}catch(e){}
+        applyOps();load();toast('Operations mode — full control unlocked');
+      });
+    });
   });
 }
 function applyOps(){
@@ -513,7 +533,7 @@ function recoBadge(p){
 }
 function loadRecos(){
   var q={action:'pfr_reco'};
-  if(OPS&&SCOPE==='all')q.token='2026'; else q.code=CODE;
+  if(OPS&&SCOPE==='all'&&opsTok())q.token=opsTok(); else q.code=CODE;
   if(!q.code&&!q.token){RECOS={};return;}
   fetch(PFRAPI,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(q)})
     .then(function(r){return r.json();})
@@ -541,7 +561,7 @@ function updSplitShare(){var el=$('splitShareHint');if(!el)return;var pct=Math.m
 
 function load(){
   var q={action:'newbiz_list',business_type:BIZ};
-  if(OPS&&SCOPE==='all')q.token='2026';
+  if(OPS&&SCOPE==='all'&&opsTok())q.token=opsTok();
   else if(SCOPE==='me')q.code=CODE;
   else if(SCOPE==='team')q.leader=NAME;
   else if(SCOPE==='hier')q.leader=BASESHOP_LEADER;
@@ -614,13 +634,13 @@ function saveSale(){
   }
   var b=collect();
   if(EDIT){b.action='newbiz_update';b.id=EDIT.id;}else{b.action='newbiz_add';}
-  b.code=CODE; if(OPS)b.token='2026';
+  b.code=CODE; if(OPS&&opsTok())b.token=opsTok();
   $('saveBtn').disabled=true;$('saveBtn').textContent='Saving…';
   api(b).then(function(r){$('saveBtn').disabled=false;$('saveBtn').textContent=EDIT?'Save Changes':'Save Sale';
     if(r&&r.ok){closeModal();BIZ=b.business_type;$('bLife').classList.toggle('on',BIZ==='life');$('bAnn').classList.toggle('on',BIZ==='annuity');load();toast(EDIT?'Saved ✓':'Sale logged ✓');}
     else toast((r&&r.error)||'Could not save');});
 }
-function delFromModal(){if(!EDIT)return;if(!confirm('Delete this policy? This cannot be undone.'))return;var b={action:'newbiz_delete',id:EDIT.id,code:CODE};if(OPS)b.token='2026';api(b).then(function(r){if(r&&r.ok){closeModal();load();toast('Deleted');}else toast((r&&r.error)||'Could not delete');});}
+function delFromModal(){if(!EDIT)return;if(!confirm('Delete this policy? This cannot be undone.'))return;var b={action:'newbiz_delete',id:EDIT.id,code:CODE};if(OPS&&opsTok())b.token=opsTok();api(b).then(function(r){if(r&&r.ok){closeModal();load();toast('Deleted');}else toast((r&&r.error)||'Could not delete');});}
 document.addEventListener('keydown',function(e){if(e.key==='Escape')closeModal();});
 $('ov').addEventListener('click',function(e){if(e.target===$('ov'))closeModal();});
 
@@ -629,7 +649,8 @@ $('ov').addEventListener('click',function(e){if(e.target===$('ov'))closeModal();
   try{CODE=localStorage.getItem('tsfg_code');NAME=localStorage.getItem('tsfg_name')||'';}catch(e){}
   buildSide();
   if(!CODE){location.href='index.html';return;}
-  try{if(sessionStorage.getItem('nb_ops')==='2026')OPS=true;}catch(e){}
+  /* Ops mode survives a reload only while the session behind it is still good. */
+  try{if(sessionStorage.getItem('nb_ops')&&opsTok())OPS=true;}catch(e){}
   applyOps();renderStatusGrid();load();
   fetch(TA,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'load',code:CODE})}).then(function(r){return r.json();}).then(function(d){if(d&&d.ok&&d.agent){MYMD=d.agent.md||'';MYEMD=d.agent.emd||'';}}).catch(function(){});
 })();

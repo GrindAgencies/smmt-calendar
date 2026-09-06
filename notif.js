@@ -1472,3 +1472,4 @@ window.tsfgTrack = function (kind, detail) {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
   else start();
 })();
+

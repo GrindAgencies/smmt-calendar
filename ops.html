@@ -233,6 +233,7 @@ td:has(>select.statuscell){white-space:nowrap}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 .hide{display:none!important}
 </style>
+<script src="ops-session.js"></script>
 </head>
 <body>
 <div class="gate" id="gate">
@@ -242,6 +243,10 @@ td:has(>select.statuscell){white-space:nowrap}
     <p>Licensing · New Business · Fast Start</p>
     <input id="gName" placeholder="Your name" autocomplete="name">
     <input id="gCode" placeholder="Operations code (0000–0005) or your GFI code" autocomplete="off">
+    <div id="gPinWrap" style="display:none">
+      <input id="gPin" type="password" inputmode="numeric" maxlength="6" placeholder="6-digit Operations PIN" autocomplete="off">
+      <input id="gPin2" type="password" inputmode="numeric" maxlength="6" placeholder="Confirm your new PIN" autocomplete="off" style="display:none">
+    </div>
     <button class="gbtn" id="gBtn">Enter →</button>
     <div class="gmsg" id="gMsg"></div>
     <div class="ghint"><b>0000</b> = Standard — the master platform (everyone). <b>0001–0005</b> = each baseshop's own Ops view (SMMT · Titans · SCAPED · Elevate · GRIND), scoped to that baseshop.<br><b>MDs &amp; EMDs</b> can also sign in with their GFI code (name required) to view, add notes &amp; request edits.</div>
@@ -314,7 +319,7 @@ var ACCESS="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/access-api";
 var TASKAPI="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/task-api";
 var BSSCOPE=null; /* null = master (Standard, everyone). Array of baseshop names = scoped per-baseshop Ops platform. */
 var CALS="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/calendly-sync";
-function calBody(extra){var b=extra||{};b.code=OPS?OPS.code:'';if(canEdit())b.token='2026';return b;}
+function calBody(extra){var b=extra||{};b.code=OPS?OPS.code:'';if(canEdit()&&opsTok())b.token=opsTok();return b;}
 function calApi(b){return fetch(CALS,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();});}
 function fmtDT(iso){if(!iso)return '';var d=new Date(iso);if(isNaN(d))return '';return d.toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});}
 var OPS=null,ROWS=[],TAB="licensing",CUR=null,SORT={licensing:{k:'name',dir:1},newbiz:{k:'name',dir:1},faststart:{k:'name',dir:1},appointed:{k:'baseshop',dir:1}},DRAGK=null,CUSTOMCOLS=[],COLCOLORS={},STATUSCOLORS={};
@@ -333,7 +338,12 @@ function money2(n){n=Number(n)||0;if(n>=1e6)return '$'+(n/1e6).toFixed(2)+'M';if
 function toggleTheme(){var d=document.documentElement.getAttribute('data-theme')==='dark';document.documentElement.setAttribute('data-theme',d?'light':'dark');try{localStorage.setItem('gfi_theme',d?'light':'dark');}catch(e){}}
 (function(){try{var t=localStorage.getItem('gfi_theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
 function signOut(){try{sessionStorage.removeItem('tsfg_ops');sessionStorage.removeItem('tsfg_ops_bsscope');}catch(e){}OPS=null;BSSCOPE=null;$('app').classList.add('hide');$('gate').classList.remove('hide');$('gName').value='';$('gCode').value='';}
-function auth(extra){var b=extra||{};if(OPS&&OPS.role==='ops')b.token='2026';if(OPS)b.by_code=OPS.code;return b;}
+/* The Operations session token replaces the literal "2026" that shipped in this
+   page. opsTok() is empty until the seat has signed in with its PIN; while the
+   legacy token is still accepted server-side an empty token simply means the call
+   authorises by by_code instead, so nobody mid-shift is interrupted. */
+function opsTok(){try{return (window.tsfgOps?tsfgOps.token():'')||'';}catch(e){return '';}}
+function auth(extra){var b=extra||{};var t=opsTok();if(OPS&&OPS.role==='ops'&&t)b.token=t;if(OPS)b.by_code=OPS.code;return b;}
 function canEdit(){return OPS&&OPS.role==='ops';}
 function api(body){return fetch(OD,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(function(r){return r.json();});}
 function fmtTs(iso){if(!iso)return '';var d=new Date(iso);if(isNaN(d))return '';return d.toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});}
@@ -352,13 +362,56 @@ function doLogin(){
         OPS={code:code,name:r.label,title:'Operations',role:'ops',can_edit:true,baseshops:r.bases||[]};
         BSSCOPE=r.bases||[];
         try{sessionStorage.setItem('tsfg_ops',JSON.stringify(OPS));sessionStorage.setItem('tsfg_ops_bsscope',JSON.stringify(BSSCOPE));}catch(e){}
-        showApp();return;
+        needSession(OPS,msg);return;
       }
       finishLogin(name,code,msg); /* 0000 master or non-base code → existing flow */
     }).catch(function(){finishLogin(name,code,msg);});
     return;
   }
   finishLogin(name,code,msg);
+}
+/* ---------- Operations session ----------
+   A seat's authority now comes from a PIN it chose, not from a word printed in
+   this file. First sign-in picks the PIN; after that it mints an 8-hour session.
+   If a seat somehow is not registered we let it through WITHOUT a token rather
+   than block someone mid-shift — the legacy token still covers that case until
+   every seat has signed in, which is the whole reason the flip comes last. */
+var OPSPEND=null, PINNEW=false;
+function pinShow(on,newPin){
+  var w=document.getElementById('gPinWrap'); if(w)w.style.display=on?'block':'none';
+  var c=document.getElementById('gPin2'); if(c)c.style.display=(on&&newPin)?'block':'none';
+  PINNEW=!!newPin;
+  var b=document.getElementById('gBtn'); if(b)b.textContent=on?(newPin?'Set PIN & enter \u2192':'Enter \u2192'):'Enter \u2192';
+  if(on){var p=document.getElementById('gPin'); if(p){p.value='';setTimeout(function(){p.focus();},60);}}
+}
+function needSession(ops,msg){
+  OPSPEND=ops;
+  if(!window.tsfgOps){ OPS=ops; showApp(); return; }              // helper missing: do not block
+  tsfgOps.status(ops.code).then(function(st){
+    if(!st||!st.ok){ OPS=ops; showApp(); return; }                 // not a registered seat: do not block
+    if(st.locked){ msg.style.color='var(--red)'; msg.textContent='Too many wrong PINs on this seat. Try again in a few minutes.'; return; }
+    pinShow(true, !st.has_pin);
+    msg.style.color='var(--ink3)';
+    msg.textContent = st.has_pin
+      ? 'Enter your Operations PIN to continue.'
+      : 'First sign-in for ' + (st.label||'this seat') + ' \u2014 choose a 6-digit PIN. You will use it from now on.';
+  });
+}
+function submitPin(){
+  var msg=$('gMsg'); var pin=($('gPin').value||'').trim();
+  if(!/^[0-9]{6}$/.test(pin)){msg.style.color='var(--red)';msg.textContent='Your PIN is 6 digits.';return;}
+  if(PINNEW){
+    var p2=($('gPin2').value||'').trim();
+    if(pin!==p2){msg.style.color='var(--red)';msg.textContent='Those two PINs do not match.';return;}
+  }
+  msg.style.color='var(--ink3)';msg.textContent='Signing in\u2026';
+  var go=PINNEW?tsfgOps.createPin(OPSPEND.code,pin):tsfgOps.signIn(OPSPEND.code,pin);
+  go.then(function(r){
+    if(!r||!r.ok){msg.style.color='var(--red)';msg.textContent=(r&&r.error)||'Could not sign in.';return;}
+    OPS=OPSPEND; OPSPEND=null; pinShow(false,false);
+    try{sessionStorage.setItem('tsfg_ops',JSON.stringify(OPS));}catch(e){}
+    showApp();
+  });
 }
 function finishLogin(name,code,msg){
   if(!name){msg.style.color='var(--ink3)';msg.textContent='Enter your name.';return;}
@@ -367,11 +420,13 @@ function finishLogin(name,code,msg){
     OPS={code:r.ops.code,name:r.ops.name,title:r.ops.title,role:r.role,can_edit:r.can_edit,baseshops:r.ops.baseshops||[]};
     BSSCOPE=null;
     try{sessionStorage.setItem('tsfg_ops',JSON.stringify(OPS));sessionStorage.removeItem('tsfg_ops_bsscope');}catch(e){}
+    if(OPS.role==='ops'){needSession(OPS,msg);return;}
     showApp();
   }).catch(function(){msg.style.color='var(--red)';msg.textContent='Network error — try again.';});
 }
-$('gBtn').addEventListener('click',doLogin);
-['gName','gCode'].forEach(function(id){$(id).addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});});
+$('gBtn').addEventListener('click',function(){ if(OPSPEND)submitPin(); else doLogin(); });
+['gName','gCode'].forEach(function(id){$(id).addEventListener('keydown',function(e){if(e.key==='Enter'){if(OPSPEND)submitPin();else doLogin();}});});
+['gPin','gPin2'].forEach(function(id){var el=$(id);if(el)el.addEventListener('keydown',function(e){if(e.key==='Enter')submitPin();});});
 
 function showApp(){
   $('gate').classList.add('hide');$('app').classList.remove('hide');
@@ -391,7 +446,7 @@ function showApp(){
 /* ===== Ops Assistant (Claude-backed) ===== */
 var OBOT="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/ops-bot";
 var OBOTHIST=[],OBOTBUSY=false;
-function obotBody(b){b=b||{};if(canEdit())b.token='2026';if(OPS){b.code=OPS.code;b.name=OPS.name;}return b;}
+function obotBody(b){b=b||{};if(canEdit()&&opsTok())b.token=opsTok();if(OPS){b.code=OPS.code;b.name=OPS.name;}return b;}
 function obotToggle(open){$('obotPanel').classList.toggle('on',open);$('obotFab').classList.toggle('hide',open);if(open){if(!OBOTHIST.length)obotGreet();setTimeout(function(){$('obotIn').focus();},50);}}
 function obotGreet(){
   var first=((OPS&&OPS.name)||'').split(' ')[0]||'there';
@@ -517,7 +572,7 @@ function renderReqBanner(n){var host=$('reqBanner');if(!host)return;host.innerHT
 /* access-approval notification — one glance, one click. Shows for Ops and any EMD (server authorizes). */
 function renderAccessBanner(){
   var host=$('accessBanner');if(!host||!OPS||!OPS.code)return;
-  var b={action:'pending_count',approver:OPS.code};if(OPS.role==='ops')b.token='2026';
+  var b={action:'pending_count',approver:OPS.code};if(OPS.role==='ops'&&opsTok())b.token=opsTok();
   fetch(ACCESS,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();}).then(function(r){
     if(!r||!r.ok||!r.can_approve||!r.pending_count){host.innerHTML='';return;}
     var n=r.pending_count;
@@ -530,7 +585,7 @@ function renderAccessBanner(){
 function rmap(b){return fetch(ROADMAP,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();}).catch(function(){return{ok:false};});}
 function renderVerifyBanner(){
   var host=$('verifyBanner');if(!host)return;if(!canEdit()){host.innerHTML='';return;}
-  rmap({action:'pending',token:'2026'}).then(function(r){
+  rmap({action:'pending',token:opsTok()}).then(function(r){
     if(!r||!r.ok||!r.total_pending){host.innerHTML='';return;}
     host.innerHTML='<div class="accessbanner" style="background:linear-gradient(100deg,#b98900,#e0a92e);box-shadow:0 8px 22px rgba(224,169,46,.32)"><span class="ab-ic">⏳</span><span class="ab-cnt">'+r.total_pending+'</span>'
       +'<div class="ab-tx"><b>'+r.total_pending+' milestone'+(r.total_pending===1?'':'s')+' awaiting your sign-off</b><span>From '+r.count+' broker'+(r.count===1?'':'s')+' · verify to count it on their tracker</span></div>'
@@ -540,7 +595,7 @@ function renderVerifyBanner(){
 function vqRow(code,p){return '<div class="vq-row" data-ch="'+esc(p.id)+'"><div style="min-width:0"><div class="vq-nm">'+esc(p.label)+'</div><div class="vq-lv">'+esc(p.level)+'</div></div><div class="vq-act"><button class="vq-ok" onclick="doVerify(\''+esc(code)+'\',\''+esc(p.id)+'\',\'verify\',this)">✓ Verify</button><button class="vq-no" onclick="doVerify(\''+esc(code)+'\',\''+esc(p.id)+'\',\'reject\',this)">✕ Reject</button></div></div>';}
 function openVerifyQueue(){
   $('drawer').innerHTML='<div class="dbody"><div class="spin">Loading sign-offs…</div></div>';$('ov').classList.add('on');
-  rmap({action:'pending',token:'2026'}).then(function(r){
+  rmap({action:'pending',token:opsTok()}).then(function(r){
     if(!r||!r.ok){$('drawer').innerHTML='<div class="dbody"><div class="empty">Could not load.</div></div>';return;}
     var ag=r.agents||[];
     var body='<div class="dbody"><h3 style="margin:0 0 4px">⏳ Milestones to verify</h3><p class="dsub" style="color:var(--ink3);font-size:13px;margin:0 0 14px">'+r.total_pending+' milestone'+(r.total_pending===1?'':'s')+' from '+ag.length+' broker'+(ag.length===1?'':'s')+' awaiting sign-off. Verifying counts it on their tracker; rejecting sends it back.</p>';
@@ -555,7 +610,7 @@ function openVerifyQueue(){
 }
 function doVerify(code,ch,decision,btn){
   var row=(btn&&btn.closest)?btn.closest('.vq-row'):null;if(btn)btn.disabled=true;
-  rmap({action:'verify',token:'2026',code:code,challenge:ch,decision:decision,by:(OPS&&OPS.name)||'Operations'}).then(function(r){
+  rmap({action:'verify',token:opsTok(),code:code,challenge:ch,decision:decision,by:(OPS&&OPS.name)||'Operations'}).then(function(r){
     if(!r||!r.ok){toast((r&&r.error)||'Could not update');if(btn)btn.disabled=false;return;}
     if(row){var box=row.closest('.vq-agent');row.remove();if(box&&!box.querySelector('.vq-row'))box.remove();}
     toast(decision==='reject'?'Sent back to broker':'Verified ✓');renderVerifyBanner();
@@ -565,7 +620,7 @@ function verifyAgent(code,btn){
   var box=btn&&btn.closest?btn.closest('.vq-agent'):null;if(!box)return;
   var chs=[].map.call(box.querySelectorAll('.vq-row'),function(el){return el.getAttribute('data-ch');});
   if(!chs.length)return;btn.disabled=true;
-  rmap({action:'verify',token:'2026',code:code,challenges:chs,decision:'verify',by:(OPS&&OPS.name)||'Operations'}).then(function(r){
+  rmap({action:'verify',token:opsTok(),code:code,challenges:chs,decision:'verify',by:(OPS&&OPS.name)||'Operations'}).then(function(r){
     if(!r||!r.ok){toast('Could not approve');btn.disabled=false;return;}
     box.remove();toast('Approved all ✓');renderVerifyBanner();
   });
@@ -573,7 +628,7 @@ function verifyAgent(code,btn){
 var OPSTRK="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/ops-tracker";
 function loadAgentTracker(code,keepOpen){
   var host=$('agVerify');if(!host||!canEdit())return;host.style.display='';host.innerHTML='<h4>🗺️ Tracker position</h4><div class="sub">Loading…</div>';
-  fetch(OPSTRK,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:'2026',action:'get',code:code})}).then(function(r){return r.json();}).then(function(d){
+  fetch(OPSTRK,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:opsTok(),action:'get',code:code})}).then(function(r){return r.json();}).then(function(d){
     if(!d||!d.ok){host.style.display='none';host.innerHTML='';return;}
     var cur=(d.levels.filter(function(l){return l.id===d.current_level;})[0]||{}).name||'—';
     var tasks=d.levels.filter(function(l){return !l.auto;});
@@ -597,11 +652,11 @@ function loadAgentTracker(code,keepOpen){
     collapseAgentSection(host,!!keepOpen);                   // collapsible like the other tabs (stays open while actively editing)
   }).catch(function(){host.style.display='none';host.innerHTML='';});
 }
-function otToggle(code,cid,checked){var b={token:'2026',action:'set',code:code};b[checked?'set':'clear']=[cid];
+function otToggle(code,cid,checked){var b={token:opsTok(),action:'set',code:code};b[checked?'set':'clear']=[cid];
   fetch(OPSTRK,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();}).then(function(d){if(d&&d.ok){toast('Updated ✓');loadAgentTracker(code,true);}else toast('Could not update');}).catch(function(){toast('Network error');});}
 function otJumpGo(code){var sel=$('otJump');if(!sel||!sel.value)return;var opt=sel.options[sel.selectedIndex];var name=(opt?opt.text:'').replace(/^\s*\d+\.\s*/,'').replace(/ — auto from \$$/,'');otReset(code,sel.value,name);}
 function otReset(code,levelId,name){if(!confirm('Set “'+name+'” as this broker’s current spot?\n\nEverything up to and including it is marked done; everything after is cleared.'))return;
-  fetch(OPSTRK,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:'2026',action:'reset_to',code:code,level_id:levelId})}).then(function(r){return r.json();}).then(function(d){if(d&&d.ok){toast('Reset to '+name+' ✓');loadAgentTracker(code,true);}else toast('Could not reset');}).catch(function(){toast('Network error');});}
+  fetch(OPSTRK,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:opsTok(),action:'reset_to',code:code,level_id:levelId})}).then(function(r){return r.json();}).then(function(d){if(d&&d.ok){toast('Reset to '+name+' ✓');loadAgentTracker(code,true);}else toast('Could not reset');}).catch(function(){toast('Network error');});}
 function setTab(t){TAB=t;['licensing','newbiz','faststart','bookings','appointed','inforce','gfi','fieldtraining','teamhub'].forEach(function(x){var b=$('tg_'+x);if(b)b.classList.toggle('on',x===t);});
   var isB=(t==='bookings'),isNB=(t==='newbiz'||t==='gfi'),isIF=(t==='inforce'),isTH=(t==='teamhub'),isFT=(t==='fieldtraining');
   var tw=$('tableWrap'),bh=$('bookingsHost'),nh=$('newbizHost'),ifh=$('inforceHost'),thh=$('teamhubHost'),fth=$('fieldtrainingHost'),sb=$('search'),ab=$('addBtn');
@@ -618,7 +673,7 @@ var NB="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/ops-newbiz";
 var NBFEED="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/ops-nbfeed";
 var IMPORT_URL="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/ops-import";
 var NBT=[],NBCOLS=[],NBEDIT=false,NBSORT={k:'client_name',dir:1},NBCUR=null,NBCOLDRAFT=[],NBBOARD='newbiz',NBARCH=false,NBARCHCOUNT=0,NBLIVE=false;
-function nbApi(body){var b=body||{};b.board=NBBOARD;if(OPS&&OPS.role==='ops')b.token='2026';if(OPS){b.by_code=OPS.code;b.by_name=OPS.name;}return fetch(NBLIVE?NBFEED:NB,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();});}
+function nbApi(body){var b=body||{};b.board=NBBOARD;if(OPS&&OPS.role==='ops'&&opsTok())b.token=opsTok();if(OPS){b.by_code=OPS.code;b.by_name=OPS.name;}return fetch(NBLIVE?NBFEED:NB,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();});}
 function nbVal(t,k){return (t.data&&t.data[k]!=null)?t.data[k]:'';}
 function nbFmtMoney(v){v=(v==null?'':String(v)).trim();if(!v)return '';var num=v.replace(/[$,\s]/g,'');if(num!==''&&!isNaN(Number(num)))return '$'+Number(num).toLocaleString('en-US');return v;}
 function nbDash(){return '<span style="color:var(--line2)">—</span>';}
@@ -697,10 +752,10 @@ function addTicketSave(){var data={};NBCOLS.forEach(function(col){var el=$('at_'
 /* ---- In Force policies ---- */
 var IF_URL="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/ops-inforce";
 var IFP=[],IFSORT={k:'date',dir:-1},IFTOTAL=0,IFEDIT=false;
-function ifApi(){var b={};if(OPS&&OPS.role==='ops')b.token='2026';if(OPS)b.by_code=OPS.code;return fetch(IF_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();});}
+function ifApi(){var b={};if(OPS&&OPS.role==='ops'&&opsTok())b.token=opsTok();if(OPS)b.by_code=OPS.code;return fetch(IF_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();});}
 function renderInforce(){var host=$('inforceHost');if(!host)return;host.innerHTML='<div class="spin">Loading in-force policies…</div>';
   ifApi().then(function(r){if(!r||!r.ok){host.innerHTML='<div class="empty">Could not load in-force policies.</div>';return;}IFP=r.policies||[];IFTOTAL=r.total_ap||0;IFEDIT=!!r.can_edit;paintInforce();}).catch(function(){host.innerHTML='<div class="empty">Could not load in-force policies.</div>';});}
-function ifSetPaid(id,val){var b={action:'set_paid_date',id:id,paid_out_date:(val||'')};if(OPS&&OPS.role==='ops')b.token='2026';if(OPS)b.by_code=OPS.code;
+function ifSetPaid(id,val){var b={action:'set_paid_date',id:id,paid_out_date:(val||'')};if(OPS&&OPS.role==='ops'&&opsTok())b.token=opsTok();if(OPS)b.by_code=OPS.code;
   fetch(IF_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();}).then(function(r){if(!r||!r.ok){toast((r&&r.error)||'Could not save date');return;}var p=IFP.filter(function(x){return String(x.id)===String(id);})[0];if(p){p.paid_out_date=r.paid_out_date||'';p.date=r.paid_out_date||'';}toast('Paid Out date saved ✓');paintInforce();}).catch(function(){toast('Network error');});}
 function ifFiltered(){var q=($('search').value||'').trim().toLowerCase();var a=IFP.slice();if(BSSCOPE)a=a.filter(function(p){return BSSCOPE.indexOf(p.baseshop)>=0;});if(q)a=a.filter(function(p){return (p.client+' '+p.agent+' '+p.carrier+' '+p.product+' '+(p.baseshop||'')).toLowerCase().indexOf(q)>=0;});
   var k=IFSORT.k,d=IFSORT.dir;a.sort(function(x,y){var xv=x[k],yv=y[k];if(typeof xv==='number'&&typeof yv==='number')return (xv-yv)*d;xv=String(xv||'').toLowerCase();yv=String(yv||'').toLowerCase();return xv<yv?-d:xv>yv?d:0;});return a;}
@@ -715,7 +770,7 @@ function clientLink(name){var n=(name||'').trim();if(!n)return '<span style="fon
 /* ===== Field Training tracker — live from calendar bookings ===== */
 var FT_URL="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/ops-fieldtraining";
 var FTAGENTS=[],FTTOTALS={},FTSORT={k:'completed',dir:-1};
-function ftApi(){var b={action:'ft_list'};if(OPS&&OPS.role==='ops')b.token='2026';if(OPS)b.code=OPS.code;return fetch(FT_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();});}
+function ftApi(){var b={action:'ft_list'};if(OPS&&OPS.role==='ops'&&opsTok())b.token=opsTok();if(OPS)b.code=OPS.code;return fetch(FT_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();});}
 function renderFieldtraining(){var host=$('fieldtrainingHost');if(!host)return;host.innerHTML='<div class="spin">Loading field training…</div>';
   ftApi().then(function(r){if(!r||!r.ok){host.innerHTML='<div class="empty">Could not load field training. '+esc((r&&r.error)||'')+'</div>';return;}FTAGENTS=r.agents||[];FTTOTALS=r.totals||{};paintFieldtraining();}).catch(function(){host.innerHTML='<div class="empty">Could not load field training.</div>';});}
 function ftFiltered(){var q=($('search').value||'').trim().toLowerCase();var a=FTAGENTS.slice();
@@ -1137,12 +1192,12 @@ function impCommit(){
 }
 /* ===== Client Profile (keyed by name; opens from any policy tab) + commission tickets/tasks ===== */
 var CLIENT=null;
-function taskCall(b){b=b||{};if(canEdit())b.token='2026';if(OPS&&OPS.code){b.code=OPS.code;b.by_code=OPS.code;}return fetch(TASKAPI,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();}).catch(function(){return{ok:false};});}
+function taskCall(b){b=b||{};if(canEdit()&&opsTok())b.token=opsTok();if(OPS&&OPS.code){b.code=OPS.code;b.by_code=OPS.code;}return fetch(TASKAPI,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();}).catch(function(){return{ok:false};});}
 function openClient(name){
   name=(name||'').trim();if(!name)return;CLIENT={name:name,policies:[],tasks:null};
   $('drawer').innerHTML='<div class="dbody"><div class="spin">Loading client…</div></div>';$('ov').classList.add('on');
-  var pb={action:'nb_list'};if(canEdit())pb.token='2026';if(OPS)pb.by_code=OPS.code;
-  var cb={action:'client_contact',name:name};if(canEdit())cb.token='2026';if(OPS)cb.by_code=OPS.code;
+  var pb={action:'nb_list'};if(canEdit()&&opsTok())pb.token=opsTok();if(OPS)pb.by_code=OPS.code;
+  var cb={action:'client_contact',name:name};if(canEdit()&&opsTok())cb.token=opsTok();if(OPS)cb.by_code=OPS.code;
   Promise.all([
     fetch(NBFEED,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(pb)}).then(function(r){return r.json();}).catch(function(){return{};}),
     taskCall({action:'for_client',name:name}),
@@ -1306,7 +1361,7 @@ function opsCashLoad(code){var i=$('e_cashflow');if(!i)return;
   }).catch(function(){if($('e_cashflow'))$('e_cashflow').placeholder='—';});}
 function opsCashSave(code){var el=$('e_cashflow');if(!el)return;var amt=Math.max(0,Math.round(Number(el.value)||0));var ann=($('e_cf_ann')||{}).checked!==false;
   var m=$('cfMsg');if(m){m.style.color='var(--ink3)';m.textContent='Saving…';}
-  fetch(ROADMAP,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'set_cashflow',token:'2026',code:code,amount:amt,recognize:ann})}).then(function(r){return r.json();}).then(function(d){
+  fetch(ROADMAP,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'set_cashflow',token:opsTok(),code:code,amount:amt,recognize:ann})}).then(function(r){return r.json();}).then(function(d){
     if(!d||!d.ok){if(m){m.style.color='var(--red)';m.textContent=(d&&d.error)||'Save failed';}return;}
     var txt='✓ Set to $'+Number(d.cashflow).toLocaleString()+' (was $'+Number(d.old).toLocaleString()+').';
     if(d.posted)txt+=' 🎉 Recognition posted to Team Hub'+(d.milestone?' — $'+Number(d.milestone).toLocaleString()+' milestone!':'')+'.';
@@ -1360,7 +1415,7 @@ function resetPin(code){
   if(!confirm('Clear the sign-in PIN for '+code+'?\n\nThey will be asked to choose a new one next time they sign in. Nobody can read their old PIN — it is hashed.'))return;
   fetch('https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/pin',{
     method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({action:'reset',code:code,token:'2026'})})
+    body:JSON.stringify({action:'reset',code:code,token:opsTok()})})
    .then(function(r){return r.json();})
    .then(function(r){
      if(r&&r.ok)toast('PIN cleared — '+code+' will set a new one at next sign-in.');
@@ -1451,7 +1506,7 @@ function openNotif(){
 
 $('ov').addEventListener('click',function(e){if(e.target===this)closeDrawer();});
 (function(){
-  try{var s=sessionStorage.getItem('tsfg_ops');if(s){OPS=JSON.parse(s);try{var bs=sessionStorage.getItem('tsfg_ops_bsscope');BSSCOPE=bs?JSON.parse(bs):null;}catch(e2){BSSCOPE=null;}if(OPS&&OPS.code){showApp();return;}}}catch(e){}
+  try{var s=sessionStorage.getItem('tsfg_ops');if(s){OPS=JSON.parse(s);try{var bs=sessionStorage.getItem('tsfg_ops_bsscope');BSSCOPE=bs?JSON.parse(bs):null;}catch(e2){BSSCOPE=null;}if(OPS&&OPS.code){/* A restored tab keeps its seat, but an Operations seat needs a live session before it can act. Token and seat both live in sessionStorage, so they expire together; if the session is gone, ask for the PIN again rather than run tokenless. */if(OPS.role==='ops'&&!opsTok()){needSession(OPS,$('gMsg'));return;}showApp();return;}}}catch(e){}
   var qc='',qn='';try{var q=new URLSearchParams(location.search);qc=q.get('code')||'';qn=q.get('name')||'';}catch(e){}
   if(!qc){try{qc=localStorage.getItem('tsfg_code')||'';qn=localStorage.getItem('tsfg_name')||'';}catch(e){}}
   if(qc)$('gCode').value=qc;if(qn)$('gName').value=qn;
