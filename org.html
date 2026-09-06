@@ -80,6 +80,18 @@ body.editing .card:active{cursor:grabbing;}
 .av.c-none{background:linear-gradient(180deg,#cfc39a,#8a7d4f);} .card.c-none{border-top-color:#4a3f1c;}
 .role.c-exec{background:linear-gradient(90deg,#c99a2e,#c99a2e);color:#241400;}
 .role.c-senior{background:rgba(127,176,230,.18);color:#274b74;border:1px solid #7fb0e6;}
+/* Alumni whose upline was never recorded — kept on the page so no one is lost. */
+.unplaced{display:none;margin:22px auto 0;max-width:1000px;padding:0 16px;}
+.unplaced.on{display:block;}
+.unplaced h3{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#8e8e93;margin:0 0 4px;}
+.unplaced p{font-size:12px;color:#8e8e93;margin:0 0 12px;}
+.unplaced .row{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;}
+/* Alumni — people who have left. They keep their place so the family tree stays whole. */
+.av.c-gone{background:linear-gradient(180deg,#d8d8de,#9a9aa4);} .card.c-gone{border-top-color:#b4b4bd;}
+.card.gone{background:linear-gradient(170deg,#fafafb,#f2f2f5);border-style:dashed;box-shadow:0 2px 7px rgba(0,0,0,.16);opacity:.72;}
+.card.gone .nm{color:#6e6e73;}
+.card.gone .av{filter:grayscale(1);}
+.alum{font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;padding:2px 7px;border-radius:999px;background:#f0f0f3;color:#86868b;border:1px dashed #c9c9d1;}
 .card.dragsrc{opacity:.4;}
 .card.drop-hover{outline:2px dashed #3b6ea5;outline-offset:3px;background:#eaf2fc;}
 #dragGhost{position:fixed;z-index:120;pointer-events:none;background:#eef0f4;border:1px solid #7fb0e6;color:#1d1d1f;font-weight:800;font-size:12.5px;border-radius:10px;padding:7px 12px;box-shadow:0 10px 26px rgba(0,0,0,.55);opacity:.96;display:none;}
@@ -192,11 +204,13 @@ html, body{ overflow-x: hidden; }
     <span class="legc"><span class="dotc" style="background:#f7d873"></span>Slowing</span>
     <span class="legc"><span class="dotc" style="background:#e0533d"></span>Stalled</span>
     <span class="legc"><span class="dotc" style="background:#8a7d4f"></span>No activity yet</span>
+    <span class="legc"><span class="dotc" style="background:#b4b4bd"></span>Alumni — left the business</span>
   </div>
   <div class="bar">
     <input id="search" placeholder="Find a person…" oninput="onSearch()">
     <button onclick="expandAll(true)">⤢ Expand all</button>
     <button class="ghost" onclick="expandAll(false)">⤡ Collapse to legs</button>
+    <button id="goneBtn" class="ghost" onclick="toggleGone()">👤 Hide alumni</button>
     <button id="editBtn" class="ghost" onclick="toggleEdit()">✏️ Edit hierarchy</button>
     <span class="count-badge" id="countBadge"></span>
   </div>
@@ -207,6 +221,7 @@ html, body{ overflow-x: hidden; }
   <div id="tray" class="tray"></div>
 
   <div class="treewrap"><div class="tree" id="tree"><div class="spin">Loading the org…</div></div></div>
+  <div id="unplaced" class="unplaced"></div>
   <div class="foot" id="foot"></div>
 </div>
 <div id="dragGhost"></div>
@@ -225,6 +240,9 @@ let CODE="", NAME="";
 try{ CODE=(localStorage.getItem('tsfg_code')||'').toUpperCase(); NAME=localStorage.getItem('tsfg_name')||''; }catch(e){}
 let NODES=[], byCode={}, KIDS={}, ROOTS=[], UNASSIGNED=[];
 let editing=false, canEdit=false, SEARCH="";
+// Everyone who has ever joined stays on the chart. This only controls whether the
+// people who have left are drawn — never whether they exist.
+let SHOW_GONE=true;
 const openSet=new Set();
 const $=(id)=>document.getElementById(id);
 function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
@@ -238,14 +256,27 @@ function levelChip(lvl){ var l=(lvl||'').toLowerCase().trim();
   if(l==='md'||/marketing director/.test(l))return 'MD';
   if(/senior/.test(l))return 'Sr Assoc'; return ''; }
 
+// When alumni are hidden, a departed person's recruits attach to the nearest person
+// still here rather than falling off the chart — the mistake that made three working
+// agents invisible in the first place.
+function livingUpline(code){
+  let up=(byCode[code]||{}).direct_to||'', guard=0;
+  while(up && byCode[up] && byCode[up].departed && guard++<60) up=byCode[up].direct_to||'';
+  return up;
+}
 function reindex(){
   byCode={}; KIDS={};
   NODES.forEach(n=>{ byCode[n.code]=n; });
-  NODES.forEach(n=>{ const up=n.direct_to||''; if(up&&byCode[up]&&up!==n.code){ (KIDS[up]=KIDS[up]||[]).push(n.code); } });
+  NODES.forEach(n=>{
+    if(!SHOW_GONE && n.departed) return;
+    const up=SHOW_GONE?(n.direct_to||''):livingUpline(n.code);
+    if(up&&byCode[up]&&up!==n.code){ (KIDS[up]=KIDS[up]||[]).push(n.code); }
+  });
   Object.keys(KIDS).forEach(k=>KIDS[k].sort((a,b)=>((byCode[b].downline_total||0)-(byCode[a].downline_total||0))||byCode[a].name.localeCompare(byCode[b].name)));
 }
 function descendants(code){ const out=new Set(); (function w(c){ (KIDS[c]||[]).forEach(k=>{ if(!out.has(k)){out.add(k);w(k);} }); })(code); return out; }
 function colorClass(n){
+  if(n.departed) return 'c-gone';   // activity colours mean nothing once someone has left
   const l=(n.level||'').toLowerCase().trim();
   if(/executive|national vice|senior executive/.test(l)||l==='emd'||l==='nvp'||l==='sevp') return 'c-exec';
   if(/marketing director/.test(l)||l==='md') return 'c-senior';
@@ -261,10 +292,11 @@ function renderNode(code){
   const ch=(KIDS[code]||[]); const has=ch.length>0; const open=openSet.has(code); const collapsed=has&&!open;
   const cc=colorClass(n); const dim=(SEARCH&&!nameHit(n))?' dim':'';
   const lc=levelChip(n.level);
-  let c='<div class="card '+cc+dim+'" data-id="'+esc(code)+'">';
+  let c='<div class="card '+cc+dim+(n.departed?' gone':'')+'" data-id="'+esc(code)+'">';
   c+='<div class="av '+cc+'">'+(n.has_photo?('<img src="'+AVATAR+'?code='+encodeURIComponent(code)+'" alt="" loading="lazy" onerror="this.remove()">'):'')+esc(initials(n.name))+'</div>';
   c+='<div class="nm" onclick="openInfo(event,\''+esc(code)+'\')">'+esc(n.name)+'</div>';
   c+='<div class="cmeta">';
+  if(n.departed) c+='<span class="alum">Alumni</span>';
   if(lc){ const rc=(cc==='c-exec'||cc==='c-senior')?cc:''; c+='<span class="role '+rc+'" '+(rc?'':'style="background:#eef0f4;color:#5c5c66;border:1px solid #d7d7de"')+'>'+lc+'</span>'; }
   if(n.baseshop) c+='<span class="bschip">'+esc(n.baseshop)+'</span>';
   c+='</div>';
@@ -279,7 +311,10 @@ function render(){
   const rootsToShow = ROOTS.length?ROOTS:[NODES[0]&&NODES[0].code].filter(Boolean);
   $('tree').innerHTML='<ul>'+rootsToShow.map(r=>renderNode(r)).join('')+'</ul>';
   // stats (exclude the Apple test account)
-  const people=NODES.filter(n=>n.code!=='APLREVIEW');
+  const everyone=NODES.filter(n=>n.code!=='APLREVIEW');
+  // Headcount is who is here now. Alumni are shown on the chart but counted on their own.
+  const people=everyone.filter(n=>!n.departed);
+  const alumni=everyone.length-people.length;
   const emd=people.filter(n=>/executive|national vice|senior executive/i.test(n.level||'')).length;
   const md=people.filter(n=>/marketing director/i.test(n.level||'')&&!/executive/i.test(n.level||'')).length;
   const active=people.filter(n=>n.active).length;
@@ -291,9 +326,31 @@ function render(){
     '<div class="stat blu"><b>'+md+'</b><span>Marketing Dirs</span></div>'+
     '<div class="stat grn"><b>'+active+'</b><span>Active</span></div>'+
     '<div class="stat"><b>'+isNew+'</b><span>New (30d)</span></div>'+
+    (alumni?('<div class="stat"><b>'+alumni+'</b><span>Alumni</span></div>'):'')+
     (needs?('<div class="stat red"><b>'+needs+'</b><span>Need placing</span></div>'):'');
   $('countBadge').textContent=people.filter(n=>(KIDS[n.code]||[]).length>0).length+' with a downline';
+  renderUnplaced(rootsToShow);
   renderTray();
+}
+// Alumni whose upline was never recorded, or points at a code that no longer exists,
+// can't hang anywhere on the tree. They still joined this business, so they are listed
+// here rather than dropped — the whole point of keeping the family tree.
+function renderUnplaced(rootsToShow){
+  const box=$('unplaced');
+  const seen=new Set();
+  (function walk(c){ if(seen.has(c)) return; seen.add(c); (KIDS[c]||[]).forEach(walk); })(rootsToShow[0]);
+  rootsToShow.forEach(r=>{ if(!seen.has(r)){ seen.add(r); (KIDS[r]||[]).forEach(function w(k){ if(!seen.has(k)){seen.add(k);(KIDS[k]||[]).forEach(w);} }); } });
+  const lost=NODES.filter(n=>n.departed&&!seen.has(n.code)&&n.code!=='APLREVIEW');
+  if(!SHOW_GONE||!lost.length){ box.classList.remove('on'); box.innerHTML=''; return; }
+  box.classList.add('on');
+  box.innerHTML='<h3>Alumni · no recorded upline</h3>'+
+    '<p>They joined and left before an upline was recorded, so they can’t sit on a branch — kept here so the record stays complete.</p>'+
+    '<div class="row">'+lost.map(n=>'<div class="card c-gone gone" data-id="'+esc(n.code)+'">'+
+      '<div class="av c-gone">'+esc(initials(n.name))+'</div>'+
+      '<div class="nm" onclick="openInfo(event,\''+esc(n.code)+'\')">'+esc(n.name)+'</div>'+
+      '<div class="cmeta"><span class="alum">Alumni</span>'+(n.baseshop?('<span class="bschip">'+esc(n.baseshop)+'</span>'):'')+'</div>'+
+      '<div class="cmeta"><span class="gfi">'+esc(n.code)+'</span></div>'+
+    '</div>').join('')+'</div>';
 }
 function renderTray(){
   const tray=$('tray'); const list=UNASSIGNED.filter(c=>byCode[c]&&c!=='APLREVIEW');
@@ -302,6 +359,11 @@ function renderTray(){
   tray.innerHTML='<div class="tray-h">Needs placement — drag each onto their direct upline</div><div class="tray-chips">'+
     list.map(c=>{const n=byCode[c];return '<div class="chip" data-id="'+esc(c)+'" data-tray="1"><span class="cav">'+esc(initials(n.name))+'</span>'+esc(n.name)+'</div>';}).join('')+'</div>';
 }
+window.toggleGone=function(){
+  SHOW_GONE=!SHOW_GONE;
+  $('goneBtn').textContent=SHOW_GONE?'👤 Hide alumni':'👥 Show alumni';
+  render();
+};
 function onSearch(){ SEARCH=($('search').value||'').trim().toLowerCase(); if(SEARCH) expandAll(true); else render(); }
 window.expandAll=function(open){
   if(open){ NODES.forEach(n=>{ if((KIDS[n.code]||[]).length) openSet.add(n.code); }); }

@@ -175,7 +175,9 @@ function load(code){
   ]).then(function(res){
     var st=res[0], dl=res[1];
     if(!st||!st.ok){ $('teamArea').innerHTML='<div class="panel center muted">Could not load this team.</div>'; return; }
-    STATS=st; LEADER=st.leader||{}; CREW=(dl&&dl.downline)||[]; LEG=""; Q=""; render();
+    // Departed people stay on the ORG CHART as a historical record, but My Team is a
+    // working roster — it shows who is here now, which keeps it matching Team size.
+    STATS=st; LEADER=st.leader||{}; CREW=((dl&&dl.downline)||[]).filter(function(p){return !p.departed;}); LEG=""; Q=""; render();
     try{window.scrollTo(0,0);}catch(e){}
   }).catch(function(){ $('teamArea').innerHTML='<div class="panel center muted">Network error — try again.</div>'; });
 }
