@@ -538,7 +538,20 @@ function rtSubscribe(){
   if(!SB)return;
   try{ if(rtChan){SB.removeChannel(rtChan);rtChan=null;} }catch(e){}
   var top=rtTopic(CHAN);rtTopicNow=top;
-  try{ rtChan=SB.channel(top).on('broadcast',{event:'newmsg'},function(){ if(!document.hidden)loadMsgs(false); }).subscribe(); }catch(e){rtChan=null;}
+  TYPERS={}; renderTyping([]);
+  try{
+    rtChan=SB.channel(top)
+      .on('broadcast',{event:'newmsg'},function(){ if(!document.hidden)loadMsgs(false); })
+      /* Typing rides the socket that is already open. It used to be a POST every
+         3 seconds per person, which was 56% of all Team Hub traffic and the single
+         biggest driver toward the edge-function quota that took the app down once. */
+      .on('broadcast',{event:'typing'},function(p){
+        var d=(p&&p.payload)||{};
+        if(!d.name||d.code===CODE)return;
+        TYPERS[d.name]=Date.now(); paintTyping();
+      })
+      .subscribe();
+  }catch(e){rtChan=null;}
 }
 function rtEnsure(){ if(rtTopicNow!==rtTopic(CHAN))rtSubscribe(); }
 var LOADING=false, LOADSTART=0;
@@ -747,7 +760,11 @@ function onType(){
   var now=Date.now();
   if(now-LASTTYPE>2500){
     LASTTYPE=now;
-    fetch(TYPEAPI,{method:'POST',headers:{'Content-Type':'application/json'},
+    /* Broadcast costs nothing on the server. Only fall back to the HTTP mark if
+       the websocket is unavailable (blocked network, old browser). */
+    var sent=false;
+    try{ if(rtChan){ rtChan.send({type:'broadcast',event:'typing',payload:{code:CODE,name:NAME,channel:CHAN}}); sent=true; } }catch(e){}
+    if(!sent) fetch(TYPEAPI,{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({action:'set',code:CODE,name:NAME,channel:CHAN})}).catch(function(){});
   }
 }
@@ -760,8 +777,17 @@ function renderTyping(list){
           : (names.length+' people are typing…');
   el.textContent=txt; el.classList.add('on');
 }
+/* Who is typing right now, kept locally. Entries expire six seconds after the
+   last keystroke, exactly as the server-side mark used to. Costs no network. */
+var TYPERS={};
+function paintTyping(){
+  var now=Date.now(), live=[];
+  for(var n in TYPERS){ if(now-TYPERS[n]<6000) live.push({name:n}); else delete TYPERS[n]; }
+  renderTyping(live);
+}
 function pollTyping(){
   if(document.hidden||!CODE||!CHAN)return;
+  if(rtChan)return;   /* the socket carries typing — nothing to poll */
   fetch(TYPEAPI,{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({action:'list',code:CODE,channel:CHAN})})
     .then(function(r){return r.json();})
@@ -904,12 +930,18 @@ function heartbeat(){var st=(Date.now()-lastActivity>600000)?'away':'active';if(
   // roster for DMs + mentions
   fetch(TA,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'team',leader:BASESHOP_LEADER})}).then(function(r){return r.json();}).then(function(d){(d&&d.agents||[]).forEach(function(a){var nm=((a.first_name||'')+' '+(a.last_name||'')).trim();if(a.code&&nm)MEMBERS[a.code]=nm;});renderRooms();});
   POLL=setInterval(function(){if(!document.hidden)loadMsgs(false);},60000);
-  loadUnread(); setInterval(function(){if(!document.hidden)loadUnread();},20000);
-  pollTyping(); setInterval(pollTyping,3000);
+  loadUnread(); setInterval(function(){if(!document.hidden)loadUnread();},30000);
+  /* Expiring the "typing…" line is local work, not a request. The HTTP poll only
+     runs at all when the websocket is unavailable — see pollTyping. */
+  setInterval(paintTyping,1000);
+  pollTyping(); setInterval(pollTyping,5000);
   loadPins(); setInterval(function(){if(!document.hidden){loadPins();loadSeen();}},30000); /* fallback only — realtime broadcast drives live updates */
-  setInterval(function(){if(!document.hidden)heartbeat();},30000);
+  setInterval(function(){if(!document.hidden)heartbeat();},60000);
   setInterval(function(){if(!document.hidden)loadAvatars();},120000);
-  document.addEventListener('visibilitychange',function(){if(!document.hidden){loadMsgs(false);heartbeat();}});
+  /* Chrome throttles timers in a background tab, so a "typing…" line can still be
+     on screen when you come back. Expire it immediately on return rather than
+     waiting for the next tick. */
+  document.addEventListener('visibilitychange',function(){if(!document.hidden){loadMsgs(false);heartbeat();paintTyping();}});
   var _ml=$('mlist'); if(_ml)_ml.addEventListener('click',msgTap);
 })();
 </script>
