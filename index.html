@@ -546,6 +546,7 @@ html, body{ overflow-x: hidden; }
     </div>
 
     <div class="content">
+      <div id="profileNag"></div>
       <!-- HERO -->
       <section class="hero">
         <div class="eyebrow"><span id="heroDate">—</span><span>·</span><span class="clk" id="heroClock">—</span></div>
@@ -1011,6 +1012,7 @@ function showApp(){
   $('sideName').textContent=NAME||('GFI '+CODE);$('sideSub').textContent=CODE;$('sideAv').textContent=initials(NAME||CODE);
   paintHeaderTime();tickClock();setInterval(tickClock,1000);setInterval(paintHeaderTime,60000);
   loadData();loadLeaderboard();loadAvatars();startLBPoll();
+  loadProfileNag();
 }
 function showGate(){ $('app').classList.add('hide'); $('gate').classList.remove('hide'); }
 function gatePending(status, firstName){
@@ -1280,6 +1282,60 @@ document.addEventListener('click',function(e){
   if(!box||!el)return;
   if(e.target!==el&&!box.contains(e.target))box.hidden=true;
 });
+</script>
+<script>
+/* ==========================================================================
+   COMPLETE-YOUR-PROFILE PROMPT  (2026-09-05)
+   26 of 72 active people have no email AND no phone on file — they were imported
+   without any. Nobody can invent that data except the person themselves, and with
+   the app going live it is the one moment they are all actually looking at it.
+   Deliberately NOT a blocker: it names only what is missing, links straight to the
+   field, and disappears the moment it is filled. Dismissing hides it for a week
+   rather than for ever, because a booking that cannot reach someone is worse than
+   a banner someone found mildly annoying.
+   ========================================================================== */
+function pnDismissedRecently(){
+  try{ var t=Number(localStorage.getItem('tsfg_profile_nag')||0);
+       return t && (Date.now()-t) < 7*24*3600*1000; }catch(e){ return false; }
+}
+function dismissProfileNag(){
+  try{ localStorage.setItem('tsfg_profile_nag', String(Date.now())); }catch(e){}
+  var el=document.getElementById('profileNag'); if(el)el.innerHTML='';
+}
+function loadProfileNag(){
+  var host=document.getElementById('profileNag'); if(!host||!CODE)return;
+  fetch(PA,{method:'POST',headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({action:'get_profile',code:CODE})})
+   .then(function(r){return r.json();})
+   .then(function(r){
+      var host=document.getElementById('profileNag'); if(!host)return;
+      if(!r||!r.ok||!r.profile)return;
+      var p=r.profile, miss=[];
+      if(!String(p.email||'').trim())  miss.push('email address');
+      if(!String(p.phone||'').trim())  miss.push('phone number');
+      if(!String(p.state||'').trim())  miss.push('state');
+      if(!miss.length)return;                 // nothing to ask for
+      if(pnDismissedRecently())return;
+      var what = miss.length===1 ? miss[0]
+               : miss.slice(0,-1).join(', ')+' and '+miss[miss.length-1];
+      host.innerHTML =
+        '<div style="display:flex;align-items:flex-start;gap:13px;padding:15px 16px;margin:0 0 18px;'
+        +'border:1px solid var(--line-2,var(--line,#e4e4e9));border-left:4px solid var(--accent,#5b6cff);'
+        +'border-radius:14px;background:var(--panel,#fff);box-shadow:var(--shadow-sm,0 1px 3px rgba(0,0,0,.06))">'
+        +'<div style="font-size:20px;line-height:1.2">\u{1F44B}</div>'
+        +'<div style="flex:1;min-width:0">'
+          +'<div style="font-weight:800;font-size:14.5px;margin-bottom:3px">Add your '+what+'</div>'
+          +'<div style="font-size:12.5px;color:var(--ink-3,var(--ink3,#8e8e93));line-height:1.45">'
+          +'We use this to reach you about your bookings and to send confirmations. It takes about twenty seconds.</div>'
+          +'<div style="margin-top:11px;display:flex;gap:8px;flex-wrap:wrap">'
+            +'<a href="profile.html" style="display:inline-block;background:var(--accent,#5b6cff);color:#fff;'
+            +'font-weight:700;font-size:13px;padding:9px 15px;border-radius:10px;text-decoration:none">Add it now</a>'
+            +'<button onclick="dismissProfileNag()" style="border:none;background:none;color:var(--ink-3,var(--ink3,#8e8e93));'
+            +'font-weight:700;font-size:13px;padding:9px 6px;cursor:pointer;font-family:inherit">Not now</button>'
+          +'</div>'
+        +'</div></div>';
+   }).catch(function(){});
+}
 </script>
 </body>
 </html>
