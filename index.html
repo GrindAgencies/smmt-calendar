@@ -42,7 +42,12 @@ button{font-family:inherit;cursor:pointer;}
    on EVERY load and was then hidden by JS — the login screen flashed before the
    dashboard settled. Decide before the first paint instead. */
 html.tsfg-session #gate{display:none!important;}
-html.tsfg-session #app{display:block!important;}
+/* MUST stay `grid`. #app is the two-column layout (sidebar + content) and starts as
+   class="hide", so this rule is what reveals it before the first paint. Setting it to
+   `block` here overrode #app{display:grid} and collapsed the columns — the sidebar
+   stretched the full width of the screen and the menu appeared stacked down the middle
+   instead of docked on the left. */
+html.tsfg-session #app{display:grid!important;}
 
 /* ============ LOGIN GATE ============ */
 #gate{position:fixed;inset:0;z-index:1000;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px;}
