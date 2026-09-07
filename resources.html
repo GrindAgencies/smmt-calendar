@@ -209,13 +209,21 @@ html, body{ overflow-x: hidden; }
   <div class="sub">Carriers, scripts, how-to guides, your own reminders, and recorded calls — all in one place.</div>
 
   <div class="rtabs">
-    <button class="rtab on" data-t="carrier" onclick="rTab('carrier')">🏛️ Carriers</button>
+    <button class="rtab on" data-t="present" onclick="rTab('present')">🎤 Presentations</button>
+    <button class="rtab" data-t="carrier" onclick="rTab('carrier')">🏛️ Carriers</button>
     <button class="rtab" data-t="script" onclick="rTab('script')">📜 Scripts</button>
     <button class="rtab" data-t="agent" onclick="rTab('agent')">🧭 Agent Resources</button>
     <button class="rtab" data-t="training" onclick="rTab('training')">🎥 Recordings</button>
   </div>
 
-  <div class="rpanel on" id="p-carrier">
+  <!-- The two things used every day. They sat in Google Slides, outside the app, needing a
+       login and a share setting and unusable on a phone. They run from here now. -->
+  <div class="rpanel on" id="p-present">
+    <div class="hint">Your two everyday presentations, built into the app with the <b>full script in speaker notes</b> — only you see those. Works on a phone, a tablet or a shared screen.</div>
+    <div class="grid" id="presGrid"><div class="empty">Loading presentations…</div></div>
+  </div>
+
+  <div class="rpanel" id="p-carrier">
     <div class="rbar"><input class="search" id="cq" placeholder="Search carrier, rep, phone, email…" oninput="renderCarriers()"><button class="addb" onclick="editCarrier(null)">＋ Add carrier</button></div>
     <div class="hint">Every carrier — named reps, service desks &amp; portals. <b>Anyone can update</b> — tap Edit on a card to keep it current.</div>
     <div class="count" id="ccount"></div>
@@ -256,11 +264,37 @@ function mailChip(addr,label){return '<a class="chip mail" href="mailto:'+esc(ad
 function today(){return new Date().toISOString().slice(0,10);}
 
 function rTab(t){TAB=t;document.querySelectorAll('.rtab').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-t')===t);});document.querySelectorAll('.rpanel').forEach(function(p){p.classList.remove('on');});$('p-'+t).classList.add('on');
-  if(t==='carrier')loadKind('carrier',renderCarriers);
+  if(t==='present')loadPresentations();
+  else if(t==='carrier')loadKind('carrier',renderCarriers);
   else if(t==='script')loadKind('script',renderScripts);
   else if(t==='agent')loadAgent();
   else if(t==='training')loadTrainings();}
 function loadKind(kind,cb){rapi({action:'list',kind:kind}).then(function(r){DATA[kind]=(r&&r.items)||[];if(r&&r.leader)LEADER=true;cb&&cb();});}
+
+/* ---------- PRESENTATIONS ----------
+   The Client Presentation and the Hiring Interview. Stored as data (slides + speaker notes)
+   rather than a file, so a leader can fix a line of script without a deploy, and so an agent
+   can actually run the meeting from a phone. */
+var PRESAPI='https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/present-api';
+function loadPresentations(){
+  fetch(PRESAPI,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'list'})})
+   .then(function(r){return r.json();})
+   .then(function(r){
+     var g=$('presGrid'); var list=(r&&r.presentations)||[];
+     if(!list.length){ g.innerHTML='<div class="empty">No presentations yet.</div>'; return; }
+     g.innerHTML=list.map(function(p){
+       var who = p.audience==='recruit' ? 'For a potential business partner' : 'For a client';
+       return '<div class="card" style="cursor:pointer" onclick="openPres(\''+esc(p.key)+'\')">'+
+         '<div style="font-size:30px;line-height:1">'+esc(p.icon||'\ud83c\udfa4')+'</div>'+
+         '<div class="ct" style="margin-top:8px">'+esc(p.title)+'</div>'+
+         '<div class="cs">'+esc(p.subtitle||'')+'</div>'+
+         '<div class="cs" style="margin-top:8px;opacity:.8">'+esc(who)+' \u00b7 '+p.slides+' slides \u00b7 script included</div>'+
+         '<div style="margin-top:12px"><button class="addb" onclick="event.stopPropagation();openPres(\''+esc(p.key)+'\')">\u25b6 Present</button></div>'+
+       '</div>';
+     }).join('');
+   }).catch(function(){ $('presGrid').innerHTML='<div class="empty">Could not load presentations.</div>'; });
+}
+function openPres(k){ location.href='present.html?k='+encodeURIComponent(k); }
 
 /* ---------- CARRIERS ---------- */
 function carrierBlob(c){var d=c.data||{};var s=[c.title,c.category];(d.reps||[]).forEach(function(r){s.push(r.n,r.role,r.email);(r.phones||[]).forEach(function(p){s.push(p);});});(d.emails||[]).forEach(function(e){s.push(e[0],e[1]);});(d.phones||[]).forEach(function(p){s.push(p);});return s.join(' ').toLowerCase();}
@@ -529,11 +563,11 @@ function closeModal(){$('rov').classList.remove('on');}
 
 /* init */
 if(!CODE){ $('cgrid').innerHTML='<div class="empty">Please sign in on the Home page first.</div>'; }
-else { loadKind('carrier',renderCarriers); }
+else { loadPresentations(); loadKind('carrier',renderCarriers); }
 /* Deep link: the app search links straight to a tab, e.g. resources.html?tab=script */
 (function(){try{
   var t=new URLSearchParams(location.search).get('tab');
-  if(t&&['carrier','script','agent','training'].indexOf(t)>=0) rTab(t);
+  if(t&&['present','carrier','script','agent','training'].indexOf(t)>=0) rTab(t);
 }catch(e){}})();
 </script>
 <script>

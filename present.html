@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Presentation — The Standard</title>
+<link rel="icon" href="favicon-32.png">
+<style>
+/* Deliberately its own world: when an agent is presenting to a family the app chrome is a
+   distraction, and the slide has to read from across a table or over a shared screen. */
+:root{
+  --bg:#0b0f1a; --panel:#131a2b; --line:#25304a; --ink:#f4f6fb; --ink2:#a9b4cc; --ink3:#6f7c99;
+  --gold:#c99a2e; --gold-soft:rgba(201,154,46,.14); --accent:#e8c14a;
+  --font:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:var(--font);
+  -webkit-font-smoothing:antialiased;overscroll-behavior:none;}
+button{font-family:inherit;cursor:pointer;border:0;background:none;color:inherit}
+
+/* ---- top bar ---- */
+.bar{position:fixed;top:0;left:0;right:0;height:calc(52px + env(safe-area-inset-top));
+  padding:env(safe-area-inset-top) 14px 0;display:flex;align-items:center;gap:10px;
+  background:rgba(11,15,26,.86);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);z-index:30;}
+.bar .ttl{font-weight:800;font-size:14px;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar .sp{margin-left:auto}
+.bt{padding:7px 11px;border-radius:9px;border:1px solid var(--line);background:var(--panel);
+  color:var(--ink2);font-size:12.5px;font-weight:700;white-space:nowrap}
+.bt:hover{color:var(--ink);border-color:var(--gold)}
+.bt.on{background:var(--gold);color:#1a1400;border-color:var(--gold)}
+.count{font-size:12.5px;color:var(--ink3);font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* ---- the slide ---- */
+.stage{position:fixed;inset:calc(52px + env(safe-area-inset-top)) 0 0 0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;padding:5vh 6vw;text-align:center;transition:bottom .22s;}
+body.scripton .stage{bottom:38vh}
+.eyebrow{font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-bottom:18px}
+h1.st{font-size:clamp(30px,5.4vw,62px);line-height:1.08;font-weight:800;letter-spacing:-.03em;margin:0;text-wrap:balance;max-width:16ch}
+.sub{font-size:clamp(15px,1.9vw,23px);color:var(--ink2);margin:16px 0 0;font-weight:500;max-width:34ch;text-wrap:balance}
+ul.bul{list-style:none;padding:0;margin:34px 0 0;display:flex;flex-direction:column;gap:12px;text-align:left;max-width:30ch}
+ul.bul li{font-size:clamp(15px,1.75vw,21px);line-height:1.4;padding-left:26px;position:relative;color:var(--ink)}
+ul.bul li::before{content:'';position:absolute;left:0;top:.62em;width:9px;height:9px;border-radius:50%;
+  background:linear-gradient(180deg,var(--accent),var(--gold))}
+
+/* ---- speaker notes: the agent's script, never the client's ----
+   The body state class is 'scripton', NOT 'notes'. Using 'notes' for both the panel and the
+   body state made body.notes match the .notes panel rule, so <body> itself picked up
+   position:fixed and translateY(100%) and the whole page slid off screen. */
+.notes{position:fixed;left:0;right:0;bottom:0;height:38vh;background:var(--panel);
+  border-top:2px solid var(--gold);transform:translateY(100%);transition:transform .22s;z-index:25;
+  display:flex;flex-direction:column;padding-bottom:env(safe-area-inset-bottom)}
+body.scripton .notes{transform:none}
+.notes .nh{display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--line);flex:0 0 auto}
+.notes .nh b{font-size:11.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--gold)}
+.warn{font-size:11px;color:var(--ink3)}
+.notes .nb{padding:14px 18px 20px;overflow:auto;white-space:pre-wrap;font-size:15px;line-height:1.62;color:var(--ink)}
+.notes .nb:empty::after{content:'No script for this slide yet.';color:var(--ink3)}
+
+/* ---- tap zones for advancing without visible buttons ---- */
+.zone{position:fixed;top:calc(52px + env(safe-area-inset-top));bottom:0;width:22%;z-index:10}
+.zone.l{left:0} .zone.r{right:0}
+body.scripton .zone{bottom:38vh}
+
+/* ---- progress ---- */
+.prog{position:fixed;left:0;bottom:0;height:3px;background:var(--gold);z-index:40;transition:width .2s}
+body.scripton .prog{bottom:38vh}
+
+/* ---- overview / jump menu ---- */
+.ov{position:fixed;inset:0;background:rgba(6,9,16,.94);z-index:50;display:none;padding:calc(60px + env(safe-area-inset-top)) 20px 30px;overflow:auto}
+.ov.on{display:block}
+.ovg{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;max-width:1100px;margin:0 auto}
+.ovc{text-align:left;padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
+.ovc:hover{border-color:var(--gold)}
+.ovc.cur{border-color:var(--gold);background:var(--gold-soft)}
+.ovc .n{font-size:11px;font-weight:800;color:var(--ink3)}
+.ovc .t{font-size:14px;font-weight:700;margin-top:4px;line-height:1.3}
+.load{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;color:var(--ink3);font-size:14px}
+@media(max-width:700px){ body.scripton .stage{bottom:46vh} .notes{height:46vh} body.scripton .zone,body.scripton .prog{bottom:46vh} }
+@media print{ .bar,.notes,.zone,.prog,.ov{display:none!important} .stage{position:static;height:100vh;page-break-after:always} }
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <button class="bt" onclick="back()">← Exit</button>
+  <div class="ttl" id="ttl">Loading…</div>
+  <div class="sp"></div>
+  <span class="count" id="count"></span>
+  <button class="bt" id="notesBtn" onclick="toggleNotes()" title="Your script (N)">🗒️ Script</button>
+  <button class="bt" onclick="toggleOverview()" title="All slides (O)">☰</button>
+  <button class="bt" onclick="goFull()" title="Full screen (F)">⛶</button>
+</div>
+
+<div class="zone l" onclick="prev()"></div>
+<div class="zone r" onclick="next()"></div>
+
+<div class="stage" id="stage"><div class="load">Loading presentation…</div></div>
+
+<div class="notes" id="notes">
+  <div class="nh"><b>Your script</b><span class="warn">— only you see this. Hide it before sharing your screen.</span></div>
+  <div class="nb" id="nb"></div>
+</div>
+
+<div class="prog" id="prog" style="width:0"></div>
+
+<div class="ov" id="ov"><div class="ovg" id="ovg"></div></div>
+
+<script>
+var API='https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/present-api';
+var KEY=(new URLSearchParams(location.search)).get('k')||'client_presentation';
+var CODE=''; try{CODE=localStorage.getItem('tsfg_code')||'';}catch(e){}
+var P=null, I=0;
+function $(id){return document.getElementById(id);}
+function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+
+fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},
+  body:JSON.stringify({action:'get',key:KEY,code:CODE})})
+ .then(function(r){return r.json();})
+ .then(function(r){
+   if(!r||!r.ok||!r.presentation){ $('stage').innerHTML='<div class="load">Could not load this presentation.</div>'; return; }
+   P=r.presentation; document.title=P.title+' — The Standard';
+   /* Pick up where you left off, so a mis-tap or a locked phone mid-meeting is not a disaster. */
+   try{ var s=sessionStorage.getItem('pres_'+KEY); if(s!==null) I=Math.max(0,Math.min(P.slides.length-1,parseInt(s,10)||0)); }catch(e){}
+   render();
+ }).catch(function(){ $('stage').innerHTML='<div class="load">Network error.</div>'; });
+
+function render(){
+  if(!P||!P.slides||!P.slides.length) return;
+  I=Math.max(0,Math.min(P.slides.length-1,I));
+  var s=P.slides[I];
+  $('ttl').textContent=P.title;
+  $('count').textContent=(I+1)+' / '+P.slides.length;
+  var h='';
+  h+='<div class="eyebrow">'+esc(P.title)+'</div>';
+  h+='<h1 class="st">'+esc(s.t||'')+'</h1>';
+  if(s.sub) h+='<p class="sub">'+esc(s.sub)+'</p>';
+  if(s.bullets&&s.bullets.length) h+='<ul class="bul">'+s.bullets.map(function(b){return '<li>'+esc(b)+'</li>';}).join('')+'</ul>';
+  $('stage').innerHTML=h;
+  $('nb').textContent=s.notes||'';
+  $('prog').style.width=(((I+1)/P.slides.length)*100)+'%';
+  try{ sessionStorage.setItem('pres_'+KEY,String(I)); }catch(e){}
+  if($('ov').classList.contains('on')) paintOverview();
+}
+function next(){ if(P&&I<P.slides.length-1){I++;render();} }
+function prev(){ if(I>0){I--;render();} }
+function toggleNotes(){ document.body.classList.toggle('scripton'); $('notesBtn').classList.toggle('on',document.body.classList.contains('scripton')); }
+function toggleOverview(){ var o=$('ov'); o.classList.toggle('on'); if(o.classList.contains('on')) paintOverview(); }
+function paintOverview(){
+  $('ovg').innerHTML=P.slides.map(function(s,i){
+    return '<button class="ovc'+(i===I?' cur':'')+'" onclick="jump('+i+')"><div class="n">'+(i+1)+'</div><div class="t">'+esc(s.t||'')+'</div></button>';
+  }).join('');
+}
+function jump(i){ I=i; $('ov').classList.remove('on'); render(); }
+function goFull(){ try{ if(document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen(); }catch(e){} }
+function back(){ location.href='resources.html?tab=present'; }
+
+document.addEventListener('keydown',function(e){
+  if(e.key==='ArrowRight'||e.key==='PageDown'||e.key===' '){e.preventDefault();next();}
+  else if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();prev();}
+  else if(e.key==='n'||e.key==='N'){toggleNotes();}
+  else if(e.key==='o'||e.key==='O'){toggleOverview();}
+  else if(e.key==='f'||e.key==='F'){goFull();}
+  else if(e.key==='Home'){I=0;render();}
+  else if(e.key==='End'){I=P?P.slides.length-1:0;render();}
+  else if(e.key==='Escape'){ if($('ov').classList.contains('on')) toggleOverview(); }
+});
+/* Swipe, for presenting from a phone or tablet. */
+var sx=0,sy=0;
+document.addEventListener('touchstart',function(e){ if(e.touches[0]){sx=e.touches[0].clientX;sy=e.touches[0].clientY;} },{passive:true});
+document.addEventListener('touchend',function(e){
+  if(!e.changedTouches[0])return;
+  var dx=e.changedTouches[0].clientX-sx, dy=e.changedTouches[0].clientY-sy;
+  if(Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy)*1.6){ dx<0?next():prev(); }
+},{passive:true});
+</script>
+</body>
+</html>
