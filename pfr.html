@@ -437,6 +437,21 @@ function blank(){return {client:{name:'',phone:'',email:'',dob:''},
 };}
 function sum(o){var t=0;for(var k in o)t+=Number(o[k])||0;return t;}
 
+/* The D.I.M.E. method — the protection arithmetic this agency actually teaches.
+   ONE function, used by both the calculation engine and the client-facing section, so the
+   report can never show two different protection numbers. Education uses each child's real
+   entered college cost when there is one, and only falls back to the $250k rule of thumb. */
+function dimeCalc(d,liquid){
+  var inc=sum(d.income), debtAll=sum(d.debt);
+  var mortgage=Number((d.debt||{}).Mortgage)||0;
+  var otherDebt=Math.max(0,debtAll-mortgage);
+  var incomeRep=Math.round(inc*12*10);
+  var kids=((d.household||{}).kids)||[];
+  var edu=kids.reduce(function(t,k){var v=Number(k&&k.collegeCost)||0;return t+(v>0?v:250000);},0);
+  var total=otherDebt+incomeRep+mortgage+edu;
+  return {debt:otherDebt,income:incomeRep,mortgage:mortgage,edu:edu,kids:kids.length,
+          total:total,net:Math.max(0,total-(Number(liquid)||0))};
+}
 function calc(d){
   var inc=sum(d.income),exp=sum(d.expenses),deb=sum(d.debt),ast=sum(d.assets),inv=sum(d.invest);
   var netMo=inc-exp, netYr=netMo*12;
@@ -452,10 +467,12 @@ function calc(d){
   var neededMo=neededYr/12;
   var gapYr=netYr-neededYr;
   var liquid=(Number(d.assets['Savings Acct.'])||0)+(Number(d.assets['Checking'])||0)+(Number(d.invest['Stocks'])||0)+(Number(d.invest['Bonds'])||0)+(Number(d.invest['CDs'])||0);
-  var replaceYears=Math.min(Math.max(yearsLeft,10),20);
-  var insurable=Math.max(0, (inc*12*replaceYears===0? (inc*12*10):0) );
-  insurable=Math.max(0, inc*12*Math.min(replaceYears,10) + deb - liquid);
-  return {inc:inc,exp:exp,debt:deb,assets:ast,invest:inv,netMo:netMo,netYr:netYr,savingsRate:savingsRate,debtPay:debtPay,debtMonths:debtMonths,netWorth:netWorth,yearsLeft:yearsLeft,yearsRet:yearsRet,idealYr:idealYr,retireNeeded:retireNeeded,neededYr:neededYr,neededMo:neededMo,gapYr:gapYr,insurable:insurable,liquid:liquid,accredited:(liquid>=300000)};
+  /* Protection need now comes from D.I.M.E. The previous formula was income x10 + debt - liquid,
+     which silently ignored children's education entirely — it under-stated the need for exactly
+     the families who need cover most. DIME adds Education and separates Mortgage explicitly. */
+  var dime=dimeCalc(d,liquid);
+  var insurable=dime.net;
+  return {inc:inc,exp:exp,debt:deb,assets:ast,invest:inv,netMo:netMo,netYr:netYr,savingsRate:savingsRate,debtPay:debtPay,debtMonths:debtMonths,netWorth:netWorth,yearsLeft:yearsLeft,yearsRet:yearsRet,idealYr:idealYr,retireNeeded:retireNeeded,neededYr:neededYr,neededMo:neededMo,gapYr:gapYr,insurable:insurable,dime:dime,liquid:liquid,accredited:(liquid>=300000)};
 }
 
 /* ===== flow control ===== */
@@ -937,7 +954,7 @@ function setHTier(t){d().health.tier=t;scheduleSave();renderStep();}
 function setHTob(){d().health.tobacco=!d().health.tobacco;scheduleSave();renderStep();}
 function stratAIEnhance(dd,c){if(!dd)return;var box=$('stratAI');if(!box)return;
   box.innerHTML='<div class="aiscript"><h4>🤖 Live AI carrier match</h4><div class="segtx" style="color:var(--ink3)">Claude is matching carriers to this profile…</div></div>';
-  fetch('https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/ai-api',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'pfr_strategy',prompt:pfrAIContext(dd,c)})}).then(function(r){return r.json();}).then(function(r){
+  fetch('https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/ai-api',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'pfr_strategy',prompt:pfrAIContext(dd,c),pfr_id:(CUR&&CUR.id)||null,agent_code:CODE,client_name:(dd.client&&dd.client.name)||''})}).then(function(r){return r.json();}).then(function(r){
     var b=$('stratAI');if(!b)return;var a=r&&r.answer;
     if(r&&r.ok&&a&&a.length>60){b.innerHTML='<div class="aiscript"><h4>🤖 Live AI carrier match — Claude</h4><div class="segtx" style="white-space:pre-wrap">'+esc(a)+'</div><div class="aitools"><button onclick="copyLive(this)">📋 Copy</button><span class="aitag">Generated live by Claude ('+esc(r.model||'')+') · verify with the illustration</span></div></div>';}
     else{b.innerHTML='<div class="aitag" style="font-size:12px;color:var(--ink3)">Live AI unavailable right now — the top-3 above are ready to use.'+((r&&r.error)?(' ('+esc(r.error)+')'):'')+'</div>';}
@@ -977,7 +994,8 @@ function showSummary(){
    buildStrategyReport(c,dd)+
    (hasFamily(dd)?familyReport(c,dd):'')+
    existingReport(dd)+
-   buildDebtPlan(c,dd)+buildBudgetPlan(c,dd)+buildHNW(c,dd)+buildPlaybook(c,dd)+buildInternalNotes(dd)+'<div class="repbtns"><button onclick="backToGallery()">← Builder</button><button onclick="editCurrent()">Edit</button><button onclick="shareEmail()">✉ Share PDF</button><button class="prime" onclick="saveComplete()">✓ Save PFR</button></div>'+
+   buildEmergency(c,dd)+buildDIME(c,dd)+buildTaxBuckets(c,dd)+buildRollover(c,dd)+
+   buildDebtPlan(c,dd)+buildBudgetPlan(c,dd)+buildHNW(c,dd)+buildServiceMenu(c,dd)+buildPlaybook(c,dd)+buildCompliance()+buildInternalNotes(dd)+'<div class="repbtns"><button onclick="backToGallery()">← Builder</button><button onclick="editCurrent()">Edit</button><button onclick="shareEmail()">✉ Share PDF</button><button class="prime" onclick="saveComplete()">✓ Save PFR</button></div>'+
    '</div>';
 }
 var PREC={'Protect Family':['Income-replacement coverage (Term or IUL)','covers the {NEED} protection gap so the family keeps their lifestyle no matter what.'],'Retirement':['FIA or IUL for tax-advantaged retirement income','closes the {GAP}/yr gap between today’s path and the {INC}/mo retirement goal.'],'Debt Reduction':['Cash-flow restructure + policy-loan strategy','redirects part of the {SURP}/mo surplus to clear {DEBT} in debt faster.'],'Emergency Savings':['IUL cash value as a liquid safety net','builds accessible reserves without locking the money away.'],'Tax Efficiency':['IUL tax-free distributions / Roth positioning','reduces future tax drag on retirement income.'],'College Funding':['IUL college strategy (flexible vs 529)','funds education with no penalties plus a protection benefit.'],'Legacy Planning':['Permanent death benefit + beneficiary review','passes wealth efficiently to the next generation.'],'Business Planning':['Key-person / buy-sell coverage','protects the business and its partners.'],'Charitable Giving':['Legacy gift via death-benefit earmark','amplifies giving at pennies on the dollar.']};function fill(t,c,dd){return t.replace('{NEED}',money(c.insurable)).replace('{GAP}',money(Math.abs(c.gapYr))).replace('{INC}',money(dd.goal.bestMo)).replace('{SURP}',money(Math.max(0,c.netMo))).replace('{DEBT}',money(c.debt));}function buildPlaybook(c,dd){var top=dd.priorities.slice(0,3);var fn=(dd.client.name||'The client').split(' ')[0];var conf=(FACES[dd.confidence-1]||['','set'])[1].toLowerCase();var recs=top.map(function(pr){var r=PREC[pr]||['Tailored strategy','aligns with what they told you.'];return '<div class="pbrec"><div class="n" style="width:26px;height:26px;border-radius:8px;background:var(--gold-soft);color:var(--gold);font-weight:800;display:flex;align-items:center;justify-content:center;flex:0 0 auto">★</div><div><div class="pri">'+esc(pr)+'</div><div class="sol">'+esc(r[0])+'</div><div class="wy">Why it lands: '+esc(fill(r[1],c,dd))+'</div></div></div>';}).join('');var lead=top[0]||'their goals';var steps=[['1','<b>Reflect what you heard.</b> “'+fn+', you told me <b>'+esc(lead)+'</b> matters most and you’re '+conf+' about the current plan — did I get that right?”'],['2','<b>Connect the gap to the goal.</b> “Your review shows about a <b>'+money(Math.abs(c.gapYr))+'/yr</b> gap and <b>'+money(c.insurable)+'</b> of protection need — that’s the distance between the retirement you described and today’s path.”'],['3','<b>Present the conservative strategy.</b> “There’s a strategy built around <b>'+esc((PREC[lead]||['a tailored solution'])[0])+'</b> designed to close that gap and protect your family — with no market risk to your principal.”'],['4','<b>Assume the next step.</b> '+(dd.advisor&&dd.advisor.indexOf('Yes')===0?'“Let’s get your illustration started — I’ll grab your date of birth and a quick health snapshot so I can show you real numbers.”':'“Let’s put 20 minutes on the calendar to walk through the illustration together — no pressure, just the numbers.”')]];return '<div class="sec"><h2>Advisor Playbook — Recommended Next Steps</h2>'+'<div class="obs neu" style="padding-top:0"><div class="ic">🧭</div><div class="ot"><b>'+esc(fn)+'</b> ranked <b>'+top.map(esc).join(', ')+'</b> highest and is '+conf+'. Lead with <b>'+esc(lead)+'</b>, tie every point back to it, and let the gap do the selling.</div></div>'+'<div style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin:16px 0 10px">Recommended solutions</div>'+recs+'<div style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin:18px 0 8px">Discovery → Close sequence</div>'+steps.map(function(x){return '<div class="pbstep"><div class="n">'+x[0]+'</div><div class="t">'+x[1]+'</div></div>';}).join('')+'<div style="margin-top:16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button class="aibtn" onclick="aiScript()">✨ Generate AI discovery script</button><span style="font-size:11.5px;color:var(--ink3)">Powered by @Question AI</span></div><div id="aiBox"></div>'+'</div>';}function aiScript(){
@@ -1029,7 +1047,7 @@ function pfrAIContext(dd,c){
 function aiEnhance(dd,c){
   var tag=$('aiTag'); if(tag)tag.textContent='🤖 Claude is analyzing this PFR…';
   var prompt=pfrAIContext(dd,c);
-  fetch('https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/ai-api',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'pfr_ai',prompt:prompt})}).then(function(r){return r.json();}).then(function(r){
+  fetch('https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/ai-api',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'pfr_ai',prompt:prompt,pfr_id:(CUR&&CUR.id)||null,agent_code:CODE,client_name:(dd.client&&dd.client.name)||''})}).then(function(r){return r.json();}).then(function(r){
     if(!tag)return; var a=r&&r.answer;
     if(r&&r.ok&&a&&a.length>140){
       var live=document.createElement('div'); live.className='aiscript'; live.style.marginTop='10px';
@@ -1059,6 +1077,132 @@ function buildDebtPlan(c,dd){
     '<div style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin:16px 0 8px">Snowball payoff order (fastest momentum)</div>'+rows+
     '<div class="obs neu" style="margin-top:12px"><div class="ic">🧭</div><div class="ot">Put <b>'+money(pay)+'/mo</b> toward debt using the snowball above. As each balance clears, add its payment to the next — the payoff accelerates. A policy-loan / IUL strategy can also restructure high-interest debt so you’re paying yourself back instead of the bank.</div></div></div>';
 }
+/* ===== Client-facing sections added 2026-09-07 =====
+   Source: GRIND Field Training Slides — "Client Service Menu" and the frameworks the agency
+   actually teaches. These read as the FAMILY's report, not an internal worksheet, and every
+   number below is derived from what the client already entered — nothing is invented. */
+
+/* Where their money sits, in the three tax buckets the agency teaches. */
+function taxBuckets(dd){
+  var iv=dd.invest||{}, as=dd.assets||{};
+  var now = (Number(as['Savings Acct.'])||0)+(Number(as['Checking'])||0)+(Number(iv.CDs)||0)+(Number(iv.Bonds)||0)+(Number(iv.Crypto)||0)+(Number(iv.Stocks)||0);
+  var later = (Number(iv.TSP)||0)+(Number(iv['401k'])||0)+(Number(iv['Trad. IRA'])||0)+(Number(iv['403B'])||0)+(Number(iv['457'])||0);
+  var adv = (Number(iv['Roth IRA'])||0)+(Number(iv.IUL)||0)+(Number(iv.FIA)||0);
+  return {now:now, later:later, adv:adv, total:now+later+adv};
+}
+function buildTaxBuckets(c,dd){
+  var b=taxBuckets(dd); if(b.total<=0) return '';
+  var pct=function(v){return b.total>0?Math.round(v/b.total*100):0;};
+  var bar=function(label,val,cls,note){
+    return '<div style="margin-bottom:10px">'+
+      '<div style="display:flex;justify-content:space-between;font-size:13px;font-weight:700;margin-bottom:4px"><span>'+label+'</span><span>'+money(val)+' · '+pct(val)+'%</span></div>'+
+      '<div style="height:9px;border-radius:6px;background:var(--line,#e6e6ea);overflow:hidden"><div style="height:100%;width:'+pct(val)+'%;background:'+cls+'"></div></div>'+
+      '<div class="qsub" style="margin:4px 0 0;font-size:12px">'+note+'</div></div>';
+  };
+  var msg = b.adv===0
+    ? 'Right now <b>none</b> of your money is in the tax-advantaged bucket. That is the single biggest thing this plan can change for you.'
+    : (pct(b.adv)<25 ? 'Only <b>'+pct(b.adv)+'%</b> of your money is in the tax-advantaged bucket — there is room to shift the balance.'
+                     : 'You already have <b>'+pct(b.adv)+'%</b> working in the tax-advantaged bucket. That is ahead of most families.');
+  return '<div class="sec"><h2>🧾 Where Your Money Sits Today</h2>'+
+    '<p class="qsub" style="margin:0 0 14px">It is not just how much you make — it is how much you <b>keep</b>. Every dollar you save lives in one of three buckets, and they are taxed very differently.</p>'+
+    bar('Taxed now', b.now, 'linear-gradient(90deg,#e0533d,#f0a08e)', 'Savings, checking, CDs, bonds, stocks, crypto — you pay tax on the growth as it happens.')+
+    bar('Taxed later', b.later, 'linear-gradient(90deg,#c99a2e,#ffe08a)', '401(k), 403(b), 457, TSP, traditional IRA — no tax now, but you pay at withdrawal, at whatever rates apply then.')+
+    bar('Tax advantaged', b.adv, 'linear-gradient(90deg,#34b57d,#8fe8bf)', 'Roth, and indexed cash value — grows and comes out tax-free when structured correctly.')+
+    '<div class="obs '+(b.adv>0?'neu':'neg')+'" style="margin-top:6px"><div class="ic">'+(b.adv>0?'📊':'⚠️')+'</div><div class="ot">'+msg+' Nobody knows what tax rates will be when you retire — the tax-advantaged bucket is the one where that question stops mattering.</div></div></div>';
+}
+
+/* 3–6 months of expenses, liquid. Step 2 of the 6 Steps to Financial Independence. */
+function buildEmergency(c,dd){
+  if(c.exp<=0) return '';
+  var months = c.exp>0 ? (c.liquid/c.exp) : 0;
+  var lo=Math.round(c.exp*3), hi=Math.round(c.exp*6);
+  var ok = months>=3, close = months>=1.5 && months<3;
+  var short = Math.max(0, lo-c.liquid);
+  return '<div class="sec"><h2>🛟 Your Emergency Fund</h2>'+
+    '<p class="qsub" style="margin:0 0 12px">Before anything else is built, you want 3–6 months of expenses somewhere safe and reachable. It is what keeps one bad month from undoing years of progress.</p>'+
+    '<div class="stats">'+
+      '<div class="stat"><div class="l">You have liquid</div><div class="v">'+money(c.liquid)+'</div></div>'+
+      '<div class="stat'+(ok?' accent':'')+'"><div class="l">That covers</div><div class="v">'+(months>=10?'10+':(Math.round(months*10)/10))+' mo</div></div>'+
+      '<div class="stat"><div class="l">Target (3–6 mo)</div><div class="v">'+money(lo)+'–'+money(hi)+'</div></div>'+
+    '</div>'+
+    '<div class="obs '+(ok?'pos':(close?'neu':'neg'))+'" style="margin-top:12px"><div class="ic">'+(ok?'✅':(close?'📈':'⚠️'))+'</div><div class="ot">'+
+      (ok ? 'Your reserve is where it should be. That is the foundation in place — we can build on it.'
+          : 'You are about <b>'+money(short)+'</b> short of a three-month cushion. Building this comes before any new long-term commitment, and it can sit in an account that still earns for you rather than doing nothing.')+
+    '</div></div></div>';
+}
+
+/* An old employer plan is the easiest win on the menu: repositioning costs nothing out of pocket. */
+function buildRollover(c,dd){
+  var iv=dd.invest||{};
+  var elig=[['401k','401(k)'],['403B','403(b)'],['457','457'],['TSP','TSP'],['Trad. IRA','Traditional IRA']]
+    .map(function(k){return {key:k[0],label:k[1],val:Number(iv[k[0]])||0};}).filter(function(x){return x.val>0;});
+  if(!elig.length) return '';
+  var total=elig.reduce(function(t,x){return t+x.val;},0);
+  return '<div class="sec"><h2>🔄 Money You Can Reposition — At No Cost</h2>'+
+    '<p class="qsub" style="margin:0 0 12px">You are holding <b>'+money(total)+'</b> in '+
+      (elig.length===1 ? ('your '+esc(elig[0].label))
+                       : elig.map(function(x){return esc(x.label)+' ('+money(x.val)+')';}).join(', '))+'.</p>'+
+    '<div class="obs neu"><div class="ic">💡</div><div class="ot">If any of this sits with a <b>former</b> employer, it can usually be moved into an indexed account with <b>no fees, no penalties and no taxes</b> — because nothing is being cashed out, only repositioned. It costs you nothing out of pocket, and it changes the money from something that can lose value in a bad year to something with a floor under it. Some of these accounts also pay a bonus on transfer. This is normally the first thing worth looking at, precisely because it does not touch your monthly budget.</div></div>'+
+    '<div class="obs neu" style="margin-top:8px"><div class="ic">🔎</div><div class="ot">Worth asking about your current plan: <b>G.R.I.P.P.</b> — <b>G</b>uarantees, <b>R</b>ate of return, <b>I</b>ndexed growth, <b>P</b>ension-like income, <b>P</b>otential bonuses. If your current account cannot answer those five, it is worth a second look.</div></div></div>';
+}
+
+/* The DIME method, shown openly so the number is defensible rather than asserted. */
+function buildDIME(c,dd){
+  if(c.inc<=0) return '';
+  var m=c.dime||dimeCalc(dd,c.liquid);
+  var kids=m.kids;
+  var row=function(l,v,note){return '<div style="display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--line,#eee)"><span style="font-size:13px"><b>'+l+'</b><br><span class="qsub" style="font-size:11.5px">'+note+'</span></span><span style="font-weight:800;white-space:nowrap">'+money(v)+'</span></div>';};
+  return '<div class="sec"><h2>🛡️ How Much Protection Your Family Actually Needs</h2>'+
+    '<p class="qsub" style="margin:0 0 12px">This is the D.I.M.E. method — the same arithmetic used across the industry. Nothing here is a guess; it is your own numbers added up.</p>'+
+    row('D — Debt', m.debt, 'Cards, auto and personal loans, so nobody inherits them')+
+    row('I — Income', m.income, '10 years of your '+money(c.inc)+'/mo, so the household keeps running')+
+    row('M — Mortgage', m.mortgage, m.mortgage>0?'So the family keeps the home':'No mortgage on record')+
+    row('E — Education', m.edu, kids? (kids+' child'+(kids>1?'ren':'')+', at what you told us college will cost') : 'No children on record')+
+    '<div style="display:flex;justify-content:space-between;padding:10px 0 7px;border-bottom:1px solid var(--line,#eee);font-size:14px"><b>Total need</b><b>'+money(m.total)+'</b></div>'+
+    row('Less what you already have', Math.min(c.liquid||0, m.total), 'Savings and investments you could reach today')+
+    '<div style="display:flex;justify-content:space-between;padding:12px 0 0;font-size:15px"><b>Protection to put in place</b><b>'+money(m.net)+'</b></div>'+
+    '<div class="obs neu" style="margin-top:12px"><div class="ic">❤️</div><div class="ot">Ask about <b>living benefits</b>. Traditional life insurance only pays out when you die — living benefits let you reach that money <b>while you are alive</b> if you face a critical, chronic or terminal illness. Around two thirds of bankruptcies are tied to medical costs, and this is the part that protects you from that, not just your family afterwards.</div></div></div>';
+}
+
+/* The whole menu, so the family can see everything that was considered on their behalf. */
+function buildServiceMenu(c,dd){
+  var iv=dd.invest||{}, dbt=dd.debt||{};
+  var hasRoll=((Number(iv['401k'])||0)+(Number(iv['403B'])||0)+(Number(iv['457'])||0)+(Number(iv.TSP)||0)+(Number(iv['Trad. IRA'])||0))>0;
+  var badDebt=(Number(dbt['Credit Cards'])||0)+(Number(dbt['Personal Loan'])||0)+(Number(dbt['Payday Loans'])||0)+(Number(dbt['Auto Loan'])||0);
+  var kids=((dd.household||{}).kids||[]).length;
+  var months=c.exp>0?(c.liquid/c.exp):0;
+  var biz=(Number((dd.assets||{}).Businesses)||0)>0;
+  var items=[
+    ['💵','Cash Flow','Making the plan work on the income you have — and, if you want it, a way to add to it.', c.netMo<=0 || c.savingsRate<0.1],
+    ['🔄','Asset Protection & Rollovers','Repositioning an old retirement account at no cost to you.', hasRoll],
+    ['📊','Budget & Debt Management','A budget that holds, and the fastest honest route out of debt.', badDebt>0 || months<3],
+    ['🛡️','Proper Protection','Life cover with living benefits, plus a will and trust.', true],
+    ['🏛️','Retirement & Pension Planning','Indexed, tax-advantaged income you cannot outlive.', true],
+    ['🏢','Advanced & Business Planning','Business and real-estate strategies, Section 162 plans.', biz || c.accredited]
+  ];
+  var applies=items.filter(function(x){return x[3];});
+  var later=items.filter(function(x){return !x[3];});
+  var card=function(x,on){
+    return '<div style="display:flex;gap:10px;padding:10px 12px;border:1px solid '+(on?'var(--gold,#c99a2e)':'var(--line,#e6e6ea)')+';border-radius:12px;background:'+(on?'var(--gold-soft,rgba(201,154,46,.08))':'transparent')+';margin-bottom:8px;'+(on?'':'opacity:.62')+'">'+
+      '<div style="font-size:19px;line-height:1.2">'+x[0]+'</div>'+
+      '<div><div style="font-weight:800;font-size:13.5px">'+esc(x[1])+(on?'':' <span class="qsub" style="font-weight:600">— not needed today</span>')+'</div>'+
+      '<div class="qsub" style="font-size:12.5px;margin-top:2px">'+esc(x[2])+'</div></div></div>';
+  };
+  return '<div class="sec"><h2>🤝 Everything We Can Help You With</h2>'+
+    '<p class="qsub" style="margin:0 0 14px">We are not tied to one company, so we are not here to sell you one product. These are the six areas we help families with — here is which ones actually apply to you right now, and which ones do not.</p>'+
+    applies.map(function(x){return card(x,true);}).join('')+
+    (later.length?('<div class="qsub" style="margin:14px 0 8px;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.05em">Considered, not needed today</div>'+later.map(function(x){return card(x,false);}).join('')):'')+
+    '</div>';
+}
+
+function buildCompliance(){
+  return '<div class="sec" style="background:transparent;border:1px dashed var(--line2,#d7d7de)">'+
+    '<p class="qsub" style="margin:0;font-size:11.5px;line-height:1.6">'+
+    'All figures in this review are <b>estimates for illustration only</b>, based on the information provided, and are not guarantees. Actual results vary by carrier, product, underwriting and market conditions. Products are offered through independent, non-captive carrier relationships. '+
+    'Tax and/or legal advice is not offered by Global Financial Impact, LLC, its affiliated companies, nor its independent associates — please consult your own tax professional or attorney for guidance on tax or legal matters.'+
+    '</p></div>';
+}
+
 function buildBudgetPlan(c,dd){
   var inc=c.inc; if(inc<=0) return '';
   // recommended long-term allocation (needs 50% / wants 30% / save-invest 20%, adjusted if debt-heavy)
