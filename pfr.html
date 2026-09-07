@@ -982,9 +982,6 @@ function showSummary(){
    '<div class="sec"><h2>Cash Flow Overview</h2><div class="krow">'+
      kv('Monthly income',money(c.inc))+kv('Monthly expenses',money(c.exp))+kvc('Remaining cash flow',money(c.netMo),c.netMo>=0)+kv('Savings rate',Math.round(c.savingsRate*100)+'%')+
    '</div></div>'+
-   '<div class="sec"><h2>Financial Snapshot</h2><div class="krow">'+
-     kv('Total assets',money(c.assets))+kv('Total investments',money(c.invest))+kv('Total debt',money(c.debt))+kv('Net worth',money(c.netWorth))+
-   '</div></div>'+
    '<div class="sec"><h2>Retirement Gap</h2><div class="krow">'+
      kv('Nest egg needed',money(c.retireNeeded))+kv('Needed / year',money(c.neededYr))+kvc('Annual '+(c.gapYr<0?'shortfall':'surplus'),money(Math.abs(c.gapYr)),c.gapYr>=0)+kv('Est. insurable need',money(c.insurable))+
    '</div></div>'+
@@ -995,7 +992,7 @@ function showSummary(){
    (hasFamily(dd)?familyReport(c,dd):'')+
    existingReport(dd)+
    buildEmergency(c,dd)+buildDIME(c,dd)+buildTaxBuckets(c,dd)+buildRollover(c,dd)+
-   buildDebtPlan(c,dd)+buildBudgetPlan(c,dd)+buildHNW(c,dd)+buildServiceMenu(c,dd)+buildPlaybook(c,dd)+buildCompliance()+buildInternalNotes(dd)+'<div class="repbtns"><button onclick="backToGallery()">← Builder</button><button onclick="editCurrent()">Edit</button><button onclick="shareEmail()">✉ Share PDF</button><button class="prime" onclick="saveComplete()">✓ Save PFR</button></div>'+
+   buildBudgetBreakdown(c,dd)+buildDebtPlan(c,dd)+buildActionBudget(c,dd)+buildBudgetPlan(c,dd)+buildHNW(c,dd)+buildServiceMenu(c,dd)+buildPlaybook(c,dd)+buildCompliance()+buildInternalNotes(dd)+'<div class="repbtns"><button onclick="backToGallery()">← Builder</button><button onclick="editCurrent()">Edit</button><button onclick="shareEmail()">✉ Share PDF</button><button class="prime" onclick="saveComplete()">✓ Save PFR</button></div>'+
    '</div>';
 }
 var PREC={'Protect Family':['Income-replacement coverage (Term or IUL)','covers the {NEED} protection gap so the family keeps their lifestyle no matter what.'],'Retirement':['FIA or IUL for tax-advantaged retirement income','closes the {GAP}/yr gap between today’s path and the {INC}/mo retirement goal.'],'Debt Reduction':['Cash-flow restructure + policy-loan strategy','redirects part of the {SURP}/mo surplus to clear {DEBT} in debt faster.'],'Emergency Savings':['IUL cash value as a liquid safety net','builds accessible reserves without locking the money away.'],'Tax Efficiency':['IUL tax-free distributions / Roth positioning','reduces future tax drag on retirement income.'],'College Funding':['IUL college strategy (flexible vs 529)','funds education with no penalties plus a protection benefit.'],'Legacy Planning':['Permanent death benefit + beneficiary review','passes wealth efficiently to the next generation.'],'Business Planning':['Key-person / buy-sell coverage','protects the business and its partners.'],'Charitable Giving':['Legacy gift via death-benefit earmark','amplifies giving at pennies on the dollar.']};function fill(t,c,dd){return t.replace('{NEED}',money(c.insurable)).replace('{GAP}',money(Math.abs(c.gapYr))).replace('{INC}',money(dd.goal.bestMo)).replace('{SURP}',money(Math.max(0,c.netMo))).replace('{DEBT}',money(c.debt));}function buildPlaybook(c,dd){var top=dd.priorities.slice(0,3);var fn=(dd.client.name||'The client').split(' ')[0];var conf=(FACES[dd.confidence-1]||['','set'])[1].toLowerCase();var recs=top.map(function(pr){var r=PREC[pr]||['Tailored strategy','aligns with what they told you.'];return '<div class="pbrec"><div class="n" style="width:26px;height:26px;border-radius:8px;background:var(--gold-soft);color:var(--gold);font-weight:800;display:flex;align-items:center;justify-content:center;flex:0 0 auto">★</div><div><div class="pri">'+esc(pr)+'</div><div class="sol">'+esc(r[0])+'</div><div class="wy">Why it lands: '+esc(fill(r[1],c,dd))+'</div></div></div>';}).join('');var lead=top[0]||'their goals';var steps=[['1','<b>Reflect what you heard.</b> “'+fn+', you told me <b>'+esc(lead)+'</b> matters most and you’re '+conf+' about the current plan — did I get that right?”'],['2','<b>Connect the gap to the goal.</b> “Your review shows about a <b>'+money(Math.abs(c.gapYr))+'/yr</b> gap and <b>'+money(c.insurable)+'</b> of protection need — that’s the distance between the retirement you described and today’s path.”'],['3','<b>Present the conservative strategy.</b> “There’s a strategy built around <b>'+esc((PREC[lead]||['a tailored solution'])[0])+'</b> designed to close that gap and protect your family — with no market risk to your principal.”'],['4','<b>Assume the next step.</b> '+(dd.advisor&&dd.advisor.indexOf('Yes')===0?'“Let’s get your illustration started — I’ll grab your date of birth and a quick health snapshot so I can show you real numbers.”':'“Let’s put 20 minutes on the calendar to walk through the illustration together — no pressure, just the numbers.”')]];return '<div class="sec"><h2>Advisor Playbook — Recommended Next Steps</h2>'+'<div class="obs neu" style="padding-top:0"><div class="ic">🧭</div><div class="ot"><b>'+esc(fn)+'</b> ranked <b>'+top.map(esc).join(', ')+'</b> highest and is '+conf+'. Lead with <b>'+esc(lead)+'</b>, tie every point back to it, and let the gap do the selling.</div></div>'+'<div style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin:16px 0 10px">Recommended solutions</div>'+recs+'<div style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin:18px 0 8px">Discovery → Close sequence</div>'+steps.map(function(x){return '<div class="pbstep"><div class="n">'+x[0]+'</div><div class="t">'+x[1]+'</div></div>';}).join('')+'<div style="margin-top:16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button class="aibtn" onclick="aiScript()">✨ Generate AI discovery script</button><span style="font-size:11.5px;color:var(--ink3)">Powered by @Question AI</span></div><div id="aiBox"></div>'+'</div>';}function aiScript(){
@@ -1041,6 +1038,17 @@ function pfrAIContext(dd,c){
     if(h.type==='joint'){L.push('MARRIED / JOINT household. Spouse monthly income '+money((h.spouse&&h.spouse.incomeMo)||0)+'. Estimated household protection need '+money(fp.total)+' (client '+money(c.insurable)+' + spouse income replacement '+money(fp.spouseNeed)+').');}
     if(h.kids&&h.kids.length){L.push(h.kids.length+' child(ren). Total estimated college cost '+money(fp.eduNeed)+'. Discuss a family plan: Million Dollar Baby (child IUL) vs 529 for each child, side by side. Child IUL locks in insurability at a young age, grows tax-advantaged cash value usable for ANY purpose with no penalty, and is permanent; a 529 grows tax-free but ONLY for qualified education and penalizes non-education withdrawals. Present both neutrally and let the family choose.');}
   }
+  try{
+    var _b=budgetReview(dd&&dd.expenses?c:c,dd);
+    var _f=_b.rows.filter(function(x){return x.flag;});
+    if(_f.length){
+      L.push('BUDGET REVIEW vs a typical household of '+_b.size+' — running about '+money(_b.overTotal)+'/mo high on: '+
+        _f.map(function(x){return x.k+' ('+money(x.spend)+' vs '+money(x.bench)+')';}).join(', ')+
+        '. A realistic recovery is about '+money(_b.savings)+'/mo without a lifestyle change. Name these specific cuts in plain language and say what the freed money should DO, in order: clear high-interest debt, build a 3-month reserve, protect the family, then grow.');
+    } else {
+      L.push('BUDGET REVIEW: spending is broadly in line with a typical household of '+_b.size+' — there is no easy fat to cut, so the plan must come from the existing surplus of '+money(Math.max(0,c.netMo))+'/mo. Say that honestly rather than inventing savings.');
+    }
+  }catch(e){}
   if(dd.advisor)L.push('Client response when asked to learn more: '+dd.advisor);
   return L.join('\n');
 }
@@ -1201,6 +1209,116 @@ function buildCompliance(){
     'All figures in this review are <b>estimates for illustration only</b>, based on the information provided, and are not guarantees. Actual results vary by carrier, product, underwriting and market conditions. Products are offered through independent, non-captive carrier relationships. '+
     'Tax and/or legal advice is not offered by Global Financial Impact, LLC, its affiliated companies, nor its independent associates — please consult your own tax professional or attorney for guidance on tax or legal matters.'+
     '</p></div>';
+}
+
+/* ===== The budget breakdown (2026-09-07) =====
+   The report used to end on a generic 50/30/20 split, which tells a family nothing they could
+   act on. This compares what they ACTUALLY spend, line by line, against what a household their
+   size typically spends, and names the specific, painless cuts with real dollar figures.
+
+   The benchmarks are typical US household monthly figures, scaled by household size where the
+   category depends on it. They are reference points for a conversation, not gospel — the report
+   says so, because a family in San Diego and a family in Ohio do not spend the same on rent. */
+var BENCH = {
+  'Mortgage/Rent': {pctOfIncome:0.28, note:'Housing above about 28% of income squeezes everything else'},
+  'Property Tax':  {skip:true},
+  'HOA':           {skip:true},
+  'Utilities':     {base:430, note:'Electric, water, gas, trash'},
+  'Phone':         {base:140, cut:'Moving to a low-cost carrier (Mint, Visible, US Mobile) usually runs $25–40 a line'},
+  'Internet':      {base:75,  cut:'Ask for the promotional rate or drop one speed tier — typically saves $20–30 a month'},
+  'Groceries':     {perPerson:290, note:'Roughly $290 per person'},
+  'Subscriptions': {base:90,  cut:'Audit them together — most households find two or three nobody uses'},
+  'Insurances':    {base:300, cut:'Re-shopping auto and home every couple of years commonly saves 10–20%'},
+  'Gas':           {base:200},
+  'Childcare':     {perChild:700, note:'Varies enormously by area'},
+  'Pets':          {base:100},
+  'Petty Cash':    {base:300, cut:'Dining out and incidentals — usually the biggest painless cut available'},
+  'Debt Payments': {skip:true},
+  'Unforeseen':    {skip:true}
+};
+function householdSize(dd){
+  var h=dd.household||{};
+  return 1 + (h.type==='joint'?1:0) + (((h.kids)||[]).length);
+}
+function budgetReview(c,dd){
+  var size=householdSize(dd), kids=(((dd.household||{}).kids)||[]).length;
+  var rows=[], overTotal=0, savings=0;
+  for(var k in (dd.expenses||{})){
+    var spend=Number(dd.expenses[k])||0; if(spend<=0) continue;
+    var b=BENCH[k]; if(!b||b.skip){ rows.push({k:k,spend:spend,bench:null}); continue; }
+    var bench=0;
+    if(b.pctOfIncome) bench=Math.round(c.inc*b.pctOfIncome);
+    else if(b.perPerson) bench=Math.round(b.perPerson*size);
+    else if(b.perChild) bench=Math.round(b.perChild*Math.max(1,kids));
+    else bench=b.base;
+    var over=spend-bench;
+    /* Only flag a category when it is meaningfully above the benchmark — a few dollars over
+       is noise, and calling it out makes the whole report feel like nitpicking. */
+    var flag = bench>0 && over>0 && (over/bench)>=0.2 && over>=25;
+    if(flag){ overTotal+=over; if(b.cut) savings+=Math.round(over*0.6); }
+    rows.push({k:k,spend:spend,bench:bench,over:over,flag:flag,cut:b.cut||'',note:b.note||''});
+  }
+  rows.sort(function(a,b){return (b.flag?1:0)-(a.flag?1:0) || (b.over||0)-(a.over||0);});
+  return {rows:rows,overTotal:Math.round(overTotal),savings:Math.round(savings),size:size};
+}
+function buildBudgetBreakdown(c,dd){
+  if(c.inc<=0||c.exp<=0) return '';
+  var r=budgetReview(c,dd);
+  var flagged=r.rows.filter(function(x){return x.flag;});
+  var fn=(dd.client.name||'').split(' ')[0]||'you';
+  var row=function(x){
+    var right = x.bench===null ? '<span class="qsub" style="font-size:12px">—</span>'
+      : ('<span style="font-size:12.5px;color:var(--ink3)">typical '+money(x.bench)+'</span>');
+    var badge = x.flag ? '<span style="font-size:11px;font-weight:800;color:#d6543c;white-space:nowrap"> +'+money(x.over)+' over</span>' : '';
+    return '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:8px 0;border-bottom:1px solid var(--line,#eee)">'+
+      '<span style="font-size:13.5px"><b>'+esc(x.k)+'</b>'+badge+
+        (x.flag&&x.cut?('<br><span class="qsub" style="font-size:11.5px">'+esc(x.cut)+'</span>'):'')+'</span>'+
+      '<span style="text-align:right;white-space:nowrap"><b>'+money(x.spend)+'</b><br>'+right+'</span></div>';
+  };
+  var head = flagged.length
+    ? 'Compared with a typical household of '+r.size+', '+esc(fn)+' is running about <b>'+money(r.overTotal)+'</b> a month high across '+flagged.length+' categor'+(flagged.length===1?'y':'ies') +'. None of these require a lifestyle change — they are mostly a phone call.'
+    : 'Compared with a typical household of '+r.size+', the spending here is in good shape. There is no obvious fat to cut, so the plan has to come from what is already there.';
+  return '<div class="sec"><h2>📋 Where Your Money Goes</h2>'+
+    '<p class="qsub" style="margin:0 0 6px">'+head+'</p>'+
+    '<p class="qsub" style="margin:0 0 14px;font-size:11.5px">Benchmarks are typical US household figures scaled to your household size — a starting point for the conversation, not a rule. Costs vary a lot by area.</p>'+
+    r.rows.map(row).join('')+
+    (r.savings>0 ? ('<div class="obs pos" style="margin-top:14px"><div class="ic">💡</div><div class="ot">Working through just the flagged lines, a realistic recovery is around <b>'+money(r.savings)+' a month</b> — about <b>'+money(r.savings*12)+' a year</b> — without changing how you live.</div></div>') : '')+
+    '</div>';
+}
+/* What the money should DO once it is found. This is the part that turns a budget into a plan. */
+function buildActionBudget(c,dd){
+  if(c.inc<=0) return '';
+  var r=budgetReview(c,dd);
+  var found=Math.max(0,r.savings);
+  var available=Math.max(0,c.netMo)+found;
+  var months=c.exp>0?(c.liquid/c.exp):0;
+  var lo=Math.round(c.exp*3);
+  var reserveGap=Math.max(0,lo-c.liquid);
+  var dbt=dd.debt||{};
+  var highInt=(Number(dbt['Credit Cards'])||0)+(Number(dbt['Payday Loans'])||0);
+  /* Protection is sized to what they can actually sustain, never to what looks impressive. */
+  var protect=Math.max(35,Math.min(Math.round(available*0.25), Math.round(c.inc*0.06)));
+  var steps=[]; var left=available;
+  if(highInt>0){ var toDebt=Math.round(Math.min(left*0.4,left)); steps.push(['1','Clear the expensive debt first',money(toDebt)+'/mo','You are carrying '+money(highInt)+' at credit-card rates. Every month that sits there costs more than almost any plan can earn. Highest rate first — the avalanche method.']); left-=toDebt; }
+  if(reserveGap>0){ var toRes=Math.round(Math.min(left*0.5,reserveGap/6)); if(toRes>0){ steps.push([String(steps.length+1),'Build the safety net',money(toRes)+'/mo','You have about '+(Math.round(months*10)/10)+' months of expenses set aside. Getting to three months ('+money(lo)+') means one bad month never undoes the rest of this.']); left-=toRes; } }
+  if(available>0){ steps.push([String(steps.length+1),'Protect the family',money(Math.min(protect,Math.max(0,left)))+'/mo','Cover sized to your budget, not to a sales target — and with living benefits, so the money is reachable if you get sick, not only if you die.']); left-=Math.min(protect,Math.max(0,left)); }
+  if(left>25){ steps.push([String(steps.length+1),'Then build wealth',money(Math.round(left))+'/mo','Once the first three are handled, this is what compounds — in a tax-advantaged account, where a down year costs you nothing.']); }
+  if(!steps.length) return '';
+  return '<div class="sec" style="border:1px solid var(--gold,#c99a2e);background:var(--gold-soft,rgba(201,154,46,.06))"><h2>🎯 Your Working Budget From Here</h2>'+
+    '<div class="stats" style="margin-bottom:6px">'+
+      '<div class="stat"><div class="l">Left over today</div><div class="v">'+money(Math.max(0,c.netMo))+'</div></div>'+
+      (found>0?('<div class="stat"><div class="l">Could be recovered</div><div class="v">+'+money(found)+'</div></div>'):'')+
+      '<div class="stat accent"><div class="l">To work with</div><div class="v">'+money(available)+'</div></div>'+
+    '</div>'+
+    '<p class="qsub" style="margin:10px 0 14px">In this order — each step only starts once the one above it is handled.</p>'+
+    steps.map(function(s){
+      return '<div style="display:flex;gap:12px;padding:11px 0;border-bottom:1px solid var(--line,#eee)">'+
+        '<div style="width:26px;height:26px;border-radius:8px;background:var(--gold-soft);color:var(--gold);font-weight:800;display:flex;align-items:center;justify-content:center;flex:0 0 auto;font-size:13px">'+s[0]+'</div>'+
+        '<div><div style="font-weight:800;font-size:14px">'+esc(s[1])+' <span style="color:var(--gold)">· '+esc(s[2])+'</span></div>'+
+        '<div class="qsub" style="font-size:12.5px;margin-top:3px">'+esc(s[3])+'</div></div></div>';
+    }).join('')+
+    '<div class="obs neu" style="margin-top:14px"><div class="ic">🧭</div><div class="ot">This is the whole picture, not a product. If only one line of it ever happens, make it the one that protects the people who depend on you — that is the piece you cannot buy back later once health changes.</div></div>'+
+    '</div>';
 }
 
 function buildBudgetPlan(c,dd){
