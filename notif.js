@@ -1473,3 +1473,58 @@ window.tsfgTrack = function (kind, detail) {
   else start();
 })();
 
+
+/* ==========================================================================
+   ERROR REPORTING  (2026-09-07)
+   --------------------------------------------------------------------------
+   Nothing recorded client-side failures, so a page that threw for an agent was
+   invisible until somebody complained — the Home sidebar filling the screen sat
+   live until it was reported by hand. Every page loads this file, so every page
+   now reports.
+
+   Deliberately quiet: at most a handful of reports per page-load, each distinct
+   message only once per session, and it never interferes with the page. It is
+   telemetry, not a feature — if it fails, nothing else should notice.
+   ========================================================================== */
+(function () {
+  var DESK = 'https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/desk';
+  var sent = {};                 /* one report per distinct message per session */
+  var budget = 5;                /* a render loop must never become a flood */
+
+  function code(){ try { return localStorage.getItem('tsfg_code') || ''; } catch (e) { return ''; } }
+  function who(){ try { return localStorage.getItem('tsfg_name') || ''; } catch (e) { return ''; } }
+  function page(){ try { return (location.pathname.split('/').pop() || 'index.html'); } catch (e) { return ''; } }
+
+  function report(message, source, line, col, stack) {
+    try {
+      message = String(message || '').slice(0, 500);
+      if (!message || budget <= 0) return;
+      /* Cross-origin scripts and browser extensions report this with no detail. */
+      if (/^script error\.?$/i.test(message)) return;
+      var k = message + '|' + (line || '');
+      if (sent[k]) return;
+      sent[k] = 1; budget--;
+      fetch(DESK, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, keepalive: true,
+        body: JSON.stringify({
+          action: 'error', code: code(), name: who(), page: page(),
+          message: message, source: String(source || '').slice(0, 300),
+          line: line || null, col: col || null, stack: String(stack || '').slice(0, 4000)
+        })
+      }).catch(function () {});
+    } catch (e) { /* reporting must never throw */ }
+  }
+
+  window.addEventListener('error', function (e) {
+    if (!e) return;
+    /* An <img>/<script> that failed to load is not a code fault; skip those. */
+    if (e.target && e.target !== window && e.target.tagName) return;
+    report(e.message, e.filename, e.lineno, e.colno, e.error && e.error.stack);
+  }, true);
+
+  window.addEventListener('unhandledrejection', function (e) {
+    var r = e && e.reason;
+    report('Unhandled promise rejection: ' + ((r && (r.message || r)) || 'unknown'),
+           page(), null, null, r && r.stack);
+  });
+})();
