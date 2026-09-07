@@ -1042,11 +1042,11 @@ function pfrAIContext(dd,c){
     var _b=budgetReview(dd&&dd.expenses?c:c,dd);
     var _f=_b.rows.filter(function(x){return x.flag;});
     if(_f.length){
-      L.push('BUDGET REVIEW vs a typical household of '+_b.size+' — running about '+money(_b.overTotal)+'/mo high on: '+
+      L.push('BUDGET REVIEW vs a typical CALIFORNIA household of '+_b.size+' — running about '+money(_b.overTotal)+'/mo high on: '+
         _f.map(function(x){return x.k+' ('+money(x.spend)+' vs '+money(x.bench)+')';}).join(', ')+
         '. A realistic recovery is about '+money(_b.savings)+'/mo without a lifestyle change. Name these specific cuts in plain language and say what the freed money should DO, in order: clear high-interest debt, build a 3-month reserve, protect the family, then grow.');
     } else {
-      L.push('BUDGET REVIEW: spending is broadly in line with a typical household of '+_b.size+' — there is no easy fat to cut, so the plan must come from the existing surplus of '+money(Math.max(0,c.netMo))+'/mo. Say that honestly rather than inventing savings.');
+      L.push('BUDGET REVIEW: spending is broadly in line with a typical CALIFORNIA household of '+_b.size+' — there is no easy fat to cut, so the plan must come from the existing surplus of '+money(Math.max(0,c.netMo))+'/mo. Say that honestly rather than inventing savings.');
     }
   }catch(e){}
   if(dd.advisor)L.push('Client response when asked to learn more: '+dd.advisor);
@@ -1220,19 +1220,24 @@ function buildCompliance(){
    category depends on it. They are reference points for a conversation, not gospel — the report
    says so, because a family in San Diego and a family in Ohio do not spend the same on rent. */
 var BENCH = {
-  'Mortgage/Rent': {pctOfIncome:0.28, note:'Housing above about 28% of income squeezes everything else'},
+  /* CALIFORNIA figures, set at the HIGH end on purpose. Almost all of this book is in
+     California, and national averages would flag practically every client as an overspender —
+     which reads as nagging and lets the client argue with the number instead of acting on it.
+     Set high, a flag is defensible: if this report says you are over, you are genuinely over.
+     The trade-off is fewer flags and a smaller recovery figure. That is the correct trade. */
+  'Mortgage/Rent': {pctOfIncome:0.35, note:'California housing routinely runs 35% of income or more'},
   'Property Tax':  {skip:true},
   'HOA':           {skip:true},
-  'Utilities':     {base:430, note:'Electric, water, gas, trash'},
-  'Phone':         {base:140, cut:'Moving to a low-cost carrier (Mint, Visible, US Mobile) usually runs $25–40 a line'},
-  'Internet':      {base:75,  cut:'Ask for the promotional rate or drop one speed tier — typically saves $20–30 a month'},
-  'Groceries':     {perPerson:290, note:'Roughly $290 per person'},
-  'Subscriptions': {base:90,  cut:'Audit them together — most households find two or three nobody uses'},
-  'Insurances':    {base:300, cut:'Re-shopping auto and home every couple of years commonly saves 10–20%'},
-  'Gas':           {base:200},
-  'Childcare':     {perChild:700, note:'Varies enormously by area'},
-  'Pets':          {base:100},
-  'Petty Cash':    {base:300, cut:'Dining out and incidentals — usually the biggest painless cut available'},
+  'Utilities':     {base:560, note:'California has the highest electricity rates in the continental US'},
+  'Phone':         {base:170, cut:'Moving to a low-cost carrier (Mint, Visible, US Mobile) usually runs $25\u201340 a line'},
+  'Internet':      {base:95,  cut:'Ask for the promotional rate or drop one speed tier \u2014 typically saves $20\u201330 a month'},
+  'Groceries':     {perPerson:350, note:'About $350 per person at California prices'},
+  'Subscriptions': {base:110, cut:'Audit them together \u2014 most households find two or three nobody uses'},
+  'Insurances':    {base:520, cut:'California auto and home premiums have jumped \u2014 re-shopping is worth real money now'},
+  'Gas':           {base:280, note:'California pump prices run well above the national average'},
+  'Childcare':     {byChildAge:true, note:'California childcare is among the most expensive in the country'},
+  'Pets':          {base:130},
+  'Petty Cash':    {base:420, cut:'Dining out and incidentals \u2014 usually the biggest painless cut available'},
   'Debt Payments': {skip:true},
   'Unforeseen':    {skip:true}
 };
@@ -1249,7 +1254,18 @@ function budgetReview(c,dd){
     var bench=0;
     if(b.pctOfIncome) bench=Math.round(c.inc*b.pctOfIncome);
     else if(b.perPerson) bench=Math.round(b.perPerson*size);
-    else if(b.perChild) bench=Math.round(b.perChild*Math.max(1,kids));
+    else if(b.byChildAge){
+      /* A family with a 7 and a 10 year old was being shown a benchmark built from infant-care
+         pricing, which made the comparison meaningless. Full-time care is an under-5 cost; after
+         that it is after-school care, and by their teens it is usually nothing. */
+      bench=Math.round((((dd.household||{}).kids)||[]).reduce(function(t,k){
+        var age=Number(k&&k.age);
+        if(!isFinite(age)) return t+900;      /* age unknown — assume a mix */
+        if(age<5)  return t+1500;             /* full-time infant/toddler care in California */
+        if(age<13) return t+550;              /* after-school and holiday care */
+        return t;                             /* teenagers: generally none */
+      },0));
+    }
     else bench=b.base;
     var over=spend-bench;
     /* Only flag a category when it is meaningfully above the benchmark — a few dollars over
@@ -1276,11 +1292,11 @@ function buildBudgetBreakdown(c,dd){
       '<span style="text-align:right;white-space:nowrap"><b>'+money(x.spend)+'</b><br>'+right+'</span></div>';
   };
   var head = flagged.length
-    ? 'Compared with a typical household of '+r.size+', '+esc(fn)+' is running about <b>'+money(r.overTotal)+'</b> a month high across '+flagged.length+' categor'+(flagged.length===1?'y':'ies') +'. None of these require a lifestyle change — they are mostly a phone call.'
-    : 'Compared with a typical household of '+r.size+', the spending here is in good shape. There is no obvious fat to cut, so the plan has to come from what is already there.';
+    ? 'Compared with a typical California household of '+r.size+', '+esc(fn)+' is running about <b>'+money(r.overTotal)+'</b> a month high across '+flagged.length+' categor'+(flagged.length===1?'y':'ies') +'. None of these require a lifestyle change — they are mostly a phone call.'
+    : 'Compared with a typical California household of '+r.size+', the spending here is in good shape. There is no obvious fat to cut, so the plan has to come from what is already there.';
   return '<div class="sec"><h2>📋 Where Your Money Goes</h2>'+
     '<p class="qsub" style="margin:0 0 6px">'+head+'</p>'+
-    '<p class="qsub" style="margin:0 0 14px;font-size:11.5px">Benchmarks are typical US household figures scaled to your household size — a starting point for the conversation, not a rule. Costs vary a lot by area.</p>'+
+    '<p class="qsub" style="margin:0 0 14px;font-size:11.5px">Benchmarks are California household figures, set deliberately on the high side and scaled to your household size — a starting point for the conversation, not a rule. Costs vary a lot by area.</p>'+
     r.rows.map(row).join('')+
     (r.savings>0 ? ('<div class="obs pos" style="margin-top:14px"><div class="ic">💡</div><div class="ot">Working through just the flagged lines, a realistic recovery is around <b>'+money(r.savings)+' a month</b> — about <b>'+money(r.savings*12)+' a year</b> — without changing how you live.</div></div>') : '')+
     '</div>';
