@@ -76,6 +76,13 @@ input.in[readonly]{background:var(--panel2);color:var(--ink2)}
 .gate h2{font-size:20px;font-weight:800}
 .gate p{color:var(--ink2);font-size:14px}
 /* EMD control: announcements waiting, and the bots in their channel */
+.botblk{border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px;}
+.botblk code{font-size:11px;background:var(--bg);padding:1px 5px;border-radius:4px;}
+.daybar{display:flex;gap:6px;flex-wrap:wrap;}
+.daybtn{padding:7px 11px;border-radius:9px;border:1px solid var(--line2);background:var(--panel);
+  color:var(--ink3);font-size:12.5px;font-weight:700;cursor:pointer;}
+.daybtn.on{background:var(--accent,#c99a2e);color:#fff;border-color:var(--accent,#c99a2e);}
+
 .annrow{border:1px solid var(--line2);border-radius:13px;padding:14px;margin-bottom:12px;background:var(--panel2)}
 .anntitle{font-weight:800;font-size:15px}
 .annmeta{font-size:12px;color:var(--ink3);margin-top:2px}
@@ -312,10 +319,17 @@ function saveBaseBrand(){
    ========================================================================= */
 var ANN="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/announce";
 var BOTS="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/bots-cron";
-var ANNDATA=null,BOTDATA=null;
+var ANNDATA=null,BOTDATA=null,BASEDATA=null,BOTLIST=null;
+var BOTADMIN="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/bot-admin";
 
 function loadEmdControl(){
   var sec=document.getElementById('emdCtrlSec'); if(!sec)return;
+  /* Their own baseshop settings and the bot roster. Both fail quietly — an agent who is not
+     an EMD simply does not see these blocks. */
+  fetch(BOTADMIN,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'base_get',code:CODE})})
+    .then(function(r){return r.json();}).then(function(d){ if(d&&d.ok)BASEDATA=d; renderEmd(); }).catch(function(){});
+  fetch(BOTADMIN,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'list',code:CODE})})
+    .then(function(r){return r.json();}).then(function(d){ if(d&&d.ok)BOTLIST=d; renderEmd(); }).catch(function(){});
   fetch(ANN,{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({action:'pending',code:CODE})})
    .then(function(r){return r.json();})
@@ -350,32 +364,91 @@ function renderEmdControl(){
   }
   h+='</div></div>';
 
-  // per-baseshop bot controls
-  var mine=(ANNDATA&&ANNDATA.mine)||[];
-  if(mine.length){
-    var cfg=(BOTDATA&&BOTDATA.config)||{};
-    h+='<div class="sec"><div class="sech"><h2>Your channel bots</h2></div><div class="card">'+
-       '<div style="font-size:12.5px;color:var(--ink3);line-height:1.5;margin-bottom:12px">'+
-       'What runs in your baseshop\'s announcements channel. The company chat is separate and stays clear.</div>';
-    mine.forEach(function(bs){
-      var c=cfg[bs.toLowerCase()]||{};
-      var on=(c.announce!==false);
-      h+='<div class="botrow">'+
-         '<div><div style="font-weight:800;font-size:14px">'+bEsc(bs)+'</div>'+
-         '<div style="font-size:12px;color:var(--ink3)">Stuart posts training reminders here</div></div>'+
-         '<label class="sw"><input type="checkbox" '+(on?'checked':'')+
-           ' onchange="setBot(\''+bEsc(bs)+'\',this.checked)"><span>'+(on?'On':'Off')+'</span></label>'+
-         '</div>'+
-         '<div class="fld"><label class="lbl">Today\'s highlights for '+bEsc(bs)+
-           ' <span style="font-weight:500;color:var(--ink3)">— one per line, posted each morning</span></label>'+
-         '<textarea class="in" id="hl_'+bEsc(bs)+'" rows="3">'+bEsc((c.highlights||[]).join('\n'))+'</textarea>'+
-         '<button class="btn" style="margin-top:8px" onclick="saveHighlights(\''+bEsc(bs)+'\')">Save highlights</button>'+
-         '<span id="hlst_'+bEsc(bs)+'" style="margin-left:10px;font-size:12.5px;font-weight:700;color:var(--ink3)"></span></div>';
+  // ---- EMD controls for their own baseshop: what the channel is called, when the bots
+  // speak, and which bots are on. Previously this was a single on/off plus a highlights
+  // box, and the timing was hardcoded — an EMD could not tell what any bot did or when.
+  if(BASEDATA&&BASEDATA.bases&&BASEDATA.bases.length){
+    h+='<div class="sec"><div class="sech"><h2>Your team channel &amp; bots</h2></div><div class="card">'+
+       '<div style="font-size:12.5px;color:var(--ink3);line-height:1.5;margin-bottom:14px">'+
+       'Bots only ever post in your own team channel — never the company chat, never Operations. '+
+       'You decide what the channel is called, when they speak, and what they say.</div>';
+    BASEDATA.bases.forEach(function(b){
+      var sc=b.schedule||{}, id=bEsc(b.baseshop);
+      var dayBtn=function(n,lbl){
+        var on=(sc.highlights_days||[]).indexOf(n)>=0;
+        return '<button type="button" class="daybtn'+(on?' on':'')+'" data-d="'+n+'" onclick="tglDay(this)">'+lbl+'</button>';
+      };
+      var remBtn=function(n,lbl){
+        var on=(sc.reminders||[]).indexOf(n)>=0;
+        return '<button type="button" class="daybtn'+(on?' on':'')+'" data-r="'+n+'" onclick="tglDay(this)">'+lbl+'</button>';
+      };
+      var hrs=''; for(var i=0;i<24;i++){ hrs+='<option value="'+i+'"'+((sc.highlights_hour===i)?' selected':'')+'>'+
+        ((i%12)||12)+(i<12?' AM':' PM')+'</option>'; }
+      h+='<div class="botblk" data-base="'+id+'">'+
+        '<div class="botrow"><div><div style="font-weight:800;font-size:15px">'+id+'</div>'+
+          '<div style="font-size:12px;color:var(--ink3)">Channel key <code>'+bEsc(b.channel_key)+'</code> — never changes, so nothing is ever lost</div></div>'+
+          '<label class="sw"><input type="checkbox" '+((sc.announce!==false)?'checked':'')+
+            ' onchange="saveBase(\''+id+'\')" data-f="announce"><span>Bots on</span></label></div>'+
+
+        '<div class="fld"><label class="lbl">What this channel is called</label>'+
+          '<input class="in" data-f="label" value="'+bEsc(b.label||'')+'" placeholder="'+id+' Announcements" maxlength="40"></div>'+
+
+        '<div class="fld"><label class="lbl">Reminders before a session <span style="font-weight:500;color:var(--ink3)">— pick which ones go out</span></label>'+
+          '<div class="daybar">'+remBtn(60,'1 hr')+remBtn(30,'30 min')+remBtn(10,'10 min')+remBtn(0,'Live')+'</div></div>'+
+
+        '<div class="fld"><label class="lbl">Daily highlights — days</label>'+
+          '<div class="daybar">'+dayBtn(1,'Mon')+dayBtn(2,'Tue')+dayBtn(3,'Wed')+dayBtn(4,'Thu')+dayBtn(5,'Fri')+dayBtn(6,'Sat')+dayBtn(0,'Sun')+'</div></div>'+
+
+        '<div class="fld"><label class="lbl">Post them at</label>'+
+          '<select class="in" data-f="hour" style="max-width:160px">'+hrs+'</select></div>'+
+
+        '<div class="fld"><label class="lbl">Nothing posts outside these hours</label>'+
+          '<div style="display:flex;gap:8px;align-items:center">'+
+          '<input class="in" type="number" min="0" max="23" data-f="qb" value="'+(sc.quiet_before!==undefined?sc.quiet_before:6)+'" style="max-width:90px">'+
+          '<span style="color:var(--ink3);font-size:13px">to</span>'+
+          '<input class="in" type="number" min="0" max="23" data-f="qa" value="'+(sc.quiet_after!==undefined?sc.quiet_after:21)+'" style="max-width:90px">'+
+          '<span style="color:var(--ink3);font-size:12px">PT</span></div></div>'+
+
+        '<div class="fld"><label class="lbl">Today\'s highlights <span style="font-weight:500;color:var(--ink3)">— one per line</span></label>'+
+          '<textarea class="in" data-f="highlights" rows="3">'+bEsc((sc.highlights||[]).join('\n'))+'</textarea></div>'+
+
+        '<button class="btn" onclick="saveBase(\''+id+'\')">Save '+id+' settings</button>'+
+        '<span class="bst" style="margin-left:10px;font-size:12.5px;font-weight:700;color:var(--ink3)"></span>'+
+      '</div>';
+    });
+    h+='</div></div>';
+  }
+
+  // ---- the bots themselves: who they are and what they push ----
+  if(BOTLIST&&BOTLIST.can_edit&&BOTLIST.bots){
+    h+='<div class="sec"><div class="sech"><h2>The bots</h2></div><div class="card">'+
+       '<div style="font-size:12.5px;color:var(--ink3);line-height:1.5;margin-bottom:14px">'+
+       'Rename any of them, change the badge, or switch one off. Where each one is allowed to '+
+       'speak is fixed by its type — that is what keeps them out of the company chat.</div>';
+    BOTLIST.bots.filter(function(b){return b.code!=='OPSANN';}).forEach(function(b){
+      h+='<div class="botblk" data-bot="'+bEsc(b.code)+'">'+
+        '<div class="botrow"><div style="min-width:0">'+
+          '<div style="font-weight:800;font-size:15px">'+bEsc(b.emoji||'')+' '+bEsc(b.name)+'</div>'+
+          '<div style="font-size:12px;color:var(--ink3)">'+bEsc(b.role)+'</div></div>'+
+          '<label class="sw"><input type="checkbox" '+(b.enabled?'checked':'')+' data-f="enabled"><span>'+(b.enabled?'On':'Off')+'</span></label></div>'+
+        '<div style="font-size:11.5px;color:var(--ink3);margin:2px 0 10px">📍 '+bEsc(b.where||'')+'</div>'+
+        '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
+          '<input class="in" data-f="emoji" value="'+bEsc(b.emoji||'')+'" maxlength="4" style="max-width:70px;text-align:center">'+
+          '<input class="in" data-f="name" value="'+bEsc(b.name)+'" maxlength="40" style="flex:1;min-width:140px">'+
+        '</div>'+
+        '<div class="fld"><label class="lbl">What it pushes</label>'+
+          '<textarea class="in" data-f="posts" rows="2">'+bEsc(b.posts||'')+'</textarea></div>'+
+        '<button class="btn" onclick="saveBot(\''+bEsc(b.code)+'\')">Save</button>'+
+        '<span class="bst" style="margin-left:10px;font-size:12.5px;font-weight:700;color:var(--ink3)"></span>'+
+      '</div>';
     });
     h+='</div></div>';
   }
   sec.innerHTML=h;
 }
+/* Repaint once any of the three payloads lands. Guarded on ANNDATA because that call is what
+   confirms the person is actually an EMD — without it we must not paint leadership controls. */
+function renderEmd(){ if(!ANNDATA) return; try{ renderEmdControl(); }catch(e){} }
 function decideAnn(targetId,decision){
   fetch(ANN,{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({action:'decide',code:CODE,target_id:targetId,decision:decision})})
@@ -383,20 +456,33 @@ function decideAnn(targetId,decision){
    .then(function(d){ if(!d||!d.ok){alert((d&&d.error)||'Could not save that.');return;} loadEmdControl(); })
    .catch(function(){alert('Network error.');});
 }
-function setBot(bs,on){
-  fetch(BOTS,{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({action:'set',code:CODE,baseshop:bs,config:{announce:on}})})
+function tglDay(btn){ btn.classList.toggle('on'); }
+function saveBase(base){
+  var blk=document.querySelector('.botblk[data-base="'+base+'"]'); if(!blk)return;
+  var st=blk.querySelector('.bst'); st.textContent='Saving…';
+  var g=function(f){var e=blk.querySelector('[data-f="'+f+'"]');return e?e.value:'';};
+  var days=[].slice.call(blk.querySelectorAll('[data-d].on')).map(function(b){return Number(b.getAttribute('data-d'));});
+  var rem =[].slice.call(blk.querySelectorAll('[data-r].on')).map(function(b){return Number(b.getAttribute('data-r'));});
+  var onEl=blk.querySelector('[data-f="announce"]');
+  var payload={action:'base_save',code:CODE,baseshop:base,
+    label:g('label'),
+    schedule:{announce:onEl?onEl.checked:true,reminders:rem,highlights_days:days,
+      highlights_hour:Number(g('hour'))||0,quiet_before:Number(g('qb')),quiet_after:Number(g('qa')),
+      highlights:(g('highlights')||'').split('\n').map(function(x){return x.trim();}).filter(Boolean).slice(0,10)}};
+  fetch(BOTADMIN,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
    .then(function(r){return r.json();})
-   .then(function(d){ if(!d||!d.ok)alert((d&&d.error)||'Could not save.'); loadEmdControl(); });
+   .then(function(d){ st.textContent=(d&&d.ok)?'Saved ✓':((d&&d.error)||'Could not save.'); });
 }
-function saveHighlights(bs){
-  var el=document.getElementById('hl_'+bs), st=document.getElementById('hlst_'+bs);
-  var lines=(el.value||'').split('\n').map(function(x){return x.trim();}).filter(Boolean).slice(0,8);
-  st.textContent='Saving…';
-  fetch(BOTS,{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({action:'set',code:CODE,baseshop:bs,config:{highlights:lines}})})
+function saveBot(code){
+  var blk=document.querySelector('.botblk[data-bot="'+code+'"]'); if(!blk)return;
+  var st=blk.querySelector('.bst'); st.textContent='Saving…';
+  var g=function(f){var e=blk.querySelector('[data-f="'+f+'"]');return e?e.value:'';};
+  var en=blk.querySelector('[data-f="enabled"]');
+  fetch(BOTADMIN,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'save',code:CODE,bot:{code:code,name:g('name'),emoji:g('emoji'),
+      posts:g('posts'),enabled:en?en.checked:true}})})
    .then(function(r){return r.json();})
-   .then(function(d){ st.textContent=(d&&d.ok)?'Saved — posts tomorrow morning.':((d&&d.error)||'Could not save.'); });
+   .then(function(d){ st.textContent=(d&&d.ok)?'Saved ✓':((d&&d.error)||'Could not save.'); });
 }
 function loadCalendlyStatus(){
   var el=$('calendlyStatus');if(!el)return;
