@@ -151,6 +151,10 @@ a{color:inherit;text-decoration:none;}.hide{display:none!important;}
 /* Delete is destructive and permanent, so it reads that way rather than
    sitting next to Cancel looking like the same weight of action. */
 .apt .x.del{border-color:rgba(255,59,48,.4);color:var(--red);}
+/* Delete now also appears in the appointment drawer, not just in a list row, so the danger
+   styling can no longer be scoped to .apt or those buttons render as plain text. */
+.x.del{border-color:rgba(255,59,48,.4)!important;color:var(--red)!important;}
+.x.del:hover{background:rgba(255,59,48,.10);border-color:var(--red)!important;}
 .apt .x.del:hover{background:rgba(255,59,48,.10);border-color:var(--red);}
 .ov{position:fixed;inset:0;background:rgba(0,0,0,.42);z-index:80;display:none;align-items:flex-end;justify-content:center;}
 .ov.on{display:flex;}
@@ -786,11 +790,21 @@ function openCalEvent(id){
   if(!b){b=(MYT.filter(function(x){return x.id===id;})[0])||(COMPANY_EV.filter(function(x){return x.id===id;})[0]);role='trainer';}
   if(!b)return;
   var C="';$('bkOv').classList.remove('on')";var acts='';
-  if(role==='agent'){if(b.source==='manual')acts='<button class="x can" onclick="delManual(\''+b.id+'\')'+C+'">✕ Delete</button>';else if(b.status==='booked'||b.status==='confirmed'||b.status==='pending')acts='<button class="x can" onclick="quickCancel(\''+b.id+'\')'+C+'">✕ Cancel</button>';}
+  if(role==='agent'){
+    if(b.source==='manual')acts='<button class="x can" onclick="delManual(\''+b.id+'\')'+C+'">✕ Delete</button>';
+    else if(b.status==='booked'||b.status==='confirmed'||b.status==='pending')
+      acts='<button class="x can" onclick="quickCancel(\''+b.id+'\')'+C+'">✕ Cancel</button>'+
+           '<button class="x del" onclick="purgeBk(\''+b.id+'\')'+C+'">🗑 Delete</button>';
+    else if(b.status==='canceled'||b.status==='cancelled'||b.status==='declined')
+      /* Already cancelled but still cluttering the calendar — let it be removed for good,
+         and let the same trainer be rebooked without starting over. */
+      acts='<button class="go" onclick="$(\'bkOv\').classList.remove(\'on\');startBookWith(\''+encodeURIComponent(b.trainer_name||'')+'\')">Rebook</button>'+
+           '<button class="x del" onclick="purgeBk(\''+b.id+'\')'+C+'">🗑 Delete</button>';
+  }
   else{
     if(b.status==='pending')acts='<button class="go" style="background:var(--green-soft);color:#1a9c52" onclick="doApprove(\''+b.id+'\',\'approve\')'+C+'">Approve</button><button class="x can" onclick="doApprove(\''+b.id+'\',\'decline\')'+C+'">Decline</button>';
     else if((b.status==='booked'||b.status==='confirmed')&&isPastBk(b))acts='<button class="go" style="background:var(--green-soft);color:#1a9c52" onclick="doMark(\''+b.id+'\',\'completed\')'+C+'">Completed</button><button class="x can" onclick="doMark(\''+b.id+'\',\'no_show\')'+C+'">No-show</button>';
-    else if(b.status==='booked'||b.status==='confirmed'){if(myRole()==='CFT'||isEmd())acts+='<button class="go" onclick="$(\'bkOv\').classList.remove(\'on\');openTransfer(\''+b.id+'\',\''+(isEmd()?'manager':'peer')+'\')">Transfer</button>';acts+='<button class="x can" onclick="quickCancel(\''+b.id+'\')'+C+'">✕ Cancel</button>';}
+    else if(b.status==='booked'||b.status==='confirmed'){if(myRole()==='CFT'||isEmd())acts+='<button class="go" onclick="$(\'bkOv\').classList.remove(\'on\');openTransfer(\''+b.id+'\',\''+(isEmd()?'manager':'peer')+'\')">Transfer</button>';acts+='<button class="x can" onclick="quickCancel(\''+b.id+'\')'+C+'">✕ Cancel</button><button class="x del" onclick="purgeBk(\''+b.id+'\')'+C+'">🗑 Delete</button>';}
   }
   var acell='<div class="dact" style="margin-top:20px">'+(acts||'<button class="go" onclick="$(\'bkOv\').classList.remove(\'on\')">Close</button>')+'</div>';
   if(b.source==='manual'){
@@ -1061,6 +1075,7 @@ function openCompanyEvent(key){
   if((myRole()==='CFT'||isEmd())&&(b.status==='booked'||b.status==='confirmed'))acts+='<button class="go" onclick="$(\'bkOv\').classList.remove(\'on\');openTransfer(\''+b.id+'\',\''+(isEmd()?'manager':'peer')+'\')">Transfer</button>';
   acts+='<button class="go" onclick="$(\'bkOv\').classList.remove(\'on\');startBookWith(\''+encodeURIComponent(b.trainer_name)+'\')">Book '+esc((b.trainer_name||'').split(' ')[0])+'</button>';
   if(active&&(isEmd()||mine))acts+='<button class="x can" onclick="quickCancel(\''+b.id+'\')'+CX+'">✕ Cancel</button>';
+  if(isEmd()||mine)acts+='<button class="x del" onclick="purgeBk(\''+b.id+'\')'+CX+'">🗑 Delete</button>';
   $('bkDrawer').innerHTML='<h3>'+esc(b.category||'Appointment')+'</h3><p class="dsub">'+prettyDate(dispDate(b))+' · '+esc(dispTime(b))+tzTag()+'</p>'+
     '<div class="confrow"><div class="cl">Trainer</div><div class="cv">'+esc(b.trainer_name||'')+'</div></div>'+
     '<div class="confrow"><div class="cl">With</div><div class="cv">'+esc(b.agent_name||'—')+'</div></div>'+
@@ -1068,8 +1083,50 @@ function openCompanyEvent(key){
     '<div class="dact" style="margin-top:20px;flex-wrap:wrap;gap:8px">'+acts+'</div>';
   $('bkOv').classList.add('on');
 }
-function quickCancel(id){if(!confirm('Cancel this appointment? The other party will be notified.'))return;
-  fetch(AT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'atlas_setstatus',id:id,status:'canceled',code:CODE})}).then(function(r){return r.json();}).then(function(r){if(!r||!r.ok){toast((r&&r.error)||'Could not cancel');return;}toast('Appointment canceled');loadMy(function(){loadMyTrainer(function(){render();});});}).catch(function(){toast('Network error');});}
+function bkById(id){
+  var all=[].concat(MYB||[],MYT||[],COMPANY_EV||[]);
+  for(var i=0;i<all.length;i++) if(all[i]&&all[i].id===id) return all[i];
+  return null;
+}
+function quickCancel(id){
+  var b=bkById(id)||{};
+  askConfirm({
+    title:'Cancel this appointment?',
+    sub:(b.category||'Appointment')+(b.trainer_name?(' with '+b.trainer_name):'')+(b.date?(' · '+prettyDate(b.date)+' at '+(b.time||'')):''),
+    lines:['The time slot opens back up straight away.',
+           'Both of you are notified.',
+           'It stays on the record as cancelled — use Delete to remove it completely.'],
+    ok:'Cancel it', cancel:'Keep it', danger:true
+  }).then(function(yes){
+    if(!yes)return;
+    return fetch(AT,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'atlas_setstatus',id:id,status:'canceled',code:CODE})})
+     .then(function(r){return r.json();})
+     .then(function(r){
+       if(!r||!r.ok){toast((r&&r.error)||'Could not cancel — nothing was changed.');return;}
+       $('bkOv').classList.remove('on');
+       /* Refresh BOTH calendars, not just the one you were looking at, so it clears from your
+          side and the trainer's in the same breath. */
+       DAYBOOKED=[];
+       loadMy(function(){loadMyTrainer(function(){render();
+         if(b.trainer_name) offerRebook(b);
+         else toast('Appointment canceled');
+       });});
+     }).catch(function(){toast('Network error — nothing was changed.');});
+  });
+}
+/* Cancelling almost always means "wrong time", not "never mind". Offer the same trainer
+   straight away instead of making them start the booking flow from scratch. */
+function offerRebook(b){
+  askConfirm({
+    title:'Canceled ✓',
+    sub:'That slot is free again.',
+    lines:['Book '+(b.trainer_name||'someone')+' at a different time?'],
+    ok:'Rebook '+String(b.trainer_name||'').split(' ')[0], cancel:'Not now'
+  }).then(function(yes){
+    if(yes&&b.trainer_name) startBookWith(encodeURIComponent(b.trainer_name));
+  });
+}
 function tile(l,v){return '<div class="tile"><div class="tl">'+l+'</div><div class="tv">'+v+'</div></div>';}
 function recommendTrainers(){
   var out=[];var mineNames=MYB.map(function(b){return b.trainer_name;});
@@ -1408,7 +1465,7 @@ function purgeBk(id){
    .then(function(yes){
      if(!yes)return;
      return fetch(BP,{method:'POST',headers:{'Content-Type':'application/json'},
-       body:JSON.stringify({action:'delete',id:id,by:(NAME||CODE||'broker')})})
+       body:JSON.stringify({action:'delete',id:id,code:CODE,by:(NAME||CODE||'broker')})})
       .then(function(r){return r.json();})
       .then(function(d){
         if(!d||!d.ok){toast((d&&d.error)||'Could not delete');return;}
@@ -1422,7 +1479,11 @@ function purgeBk(id){
    })
    .catch(function(){toast('Network error — nothing was deleted');});
 }
-function cancelBk(id){if(!confirm('Cancel this appointment?'))return;fetch(AT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'atlas_setstatus',id:id,status:'canceled',code:CODE})}).then(function(r){return r.json();}).then(function(){toast('Appointment canceled');loadMy(function(){render();});});}
+/* This used to toast 'Appointment canceled' without ever checking the response, so a refused
+   cancel was indistinguishable from a successful one — the message said it worked and the
+   appointment stayed on the calendar. It reports what actually happened now, refreshes BOTH
+   sides (yours and the trainer's), and offers to rebook rather than leaving you stranded. */
+function cancelBk(id){ quickCancel(id); }
 // === Approvals + Transfer engine (Phase 1/2) ===
 // pending -> Approve/Decline (the booked MD/EMD). booked/confirmed -> Transfer
 // (CFT can peer-transfer own session to another CFT; EMD/Ops transfer anything).
