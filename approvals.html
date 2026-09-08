@@ -78,16 +78,28 @@ function isOps(c){return /^000[0-5]$/.test(c);}
 function opsTok(){try{return (window.tsfgOps?tsfgOps.token():'')||'';}catch(e){return '';}}
 function api(b){var c=(OPS||'').toUpperCase();if(isOps(c)&&opsTok())b.token=opsTok();if(c)b.approver=c;return fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();}).catch(function(){return{ok:false};});}
 function enterConsole(){ $('gate').style.display='none'; $('console').style.display='block'; var bt=$('backTop'); if(bt)bt.style.display='inline-block'; }
+/* An Operations seat authorises with its SESSION TOKEN, not its code — access-api answers
+   can_approve:false for a bare seat code. The session was only being established AFTER whoami
+   succeeded, which it never could, so every Ops seat was told "that code can't approve access"
+   and the join requests were invisible from the Ops platform. Sign in FIRST, then ask. */
+function opsSession(code){
+  if(!isOps(code)||!window.tsfgOps) return Promise.resolve(true);
+  if(opsTok()) return Promise.resolve(true);
+  return tsfgOps.ensure().then(function(r){ return !!(r&&r.ok); }).catch(function(){ return false; });
+}
 function opsIn(){
   var c=($('opsCode').value||'').trim().toUpperCase();
   if(!c){ $('gErr').textContent='Enter your Ops or EMD code.'; return; }
   $('gErr').textContent='Checking…';
   OPS=c;
-  api({action:'whoami'}).then(function(r){
-    if(!r||!r.ok||!r.can_approve){ OPS=''; $('gErr').textContent='That code can’t approve access. Use an Operations code or an EMD GFI code.'; return; }
-    APPROVER_BY=r.by||'';
-    if(isOps(c)&&window.tsfgOps)tsfgOps.ensure();   /* Ops seats need a live session */ try{sessionStorage.setItem('tsfg_approver',c);}catch(e){}
-    $('gErr').textContent=''; enterConsole(); load();
+  opsSession(c).then(function(ok){
+    if(!ok){ OPS=''; $('gErr').textContent='Operations sign-in was cancelled.'; return; }
+    return api({action:'whoami'}).then(function(r){
+      if(!r||!r.ok||!r.can_approve){ OPS=''; $('gErr').textContent='That code can’t approve access. Use an Operations code or an EMD GFI code.'; return; }
+      APPROVER_BY=r.by||'';
+      try{sessionStorage.setItem('tsfg_approver',c);}catch(e){}
+      $('gErr').textContent=''; enterConsole(); load();
+    });
   });
 }
 function setFilter(f){FILTER=f;document.querySelectorAll('.tab').forEach(function(t){t.classList.toggle('on',t.getAttribute('data-f')===f);});load();}
@@ -101,7 +113,7 @@ function load(){
     if(!rows.length){
       $('list').innerHTML=(FILTER==='pending')
         ? '<div class="allclear"><div class="big">🎉</div><h3>All caught up!</h3><p>No agents are waiting for access approval.</p><a class="backbtn" href="ops.html">← Back to Operations</a></div>'
-        : '<div class="empty">Nothing here.</div>';
+        : '<div class="empty">Nobody in the '+esc(FILTER)+' list.</div>';
       return;
     }
     $('list').innerHTML=rows.map(card).join('');
@@ -110,7 +122,7 @@ function load(){
 function card(a){
   var name=esc(((a.first_name||'')+' '+(a.last_name||'')).trim()||'(no name)');
   var st=a.access_status||'pending';
-  var up=[a.emd,a.md].filter(Boolean).map(esc).join(' · ')||'—';
+  var up=[a.baseshop,a.emd,a.md].filter(Boolean).map(esc).join(' · ')||'no baseshop or upline yet';
   var contact=[a.email,a.phone].filter(Boolean).map(esc).join(' · ');
   var acts= st==='pending'
     ? '<div class="acts"><button class="btn approve" onclick="decide(\''+esc(a.code)+'\',\'approved\')">✓ Approve</button><button class="btn deny" onclick="decide(\''+esc(a.code)+'\',\'denied\')">✕ Deny</button></div>'
@@ -132,9 +144,14 @@ function decide(code,decision){
     var c=(qp.get('code')||qp.get('approver')||sessionStorage.getItem('tsfg_approver')||'').trim().toUpperCase();
     if(!c)return;
     OPS=c;
-    api({action:'whoami'}).then(function(r){
-      if(r&&r.ok&&r.can_approve){ APPROVER_BY=r.by||''; try{sessionStorage.setItem('tsfg_approver',c);}catch(e){} enterConsole(); load(); }
-      else { OPS=''; }
+    /* Arriving from the Ops dashboard link carries a seat code but not a session, so the same
+       sign-in has to happen here before we ask whether this seat may approve. */
+    opsSession(c).then(function(ok){
+      if(!ok){ OPS=''; return; }
+      return api({action:'whoami'}).then(function(r){
+        if(r&&r.ok&&r.can_approve){ APPROVER_BY=r.by||''; try{sessionStorage.setItem('tsfg_approver',c);}catch(e){} enterConsole(); load(); }
+        else { OPS=''; }
+      });
     });
   }catch(e){}
 })();
