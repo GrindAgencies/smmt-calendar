@@ -371,6 +371,7 @@ html, body{ overflow-x: hidden; }
 <div class="ov" id="cfOv" style="z-index:95"><div class="drawer" id="cfDrawer"></div></div>
 <div class="spot" id="spot"><div class="spotbox"><div class="spotin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input id="spotI" placeholder="Search everything…" oninput="spotSearch()" onkeydown="spotKey(event)"></div><div class="spotres" id="spotR"></div></div></div>
 <div class="toast" id="toast"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 var TA="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/tracker-api";
 var AT="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/atlas-api";
@@ -437,7 +438,7 @@ function signOut(){try{localStorage.removeItem('tsfg_code');localStorage.removeI
   fetch(TA,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'cftavail'})}).then(function(r){return r.json();}).then(function(r){
     var v=r&&r.value;TRAINERS=(v&&Array.isArray(v.cfts))?v.cfts:[];if(v&&v.tz)TZ=v.tz;
     revealAvailTab();loadProfile(autoDetectTz);loadEmds();
-    loadSched(function(){loadMy(function(){loadMyTrainer(function(){loadMyAppts(function(){render();if(_urlTab)setTab(_urlTab);});});});});
+    loadSched(function(){loadMy(function(){loadMyTrainer(function(){loadMyAppts(function(){render();if(_urlTab)setTab(_urlTab);calRtSubscribe();});});});});
   }).catch(function(){TRAINERS=[];render();});
   document.addEventListener('keydown',function(e){if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();openSpot();}if(e.key==='Escape'){closeSpot();$('bkOv').classList.remove('on');}});
 })();
@@ -489,6 +490,50 @@ function allTimesForDate(dstr){var map={};bTr().forEach(function(c){availTimesFo
 function trainersAt(dstr,time){return bTr().filter(function(c){return availTimesForTrainer(c,dstr).indexOf(time)>=0;});}
 function trainerAvailToday(c){return availTimesForTrainer(c,todayStr());}
 function nextOpening(c){for(var i=0;i<14;i++){var ds=ymd(addDays(i));var a=availTimesForTrainer(c,ds);if(a.length)return {date:ds,time:a[0]};}return null;}
+/* ===== Live calendar sync =====================================================
+   Christopher: "anytime ANYONE books a calendar or deletes it triggers a full refresh of all
+   calendars for sync that way appointments stay constantly up to date on what is available and
+   what isnt."
+
+   Every open scheduler used to work from whatever it loaded when the page opened, so two people
+   could both see 2:00 PM as free and the second only found out when the database refused the
+   booking. A DB trigger on `bookings` now broadcasts a tiny nudge on every insert, delete, or
+   change to something a calendar actually draws. No booking detail rides the socket — each
+   client reloads through its own access-gated endpoints, so nobody sees business that is not
+   theirs. A 90s fallback covers a dropped websocket. */
+var SBURL="https://bmfqxtocxkjhsgfnndlo.supabase.co";
+var SBKEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtZnF4dG9jeGtqaHNnZm5uZGxvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzczMTkzMzYsImV4cCI6MjA5Mjg5NTMzNn0.WhC3TQKqXQXLBFCXqUZ1jvhbdD1DKTBI6gu4tNSjxSo";
+var SBC=null,calChan=null,_syncT=null,_lastSync=0;
+
+/* Reload everything a calendar draws: my appointments, the ones I run, the team view, and the
+   day's booked slots. Coalesced, because a handoff or a transfer fires several row changes in a
+   row and each one should not cost four fetches. */
+function syncCalendars(force){
+  if(_syncT)clearTimeout(_syncT);
+  _syncT=setTimeout(function(){
+    _syncT=null;
+    if(document.hidden&&!force)return;      /* a background tab catches up when it is looked at */
+    _lastSync=Date.now();
+    DAYBOOKED=[];                            /* the cached day is what makes a slot look free */
+    /* the same chain the page runs on load, so a live refresh and a reload agree */
+    loadMy(function(){ loadMyTrainer(function(){ loadMyAppts(function(){ render(); }); }); });
+  },250);
+}
+function calRtSubscribe(){
+  try{ if(!SBC&&window.supabase)SBC=window.supabase.createClient(SBURL,SBKEY); }catch(e){SBC=null;}
+  if(!SBC)return;
+  try{ if(calChan){SBC.removeChannel(calChan);calChan=null;} }catch(e){}
+  try{
+    calChan=SBC.channel('calendar')
+      .on('broadcast',{event:'bookings'},function(){ syncCalendars(false); })
+      .subscribe();
+  }catch(e){ calChan=null; }
+}
+/* Catch up the moment the tab is looked at again, and keep a slow fallback in case the socket
+   silently dies — availability being wrong is worse than one extra request a minute and a half. */
+document.addEventListener('visibilitychange',function(){ if(!document.hidden&&Date.now()-_lastSync>15000)syncCalendars(true); });
+setInterval(function(){ if(!document.hidden&&Date.now()-_lastSync>90000)syncCalendars(false); },90000);
+
 function loadDayBooked(dstr,cb){fetch(AT+'?action=atlas_day&date='+encodeURIComponent(dstr)).then(function(r){return r.json();}).then(function(r){DAYBOOKED=(r&&r.bookings)||[];cb&&cb();}).catch(function(){DAYBOOKED=[];cb&&cb();});}
 function setTab(t){TAB=t;['cal','dash','book','train','me','company','clients','ops','avail','xfer'].forEach(function(x){var el=$('tab_'+x);if(el)el.classList.toggle('on',x===t);});render();}
 function render(){if(TAB==='cal')renderCal();else if(TAB==='dash')renderDash();else if(TAB==='book')renderBook();else if(TAB==='train')renderTrainers();else if(TAB==='company')renderCompany();else if(TAB==='clients')renderClients();else if(TAB==='ops')renderOps();else if(TAB==='avail')renderAvail();else if(TAB==='xfer')renderTransfers();else renderMe();}
