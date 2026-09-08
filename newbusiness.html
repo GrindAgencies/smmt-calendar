@@ -392,6 +392,8 @@ function signOut(){try{localStorage.removeItem('tsfg_code');localStorage.removeI
 
 function setBiz(b){BIZ=b;try{calcAnnuityPremium(true);}catch(e){}$('bLife').classList.toggle('on',b==='life');$('bAnn').classList.toggle('on',b==='annuity');load();}
 function setScope(s){SCOPE=s;load();}
+/* Widen the view from the empty-search hint, keeping what they typed. */
+function widenScope(s){ var vs=$('viewsel'); if(vs)vs.value=s; setScope(s); }
 function setTab(t){TAB=t;render();}
 /* Operations authority is a signed-in session now, not a passcode typed into a
    prompt and kept in the tab. opsTok() is the 8-hour token minted by ops-auth. */
@@ -502,9 +504,31 @@ function sortBy(k){if(SORT.k===k)SORT.dir=-SORT.dir;else{SORT.k=k;SORT.dir=1;}re
 function render(){
   renderKpis();renderHead();
   var qa=($('qa').value||'').toLowerCase(),qc=($('qc').value||'').toLowerCase();
-  var rows=windowed().filter(function(p){return passTab(p)&&(!qa||((p.agent_name||'')+(p.split_agent||'')).toLowerCase().indexOf(qa)>=0)&&(!qc||(p.client_name||'').toLowerCase().indexOf(qc)>=0);});
+  /* Searching an agent used to look at agent_name and split_agent glued together with no
+     separator — so it missed anyone searched for by GFI code, and could match across the join
+     between two names. It now searches the writing agent AND the split partner, by name or by
+     code, with separators. */
+  var agentBlob=function(p){
+    return [p.agent_name,p.agent_code,p.split_agent,p.split_agent_code].map(function(x){return (x||'');}).join(' ').toLowerCase();
+  };
+  var rows=windowed().filter(function(p){return passTab(p)&&(!qa||agentBlob(p).indexOf(qa)>=0)&&(!qc||(p.client_name||'').toLowerCase().indexOf(qc)>=0);});
   rows.sort(function(a,b){var k=SORT.k,x=a[k],y=b[k];if(k==='annual_premium'){x=Number(x)||0;y=Number(y)||0;}else{x=(x==null?'':String(x)).toLowerCase();y=(y==null?'':String(y)).toLowerCase();}return (x<y?-1:x>y?1:0)*SORT.dir;});
   var tb=$('rows');tb.innerHTML='';$('empty').classList.toggle('hide',rows.length>0);
+  /* An agent search returning nothing is almost always the VIEW, not the search: "View Personal"
+     only ever loads your own business, so another agent's name can never match. Say which view
+     you are in and offer the wider one, rather than an unexplained empty table. */
+  var em0=$('empty');
+  if(em0 && !em0.dataset.orig) em0.dataset.orig=em0.innerHTML;   /* remember the real empty message once */
+  if(!rows.length && qa){
+    var VIEWNAME={me:'View Personal',team:'View Team',shop:'View Baseshop',hier:'View Hierarchy',all:'All Business'};
+    var NEXT={me:'team',team:'shop',shop:'hier'};
+    var nx=NEXT[SCOPE];
+    var em=$('empty');
+    if(em) em.innerHTML='No business matches <b>'+esc($('qa').value)+'</b> in <b>'+(VIEWNAME[SCOPE]||SCOPE)+'</b>.'+
+      (nx?(' That view only loads the business it covers — <button class="iconb" style="text-decoration:underline;padding:0 2px" onclick="widenScope(\''+nx+'\')">switch to '+VIEWNAME[nx]+'</button> to search wider.'):'');
+  } else if(!rows.length){
+    var em2=$('empty'); if(em2&&em2.dataset.orig) em2.innerHTML=em2.dataset.orig;
+  }
   rows.forEach(function(p){
     var tr=document.createElement('tr');tr.onclick=function(){openEdit(p);};
     var cov=p.coverage?('$'+Number(p.coverage).toLocaleString('en-US')+' coverage'):'';
