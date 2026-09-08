@@ -319,8 +319,9 @@ function saveBaseBrand(){
    ========================================================================= */
 var ANN="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/announce";
 var BOTS="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/bots-cron";
-var ANNDATA=null,BOTDATA=null,BASEDATA=null,BOTLIST=null;
+var ANNDATA=null,BOTDATA=null,BASEDATA=null,BOTLIST=null,BCME=null,BCFEED=null,BCFLIER='';
 var BOTADMIN="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/bot-admin";
+var BCAST="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/emd-broadcast";
 
 function loadEmdControl(){
   var sec=document.getElementById('emdCtrlSec'); if(!sec)return;
@@ -328,6 +329,8 @@ function loadEmdControl(){
      an EMD simply does not see these blocks. */
   fetch(BOTADMIN,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'base_get',code:CODE})})
     .then(function(r){return r.json();}).then(function(d){ if(d&&d.ok)BASEDATA=d; renderEmd(); }).catch(function(){});
+  fetch(BCAST,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'me',code:CODE})})
+    .then(function(r){return r.json();}).then(function(d){ if(d&&d.ok){BCME=d;loadBcFeed();} renderEmd(); }).catch(function(){});
   fetch(BOTADMIN,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'list',code:CODE})})
     .then(function(r){return r.json();}).then(function(d){ if(d&&d.ok)BOTLIST=d; renderEmd(); }).catch(function(){});
   fetch(ANN,{method:'POST',headers:{'Content-Type':'application/json'},
@@ -364,11 +367,77 @@ function renderEmdControl(){
   }
   h+='</div></div>';
 
+  /* ---- Team Broadcast -------------------------------------------------------------
+     The panel used to be three unrelated jobs stacked together — approve somebody else's
+     announcement, tune bot timing, rename a bot — and no way at all to simply say something
+     to your own team. This is the missing half: write it, attach a flier, send it now or
+     schedule it, and optionally push it so people actually see it. */
+  if(BCME&&BCME.ok){
+    var chLabel=BCME.label||(BCME.baseshop+' Announcements');
+    h+='<div class="sec"><div class="sech"><h2>Broadcast to '+bEsc(BCME.baseshop)+'</h2>'+
+       '<span style="font-size:12px;color:var(--ink3);font-weight:700">'+bEsc(chLabel)+'</span></div><div class="card">'+
+      '<div style="font-size:12.5px;color:var(--ink3);line-height:1.5;margin-bottom:14px">'+
+        'Goes to your team channel and nowhere else. Attach a flier, send it now, or set it for later.</div>'+
+
+      '<div class="fld"><label class="lbl">Headline</label>'+
+        '<input class="in" id="bc_title" maxlength="160" placeholder="Saturday training — 9am at the office"></div>'+
+
+      '<div class="fld"><label class="lbl">Message</label>'+
+        '<textarea class="in" id="bc_body" rows="5" placeholder="What the team needs to know."></textarea></div>'+
+
+      '<div class="fld"><label class="lbl">Flier <span style="font-weight:500;color:var(--ink3)">— PNG, JPG, GIF or WEBP, up to 6MB</span></label>'+
+        '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'+
+          '<input type="file" id="bc_file" accept="image/*" style="display:none" onchange="bcFlier(this)">'+
+          '<button class="btn ghost" type="button" onclick="document.getElementById(\'bc_file\').click()">📎 Attach a flier</button>'+
+          '<span id="bc_fliername" style="font-size:12.5px;color:var(--ink3)"></span>'+
+        '</div>'+
+        '<div id="bc_flierprev" style="margin-top:10px"></div></div>'+
+
+      '<div class="fld"><label class="lbl">When</label>'+
+        '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'+
+          '<label class="sw" style="margin:0"><input type="checkbox" id="bc_later" onchange="bcToggleLater()"><span>Schedule for later</span></label>'+
+          '<input class="in" type="datetime-local" id="bc_when" style="max-width:230px;display:none">'+
+        '</div></div>'+
+
+      '<div class="fld" style="display:flex;gap:16px;flex-wrap:wrap">'+
+        '<label class="sw" style="margin:0"><input type="checkbox" id="bc_push" checked><span>Notify everyone</span></label>'+
+        '<label class="sw" style="margin:0"><input type="checkbox" id="bc_pin"><span>Pin it to the top</span></label>'+
+      '</div>'+
+
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">'+
+        '<button class="btn" onclick="bcSend()" id="bc_send">Post to '+bEsc(BCME.baseshop)+'</button>'+
+        '<button class="btn ghost" type="button" onclick="bcTrainings()">📅 Load this week\'s trainings</button>'+
+        '<span id="bc_status" style="font-size:12.5px;font-weight:700;color:var(--ink3)"></span>'+
+      '</div>';
+
+    /* scheduled + recently sent, so a leader can see what is queued and pull it back */
+    var sch=(BCFEED&&BCFEED.scheduled)||[], sent=(BCFEED&&BCFEED.sent)||[];
+    if(sch.length){
+      h+='<div style="margin-top:20px;font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3)">Scheduled</div>';
+      h+=sch.map(function(a){
+        return '<div class="annrow"><div class="anntitle">'+bEsc(a.title||'(no headline)')+'</div>'+
+          '<div class="annmeta">goes out '+bEsc(bcWhen(a.send_at))+(a.flier_url?' · has a flier':'')+(a.push?' · notifies everyone':'')+'</div>'+
+          '<div class="annacts"><button class="btn ghost" onclick="bcCancel(\''+bEsc(a.id)+'\')">Pull it back</button></div></div>';
+      }).join('');
+    }
+    if(sent.length){
+      h+='<div style="margin-top:20px;font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3)">Recently sent</div>';
+      h+=sent.slice(0,6).map(function(a){
+        return '<div class="annrow"><div class="anntitle">'+bEsc(a.title||'(no headline)')+'</div>'+
+          '<div class="annmeta">'+bEsc(bcWhen(a.posted_at))+(a.flier_url?' · flier':'')+'</div></div>';
+      }).join('');
+    }
+    h+='</div></div>';
+  }
+
   // ---- EMD controls for their own baseshop: what the channel is called, when the bots
   // speak, and which bots are on. Previously this was a single on/off plus a highlights
   // box, and the timing was hardcoded — an EMD could not tell what any bot did or when.
   if(BASEDATA&&BASEDATA.bases&&BASEDATA.bases.length){
-    h+='<div class="sec"><div class="sech"><h2>Your team channel &amp; bots</h2></div><div class="card">'+
+    /* Timing and bot identity are set once and rarely touched. They were sitting above the
+       thing a leader actually opens this page to do, so they are folded away now. */
+    h+='<details class="sec" style="border:0"><summary style="cursor:pointer;list-style:none;padding:2px 0"><div class="sech" style="margin:0"><h2>Bot settings &amp; timing</h2><span style="font-size:12px;color:var(--ink3);font-weight:700">tap to open</span></div></summary>'+
+       '<div class="card">'+
        '<div style="font-size:12.5px;color:var(--ink3);line-height:1.5;margin-bottom:14px">'+
        'Bots only ever post in your own team channel — never the company chat, never Operations. '+
        'You decide what the channel is called, when they speak, and what they say.</div>';
@@ -416,12 +485,13 @@ function renderEmdControl(){
         '<span class="bst" style="margin-left:10px;font-size:12.5px;font-weight:700;color:var(--ink3)"></span>'+
       '</div>';
     });
-    h+='</div></div>';
+    h+='</div>';
   }
 
   // ---- the bots themselves: who they are and what they push ----
   if(BOTLIST&&BOTLIST.can_edit&&BOTLIST.bots){
-    h+='<div class="sec"><div class="sech"><h2>The bots</h2></div><div class="card">'+
+    h+='<div class="card" style="margin-top:12px">'+
+       '<div style="font-weight:800;font-size:15px;margin-bottom:8px">The bots</div>'+
        '<div style="font-size:12.5px;color:var(--ink3);line-height:1.5;margin-bottom:14px">'+
        'Rename any of them, change the badge, or switch one off. Where each one is allowed to '+
        'speak is fixed by its type — that is what keeps them out of the company chat.</div>';
@@ -442,8 +512,9 @@ function renderEmdControl(){
         '<span class="bst" style="margin-left:10px;font-size:12.5px;font-weight:700;color:var(--ink3)"></span>'+
       '</div>';
     });
-    h+='</div></div>';
+    h+='</div>';
   }
+  if((BASEDATA&&BASEDATA.bases&&BASEDATA.bases.length)||(BOTLIST&&BOTLIST.can_edit&&BOTLIST.bots)) h+='</details>';
   sec.innerHTML=h;
 }
 /* Repaint once any of the three payloads lands. Guarded on ANNDATA because that call is what
@@ -455,6 +526,84 @@ function decideAnn(targetId,decision){
    .then(function(r){return r.json();})
    .then(function(d){ if(!d||!d.ok){alert((d&&d.error)||'Could not save that.');return;} loadEmdControl(); })
    .catch(function(){alert('Network error.');});
+}
+/* ===== Team Broadcast ===================================================== */
+function bcApi(b){ b.code=CODE; return fetch(BCAST,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();}); }
+function bcWhen(iso){
+  if(!iso)return '';
+  try{ return new Date(iso).toLocaleString('en-US',{weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}); }
+  catch(e){ return String(iso).slice(0,16).replace('T',' '); }
+}
+function bcSay(msg,bad){ var el=document.getElementById('bc_status'); if(el){ el.textContent=msg||''; el.style.color=bad?'var(--red,#d64550)':'var(--ink3)'; } }
+function loadBcFeed(){ bcApi({action:'feed'}).then(function(d){ if(d&&d.ok){ BCFEED=d; renderEmd(); } }).catch(function(){}); }
+function bcToggleLater(){
+  var on=document.getElementById('bc_later').checked, w=document.getElementById('bc_when');
+  w.style.display=on?'':'none';
+  if(on&&!w.value){ var t=new Date(Date.now()+3600000); t.setMinutes(0,0,0);
+    w.value=new Date(t.getTime()-t.getTimezoneOffset()*60000).toISOString().slice(0,16); }
+}
+/* The image is read in the browser and posted as a data URL — no direct storage credentials
+   ever reach the page, the same way the profile photo upload works. */
+function bcFlier(input){
+  var f=input.files&&input.files[0]; if(!f)return;
+  if(f.size>6*1024*1024){ bcSay('That flier is '+(f.size/1048576).toFixed(1)+'MB — keep it under 6MB.',true); input.value=''; return; }
+  document.getElementById('bc_fliername').textContent='Uploading '+f.name+'…';
+  var rd=new FileReader();
+  rd.onload=function(){
+    bcApi({action:'flier',data_url:String(rd.result),name:f.name}).then(function(d){
+      if(!d||!d.ok){ document.getElementById('bc_fliername').textContent=''; bcSay((d&&d.error)||'Could not upload that flier.',true); return; }
+      BCFLIER=d.url;
+      document.getElementById('bc_fliername').textContent=f.name+' ✓';
+      document.getElementById('bc_flierprev').innerHTML=
+        '<img src="'+bEsc(d.url)+'" alt="Flier preview" style="max-width:220px;border-radius:10px;border:1px solid var(--line);display:block">'+
+        '<button class="btn ghost" type="button" style="margin-top:8px" onclick="bcDropFlier()">Remove flier</button>';
+      bcSay('Flier attached.');
+    }).catch(function(){ bcSay('Network error uploading the flier.',true); });
+  };
+  rd.readAsDataURL(f);
+}
+function bcDropFlier(){ BCFLIER=''; document.getElementById('bc_flierprev').innerHTML=''; document.getElementById('bc_fliername').textContent=''; document.getElementById('bc_file').value=''; bcSay(''); }
+/* Pull the week's sessions into the composer so it can be edited before it goes out —
+   a leader should never be made to retype what the calendar already knows. */
+function bcTrainings(){
+  bcSay('Reading the calendar…');
+  bcApi({action:'trainings'}).then(function(d){
+    if(!d||!d.ok){ bcSay((d&&d.error)||'Could not read the calendar.',true); return; }
+    document.getElementById('bc_title').value=d.title||'';
+    document.getElementById('bc_body').value=d.body||'';
+    bcSay(d.count+' session'+(d.count===1?'':'s')+' loaded — edit it, then post.');
+  }).catch(function(){ bcSay('Network error.',true); });
+}
+function bcSend(){
+  var title=(document.getElementById('bc_title').value||'').trim();
+  var body=(document.getElementById('bc_body').value||'').trim();
+  if(!title&&!body&&!BCFLIER){ bcSay('Write something, or attach a flier.',true); return; }
+  var later=document.getElementById('bc_later').checked;
+  var when=later?(document.getElementById('bc_when').value||''):'';
+  if(later&&!when){ bcSay('Pick a date and time, or turn off scheduling.',true); return; }
+  var btn=document.getElementById('bc_send'); btn.disabled=true; bcSay(later?'Scheduling…':'Posting…');
+  bcApi({action:'send',title:title,body:body,flier_url:BCFLIER,
+         send_at:when?new Date(when).toISOString():'',
+         push:document.getElementById('bc_push').checked,
+         pin:document.getElementById('bc_pin').checked,
+         kind:BCFLIER?'flier':'announcement'})
+   .then(function(d){
+     btn.disabled=false;
+     if(!d||!d.ok){ bcSay((d&&d.error)||'Could not send that.',true); return; }
+     document.getElementById('bc_title').value=''; document.getElementById('bc_body').value='';
+     bcDropFlier();
+     document.getElementById('bc_later').checked=false; bcToggleLater();
+     bcSay(d.scheduled?('Scheduled for '+bcWhen(d.send_at)+' ✓')
+                      :('Posted'+(d.notified?(' · '+d.notified+' notified'):'')+' ✓'));
+     loadBcFeed();
+   }).catch(function(){ btn.disabled=false; bcSay('Network error — nothing was sent.',true); });
+}
+function bcCancel(id){
+  if(!confirm('Pull this back before it goes out?'))return;
+  bcApi({action:'cancel',id:id}).then(function(d){
+    if(!d||!d.ok){ alert((d&&d.error)||'Could not pull that back.'); return; }
+    loadBcFeed();
+  }).catch(function(){ alert('Network error.'); });
 }
 function tglDay(btn){ btn.classList.toggle('on'); }
 function saveBase(base){
