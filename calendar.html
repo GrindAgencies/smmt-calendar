@@ -1451,11 +1451,17 @@ function trainerAptRow(b){var col=avColor(b.agent_name||b.agent_code||'');
       '<button class="x can" onclick="doApprove(\''+b.id+'\',\'decline\')">Decline</button>'+
       '<button class="x" onclick="offerHandoff(\''+b.id+'\')">Hand off</button></div>';
   } else if(b.status==='pending'){
-    right='<div style="margin-left:auto;display:flex;gap:8px"><button title="Approve" aria-label="Approve" style="border:none;cursor:pointer;width:40px;height:40px;border-radius:10px;font-size:18px;font-weight:900;background:var(--green-soft);color:#1a9c52" onclick="doApprove(\''+b.id+'\',\'approve\')">✓</button><button title="Decline" aria-label="Decline" style="border:1px solid var(--line2);cursor:pointer;width:40px;height:40px;border-radius:10px;font-size:15px;font-weight:900;background:var(--panel);color:var(--red)" onclick="doApprove(\''+b.id+'\',\'decline\')">✕</button></div>';
+    right='<div style="margin-left:auto;display:flex;gap:8px;align-items:center"><button title="Approve" aria-label="Approve" style="border:none;cursor:pointer;width:40px;height:40px;border-radius:10px;font-size:18px;font-weight:900;background:var(--green-soft);color:#1a9c52" onclick="doApprove(\''+b.id+'\',\'approve\')">✓</button><button title="Decline" aria-label="Decline" style="border:1px solid var(--line2);cursor:pointer;width:40px;height:40px;border-radius:10px;font-size:15px;font-weight:900;background:var(--panel);color:var(--red)" onclick="doApprove(\''+b.id+'\',\'decline\')">✕</button><button class="x" title="Pass this to another trainer" onclick="offerHandoff(\''+b.id+'\')">Hand off</button></div>';
   } else if((b.status==='booked'||b.status==='confirmed')&&isPastBk(b)){
     right='<div style="margin-left:auto;display:flex;gap:8px"><button class="book" style="width:auto;margin:0;padding:9px 14px;background:var(--green-soft);color:#1a9c52" onclick="doMark(\''+b.id+'\',\'completed\')">Completed</button><button class="x can" onclick="doMark(\''+b.id+'\',\'no_show\')">No-show</button></div>';
   } else if((b.status==='booked'||b.status==='confirmed')&&(myRole()==='CFT'||isEmd())){
     right='<button class="x" style="margin-left:auto" onclick="openTransfer(\''+b.id+'\',\''+(isEmd()?'manager':'peer')+'\')">Transfer</button>';
+  } else if(b.status==='declined'){
+    /* Until now the only way to hand a declined training on was the prompt that appeared in the
+       seconds right after you declined it. Close that and the appointment was stranded — which is
+       exactly what "I can't hand off an appointment" meant. It stays offered. */
+    right='<div style="margin-left:auto;display:flex;gap:8px;align-items:center"><span class="conf">declined</span>'+
+      '<button class="x" onclick="offerHandoff(\''+b.id+'\')">Hand off</button></div>';
   } else {
     right='<span class="conf" style="margin-left:auto">'+esc(b.status)+'</span>';
   }
@@ -1489,23 +1495,51 @@ function offerHandoff(id){
   }).catch(function(){$('bkOv').classList.remove('on');});
 }
 function renderHandoff(r){
-  var b=r.booking,cands=r.candidates||[];
-  var head='<h3>Pass this training on?</h3><p class="dsub">'+esc(b.agent_name||b.agent_code||'Agent')+' · '+esc(b.category||'Training')+' · '+prettyDate(b.date)+' at '+esc(b.time)+tzTag()+'</p>'+
-    '<div style="font-size:12.5px;color:var(--ink3);margin:0 2px 12px">You declined this. Anyone below is free at exactly that time — handing it over keeps '+esc((b.agent_name||'the agent').split(' ')[0])+'’s slot instead of sending them back to start over.</div>';
-  var body;
-  if(!cands.length){
-    body='<div class="empty">No CFT has '+esc(b.time)+' open on '+prettyDate(b.date)+'. '+esc((b.agent_name||'The agent').split(' ')[0])+' has been told to pick another time.</div>';
-  } else {
-    body='<div class="grid g3">'+cands.map(function(c){var col=avColor(c.name);
-      return '<div class="tcard"><div class="th"><div class="tav" style="background:'+col+'">'+initials(c.name)+'</div><div><div class="tn">'+esc(c.name)+'</div><div class="tr">'+esc(roleLabel(c.role))+'</div></div></div>'+
-       '<div class="tmeta"><span class="m">'+esc(b.time)+' free</span></div>'+
-       '<button class="book" onclick="doHandoff(\''+b.id+'\',\''+encodeURIComponent(c.name)+'\')">Hand to '+esc(c.name.split(' ')[0])+'</button></div>';}).join('')+'</div>';
+  var b=r.booking,cands=r.candidates||[],busy=r.unavailable||[];
+  HANDOFF=b;
+  var who=esc((b.agent_name||'the agent').split(' ')[0]);
+  var det=[prettyDate(b.date)+' at '+esc(b.time)+tzTag(),
+           (b.duration_minutes||60)+' min',
+           b.location?esc(b.location):''].filter(Boolean).join(' · ');
+  var head='<h3>Hand this training over</h3>'+
+    '<p class="dsub">'+esc(b.agent_name||b.agent_code||'Agent')+' · '+esc(b.category||'Training')+'</p>'+
+    '<div style="font-size:12.5px;color:var(--ink3);margin:0 2px 6px">'+det+'</div>'+
+    /* everything on the appointment travels with it — nothing is re-keyed */
+    '<div style="font-size:12px;color:var(--ink3);background:var(--panel);border:1px solid var(--line2);border-radius:10px;padding:9px 11px;margin:0 2px 14px">'+
+      'The whole appointment moves across as it is — same date, time, client and notes'+(b.conf?(' · ref '+esc(b.conf)):'')+
+      '. '+who+' keeps their slot and both of you are notified.</div>';
+
+  function card(c,blocked){
+    var col=avColor(c.name);
+    var cal=c.calendly?('<a href="'+esc(c.calendly)+'" target="_blank" rel="noopener" class="conf" style="text-decoration:underline;cursor:pointer">Open their calendar ↗</a>')
+                      :('<span class="conf" style="opacity:.6">no calendar linked</span>');
+    var btn=blocked
+      ? '<button class="x" style="width:100%;margin-top:8px" onclick="doHandoff(\''+b.id+'\',\''+encodeURIComponent(c.name)+'\',1)">Hand over anyway</button>'
+      : '<button class="book" onclick="doHandoff(\''+b.id+'\',\''+encodeURIComponent(c.name)+'\')">Hand to '+esc(c.name.split(' ')[0])+'</button>';
+    return '<div class="tcard"><div class="th"><div class="tav" style="background:'+col+'">'+initials(c.name)+'</div>'+
+      '<div><div class="tn">'+esc(c.name)+'</div><div class="tr">'+esc(roleLabel(c.role))+'</div></div></div>'+
+      '<div class="tmeta"><span class="m"'+(blocked?' style="color:var(--red)"':'')+'>'+esc(blocked?c.reason:(b.time+' free'))+'</span></div>'+
+      '<div style="margin:6px 0 0">'+cal+'</div>'+btn+'</div>';
   }
-  $('bkDrawer').innerHTML=head+body+'<div class="dact" style="margin-top:18px"><button class="x can" onclick="$(\'bkOv\').classList.remove(\'on\')">'+(cands.length?'No thanks':'Close')+'</button></div>';
+
+  var body='';
+  if(cands.length){
+    body+='<div style="font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);margin:4px 2px 8px">Free at '+esc(b.time)+'</div>'+
+      '<div class="grid g3">'+cands.map(function(c){return card(c,false);}).join('')+'</div>';
+  } else {
+    body+='<div class="empty">Nobody has '+esc(b.time)+' published as open on '+prettyDate(b.date)+'. You can still hand it to anyone below — open their calendar first to check.</div>';
+  }
+  if(busy.length){
+    body+='<div style="font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);margin:20px 2px 8px">Everyone else · check their calendar first</div>'+
+      '<div class="grid g3">'+busy.map(function(c){return card(c,true);}).join('')+'</div>';
+  }
+  $('bkDrawer').innerHTML=head+body+'<div class="dact" style="margin-top:18px"><button class="x can" onclick="$(\'bkOv\').classList.remove(\'on\')">Close</button></div>';
 }
-function doHandoff(id,encName){var name=decodeURIComponent(encName);
-  handoffApi({action:'handoff',id:id,code:CODE,to_trainer_name:name}).then(function(r){
+function doHandoff(id,encName,force){var name=decodeURIComponent(encName);
+  handoffApi({action:'handoff',id:id,code:CODE,to_trainer_name:name,force:!!force}).then(function(r){
     if(r&&r.taken){toast(r.error||'That trainer was just booked.');offerHandoff(id);return;}
+    /* they are outside their published hours — the server asks before overriding */
+    if(r&&r.needs_force){ if(confirm(name+' is '+(r.reason||'not free')+'.\n\nHand it over anyway?')) doHandoff(id,encName,1); return; }
     if(!r||!r.ok){toast((r&&r.error)||'Could not hand it off.');return;}
     toast('Handed to '+name.split(' ')[0]+' ✓');$('bkOv').classList.remove('on');DAYBOOKED=[];
     loadMyTrainer(function(){loadMy(function(){render();});});
