@@ -197,10 +197,10 @@ html, body{ overflow-x: hidden; }
   <label class="chk" id="splitToggle"><input type="checkbox" id="f_splitflag" onchange="if(this.checked)loadAgentRoster();document.getElementById('splitWrap').style.display=this.checked?'block':'none';calcComm()"> Split this sale with another agent</label>
   <div id="splitWrap" style="display:none"><div class="fg" style="margin-top:8px"><label>Split agent (name or code)</label><input id="f_split" placeholder="Start typing a name or GFI code" list="tsfgAgents" autocomplete="off" oninput="updSplitShare();splitLookup()" onchange="splitLookup(true)" onblur="splitLookup(true)"><datalist id="tsfgAgents"></datalist><input type="hidden" id="f_split_code"><div id="splitMatch" class="splitmatch"></div></div><div class="frow" style="margin-top:8px"><div class="fg"><label>Your share of this sale (%)</label><input id="f_splitpct" type="number" min="0" max="100" value="50" oninput="updSplitShare();calcComm()"></div><div class="fg"><label>Partner's contract % (optional)</label><input id="f_partner_contract" type="number" inputmode="decimal" placeholder="defaults to your rate" oninput="calcComm()"><div class="hint">Their comp rate — used for their side of the split</div></div></div><div id="splitShareHint" style="font-size:12px;color:var(--muted,#6e6e73);margin-top:7px;line-height:1.45"></div></div>
   <div class="sec-l">Policy Details</div>
-  <div class="frow"><div class="fg"><label>Carrier *</label><input id="f_carrier" placeholder="Type or select a carrier" list="carriers"><datalist id="carriers"><option>American National</option><option>American Equity</option><option>Americo</option><option>Ethos</option><option>Foresters</option><option>Mutual of Omaha</option><option>National Life Group</option><option>North American</option><option>F&G</option><option>Corebridge</option></datalist></div><div class="fg"><label>Product *</label><select id="f_product"><option value="">Select product</option><option>Term Life</option><option>IUL</option><option>Whole Life</option><option>Final Expense</option><option>GUL</option><option>Annuity — FIA</option><option>Annuity — MYGA</option><option>Other</option></select></div></div>
+  <div class="frow"><div class="fg"><label>Carrier *</label><input id="f_carrier" placeholder="Type or select a carrier" list="carriers"><datalist id="carriers"><option>American National</option><option>American Equity</option><option>Americo</option><option>Ethos</option><option>Foresters</option><option>Mutual of Omaha</option><option>National Life Group</option><option>North American</option><option>F&G</option><option>Corebridge</option></datalist></div><div class="fg"><label>Product *</label><select id="f_product" onchange="calcAnnuityPremium(true);calcComm()"><option value="">Select product</option><option>Term Life</option><option>IUL</option><option>Whole Life</option><option>Final Expense</option><option>GUL</option><option>Annuity — FIA</option><option>Annuity — MYGA</option><option>Other</option></select></div></div>
   <div class="frow"><div class="fg"><label>State *</label><input id="f_state" maxlength="2" placeholder="CA" style="text-transform:uppercase"></div><div class="fg"><label>Policy # *</label><input id="f_polnum" placeholder="Policy number"></div><div class="fg"><label>Carrier code</label><input id="f_ccode" placeholder="Optional"></div></div>
   <div class="sec-l">Numbers</div>
-  <div class="frow"><div class="fg"><label>Coverage amount *</label><input id="f_cov" type="number" inputmode="decimal" placeholder="$" oninput="calcComm()"><div class="hint">For annuities, enter the total annuity amount</div></div><div class="fg"><label>Target premium *</label><input id="f_prem" type="number" inputmode="decimal" placeholder="$" oninput="calcComm()"></div></div>
+  <div class="frow"><div class="fg"><label>Coverage amount *</label><input id="f_cov" type="number" inputmode="decimal" placeholder="$" oninput="calcAnnuityPremium();calcComm()"><div class="hint">For annuities, enter the total annuity amount</div></div><div class="fg"><label>Target premium *</label><input id="f_prem" type="number" inputmode="decimal" placeholder="$" oninput="this.dataset.touched=1;calcComm()"><div class="hint" id="annNote" style="display:none;color:var(--gold,#c99a2e);font-weight:700"></div></div></div>
   <div class="frow"><div class="fg"><label>Monthly contribution *</label><input id="f_monthly" type="number" inputmode="decimal" min="0" placeholder="$ (enter 0 if none)"><div class="hint">Required · enter 0 if there is none</div></div><div class="fg"><label>Lump sum contribution *</label><input id="f_lump" type="number" inputmode="decimal" min="0" placeholder="$ (enter 0 if none)"><div class="hint">Required · enter 0 if there is none</div></div></div>
   <div class="frow"><div class="fg"><label>Your contract % *</label><input id="f_contract" type="number" inputmode="decimal" placeholder="80" oninput="calcComm()"><div class="hint">Your comp rate at the carrier · all business is 100% advance</div></div></div>
   <div class="commbox"><div class="cl" id="commLbl">Expected Commission</div><div class="cv" id="commOut">$0</div><div id="commPartner" style="display:none;font-size:12.5px;font-weight:700;color:#1a9c52;margin-top:6px"></div></div>
@@ -390,7 +390,7 @@ function buildSide(){
 }
 function signOut(){try{localStorage.removeItem('tsfg_code');localStorage.removeItem('tsfg_name');}catch(e){}location.href='index.html';}
 
-function setBiz(b){BIZ=b;$('bLife').classList.toggle('on',b==='life');$('bAnn').classList.toggle('on',b==='annuity');load();}
+function setBiz(b){BIZ=b;try{calcAnnuityPremium(true);}catch(e){}$('bLife').classList.toggle('on',b==='life');$('bAnn').classList.toggle('on',b==='annuity');load();}
 function setScope(s){SCOPE=s;load();}
 function setTab(t){TAB=t;render();}
 /* Operations authority is a signed-in session now, not a passcode typed into a
@@ -574,6 +574,32 @@ function renderStatusGrid(){
   $('stGrid').innerHTML=curStatuses().map(function(s){
     return '<button class="stbtn'+(STATUS===s[0]?' on':'')+'" onclick="STATUS=\''+s[0]+'\';renderStatusGrid()">'+s[1]+'</button>';
   }).join('');
+}
+/* ANNUITIES ARE PAID DIFFERENTLY. A client moving $100,000 into an FIA does not generate
+   $100,000 of premium — the agent is paid on 7.58% of the transferred value, and their contract
+   level then applies to THAT. Agents were working the percentage out by hand and entering it,
+   which is how four annuities ended up on the books at 7.50% instead. The app does it now. */
+var ANNUITY_FACTOR = 0.0758;
+function isAnnuity(){
+  var pr = (($('f_product')||{}).value||'').toLowerCase();
+  return BIZ==='annuity' || pr.indexOf('annuit')>=0 || pr.indexOf('fia')>=0 || pr.indexOf('myga')>=0;
+}
+/* Target premium from the annuity amount. Runs when the amount or the product changes, and
+   never overwrites a figure the agent has deliberately typed over the top of. */
+function calcAnnuityPremium(force){
+  if(!isAnnuity()) { var n=$('annNote'); if(n)n.style.display='none'; return; }
+  var amt = Number($('f_cov').value) || Number($('f_lump').value) || 0;
+  var el = $('f_prem');
+  if(amt>0 && el && (force || !el.dataset.touched)){
+    el.value = Math.round(amt*ANNUITY_FACTOR*100)/100;
+  }
+  var note=$('annNote');
+  if(note){
+    note.style.display = amt>0 ? 'block' : 'none';
+    note.textContent = amt>0
+      ? ('Annuity: ' + money(Math.round(amt)) + ' × 7.58% = ' + money(Math.round(amt*ANNUITY_FACTOR)) + ' target premium. Your contract level applies to that.')
+      : '';
+  }
 }
 function calcComm(){var prem=Number($('f_prem').value)||0;var c=Number($('f_contract').value);
   var split=$('f_splitflag')&&$('f_splitflag').checked;
