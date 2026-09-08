@@ -36,6 +36,9 @@ button{font-family:inherit;cursor:pointer;border:0;background:none;color:inherit
 body.scripton .stage{bottom:38vh}
 .eyebrow{font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-bottom:18px}
 h1.st{font-size:clamp(30px,5.4vw,62px);line-height:1.08;font-weight:800;letter-spacing:-.03em;margin:0;text-wrap:balance;max-width:16ch}
+.stage.hasviz h1.st{font-size:clamp(24px,3.6vw,42px);max-width:26ch}
+.stage.hasviz .sub{font-size:clamp(14px,1.6vw,18px);max-width:52ch;margin-top:10px}
+.stage.hasviz{padding:3vh 4vw}
 .sub{font-size:clamp(15px,1.9vw,23px);color:var(--ink2);margin:16px 0 0;font-weight:500;max-width:34ch;text-wrap:balance}
 ul.bul{list-style:none;padding:0;margin:34px 0 0;display:flex;flex-direction:column;gap:12px;text-align:left;max-width:30ch}
 ul.bul li{font-size:clamp(15px,1.75vw,21px);line-height:1.4;padding-left:26px;position:relative;color:var(--ink)}
@@ -75,6 +78,50 @@ body.scripton .prog{bottom:38vh}
 .ovc .n{font-size:11px;font-weight:800;color:var(--ink3)}
 .ovc .t{font-size:14px;font-weight:700;margin-top:4px;line-height:1.3}
 .load{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;color:var(--ink3);font-size:14px}
+
+/* ---- slide visuals ----
+   The source deck's charts are pictures inside a 31MB pptx; text extraction cannot carry a
+   picture. These are rebuilt natively so they scale to any screen, stay legible over a shared
+   screen, and can be corrected without re-exporting a deck. A slide names one with `viz`. */
+.viz{margin:28px 0 0;width:100%;max-width:1000px}
+.vz-row{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+.vz-card{flex:1 1 210px;min-width:190px;max-width:320px;background:var(--panel);border:1px solid var(--line);
+  border-radius:14px;padding:16px 16px 18px;text-align:left}
+.vz-card.hi{border-color:var(--gold);background:linear-gradient(180deg,var(--gold-soft),transparent)}
+.vz-card h4{margin:0 0 4px;font-size:clamp(15px,1.7vw,19px);font-weight:800;letter-spacing:-.01em}
+.vz-card .k{font-size:clamp(20px,3vw,32px);font-weight:800;color:var(--accent);letter-spacing:-.02em;
+  font-variant-numeric:tabular-nums;margin:6px 0 2px}
+.vz-card p{margin:6px 0 0;font-size:13.5px;line-height:1.45;color:var(--ink2)}
+.vz-card ul{margin:8px 0 0;padding-left:16px;font-size:13px;line-height:1.5;color:var(--ink2)}
+.vz-tag{display:inline-block;font-size:10.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+  padding:3px 8px;border-radius:999px;background:var(--gold-soft);color:var(--accent);margin-bottom:8px}
+.vz-tag.bad{background:rgba(220,80,80,.15);color:#f0918f}
+.vz-tag.good{background:rgba(70,190,130,.14);color:#6fe0a8}
+.vz-note{margin:14px 0 0;font-size:12px;color:var(--ink3);line-height:1.5;text-align:center}
+.vz-svg{width:100%;height:auto;display:block}
+table.vz-t{width:100%;border-collapse:collapse;font-size:clamp(12px,1.35vw,15px)}
+table.vz-t th,table.vz-t td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:center}
+table.vz-t th{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);font-weight:800}
+table.vz-t td:first-child,table.vz-t th:first-child{text-align:left;color:var(--ink)}
+table.vz-t td.y{color:#6fe0a8;font-weight:800}
+table.vz-t td.n{color:var(--ink3)}
+table.vz-t tr.hl td{background:var(--gold-soft)}
+.vz-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.vz-flow{display:flex;align-items:stretch;gap:10px;justify-content:center;flex-wrap:wrap}
+.vz-step{flex:1 1 180px;max-width:260px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;text-align:left}
+.vz-step .num{font-size:11px;font-weight:800;color:var(--gold);letter-spacing:.1em}
+.vz-step h5{margin:4px 0 4px;font-size:15px;font-weight:800}
+.vz-step p{margin:0;font-size:12.5px;line-height:1.45;color:var(--ink2)}
+.vz-arrow{align-self:center;color:var(--gold);font-size:20px;font-weight:800}
+@media(max-width:640px){ .vz-arrow{display:none} }
+.vz-menu{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;text-align:left}
+.vz-menu .m{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:15px 16px}
+.vz-menu .m .ic{font-size:20px}
+.vz-menu .m h4{margin:6px 0 3px;font-size:16px;font-weight:800;letter-spacing:-.01em}
+.vz-menu .m .l1{font-size:13px;color:var(--accent);font-weight:700}
+.vz-menu .m .l2{font-size:12.5px;color:var(--ink2);margin-top:3px;line-height:1.4}
+body.scripton .viz{max-height:34vh;overflow:hidden}
+@media(max-width:700px){ .vz-card{flex-basis:100%} }
 @media(max-width:700px){ body.scripton .stage{bottom:46vh} .notes{height:46vh} body.scripton .zone,body.scripton .prog{bottom:46vh} }
 @media print{ .bar,.notes,.zone,.prog,.ov{display:none!important} .stage{position:static;height:100vh;page-break-after:always} }
 </style>
@@ -134,13 +181,207 @@ function render(){
   h+='<div class="eyebrow">'+esc(P.title)+'</div>';
   h+='<h1 class="st">'+esc(s.t||'')+'</h1>';
   if(s.sub) h+='<p class="sub">'+esc(s.sub)+'</p>';
-  if(s.bullets&&s.bullets.length) h+='<ul class="bul">'+s.bullets.map(function(b){return '<li>'+esc(b)+'</li>';}).join('')+'</ul>';
+  /* A slide either draws its rebuilt chart or falls back to the bullet list it always had. */
+  var drew=false;
+  if(s.viz && VIZ[s.viz]){ try{ h+='<div class="viz">'+VIZ[s.viz](s)+'</div>'; drew=true; }catch(e){ drew=false; } }
+  if(!drew && s.bullets && s.bullets.length) h+='<ul class="bul">'+s.bullets.map(function(b){return '<li>'+esc(b)+'</li>';}).join('')+'</ul>';
   $('stage').innerHTML=h;
+  $('stage').classList.toggle('hasviz',drew);   /* not :has() — older iOS does not support it */
   $('nb').textContent=s.notes||'';
   $('prog').style.width=(((I+1)/P.slides.length)*100)+'%';
   try{ sessionStorage.setItem('pres_'+KEY,String(I)); }catch(e){}
   if($('ov').classList.contains('on')) paintOverview();
 }
+
+/* =======================================================================
+   REBUILT SLIDE VISUALS
+   The originals are images inside the source pptx. Each is redrawn here from
+   the same numbers, so it stays sharp on a phone or a shared screen and can be
+   corrected in code instead of re-exporting a 31MB deck.
+   ======================================================================= */
+var money=function(n){ n=Math.round(n); return '$'+n.toLocaleString('en-US'); };
+var moneyK=function(n){ n=Math.round(n);
+  if(Math.abs(n)>=1e6) return '$'+(n/1e6).toFixed(2)+'M';
+  if(Math.abs(n)>=1e3) return '$'+Math.round(n/1e3)+'K'; return '$'+n; };
+
+/* Real S&P 500 annual total returns. Kept as data so a year is appended, not recalculated. */
+var SP={1999:21.04,2000:-9.10,2001:-11.89,2002:-22.10,2003:28.68,2004:10.88,2005:4.91,2006:15.79,
+2007:5.49,2008:-37.00,2009:26.46,2010:15.06,2011:2.11,2012:16.00,2013:32.39,2014:13.69,2015:1.38,
+2016:11.96,2017:21.83,2018:-4.38,2019:31.49,2020:18.40,2021:28.71,2022:-18.11,2023:26.29,2024:25.02};
+var SP_CAP=0.15, SP_TAX=0.30;   /* stated on the slide; change here to change the illustration */
+
+function spSim(monthly){
+  var yrs=Object.keys(SP).map(Number).sort(function(a,b){return a-b;});
+  var v=0,x=0,c=0,out=[];
+  yrs.forEach(function(y){
+    var r=SP[y]/100, ri=Math.max(0,Math.min(r,SP_CAP));
+    var mv=Math.pow(1+r,1/12)-1, mi=Math.pow(1+ri,1/12)-1;
+    for(var m=0;m<12;m++){ v=v*(1+mv)+monthly; x=x*(1+mi)+monthly; c+=monthly; }
+    out.push({y:y,r:r*100,ri:ri*100,v:v,x:x,c:c});
+  });
+  return out;
+}
+function vizSP(s){
+  var monthly=Number(s.vizArg)||2500, d=spSim(monthly), last=d[d.length-1];
+  var W=1000,H=330,PADL=64,PADB=26,PADT=10;
+  var max=Math.max(last.v,last.x)*1.05;
+  var xs=function(i){ return PADL+(i/(d.length-1))*(W-PADL-14); };
+  var ys=function(v){ return PADT+(1-v/max)*(H-PADT-PADB); };
+  var line=function(key,col,wid){
+    return '<path fill="none" stroke="'+col+'" stroke-width="'+wid+'" stroke-linejoin="round" d="'+
+      d.map(function(p,i){return (i?'L':'M')+xs(i).toFixed(1)+' '+ys(p[key]).toFixed(1);}).join(' ')+'"/>';
+  };
+  var g='';
+  [0,.25,.5,.75,1].forEach(function(f){
+    var yy=PADT+(1-f)*(H-PADT-PADB);
+    g+='<line x1="'+PADL+'" y1="'+yy.toFixed(1)+'" x2="'+(W-14)+'" y2="'+yy.toFixed(1)+'" stroke="#25304a" stroke-width="1"/>';
+    g+='<text x="'+(PADL-8)+'" y="'+(yy+4).toFixed(1)+'" text-anchor="end" fill="#6f7c99" font-size="12">'+moneyK(max*f)+'</text>';
+  });
+  /* the loss years the script points at */
+  [2000,2001,2002,2008,2022].forEach(function(y){
+    var i=d.findIndex(function(p){return p.y===y;}); if(i<0)return;
+    g+='<line x1="'+xs(i).toFixed(1)+'" y1="'+PADT+'" x2="'+xs(i).toFixed(1)+'" y2="'+(H-PADB)+'" stroke="rgba(220,80,80,.20)" stroke-width="'+((W-PADL)/d.length).toFixed(1)+'"/>';
+  });
+  [0,6,12,18,25].forEach(function(i){ if(!d[i])return;
+    g+='<text x="'+xs(i).toFixed(1)+'" y="'+(H-6)+'" text-anchor="middle" fill="#6f7c99" font-size="12">'+d[i].y+'</text>'; });
+  var svg='<svg class="vz-svg" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Variable versus indexed growth">'+g+
+    line('c','#3d4a68',2)+line('v','#f0918f',3)+line('x','#e8c14a',3.5)+'</svg>';
+  var tax=Math.max(0,(last.v-last.c))*SP_TAX;
+  return svg+
+   '<div class="vz-row" style="margin-top:14px">'+
+    '<div class="vz-card"><span class="vz-tag">Paid in</span><div class="k">'+money(last.c)+'</div><p>'+money(monthly)+' a month, every month, from 1999.</p></div>'+
+    '<div class="vz-card"><span class="vz-tag bad">Variable · taxable</span><div class="k">'+money(last.v)+'</div><p>Follows the S&amp;P every year, down years included. Tax due at '+(SP_TAX*100)+'% on the gain: <b>'+money(tax)+'</b> &rarr; <b>'+money(last.v-tax)+'</b> kept.</p></div>'+
+    '<div class="vz-card hi"><span class="vz-tag good">Indexed · tax advantaged</span><div class="k">'+money(last.x)+'</div><p>Floor 0%, cap '+(SP_CAP*100)+'%. Never a losing year. Nothing owed at the end.</p></div>'+
+   '</div>'+
+   '<p class="vz-note">Actual S&amp;P 500 annual returns 1999&ndash;2024. Hypothetical, for illustration only &mdash; not an actual investment in any product, and not a guarantee of future results. Indexed assumes a 0% floor and a '+(SP_CAP*100)+'% cap; the tax figure assumes a '+(SP_TAX*100)+'% rate on gains.</p>';
+}
+
+function vizMoneyGrows(){
+  return '<div class="vz-row">'+
+   '<div class="vz-card"><span class="vz-tag">Fixed</span><h4>0.01% &ndash; 3%</h4><p>Savings, CDs. Safe, but inflation at 7&ndash;9% means the money is going backwards.</p></div>'+
+   '<div class="vz-card"><span class="vz-tag bad">Variable</span><h4>Up and down</h4><p>The market. Down 50% then up 50% is not back to even &mdash; $1,000 &rarr; $500 &rarr; $750.</p></div>'+
+   '<div class="vz-card hi"><span class="vz-tag good">Indexed</span><h4>Floor 0% &middot; Cap 20%</h4><p>Tied to the market, not in it. Anything between 0 and the cap is yours. A down year is a 0%, never a loss.</p></div>'+
+   '</div><p class="vz-note">Hypothetical example for educational purposes. Rule of 72 is an approximation; no investment or savings program is guaranteed to outpace inflation.</p>';
+}
+function vizTaxed(){
+  return '<div class="vz-row">'+
+   '<div class="vz-card"><span class="vz-tag bad">Tax now</span><h4>Taxed twice</h4><p>Crypto, savings, CDs. Taxed when you earn it, taxed again on the gain. Capital gains went 15% &rarr; 20%.</p></div>'+
+   '<div class="vz-card"><span class="vz-tag bad">Tax later</span><h4>Taxed at an unknown rate</h4><p>401(k), 403(b), IRA, savings bonds. You defer the bill to a year whose tax rate nobody can tell you &mdash; and the match is the company’s deduction, not yours.</p></div>'+
+   '<div class="vz-card hi"><span class="vz-tag good">Tax advantaged</span><h4>Grows and comes out tax free</h4><p>Roth is capped at $6,500 a year. Cash accumulation in a policy is not &mdash; the same thing the Rockefellers have done for 100 years.</p></div>'+
+   '</div><p class="vz-note">Tax and/or legal advice is not offered by Global Financial Impact, LLC, its affiliated companies nor its independent associates. Consult your own tax professional or legal advisor.</p>';
+}
+function vizAvgActual(){
+  var rows=[['Start','$100,000','$100,000'],['Year 1','&minus;50% &rarr; $50,000','0% &rarr; $110,000 <span style="color:#6fe0a8">(10% gain)</span>'],
+   ['Year 2','+50% &rarr; $75,000','&mdash;'],['Year 3','&minus;50% &rarr; $37,500','0% &rarr; $121,000 <span style="color:#6fe0a8">(10% gain)</span>'],
+   ['Year 4','+50% &rarr; <b>$56,250</b>','&mdash;']];
+  return '<div class="vz-wrap"><table class="vz-t"><tr><th></th><th>Variable</th><th>Indexed &middot; 10% cap</th></tr>'+
+    rows.map(function(r){return '<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td></tr>';}).join('')+
+    '<tr class="hl"><td><b>Average</b></td><td><b>0%</b></td><td><b>5%</b></td></tr>'+
+    '<tr class="hl"><td><b>Actual</b></td><td style="color:#f0918f"><b>&minus;$43,750</b></td><td class="y"><b>+$21,000</b></td></tr>'+
+    '</table></div><p class="vz-note">An average return and an actual return are not the same number. Hypothetical example for educational purposes only.</p>';
+}
+function vizServiceMenu(){
+  var M=[['\u{1F4B5}','Cash Flow','Opportunity','Referral base | Part Time | Full Time'],
+   ['\u{1F6E1}️','Asset Protection','Rollovers','Put a G.R.I.P.P. on your money'],
+   ['\u{1F4CB}','Budget Plan','Debt Management','Pay Off Debt | Prioritize Saving'],
+   ['\u{1F46A}','Proper Protection Life Insurance','Living Benefits | Estate Planning',''],
+   ['\u{1F3D6}️','Retirement / Pension Planning','Indexed Tax Free Retirement Solutions',''],
+   ['\u{1F3E2}','Advanced Business Plans','Business &amp; Real Estate Strategies','']];
+  return '<div class="vz-menu">'+M.map(function(m){
+    return '<div class="m"><div class="ic">'+m[0]+'</div><h4>'+m[1]+'</h4><div class="l1">'+m[2]+'</div>'+
+      (m[3]?'<div class="l2">'+m[3]+'</div>':'')+'</div>';
+  }).join('')+'</div>';
+}
+function vizChildSavings(){
+  var rows=[['Tax-Free Contribution',0,0,1],['Tax Deferred Growth',0,1,1],['Tax Advantage Distribution',0,1,1],
+   ['Growth Potential',1,1,1],['No Market Risk',0,0,1],['Liquidity',0,1,1],['Freedom of Use',0,0,1],
+   ['Insurance Benefits',0,0,1],['Does Not Affect Financial Aid',0,0,1]];
+  var c=function(v){ return v?'<td class="y">&#10003;</td>':'<td class="n">&mdash;</td>'; };
+  return '<div class="vz-wrap"><table class="vz-t"><tr><th></th><th>Brokerage</th><th>529 Plan</th><th>Million Dollar Baby IUL</th></tr>'+
+    rows.map(function(r){return '<tr><td>'+r[0]+'</td>'+c(r[1])+c(r[2])+c(r[3])+'</tr>';}).join('')+'</table></div>';
+}
+function vizGripp(){
+  var G=[['G','Guarantees'],['R','Rate of Return'],['I','Indexed Growth'],['P','Pension-Like Income'],['P','Potential Bonuses']];
+  return '<div class="vz-row">'+G.map(function(g){
+    return '<div class="vz-card hi" style="flex:1 1 150px;min-width:140px;text-align:center"><div class="k">'+g[0]+'</div><p style="color:var(--ink)">'+g[1]+'</p></div>';
+  }).join('')+'</div>'+
+  '<div class="vz-row" style="margin-top:14px">'+
+   '<div class="vz-card"><span class="vz-tag bad">Variable</span><h4>Unprotected</h4></div>'+
+   '<div class="vz-card hi"><span class="vz-tag good">Indexed</span><h4>Protected</h4></div>'+
+  '</div>';
+}
+function vizDebt(){
+  return '<div class="vz-row">'+
+   '<div class="vz-card hi"><span class="vz-tag good">Good debt</span><p>Generates income, or is an investment that grows in value or produces long-term cash flow.</p><ul><li>Property investment (mortgage)</li><li>Business loans</li></ul></div>'+
+   '<div class="vz-card"><span class="vz-tag bad">Bad debt</span><p>Buying things that don’t appreciate or produce long-term income.</p><ul><li>Credit card debt</li><li>Car loans</li><li>Personal loans</li></ul></div>'+
+   '</div>'+
+   '<div class="vz-flow" style="margin-top:16px">'+
+    '<div class="vz-step"><div class="num">STEP 1</div><h5>Cover every minimum</h5><p>Pay minimum payments to all debts.</p></div><div class="vz-arrow">&rarr;</div>'+
+    '<div class="vz-step"><div class="num">STEP 2</div><h5>Attack the highest rate</h5><p>Allocate all additional cash towards the debt with the highest interest rate.</p></div><div class="vz-arrow">&rarr;</div>'+
+    '<div class="vz-step"><div class="num">STEP 3</div><h5>Roll it down</h5><p>Pay that off, move to the next highest interest rate.</p></div>'+
+   '</div><p class="vz-note">The Avalanche Method.</p>';
+}
+function vizInfiniteBank(){
+  return '<div class="vz-flow">'+
+   '<div class="vz-step"><div class="num">1</div><h5>Policy Holder</h5><p>Premium contribution.</p></div><div class="vz-arrow">&rarr;</div>'+
+   '<div class="vz-step"><div class="num">2</div><h5>Insurance Company</h5><p>% of premium.</p></div><div class="vz-arrow">&rarr;</div>'+
+   '<div class="vz-step" style="border-color:var(--gold)"><div class="num">3</div><h5>Cash Value</h5><p>8% &ndash; 10% average return.</p></div>'+
+   '</div>'+
+   '<div class="vz-row" style="margin-top:16px">'+
+    '<div class="vz-card"><span class="vz-tag">The bank</span><div class="k">0&ndash;1%</div><p>Taxed. FDIC insures up to $250,000. Lends your dollar out $10 to $1.</p></div>'+
+    '<div class="vz-card hi"><span class="vz-tag good">IUL / Family Bank</span><div class="k">8&ndash;15%</div><p>Tax free, no market risk. Floor 0%, cap 15%. Reinsured, and the code goes back to 1913.</p></div>'+
+   '</div>'+
+   '<p class="vz-note">Policy loans and withdrawals reduce the cash value and the death benefit.</p>';
+}
+function vizFamilyBank(){
+  return '<div class="vz-flow">'+
+   '<div class="vz-step"><div class="num">1</div><h5>Family Trust</h5><p>The trust owns and funds the policy.</p></div><div class="vz-arrow">&rarr;</div>'+
+   '<div class="vz-step"><div class="num">2</div><h5>Individual insured</h5><p>An individual becomes insured by that policy.</p></div><div class="vz-arrow">&rarr;</div>'+
+   '<div class="vz-step" style="border-color:var(--gold)"><div class="num">3</div><h5>Pays back tax free</h5><p>The death benefit pays back to the trust &mdash; which funds the next policy. The cycle repeats.</p></div>'+
+   '</div><p class="vz-note">Individual owns life insurance policy. After death, the policy pays out tax-free to beneficiaries.</p>';
+}
+function vizDime(){
+  var R=[['D','Debt','Home, car loans, credit cards, student debt, etc.'],
+   ['I','Income &times; 10','Annual income &times; 10 years'],
+   ['M','Mortgage','How much is estimated to cover funeral'],
+   ['E','Education','&asymp; $250,000 for each child they have']];
+  return '<div class="vz-row">'+R.map(function(r){
+    return '<div class="vz-card"><div class="k">'+r[0]+'</div><h4>'+r[1]+'</h4><p>'+r[2]+'</p></div>';
+  }).join('')+'</div>'+
+  '<div class="vz-card hi" style="margin:14px auto 0;max-width:420px;text-align:center"><span class="vz-tag">Total</span><h4>Insurable Need</h4></div>';
+}
+function vizLivingBenefits(){
+  var C=[['Critical','ALS &middot; Aorta graft surgery &middot; Aplastic anemia &middot; Blindness &middot; Cancer &middot; Cystic fibrosis &middot; End stage renal failure &middot; Heart attack &middot; Heart valve replacement &middot; Motor neuron disease &middot; Stroke &middot; Sudden cardiac arrest'],
+   ['Critical Injury','Coma &middot; Severe burns &middot; Paralysis &middot; Traumatic brain'],
+   ['Chronic','Bathing &middot; Dressing &middot; Eating &middot; Toileting &middot; Continence &middot; Transferring to/from bed or wheelchair'],
+   ['Terminal','Any illness where you have 24 months or less to live']];
+  return '<div class="vz-row">'+C.map(function(c){
+    return '<div class="vz-card"><span class="vz-tag">'+c[0]+'</span><p>'+c[1]+'</p></div>';
+  }).join('')+'</div><p class="vz-note">Traditional life insurance only pays out when you die. Living Benefits allow the death benefit money to be accessed while you’re alive.</p>';
+}
+function vizComp(){
+  var L=[['Associate','45%','$2,700'],['Senior Associate','50%','$3,000'],['Marketing Director','60%','$3,600'],['Executive Marketing Director','85%','$5,100']];
+  return '<div class="vz-wrap"><table class="vz-t"><tr><th>Level</th><th>Payout</th><th>On $6,000 annual premium</th></tr>'+
+    L.map(function(l,i){return '<tr'+(i===3?' class="hl"':'')+'><td>'+l[0]+'</td><td>'+l[1]+'</td><td><b>'+l[2]+'</b></td></tr>';}).join('')+
+    '</table></div>'+
+   '<div class="vz-row" style="margin-top:14px">'+
+    '<div class="vz-card"><span class="vz-tag">1 household a week</span><div class="k">$265,000</div><p>$5,100 per week, helping one household a week save $500 a month.</p></div>'+
+    '<div class="vz-card"><span class="vz-tag">A team of 5 doing the same</span><div class="k">$720,000</div><p>$60,000 per week.</p></div>'+
+    '<div class="vz-card hi"><span class="vz-tag good">Total</span><div class="k">$781,000</div><p>$65,100 per month.</p></div>'+
+   '</div>'+
+   '<p class="vz-note">Hypothetical, for illustration only. There is no assurance these results can or will be achieved. Income is earned from sales of Global Financial Impact, LLC’s authorized products and services. No income is earned for recruiting. All compensation plans subject to change.</p>';
+}
+function vizCards(s){
+  var b=(s.bullets||[]);
+  return '<div class="vz-row">'+b.map(function(x){
+    var i=x.indexOf(' — '); var h=i>0?x.slice(0,i):x, p=i>0?x.slice(i+3):'';
+    return '<div class="vz-card"><h4>'+esc(h)+'</h4>'+(p?'<p>'+esc(p)+'</p>':'')+'</div>';
+  }).join('')+'</div>';
+}
+var VIZ={ sp500:vizSP, moneygrows:vizMoneyGrows, taxed:vizTaxed, avgactual:vizAvgActual,
+  servicemenu:vizServiceMenu, childsavings:vizChildSavings, gripp:vizGripp, debt:vizDebt,
+  infinitebank:vizInfiniteBank, familybank:vizFamilyBank, dime:vizDime,
+  livingbenefits:vizLivingBenefits, comp:vizComp, cards:vizCards };
 function next(){ if(P&&I<P.slides.length-1){I++;render();} }
 function prev(){ if(I>0){I--;render();} }
 function toggleNotes(){ document.body.classList.toggle('scripton'); $('notesBtn').classList.toggle('on',document.body.classList.contains('scripton')); }
