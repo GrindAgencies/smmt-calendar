@@ -109,6 +109,7 @@ textarea.in{resize:vertical;min-height:80px}
 
   <div id="main" style="display:none">
     <div class="tabs" id="tabs"></div>
+    <div id="roleNote"></div>
     <div id="pane"></div>
   </div>
 </div>
@@ -121,6 +122,7 @@ var ACCESS=SUPA+"access-api", BCAST=SUPA+"emd-broadcast", BOTADMIN=SUPA+"bot-adm
 
 var CODE='', NAME='', ME=null, TAB='team';
 var TEAM=null, PEND=null, BASE=null, BOTS=null, BCFEED=null, BCFLIER='', GOALDATA=null;
+var CANAPPROVE=false;
 
 function $(id){return document.getElementById(id);}
 function esc(s){return (s==null?'':String(s)).replace(/[&<>"']/g,function(c){
@@ -153,26 +155,44 @@ if(!CODE){
 }
 
 function loadAll(){
-  post(ACCESS,{action:'list',approver:CODE,filter:'pending'}).then(function(r){ if(r&&r.ok){PEND=r;paintTabs();if(TAB==='approvals')paint();} });
+  post(ACCESS,{action:'whoami',approver:CODE}).then(function(r){
+    CANAPPROVE=!!(r&&r.can_approve); paintTabs();
+    if(CANAPPROVE) post(ACCESS,{action:'list',approver:CODE,filter:'pending'}).then(function(x){ if(x&&x.ok){PEND=x;paintTabs();if(TAB==='approvals')paint();} });
+  });
   post(ORG,{action:'downline',code:CODE}).then(function(r){ if(r&&r.ok){TEAM=r;if(TAB==='team')paint();} });
   post(BOTADMIN,{action:'base_get',code:CODE}).then(function(r){ if(r&&r.ok){BASE=r;if(TAB==='bots')paint();} });
-  post(BOTADMIN,{action:'list',code:CODE}).then(function(r){ if(r&&r.ok){BOTS=r;if(TAB==='bots')paint();} });
+  post(BOTADMIN,{action:'list',code:CODE}).then(function(r){ if(r&&r.ok){BOTS=r;paintTabs();if(TAB==='bots')paint();} });
   post(BCAST,{action:'feed',code:CODE}).then(function(r){ if(r&&r.ok){BCFEED=r;if(TAB==='broadcast')paint();} });
 }
 
+/* A tab you cannot use is worse than no tab — an MD opening this page should not be shown a
+   Broadcast composer that refuses them, or an approvals queue that is not theirs. Each entry
+   declares what it needs and is simply not drawn otherwise. */
 var TABS=[
-  ['team','Team'],
-  ['approvals','Approvals'],
-  ['broadcast','Broadcast'],
-  ['bots','Bots & Channel'],
-  ['goals','Goals']
+  ['team','Team',           function(){return true;}],
+  ['approvals','Approvals', function(){return CANAPPROVE;}],
+  ['broadcast','Broadcast', function(){return !!(ME&&ME.can_broadcast);}],
+  ['bots','Bots & Channel', function(){return !!(BOTS&&BOTS.can_edit);}],
+  ['goals','Goals',         function(){return true;}]
 ];
+function visibleTabs(){ return TABS.filter(function(t){ return t[2](); }); }
 function paintTabs(){
+  var vis=visibleTabs();
+  if(!vis.some(function(t){return t[0]===TAB;})) TAB=vis.length?vis[0][0]:'team';
   var n=(PEND&&PEND.pending_count)||0;
-  $('tabs').innerHTML=TABS.map(function(t){
+  $('tabs').innerHTML=vis.map(function(t){
     var badge=(t[0]==='approvals'&&n>0)?('<span class="n">'+n+'</span>'):'';
     return '<button class="tab'+(TAB===t[0]?' on':'')+'" onclick="go(\''+t[0]+'\')">'+esc(t[1])+badge+'</button>';
   }).join('');
+  var note=$('roleNote');
+  if(note){
+    note.innerHTML=(ME&&!ME.can_broadcast)
+      ? '<div class="card" style="border-color:var(--gold);background:var(--gold-soft)">'+
+        '<div style="font-size:13px;line-height:1.55">You are a <b>'+esc(ME.level||'Marketing Director')+'</b> in '+esc(ME.baseshop)+
+        '. You can see your team and set your own goals. Announcing to the '+esc(ME.baseshop)+
+        ' channel and changing its bots belong to the Executive Marketing Director who owns it.</div></div>'
+      : '';
+  }
 }
 function go(t){TAB=t;paintTabs();paint();}
 function paint(){
@@ -523,7 +543,7 @@ function createBot(){
   });
 }
 function refreshBots(){
-  post(BOTADMIN,{action:'list',code:CODE}).then(function(r){ if(r&&r.ok){BOTS=r;if(TAB==='bots')paint();} });
+  post(BOTADMIN,{action:'list',code:CODE}).then(function(r){ if(r&&r.ok){BOTS=r;paintTabs();if(TAB==='bots')paint();} });
 }
 
 /* ================= GOALS ================= */
