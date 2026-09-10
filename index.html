@@ -533,6 +533,7 @@ html, body{ overflow-x: hidden; }
     <a class="side-link" href="resources.html">${ICON.book}<span class="lbl">Resources</span></a>
     <div class="side-sec">Leadership</div>
     <a class="side-link" href="ops.html">${ICON.chart}<span class="lbl">Ops Dashboard</span></a>
+    <a class="side-link" id="navBaseshop" href="baseshop.html" style="display:none">${ICON.users}<span class="lbl">Baseshop Settings</span></a>
     <div class="side-foot">
       <a class="side-user" href="profile.html" title="My profile &amp; settings" style="text-decoration:none;cursor:pointer"><div class="avatar" id="sideAv">–</div><div class="su-meta"><div class="su-name" id="sideName">Agent</div><div class="su-sub" id="sideSub">GFI</div></div><span style="margin-left:auto;color:var(--ink-3);font-size:15px" aria-hidden="true">⚙︎</span></a>
       <a class="side-link" href="#" onclick="signOut();return false;">${ICON.logout}<span class="lbl">Sign out</span></a>
@@ -552,6 +553,7 @@ html, body{ overflow-x: hidden; }
 
     <div class="content">
       <div id="profileNag"></div>
+      <div id="leaderApprovals"></div>
       <!-- HERO -->
       <section class="hero">
         <div class="eyebrow"><span id="heroDate">—</span><span>·</span><span class="clk" id="heroClock">—</span></div>
@@ -1166,6 +1168,74 @@ $('gBtn').addEventListener('click',doLogin);
 ['gFirst','gLast','gCode'].forEach(function(id){$(id).addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});});
 $('sBtn').addEventListener('click',doSignup);
 ['sFirst','sLast','sEmail','sPhone','sCode','sUpline'].forEach(function(id){$(id).addEventListener('keydown',function(e){if(e.key==='Enter')doSignup();});});
+/* ===== New members waiting on THIS leader =========================================
+   Christopher: "allow for new member approvals to be approved by EMDS in their dashboard main
+   page for new members joining their team."
+   Somebody who signs up under you cannot get into the platform until you let them in, and until
+   now the only place that was visible was an Operations page a leader does not open. It sits at
+   the top of their own dashboard, showing only people whose upline chain runs back to them
+   (access-api scopes it server-side, so this cannot show another leader's recruits). */
+var LEADAPI="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/access-api";
+var BCASTAPI="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/emd-broadcast";
+function leaderInit(){
+  var c=''; try{ c=(localStorage.getItem('tsfg_code')||'').toUpperCase(); }catch(e){}
+  if(!c) return;
+  fetch(BCASTAPI,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'me',code:c})})
+   .then(function(r){return r.json();})
+   .then(function(d){
+     if(!d||!d.ok||!d.is_leader) return;
+     try{ sessionStorage.setItem('tsfg_leader','1'); }catch(e){}
+     var nb=document.getElementById('navBaseshop'); if(nb) nb.style.display='';
+     loadLeaderApprovals(c);
+   }).catch(function(){});
+}
+function loadLeaderApprovals(c){
+  fetch(LEADAPI,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'list',approver:c,filter:'pending'})})
+   .then(function(r){return r.json();})
+   .then(function(d){ paintLeaderApprovals(d,c); }).catch(function(){});
+}
+function paintLeaderApprovals(d,c){
+  var host=document.getElementById('leaderApprovals'); if(!host)return;
+  var rows=(d&&d.ok&&d.requests)||[];
+  if(!rows.length){ host.innerHTML=''; return; }
+  var esc2=function(x){return (x==null?'':String(x)).replace(/[&<>"']/g,function(ch){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch];});};
+  host.innerHTML='<section style="background:linear-gradient(100deg,#b98900,#e0a92e);border-radius:16px;'+
+    'padding:16px 18px;margin:0 0 18px;color:#fff;box-shadow:0 8px 22px rgba(224,169,46,.28)">'+
+    '<div style="font-weight:800;font-size:16px;margin-bottom:3px">'+rows.length+' new '+
+      (rows.length===1?'person is':'people are')+' waiting to join your team</div>'+
+    '<div style="font-size:13px;opacity:.92;margin-bottom:12px">They cannot get into the platform until you approve them.</div>'+
+    rows.map(function(a){
+      var nm=((a.first_name||'')+' '+(a.last_name||'')).trim()||'(no name)';
+      var sub=[a.code,a.baseshop,a.direct_to?('under '+a.direct_to):''].filter(Boolean).join(' · ');
+      return '<div style="display:flex;align-items:center;gap:11px;flex-wrap:wrap;'+
+        'background:rgba(255,255,255,.14);border-radius:11px;padding:10px 12px;margin-bottom:7px">'+
+        '<div style="flex:1;min-width:150px"><div style="font-weight:700">'+esc2(nm)+'</div>'+
+        '<div style="font-size:12px;opacity:.9">'+esc2(sub)+'</div></div>'+
+        '<button onclick="leaderDecide(\''+esc2(a.code)+'\',\'approved\')" '+
+          'style="border:0;background:#fff;color:#8a6600;border-radius:9px;padding:8px 13px;font-weight:800;font-size:13px;cursor:pointer">Approve</button>'+
+        '<button onclick="leaderDecide(\''+esc2(a.code)+'\',\'denied\')" '+
+          'style="border:1px solid rgba(255,255,255,.6);background:transparent;color:#fff;border-radius:9px;padding:8px 13px;font-weight:700;font-size:13px;cursor:pointer">Deny</button>'+
+        '</div>';
+    }).join('')+
+    '<a href="baseshop.html" style="color:#fff;font-size:12.5px;font-weight:700;text-decoration:underline">Open Baseshop Settings →</a>'+
+    '</section>';
+}
+function leaderDecide(code,decision){
+  var c=''; try{ c=(localStorage.getItem('tsfg_code')||'').toUpperCase(); }catch(e){}
+  var nm=''; try{ nm=localStorage.getItem('tsfg_name')||''; }catch(e){}
+  fetch(LEADAPI,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'set',approver:c,code:code,decision:decision,by:nm})})
+   .then(function(r){return r.json();})
+   .then(function(r){
+     if(!r||!r.ok){ alert((r&&r.error)||'Could not save that.'); return; }
+     loadLeaderApprovals(c);
+   }).catch(function(){ alert('Network error.'); });
+}
+try{ setTimeout(leaderInit,600); }catch(e){}
+
 (function boot(){
   var c=null,n='';try{c=localStorage.getItem('tsfg_code');n=localStorage.getItem('tsfg_name')||'';}catch(e){}
   if(c){ // validate silently, but reveal fast

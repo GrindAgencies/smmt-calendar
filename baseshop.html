@@ -1,0 +1,464 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Baseshop Settings — The Standard</title>
+<link rel="icon" href="favicon-32.png">
+<link rel="manifest" href="manifest.json">
+<style>
+/* One place a leader runs their shop from. Everything that used to be scattered across the
+   profile page, the chat and the tracker lives here, grouped by the job it does. */
+:root{
+  --bg:#f5f6f8; --panel:#fff; --line:#e6e8ec; --line2:#d7dae0;
+  --ink:#12141a; --ink2:#4a5162; --ink3:#8a91a2;
+  --gold:#c99a2e; --gold-soft:rgba(201,154,46,.12); --accent:#b8860b;
+  --green:#1a9c52; --green-soft:rgba(26,156,82,.12);
+  --red:#d64550; --red-soft:rgba(214,69,80,.10);
+  --font:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root{ --bg:#0e1116; --panel:#161a21; --line:#242a34; --line2:#2f3643;
+         --ink:#f2f4f8; --ink2:#b6bdcb; --ink3:#7d8595; }
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font-family:inherit}
+a{color:inherit}
+
+.top{position:sticky;top:0;z-index:20;background:var(--panel);border-bottom:1px solid var(--line);
+  padding:calc(13px + env(safe-area-inset-top)) 16px 13px;display:flex;align-items:center;gap:12px}
+.top h1{margin:0;font-size:17px;font-weight:800;letter-spacing:-.01em}
+.top .shop{font-size:12px;font-weight:800;color:var(--gold);background:var(--gold-soft);
+  padding:3px 9px;border-radius:999px;white-space:nowrap}
+.top .sp{margin-left:auto}
+.back{border:1px solid var(--line2);background:var(--panel);color:var(--ink2);border-radius:9px;
+  padding:7px 11px;font-size:12.5px;font-weight:700;cursor:pointer;text-decoration:none}
+
+.wrap{max-width:940px;margin:0 auto;padding:16px 16px 90px}
+
+.tabs{display:flex;gap:6px;overflow-x:auto;padding:2px 0 12px;-webkit-overflow-scrolling:touch}
+.tab{white-space:nowrap;border:1px solid var(--line2);background:var(--panel);color:var(--ink2);
+  border-radius:999px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer}
+.tab.on{background:var(--gold);border-color:var(--gold);color:#1a1400}
+.tab .n{display:inline-block;min-width:18px;padding:0 5px;margin-left:6px;border-radius:999px;
+  background:var(--red);color:#fff;font-size:11px;font-weight:800;text-align:center}
+.tab.on .n{background:#1a1400;color:var(--gold)}
+
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+.card h2{margin:0 0 4px;font-size:15.5px;font-weight:800;letter-spacing:-.01em}
+.card .sub{margin:0 0 14px;font-size:12.5px;color:var(--ink3);line-height:1.5}
+
+.fld{margin-bottom:13px}
+.lbl{display:block;font-size:12.5px;font-weight:700;color:var(--ink2);margin-bottom:5px}
+.in{width:100%;border:1px solid var(--line2);background:var(--bg);color:var(--ink);
+  border-radius:10px;padding:10px 12px;font-size:14px}
+.in:focus{outline:none;border-color:var(--gold)}
+textarea.in{resize:vertical;min-height:80px}
+
+.btn{border:0;background:var(--gold);color:#1a1400;border-radius:10px;padding:10px 15px;
+  font-size:13.5px;font-weight:800;cursor:pointer}
+.btn:disabled{opacity:.55;cursor:default}
+.btn.ghost{background:var(--panel);border:1px solid var(--line2);color:var(--ink2)}
+.btn.danger{background:var(--red);color:#fff}
+.btn.ok{background:var(--green);color:#fff}
+
+.sw{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--ink2);cursor:pointer}
+.daybar{display:flex;gap:6px;flex-wrap:wrap}
+.daybtn{border:1px solid var(--line2);background:var(--panel);color:var(--ink3);border-radius:9px;
+  padding:7px 11px;font-size:12.5px;font-weight:700;cursor:pointer}
+.daybtn.on{background:var(--gold-soft);border-color:var(--gold);color:var(--accent)}
+
+.row{display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:0}
+.row .who{flex:1;min-width:0}
+.row .nm{font-weight:700;font-size:14px}
+.row .mt{font-size:12px;color:var(--ink3);margin-top:2px}
+.av{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:13px;color:#fff;flex:0 0 auto}
+
+.pill{display:inline-block;font-size:11px;font-weight:800;padding:3px 8px;border-radius:999px;
+  background:var(--gold-soft);color:var(--accent)}
+.pill.g{background:var(--green-soft);color:var(--green)}
+.pill.r{background:var(--red-soft);color:var(--red)}
+
+.empty{padding:26px 14px;text-align:center;color:var(--ink3);font-size:13.5px}
+.spin{padding:26px;text-align:center;color:var(--ink3);font-size:13px}
+.stat{font-size:12.5px;font-weight:700;color:var(--ink3);margin-left:10px}
+.gate{max-width:420px;margin:16vh auto;text-align:center;padding:0 20px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}
+.kpi{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:12px}
+.kpi .k{font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--ink3)}
+.kpi .v{font-size:22px;font-weight:800;margin-top:3px;font-variant-numeric:tabular-nums}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <a class="back" href="index.html">←</a>
+  <h1>Baseshop Settings</h1>
+  <span class="shop" id="shopTag" style="display:none"></span>
+  <div class="sp"></div>
+  <span class="stat" id="who"></span>
+</div>
+
+<div class="wrap">
+  <div id="gate" class="gate">
+    <div class="spin">Checking your access…</div>
+  </div>
+
+  <div id="main" style="display:none">
+    <div class="tabs" id="tabs"></div>
+    <div id="pane"></div>
+  </div>
+</div>
+
+<script src="ops-session.js"></script>
+<script>
+var SUPA="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/";
+var ACCESS=SUPA+"access-api", BCAST=SUPA+"emd-broadcast", BOTADMIN=SUPA+"bot-admin",
+    ORG=SUPA+"org-api", GOALS=SUPA+"goals-api", PROFILE=SUPA+"profile-api";
+
+var CODE='', NAME='', ME=null, TAB='team';
+var TEAM=null, PEND=null, BASE=null, BOTS=null, BCFEED=null, BCFLIER='', GOALDATA=null;
+
+function $(id){return document.getElementById(id);}
+function esc(s){return (s==null?'':String(s)).replace(/[&<>"']/g,function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function post(url,b){return fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},
+  body:JSON.stringify(b)}).then(function(r){return r.json();}).catch(function(){return {ok:false,error:'Network error'};});}
+function initials(n){n=(n||'').trim();var p=n.split(/\s+/);return (((p[0]||'')[0]||'')+((p[1]||'')[0]||'')).toUpperCase();}
+function avColor(n){var h=0;n=n||'';for(var i=0;i<n.length;i++)h=(h*31+n.charCodeAt(i))%360;return 'hsl('+h+',48%,46%)';}
+function say(id,msg,bad){var e=$(id);if(e){e.textContent=msg||'';e.style.color=bad?'var(--red)':'var(--ink3)';}}
+
+/* ---------- who is this, and may they be here? ---------- */
+try{ CODE=(localStorage.getItem('tsfg_code')||'').toUpperCase(); NAME=localStorage.getItem('tsfg_name')||''; }catch(e){}
+if(!CODE){
+  $('gate').innerHTML='<h2>Sign in first</h2><p style="color:var(--ink3);font-size:13.5px">'+
+    'Open the app and sign in, then come back.</p><a class="btn" href="index.html">Go to Home</a>';
+} else {
+  post(BCAST,{action:'me',code:CODE}).then(function(r){
+    if(!r||!r.ok){
+      $('gate').innerHTML='<h2>Leaders only</h2><p style="color:var(--ink3);font-size:13.5px">'+
+        esc((r&&r.error)||'This page is for Marketing Directors and above.')+'</p>'+
+        '<a class="btn ghost" href="index.html">Back to Home</a>';
+      return;
+    }
+    ME=r; NAME=NAME||r.name;
+    $('shopTag').textContent=r.baseshop; $('shopTag').style.display='';
+    $('who').textContent=r.name;
+    $('gate').style.display='none'; $('main').style.display='';
+    loadAll(); paintTabs();
+  });
+}
+
+function loadAll(){
+  post(ACCESS,{action:'list',approver:CODE,filter:'pending'}).then(function(r){ if(r&&r.ok){PEND=r;paintTabs();if(TAB==='approvals')paint();} });
+  post(ORG,{action:'downline',code:CODE}).then(function(r){ if(r&&r.ok){TEAM=r;if(TAB==='team')paint();} });
+  post(BOTADMIN,{action:'base_get',code:CODE}).then(function(r){ if(r&&r.ok){BASE=r;if(TAB==='bots')paint();} });
+  post(BOTADMIN,{action:'list',code:CODE}).then(function(r){ if(r&&r.ok){BOTS=r;if(TAB==='bots')paint();} });
+  post(BCAST,{action:'feed',code:CODE}).then(function(r){ if(r&&r.ok){BCFEED=r;if(TAB==='broadcast')paint();} });
+}
+
+var TABS=[
+  ['team','Team'],
+  ['approvals','Approvals'],
+  ['broadcast','Broadcast'],
+  ['bots','Bots & Channel'],
+  ['goals','Goals']
+];
+function paintTabs(){
+  var n=(PEND&&PEND.pending_count)||0;
+  $('tabs').innerHTML=TABS.map(function(t){
+    var badge=(t[0]==='approvals'&&n>0)?('<span class="n">'+n+'</span>'):'';
+    return '<button class="tab'+(TAB===t[0]?' on':'')+'" onclick="go(\''+t[0]+'\')">'+esc(t[1])+badge+'</button>';
+  }).join('');
+}
+function go(t){TAB=t;paintTabs();paint();}
+function paint(){
+  if(TAB==='team')return paintTeam();
+  if(TAB==='approvals')return paintApprovals();
+  if(TAB==='broadcast')return paintBroadcast();
+  if(TAB==='bots')return paintBots();
+  if(TAB==='goals')return paintGoals();
+}
+
+/* ================= TEAM ================= */
+function paintTeam(){
+  if(!TEAM){ $('pane').innerHTML='<div class="card"><div class="spin">Loading your team…</div></div>'; return; }
+  var people=TEAM.downline||TEAM.agents||TEAM.rows||[];
+  var licensed=people.filter(function(p){return /licens|appoint/i.test(p.license_status||'')&&!/not licensed/i.test(p.license_status||'');}).length;
+  var active=people.filter(function(p){return (p.status||'active')!=='quit';}).length;
+  var h='<div class="card"><h2>'+esc(ME.baseshop)+' at a glance</h2>'+
+    '<div class="grid2">'+
+      '<div class="kpi"><div class="k">On the team</div><div class="v">'+active+'</div></div>'+
+      '<div class="kpi"><div class="k">Licensed</div><div class="v">'+licensed+'</div></div>'+
+      '<div class="kpi"><div class="k">Awaiting approval</div><div class="v">'+((PEND&&PEND.pending_count)||0)+'</div></div>'+
+    '</div></div>';
+
+  h+='<div class="card"><h2>Your people</h2>'+
+     '<p class="sub">Everyone whose upline chain runs back to you. Open anyone to see their tracker.</p>';
+  if(!people.length){
+    h+='<div class="empty">Nobody reports to you yet.</div>';
+  } else {
+    h+=people.slice(0,200).map(function(p){
+      var nm=((p.first_name||'')+' '+(p.last_name||'')).trim()||p.name||p.code;
+      var lvl=p.contract_level||p.title||'';
+      var lic=/not licensed|unlicensed/i.test(p.license_status||'')?'<span class="pill r">unlicensed</span>'
+              :(/licens|appoint/i.test(p.license_status||'')?'<span class="pill g">licensed</span>':'');
+      return '<div class="row">'+
+        '<div class="av" style="background:'+avColor(nm)+'">'+esc(initials(nm))+'</div>'+
+        '<div class="who"><div class="nm">'+esc(nm)+'</div>'+
+          '<div class="mt">'+esc(p.code||'')+(lvl?(' · '+esc(lvl)):'')+(p.baseshop?(' · '+esc(p.baseshop)):'')+'</div></div>'+
+        lic+'</div>';
+    }).join('');
+    if(people.length>200)h+='<div class="mt" style="padding-top:10px;color:var(--ink3);font-size:12px">Showing the first 200 of '+people.length+'.</div>';
+  }
+  h+='</div>';
+  $('pane').innerHTML=h;
+}
+
+/* ================= APPROVALS ================= */
+function paintApprovals(){
+  if(!PEND){ $('pane').innerHTML='<div class="card"><div class="spin">Checking who is waiting…</div></div>'; return; }
+  var rows=PEND.requests||[];
+  var h='<div class="card"><h2>New members joining '+esc(ME.baseshop)+'</h2>'+
+    '<p class="sub">People who signed up under you and cannot get into the platform until you let them in.'+
+    (PEND.unassigned?(' '+PEND.unassigned+' below have no upline yet — approve one and it is worth setting their upline afterwards.'):'')+
+    '</p>';
+  if(!rows.length){
+    h+='<div class="empty">🎉 Nobody is waiting. New signups under you land here.</div>';
+  } else {
+    h+=rows.map(function(a){
+      var nm=((a.first_name||'')+' '+(a.last_name||'')).trim()||'(no name)';
+      var where=[a.baseshop,a.direct_to?('under '+a.direct_to):''].filter(Boolean).join(' · ')||'no baseshop or upline yet';
+      var contact=[a.email,a.phone].filter(Boolean).join(' · ');
+      return '<div class="row" style="flex-wrap:wrap">'+
+        '<div class="av" style="background:'+avColor(nm)+'">'+esc(initials(nm))+'</div>'+
+        '<div class="who"><div class="nm">'+esc(nm)+'</div>'+
+          '<div class="mt">'+esc(a.code)+' · '+esc(where)+(contact?('<br>'+esc(contact)):'')+'</div></div>'+
+        '<div style="display:flex;gap:7px">'+
+          '<button class="btn ok" onclick="decide(\''+esc(a.code)+'\',\'approved\')">Approve</button>'+
+          '<button class="btn ghost" onclick="decide(\''+esc(a.code)+'\',\'denied\')">Deny</button>'+
+        '</div></div>';
+    }).join('');
+  }
+  h+='</div>';
+  $('pane').innerHTML=h;
+}
+function decide(code,decision){
+  post(ACCESS,{action:'set',approver:CODE,code:code,decision:decision,by:NAME}).then(function(r){
+    if(!r||!r.ok){ alert((r&&r.error)||'Could not save that.'); return; }
+    post(ACCESS,{action:'list',approver:CODE,filter:'pending'}).then(function(x){ if(x&&x.ok){PEND=x;paintTabs();paint();} });
+  });
+}
+
+/* ================= BROADCAST ================= */
+function paintBroadcast(){
+  var h='<div class="card"><h2>Broadcast to '+esc(ME.baseshop)+'</h2>'+
+    '<p class="sub">Goes to your team channel and nowhere else. Attach a flier, send now, or set it for later.</p>'+
+    '<div class="fld"><label class="lbl">Headline</label><input class="in" id="bc_title" maxlength="160" placeholder="Saturday training — 9am at the office"></div>'+
+    '<div class="fld"><label class="lbl">Message</label><textarea class="in" id="bc_body" rows="5"></textarea></div>'+
+    '<div class="fld"><label class="lbl">Flier <span style="font-weight:500;color:var(--ink3)">— PNG, JPG, GIF or WEBP, up to 6MB</span></label>'+
+      '<input type="file" id="bc_file" accept="image/*" style="display:none" onchange="bcFlier(this)">'+
+      '<button class="btn ghost" type="button" onclick="$(\'bc_file\').click()">📎 Attach a flier</button>'+
+      '<span id="bc_fn" class="stat"></span><div id="bc_prev" style="margin-top:10px"></div></div>'+
+    '<div class="fld"><label class="lbl">When</label>'+
+      '<label class="sw"><input type="checkbox" id="bc_later" onchange="bcLater()"> Schedule for later</label>'+
+      ' <input class="in" type="datetime-local" id="bc_when" style="max-width:230px;display:none;margin-top:8px"></div>'+
+    '<div class="fld" style="display:flex;gap:16px;flex-wrap:wrap">'+
+      '<label class="sw"><input type="checkbox" id="bc_push" checked> Notify everyone</label>'+
+      '<label class="sw"><input type="checkbox" id="bc_pin"> Pin it to the top</label></div>'+
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">'+
+      '<button class="btn" id="bc_send" onclick="bcSend()">Post to '+esc(ME.baseshop)+'</button>'+
+      '<button class="btn ghost" onclick="bcTrainings()">📅 Load this week\'s trainings</button>'+
+      '<span class="stat" id="bc_status"></span></div></div>';
+
+  var sch=(BCFEED&&BCFEED.scheduled)||[], sent=(BCFEED&&BCFEED.sent)||[];
+  if(sch.length){
+    h+='<div class="card"><h2>Scheduled</h2>'+sch.map(function(a){
+      return '<div class="row"><div class="who"><div class="nm">'+esc(a.title||'(no headline)')+'</div>'+
+        '<div class="mt">goes out '+esc(bcWhen(a.send_at))+(a.flier_url?' · has a flier':'')+(a.push?' · notifies everyone':'')+'</div></div>'+
+        '<button class="btn ghost" onclick="bcCancel(\''+esc(a.id)+'\')">Pull back</button></div>';
+    }).join('')+'</div>';
+  }
+  if(sent.length){
+    h+='<div class="card"><h2>Recently sent</h2>'+sent.slice(0,8).map(function(a){
+      return '<div class="row"><div class="who"><div class="nm">'+esc(a.title||'(no headline)')+'</div>'+
+        '<div class="mt">'+esc(bcWhen(a.posted_at))+(a.flier_url?' · flier':'')+'</div></div></div>';
+    }).join('')+'</div>';
+  }
+  $('pane').innerHTML=h;
+}
+function bcWhen(iso){ if(!iso)return ''; try{return new Date(iso).toLocaleString('en-US',{weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});}catch(e){return String(iso).slice(0,16).replace('T',' ');} }
+function bcLater(){ var on=$('bc_later').checked,w=$('bc_when'); w.style.display=on?'':'none';
+  if(on&&!w.value){var t=new Date(Date.now()+3600000);t.setMinutes(0,0,0);
+    w.value=new Date(t.getTime()-t.getTimezoneOffset()*60000).toISOString().slice(0,16);} }
+function bcFlier(input){
+  var f=input.files&&input.files[0]; if(!f)return;
+  if(f.size>6*1024*1024){ say('bc_status','That flier is '+(f.size/1048576).toFixed(1)+'MB — keep it under 6MB.',true); input.value=''; return; }
+  $('bc_fn').textContent='Uploading…';
+  var rd=new FileReader();
+  rd.onload=function(){
+    post(BCAST,{action:'flier',code:CODE,data_url:String(rd.result),name:f.name}).then(function(d){
+      if(!d||!d.ok){ $('bc_fn').textContent=''; say('bc_status',(d&&d.error)||'Could not upload that.',true); return; }
+      BCFLIER=d.url; $('bc_fn').textContent=f.name+' ✓';
+      $('bc_prev').innerHTML='<img src="'+esc(d.url)+'" alt="Flier preview" style="max-width:220px;border-radius:10px;border:1px solid var(--line);display:block">'+
+        '<button class="btn ghost" style="margin-top:8px" onclick="bcDrop()">Remove flier</button>';
+      say('bc_status','Flier attached.');
+    });
+  };
+  rd.readAsDataURL(f);
+}
+function bcDrop(){ BCFLIER=''; $('bc_prev').innerHTML=''; $('bc_fn').textContent=''; $('bc_file').value=''; say('bc_status',''); }
+function bcTrainings(){
+  say('bc_status','Reading the calendar…');
+  post(BCAST,{action:'trainings',code:CODE}).then(function(d){
+    if(!d||!d.ok){ say('bc_status',(d&&d.error)||'Could not read the calendar.',true); return; }
+    $('bc_title').value=d.title||''; $('bc_body').value=d.body||'';
+    say('bc_status',d.count+' session'+(d.count===1?'':'s')+' loaded — edit it, then post.');
+  });
+}
+function bcSend(){
+  var title=($('bc_title').value||'').trim(), body=($('bc_body').value||'').trim();
+  if(!title&&!body&&!BCFLIER){ say('bc_status','Write something, or attach a flier.',true); return; }
+  var later=$('bc_later').checked, when=later?($('bc_when').value||''):'';
+  if(later&&!when){ say('bc_status','Pick a date and time.',true); return; }
+  $('bc_send').disabled=true; say('bc_status',later?'Scheduling…':'Posting…');
+  post(BCAST,{action:'send',code:CODE,title:title,body:body,flier_url:BCFLIER,
+    send_at:when?new Date(when).toISOString():'',push:$('bc_push').checked,pin:$('bc_pin').checked,
+    kind:BCFLIER?'flier':'announcement'}).then(function(d){
+    $('bc_send').disabled=false;
+    if(!d||!d.ok){ say('bc_status',(d&&d.error)||'Could not send that.',true); return; }
+    $('bc_title').value=''; $('bc_body').value=''; bcDrop(); $('bc_later').checked=false; bcLater();
+    say('bc_status',d.scheduled?('Scheduled for '+bcWhen(d.send_at)+' ✓'):('Posted'+(d.notified?(' · '+d.notified+' notified'):'')+' ✓'));
+    post(BCAST,{action:'feed',code:CODE}).then(function(x){ if(x&&x.ok){BCFEED=x;paint();} });
+  });
+}
+function bcCancel(id){
+  if(!confirm('Pull this back before it goes out?'))return;
+  post(BCAST,{action:'cancel',code:CODE,id:id}).then(function(d){
+    if(!d||!d.ok){ alert((d&&d.error)||'Could not pull that back.'); return; }
+    post(BCAST,{action:'feed',code:CODE}).then(function(x){ if(x&&x.ok){BCFEED=x;paint();} });
+  });
+}
+
+/* ================= BOTS & CHANNEL ================= */
+function paintBots(){
+  if(!BASE){ $('pane').innerHTML='<div class="card"><div class="spin">Loading your channel…</div></div>'; return; }
+  var h='';
+  (BASE.bases||[]).forEach(function(b){
+    var sc=b.schedule||{}, id=b.baseshop;
+    var day=function(n,l){var on=(sc.highlights_days||[]).indexOf(n)>=0;
+      return '<button type="button" class="daybtn'+(on?' on':'')+'" data-d="'+n+'" onclick="this.classList.toggle(\'on\')">'+l+'</button>';};
+    var rem=function(n,l){var on=(sc.reminders||[]).indexOf(n)>=0;
+      return '<button type="button" class="daybtn'+(on?' on':'')+'" data-r="'+n+'" onclick="this.classList.toggle(\'on\')">'+l+'</button>';};
+    var hrs=''; for(var i=0;i<24;i++)hrs+='<option value="'+i+'"'+((sc.highlights_hour===i)?' selected':'')+'>'+((i%12)||12)+(i<12?' AM':' PM')+'</option>';
+    h+='<div class="card" data-base="'+esc(id)+'"><h2>'+esc(id)+' channel</h2>'+
+      '<p class="sub">Bots only ever post here — never the company chat, never Operations. You decide what the channel is called, when they speak, and what they say.</p>'+
+      '<label class="sw" style="margin-bottom:12px"><input type="checkbox" data-f="announce" '+((sc.announce!==false)?'checked':'')+'> Bots on</label>'+
+      '<div class="fld"><label class="lbl">What this channel is called</label>'+
+        '<input class="in" data-f="label" value="'+esc(b.label||'')+'" maxlength="40" placeholder="'+esc(id)+' Announcements"></div>'+
+      '<div class="fld"><label class="lbl">Reminders before a session</label><div class="daybar">'+rem(60,'1 hr')+rem(30,'30 min')+rem(10,'10 min')+rem(0,'Live')+'</div></div>'+
+      '<div class="fld"><label class="lbl">Daily highlights — days</label><div class="daybar">'+day(1,'Mon')+day(2,'Tue')+day(3,'Wed')+day(4,'Thu')+day(5,'Fri')+day(6,'Sat')+day(0,'Sun')+'</div></div>'+
+      '<div class="fld"><label class="lbl">Post them at</label><select class="in" data-f="hour" style="max-width:170px">'+hrs+'</select></div>'+
+      '<div class="fld"><label class="lbl">Nothing posts outside these hours (PT)</label>'+
+        '<div style="display:flex;gap:8px;align-items:center">'+
+        '<input class="in" type="number" min="0" max="23" data-f="qb" value="'+(sc.quiet_before!==undefined?sc.quiet_before:6)+'" style="max-width:90px">'+
+        '<span style="color:var(--ink3)">to</span>'+
+        '<input class="in" type="number" min="0" max="23" data-f="qa" value="'+(sc.quiet_after!==undefined?sc.quiet_after:21)+'" style="max-width:90px"></div></div>'+
+      '<div class="fld"><label class="lbl">Today\'s highlights <span style="font-weight:500;color:var(--ink3)">— one per line</span></label>'+
+        '<textarea class="in" data-f="highlights" rows="3">'+esc((sc.highlights||[]).join('\n'))+'</textarea></div>'+
+      '<button class="btn" onclick="saveBase(\''+esc(id)+'\')">Save channel settings</button>'+
+      '<span class="stat" id="bs_'+esc(id)+'"></span></div>';
+  });
+  if(BOTS&&BOTS.can_edit&&BOTS.bots){
+    h+='<div class="card"><h2>The bots</h2>'+
+      '<p class="sub">Rename any of them, change the badge, or switch one off. Where each one may speak is fixed by its type — that is what keeps them out of the company chat.</p>';
+    BOTS.bots.filter(function(b){return b.code!=='OPSANN';}).forEach(function(b){
+      h+='<div data-bot="'+esc(b.code)+'" style="border:1px solid var(--line);border-radius:12px;padding:13px;margin-bottom:10px">'+
+        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">'+
+          '<div style="flex:1;min-width:0"><div style="font-weight:800">'+esc(b.emoji||'')+' '+esc(b.name)+'</div>'+
+          '<div class="mt">'+esc(b.role||'')+' · 📍 '+esc(b.where||'')+'</div></div>'+
+          '<label class="sw"><input type="checkbox" data-f="enabled" '+(b.enabled?'checked':'')+'> On</label></div>'+
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">'+
+          '<input class="in" data-f="emoji" value="'+esc(b.emoji||'')+'" maxlength="4" style="max-width:70px;text-align:center">'+
+          '<input class="in" data-f="name" value="'+esc(b.name)+'" maxlength="40" style="flex:1;min-width:140px"></div>'+
+        '<div class="fld"><label class="lbl">What it pushes</label><textarea class="in" data-f="posts" rows="2">'+esc(b.posts||'')+'</textarea></div>'+
+        '<button class="btn ghost" onclick="saveBot(\''+esc(b.code)+'\')">Save</button>'+
+        '<span class="stat" id="bt_'+esc(b.code)+'"></span></div>';
+    });
+    h+='</div>';
+  }
+  $('pane').innerHTML=h||'<div class="card"><div class="empty">No channel is registered to you yet.</div></div>';
+}
+function saveBase(id){
+  var el=document.querySelector('[data-base="'+id+'"]'); if(!el)return;
+  var g=function(f){var x=el.querySelector('[data-f="'+f+'"]');return x?x.value:'';};
+  var days=[].slice.call(el.querySelectorAll('[data-d].on')).map(function(b){return +b.getAttribute('data-d');});
+  var rems=[].slice.call(el.querySelectorAll('[data-r].on')).map(function(b){return +b.getAttribute('data-r');});
+  say('bs_'+id,'Saving…');
+  post(BOTADMIN,{action:'base_save',code:CODE,baseshop:id,label:g('label'),
+    schedule:{announce:el.querySelector('[data-f="announce"]').checked,
+      highlights_days:days,reminders:rems,highlights_hour:+g('hour'),
+      quiet_before:+g('qb'),quiet_after:+g('qa'),
+      highlights:g('highlights').split('\n').map(function(s){return s.trim();}).filter(Boolean)}
+  }).then(function(r){ say('bs_'+id,(r&&r.ok)?'Saved ✓':((r&&r.error)||'Could not save'),!(r&&r.ok)); });
+}
+function saveBot(code){
+  var el=document.querySelector('[data-bot="'+code+'"]'); if(!el)return;
+  var g=function(f){var x=el.querySelector('[data-f="'+f+'"]');return x?x.value:'';};
+  say('bt_'+code,'Saving…');
+  post(BOTADMIN,{action:'save',code:CODE,bot:code,name:g('name'),emoji:g('emoji'),posts:g('posts'),
+    enabled:el.querySelector('[data-f="enabled"]').checked
+  }).then(function(r){ say('bt_'+code,(r&&r.ok)?'Saved ✓':((r&&r.error)||'Could not save'),!(r&&r.ok)); });
+}
+
+/* ================= GOALS ================= */
+/* goals-api returns levels.{personal,team,baseshop,hierarchy} and sets ONE metric per call,
+   with can_edit decided server-side by who owns that level. */
+function monthKey(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}
+var GMETRICS=[['partners','New business partners',''],['premium','Premium submitted','$'],
+              ['fta','Field trainings',''],['families','Families helped','']];
+function paintGoals(){
+  if(!GOALDATA){
+    $('pane').innerHTML='<div class="card"><div class="spin">Loading goals…</div></div>';
+    post(GOALS,{action:'get',code:CODE,month:monthKey()}).then(function(r){ GOALDATA=r||{ok:false}; paintGoals(); });
+    return;
+  }
+  var lv=(GOALDATA.levels)||{};
+  var h='';
+  [['baseshop','Baseshop targets','What '+esc(ME.baseshop)+' is chasing this month.'],
+   ['team','Team targets','Your own downline, rolled up.'],
+   ['personal','Your own targets','What you are chasing yourself.']
+  ].forEach(function(sec){
+    var L=lv[sec[0]]; if(!L)return;
+    var t=L.targets||{};
+    h+='<div class="card"><h2>'+esc(sec[1])+'</h2><p class="sub">'+sec[2]+
+       (L.can_edit?'':' <b>You cannot edit this level — '+esc(L.why||'not yours to set')+'.</b>')+'</p>';
+    h+=GMETRICS.map(function(m){
+      return '<div class="fld"><label class="lbl">'+esc(m[1])+(m[2]?(' ('+m[2]+')'):'')+'</label>'+
+        '<input class="in" type="number" min="0" id="g_'+sec[0]+'_'+m[0]+'" value="'+(t[m[0]]!==undefined?t[m[0]]:'')+'"'+
+        (L.can_edit?'':' disabled')+'></div>';
+    }).join('');
+    if(L.can_edit)h+='<button class="btn" onclick="saveGoals(\''+sec[0]+'\')">Save '+esc(sec[1].toLowerCase())+'</button>'+
+                     '<span class="stat" id="gs_'+sec[0]+'"></span>';
+    h+='</div>';
+  });
+  $('pane').innerHTML=h||'<div class="card"><div class="empty">No goal levels available.</div></div>';
+}
+function saveGoals(scope){
+  say('gs_'+scope,'Saving…');
+  var month=monthKey(), pending=GMETRICS.length, failed='';
+  GMETRICS.forEach(function(m){
+    var el=$('g_'+scope+'_'+m[0]); var v=(el&&el.value||'').trim();
+    post(GOALS,{action:'set',code:CODE,scope:scope,metric:m[0],target:(v===''?0:Number(v)),month:month})
+     .then(function(r){ if(!r||!r.ok)failed=(r&&r.error)||'Could not save'; })
+     .then(function(){ if(--pending===0){ say('gs_'+scope,failed||'Saved ✓',!!failed); GOALDATA=null; } });
+  });
+}
+</script>
+<script defer src="notif.js"></script>
+<script src="i18n.js"></script>
+</body>
+</html>

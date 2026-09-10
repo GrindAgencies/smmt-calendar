@@ -314,8 +314,34 @@
     ['PFR Builder',    'pfr.html',       I.pfr],
     ['Marketing Plan', 'marketing.html', I.users],
     ['My Team',        'team.html',      I.team],
-    ['Org Chart',      'org.html',       I.tree]
+    ['Org Chart',      'org.html',       I.tree],
+    /* Leaders only — hidden for everyone else by leaderOnly() below. */
+    ['Baseshop Settings','baseshop.html', I.users, 'leader']
   ];
+
+  /* Baseshop Settings is a leadership page, so the nav should not offer it to 80-odd agents who
+     cannot open it. Nothing stored at sign-in says what level you are, so it is asked ONCE per
+     session and cached; the answer is only ever used to show or hide a link, and baseshop.html
+     itself is the real gate that refuses anyone it should not serve. */
+  var LEADER_KEY = 'tsfg_leader';
+  function isLeader(){
+    try{ return sessionStorage.getItem(LEADER_KEY) === '1'; }catch(e){ return false; }
+  }
+  function probeLeader(onFound){
+    var known = null;
+    try{ known = sessionStorage.getItem(LEADER_KEY); }catch(e){ return; }
+    if (known !== null) return;                       // already asked this session
+    var c = ''; try{ c = (localStorage.getItem('tsfg_code') || '').toUpperCase(); }catch(e){}
+    if (!c) return;
+    fetch('https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/emd-broadcast', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'me', code: c })
+    }).then(function(r){ return r.json(); }).then(function(d){
+      var yes = !!(d && d.ok && d.is_leader);
+      try{ sessionStorage.setItem(LEADER_KEY, yes ? '1' : '0'); }catch(e){}
+      if (yes && typeof onFound === 'function') onFound();
+    }).catch(function(){ /* a nav link is not worth an error */ });
+  }
 
   function here(){
     var p = (location.pathname.split('/').pop() || 'index.html').toLowerCase();
@@ -386,11 +412,13 @@
       }
       PRIMARY.forEach(function(it){ html += link(it, cls, current); });
 
-      var inMore = SECONDARY.some(function(it){ return it[1].toLowerCase() === current; });
+      /* Drop the leader-only entries for everyone else. The page still gates itself. */
+      var SEC = SECONDARY.filter(function(it){ return it[3] !== 'leader' || isLeader(); });
+      var inMore = SEC.some(function(it){ return it[1].toLowerCase() === current; });
       html += '<button type="button" class="tsfg-more" aria-expanded="' + (inMore ? 'true' : 'false') +
               '" aria-controls="tsfgMore"><span>More</span>' + svg(I.more) + '</button>' +
               '<div class="tsfg-morewrap" id="tsfgMore"' + (inMore ? '' : ' hidden') + '>' +
-              SECONDARY.map(function(it){ return link(it, cls, current); }).join('') + '</div>';
+              SEC.map(function(it){ return link(it, cls, current); }).join('') + '</div>';
 
       /* Language belongs in the menu, not floating over the page. i18n.js
          suppresses its floating pill whenever a visible [data-lang-btn] exists,
@@ -414,6 +442,7 @@
         if (w) w.hidden = openNow;
       });
     } finally { busy = false; }
+    probeLeader(apply);      // one question per session; redraws only if they are a leader
   }
 
   /* Some pages build their sidebar in JS after load, so re-apply if it changes. */
