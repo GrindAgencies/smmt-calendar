@@ -539,7 +539,43 @@ function setTab(t){TAB=t;['cal','dash','book','train','me','company','clients','
 function render(){if(TAB==='cal')renderCal();else if(TAB==='dash')renderDash();else if(TAB==='book')renderBook();else if(TAB==='train')renderTrainers();else if(TAB==='company')renderCompany();else if(TAB==='clients')renderClients();else if(TAB==='ops')renderOps();else if(TAB==='avail')renderAvail();else if(TAB==='xfer')renderTransfers();else renderMe();}
 function myTrainerProfile(){if(!TRAINERS||!TRAINERS.length)return null;var lname=(NAME||'').trim().toLowerCase();if(!lname)return null;return TRAINERS.filter(function(c){return c.name&&c.name.trim().toLowerCase()===lname;})[0]||null;}
 function isOps(c){return (c&&(c.role||'').toUpperCase()==='OPS');}
-function bTr(){return TRAINERS.filter(function(c){return !isOps(c);});}
+/* ===== Baseshop isolation ==================================================================
+   Christopher: "please treat EACH BASESHOP as individual organizations... gage griffin does not
+   need to see information from SUMMIT and SEALE mosle doesnt need to see team TITANS outside the
+   Hirearchy tab. everything should be kept at a baseshop level unless specifically selected
+   Hirearchy."
+
+   So the scheduler shows YOUR shop by default. The hierarchy is still one tap away, because a
+   shop with no trainer of its own would otherwise have nobody to book — see shopHasTrainers(). */
+var SHOPONLY = true;
+function myBase(){ return ((PROFILE&&PROFILE.baseshop)||'').toUpperCase(); }
+function sameShop(c){
+  var mine = myBase(); if(!mine) return true;              /* unknown shop: never hide everyone */
+  var his = ((c&&c.baseshop)||'').toUpperCase();
+  if(!his) return true;                                    /* unplaced trainer stays visible */
+  if(his === mine) return true;
+  var extra = (c&&Array.isArray(c.baseshops)) ? c.baseshops.map(function(b){return (b||'').toUpperCase();}) : [];
+  return extra.indexOf(mine) >= 0;                         /* explicitly covers my shop */
+}
+function allTr(){ return TRAINERS.filter(function(c){return !isOps(c);}); }
+function bTr(){ return SHOPONLY ? allTr().filter(sameShop) : allTr(); }
+function shopHasTrainers(){ return allTr().filter(sameShop).length > 0; }
+function setShopScope(only){ SHOPONLY=!!only; DAYBOOKED=[]; render(); }
+/* The control that makes the boundary visible, and crossing it deliberate. */
+function scopeBar(){
+  var mine = myBase() || 'your baseshop';
+  var wider = allTr().length - allTr().filter(sameShop).length;
+  if(!wider && SHOPONLY) return '';                         /* nothing hidden: no need to explain */
+  return '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 14px;'+
+    'font-size:12.5px;color:var(--ink3)">'+
+    '<button class="x'+(SHOPONLY?'':' can')+'" onclick="setShopScope(true)"'+
+      (SHOPONLY?' style="border-color:var(--accent);color:var(--accent)"':'')+'>'+esc(mine)+'</button>'+
+    '<button class="x'+(SHOPONLY?' can':'')+'" onclick="setShopScope(false)"'+
+      (SHOPONLY?'':' style="border-color:var(--accent);color:var(--accent)"')+'>Whole hierarchy</button>'+
+    '<span>'+(SHOPONLY
+      ? (wider+' trainer'+(wider===1?'':'s')+' in other baseshops hidden')
+      : 'Showing every baseshop')+'</span></div>';
+}
 function loadEmds(cb){fetch(AT.replace('atlas-api','sched-ext'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'emds'})}).then(function(r){return r.json();}).then(function(r){EMDS=(r&&r.emds)||[];cb&&cb();}).catch(function(){cb&&cb();});}
 function isEmdOnly(name){var inR=bTr().some(function(c){return c.name===name;});return !inR&&EMDS.some(function(e){return e.name===name;});}
 function emdCodeFor(name){var e=EMDS.filter(function(x){return x.name===name;})[0];return e?e.code:'';}
@@ -1252,6 +1288,15 @@ function renderBook(){
   if(!SELDATE)SELDATE=todayStr();
   var h='<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap"><div style="font-size:12.5px;color:var(--ink3)">Booking a training for yourself? Use the steps below. Booking a client appointment for someone else?</div><button class="qbtn" style="margin:0" onclick="openStaffBook()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Book for a client</button></div>';
   h+='<button onclick="openMyCalendly()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:9px;border:1px solid rgba(201,154,46,.45);background:rgba(201,154,46,.10);color:var(--gold);font-weight:800;font-size:14px;padding:13px;border-radius:13px;margin-bottom:16px;font-family:inherit;cursor:pointer">\ud83d\udcc5 Book via Calendly \u2014 automatic, shows on both schedules</button>';
+  h+=scopeBar();
+  /* A shop with no trainer of its own would otherwise show an empty screen and look broken.
+     Say what happened and offer the one control that fixes it. */
+  if(SHOPONLY && !shopHasTrainers()){
+    h+='<div class="empty" style="padding:20px 16px;line-height:1.6">'+
+       'Nobody in <b>'+esc(myBase()||'your baseshop')+'</b> has published training hours yet.'+
+       (allTr().length?('<br><button class="x" style="margin-top:10px" onclick="setShopScope(false)">Show the whole hierarchy instead</button>'):'')+
+       '</div>';
+  }
   h+='<div class="bstep"><div class="lbl">1 · Pick a date</div><div class="dstrip" id="dstrip"></div></div>';
   h+='<div class="bstep"><div class="lbl">2 · Training type</div><div class="catrow" id="catrow"></div></div>';
   h+='<div class="bstep"><div class="lbl">3 · Available times</div><div id="timesWrap"><div class="spin">Loading availability…</div></div></div>';
