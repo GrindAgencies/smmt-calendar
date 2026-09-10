@@ -189,8 +189,9 @@ function paintTabs(){
     note.innerHTML=(ME&&!ME.can_broadcast)
       ? '<div class="card" style="border-color:var(--gold);background:var(--gold-soft)">'+
         '<div style="font-size:13px;line-height:1.55">You are a <b>'+esc(ME.level||'Marketing Director')+'</b> in '+esc(ME.baseshop)+
-        '. You can see your team and set your own goals. Announcing to the '+esc(ME.baseshop)+
-        ' channel and changing its bots belong to the Executive Marketing Director who owns it.</div></div>'
+        '. You run your own team here — approve your recruits, see your roster, set your goals. '+
+        'Announcing to the whole '+esc(ME.baseshop)+' channel and changing its bots belong to the '+
+        'Executive Marketing Director who owns the baseshop.</div></div>'
       : '';
   }
 }
@@ -242,7 +243,8 @@ function paintTeam(){
 function paintApprovals(){
   if(!PEND){ $('pane').innerHTML='<div class="card"><div class="spin">Checking who is waiting…</div></div>'; return; }
   var rows=PEND.requests||[];
-  var h='<div class="card"><h2>New members joining '+esc(ME.baseshop)+'</h2>'+
+  var scopeWord=(ME&&ME.can_broadcast)?esc(ME.baseshop):'your team';
+  var h='<div class="card"><h2>New members joining '+scopeWord+'</h2>'+
     '<p class="sub">People who signed up under you and cannot get into the platform until you let them in.'+
     (PEND.unassigned?(' '+PEND.unassigned+' below have no upline yet — approve one and it is worth setting their upline afterwards.'):'')+
     '</p>';
