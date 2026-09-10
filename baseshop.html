@@ -372,22 +372,77 @@ function paintBots(){
       '<button class="btn" onclick="saveBase(\''+esc(id)+'\')">Save channel settings</button>'+
       '<span class="stat" id="bs_'+esc(id)+'"></span></div>';
   });
-  if(BOTS&&BOTS.can_edit&&BOTS.bots){
+  if(BOTS&&BOTS.bots){
+    /* Built-in bots. Editing one here changes it for YOUR shop only — the company default is
+       untouched, which is why "Reset to default" exists rather than a rename undo. */
     h+='<div class="card"><h2>The bots</h2>'+
-      '<p class="sub">Rename any of them, change the badge, or switch one off. Where each one may speak is fixed by its type — that is what keeps them out of the company chat.</p>';
+      '<p class="sub">Rename any of them, change the badge, or switch one off — <b>for '+esc(ME.baseshop)+' only</b>. '+
+      'Other baseshops keep the company default. Where each one may speak is fixed by its type; that is what keeps them out of the company chat.</p>';
     BOTS.bots.filter(function(b){return b.code!=='OPSANN';}).forEach(function(b){
       h+='<div data-bot="'+esc(b.code)+'" style="border:1px solid var(--line);border-radius:12px;padding:13px;margin-bottom:10px">'+
         '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">'+
-          '<div style="flex:1;min-width:0"><div style="font-weight:800">'+esc(b.emoji||'')+' '+esc(b.name)+'</div>'+
+          '<div style="flex:1;min-width:0"><div style="font-weight:800">'+esc(b.emoji||'')+' '+esc(b.name)+
+            (b.customised?' <span class="pill">yours</span>':'')+'</div>'+
           '<div class="mt">'+esc(b.role||'')+' · 📍 '+esc(b.where||'')+'</div></div>'+
           '<label class="sw"><input type="checkbox" data-f="enabled" '+(b.enabled?'checked':'')+'> On</label></div>'+
         '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">'+
           '<input class="in" data-f="emoji" value="'+esc(b.emoji||'')+'" maxlength="4" style="max-width:70px;text-align:center">'+
           '<input class="in" data-f="name" value="'+esc(b.name)+'" maxlength="40" style="flex:1;min-width:140px"></div>'+
         '<div class="fld"><label class="lbl">What it pushes</label><textarea class="in" data-f="posts" rows="2">'+esc(b.posts||'')+'</textarea></div>'+
-        '<button class="btn ghost" onclick="saveBot(\''+esc(b.code)+'\')">Save</button>'+
+        '<div class="fld"><label class="lbl">Tone <span style="font-weight:500;color:var(--ink3)">— how it should sound</span></label>'+
+          '<input class="in" data-f="tone" value="'+esc(b.tone||'')+'" maxlength="200"></div>'+
+        '<button class="btn ghost" onclick="saveBot(\''+esc(b.code)+'\')">Save for '+esc(ME.baseshop)+'</button>'+
+        (b.customised?('<button class="btn ghost" style="margin-left:7px" onclick="resetBot(\''+esc(b.code)+'\')">Reset to default</button>'):'')+
         '<span class="stat" id="bt_'+esc(b.code)+'"></span></div>';
     });
+    h+='</div>';
+
+    /* Custom bots — a leader's own. */
+    h+='<div class="card"><h2>Your own bots</h2>'+
+      '<p class="sub">Invent a bot for '+esc(ME.baseshop)+'. Pick the days and the hour, give it a few lines, and it posts one each time — rotating through them so it never repeats itself two weeks running.</p>';
+    var cust=(BOTS.custom||[]);
+    if(cust.length){
+      cust.forEach(function(b){
+        var sc=b.schedule||{};
+        var day=function(n,l){var on=(sc.days||[]).indexOf(n)>=0;
+          return '<button type="button" class="daybtn'+(on?' on':'')+'" data-cd="'+n+'" onclick="this.classList.toggle(\'on\')">'+l+'</button>';};
+        var hrs=''; for(var i=0;i<24;i++)hrs+='<option value="'+i+'"'+((Number(sc.hour)===i)?' selected':'')+'>'+((i%12)||12)+(i<12?' AM':' PM')+'</option>';
+        h+='<div data-cbot="'+esc(b.code)+'" style="border:1px solid var(--line);border-radius:12px;padding:13px;margin-bottom:10px">'+
+          '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">'+
+            '<div style="flex:1;min-width:0"><div style="font-weight:800">'+esc(b.emoji||'')+' '+esc(b.name)+'</div>'+
+            '<div class="mt">'+esc(b.code)+(b.last_run_on?(' · last posted '+esc(b.last_run_on)):' · has not posted yet')+'</div></div>'+
+            '<label class="sw"><input type="checkbox" data-f="enabled" '+(b.enabled?'checked':'')+'> On</label></div>'+
+          '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">'+
+            '<input class="in" data-f="emoji" value="'+esc(b.emoji||'')+'" maxlength="4" style="max-width:70px;text-align:center">'+
+            '<input class="in" data-f="name" value="'+esc(b.name)+'" maxlength="40" style="flex:1;min-width:140px"></div>'+
+          '<div class="fld"><label class="lbl">Days it posts</label><div class="daybar">'+
+            day(1,'Mon')+day(2,'Tue')+day(3,'Wed')+day(4,'Thu')+day(5,'Fri')+day(6,'Sat')+day(0,'Sun')+'</div></div>'+
+          '<div class="fld"><label class="lbl">At</label><select class="in" data-f="hour" style="max-width:170px">'+hrs+'</select></div>'+
+          '<div class="fld"><label class="lbl">What it says <span style="font-weight:500;color:var(--ink3)">— one line per post, it rotates through them</span></label>'+
+            '<textarea class="in" data-f="messages" rows="4">'+esc((sc.messages||[]).join('\n'))+'</textarea></div>'+
+          '<button class="btn ghost" onclick="saveCustom(\''+esc(b.code)+'\')">Save</button>'+
+          '<button class="btn ghost" style="margin-left:7px;color:var(--red);border-color:var(--red)" onclick="deleteCustom(\''+esc(b.code)+'\',\''+esc(b.name)+'\')">Delete</button>'+
+          '<span class="stat" id="cb_'+esc(b.code)+'"></span></div>';
+      });
+    } else {
+      h+='<div class="empty" style="padding:16px">No bots of your own yet.</div>';
+    }
+    h+='<div style="border-top:1px solid var(--line);padding-top:13px;margin-top:6px">'+
+      '<div style="font-weight:800;font-size:14px;margin-bottom:9px">Add a bot</div>'+
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:9px">'+
+        '<input class="in" id="nb_emoji" value="🤖" maxlength="4" style="max-width:70px;text-align:center">'+
+        '<input class="in" id="nb_name" maxlength="40" placeholder="Monday Fire" style="flex:1;min-width:150px"></div>'+
+      '<div class="fld"><label class="lbl">What it says <span style="font-weight:500;color:var(--ink3)">— one line per post</span></label>'+
+        '<textarea class="in" id="nb_msgs" rows="3" placeholder="New week. Who is booking three today?"></textarea></div>'+
+      '<div class="fld"><label class="lbl">Days</label><div class="daybar" id="nb_days">'+
+        [[1,'Mon'],[2,'Tue'],[3,'Wed'],[4,'Thu'],[5,'Fri'],[6,'Sat'],[0,'Sun']].map(function(d){
+          return '<button type="button" class="daybtn" data-nd="'+d[0]+'" onclick="this.classList.toggle(\'on\')">'+d[1]+'</button>';
+        }).join('')+'</div></div>'+
+      '<div class="fld"><label class="lbl">At</label><select class="in" id="nb_hour" style="max-width:170px">'+
+        (function(){var o='';for(var i=0;i<24;i++)o+='<option value="'+i+'"'+(i===8?' selected':'')+'>'+((i%12)||12)+(i<12?' AM':' PM')+'</option>';return o;})()+
+        '</select></div>'+
+      '<button class="btn" onclick="createBot()">Create bot</button>'+
+      '<span class="stat" id="nb_status"></span></div>';
     h+='</div>';
   }
   $('pane').innerHTML=h||'<div class="card"><div class="empty">No channel is registered to you yet.</div></div>';
@@ -405,13 +460,70 @@ function saveBase(id){
       highlights:g('highlights').split('\n').map(function(s){return s.trim();}).filter(Boolean)}
   }).then(function(r){ say('bs_'+id,(r&&r.ok)?'Saved ✓':((r&&r.error)||'Could not save'),!(r&&r.ok)); });
 }
+/* A built-in bot saved here becomes an override for THIS shop only. */
 function saveBot(code){
   var el=document.querySelector('[data-bot="'+code+'"]'); if(!el)return;
   var g=function(f){var x=el.querySelector('[data-f="'+f+'"]');return x?x.value:'';};
   say('bt_'+code,'Saving…');
-  post(BOTADMIN,{action:'save',code:CODE,bot:code,name:g('name'),emoji:g('emoji'),posts:g('posts'),
-    enabled:el.querySelector('[data-f="enabled"]').checked
-  }).then(function(r){ say('bt_'+code,(r&&r.ok)?'Saved ✓':((r&&r.error)||'Could not save'),!(r&&r.ok)); });
+  post(BOTADMIN,{action:'save',code:CODE,baseshop:ME.baseshop,
+    bot:{code:code,name:g('name'),emoji:g('emoji'),posts:g('posts'),tone:g('tone'),
+         enabled:el.querySelector('[data-f="enabled"]').checked}
+  }).then(function(r){
+    say('bt_'+code,(r&&r.ok)?('Saved for '+ME.baseshop+' ✓'):((r&&r.error)||'Could not save'),!(r&&r.ok));
+    if(r&&r.ok) refreshBots();
+  });
+}
+/* Drop the override and fall back to the company default. */
+function resetBot(code){
+  if(!confirm('Put this bot back to the company default for '+ME.baseshop+'?'))return;
+  post(BOTADMIN,{action:'remove',code:CODE,baseshop:ME.baseshop,bot:code}).then(function(r){
+    if(!r||!r.ok){ alert((r&&r.error)||'Could not reset that.'); return; }
+    refreshBots();
+  });
+}
+function saveCustom(code){
+  var el=document.querySelector('[data-cbot="'+code+'"]'); if(!el)return;
+  var g=function(f){var x=el.querySelector('[data-f="'+f+'"]');return x?x.value:'';};
+  var days=[].slice.call(el.querySelectorAll('[data-cd].on')).map(function(b){return +b.getAttribute('data-cd');});
+  var msgs=g('messages').split('\n').map(function(x){return x.trim();}).filter(Boolean);
+  if(!days.length){ say('cb_'+code,'Pick at least one day.',true); return; }
+  if(!msgs.length){ say('cb_'+code,'Give it something to say.',true); return; }
+  say('cb_'+code,'Saving…');
+  post(BOTADMIN,{action:'save',code:CODE,baseshop:ME.baseshop,
+    bot:{code:code,name:g('name'),emoji:g('emoji'),
+         enabled:el.querySelector('[data-f="enabled"]').checked,
+         schedule:{days:days,hour:+g('hour'),messages:msgs}}
+  }).then(function(r){
+    say('cb_'+code,(r&&r.ok)?'Saved ✓':((r&&r.error)||'Could not save'),!(r&&r.ok));
+    if(r&&r.ok) refreshBots();
+  });
+}
+function deleteCustom(code,name){
+  if(!confirm('Delete “'+name+'”? It stops posting immediately. Messages it already sent stay in the chat.'))return;
+  post(BOTADMIN,{action:'remove',code:CODE,baseshop:ME.baseshop,bot:code}).then(function(r){
+    if(!r||!r.ok){ alert((r&&r.error)||'Could not delete that.'); return; }
+    refreshBots();
+  });
+}
+function createBot(){
+  var name=($('nb_name').value||'').trim();
+  if(!name){ say('nb_status','Give your bot a name.',true); return; }
+  var days=[].slice.call(document.querySelectorAll('#nb_days [data-nd].on')).map(function(b){return +b.getAttribute('data-nd');});
+  var msgs=($('nb_msgs').value||'').split('\n').map(function(x){return x.trim();}).filter(Boolean);
+  if(!days.length){ say('nb_status','Pick at least one day.',true); return; }
+  if(!msgs.length){ say('nb_status','Give it something to say.',true); return; }
+  say('nb_status','Creating…');
+  post(BOTADMIN,{action:'create',code:CODE,baseshop:ME.baseshop,
+    name:name,emoji:($('nb_emoji').value||'🤖').trim(),
+    role:ME.baseshop+' custom bot',posts:msgs[0],
+    schedule:{days:days,hour:+$('nb_hour').value,messages:msgs}
+  }).then(function(r){
+    if(!r||!r.ok){ say('nb_status',(r&&r.error)||'Could not create that.',true); return; }
+    say('nb_status','Created ✓'); refreshBots();
+  });
+}
+function refreshBots(){
+  post(BOTADMIN,{action:'list',code:CODE}).then(function(r){ if(r&&r.ok){BOTS=r;if(TAB==='bots')paint();} });
 }
 
 /* ================= GOALS ================= */
