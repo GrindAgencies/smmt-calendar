@@ -214,7 +214,7 @@ function startApp(){
 function signOut(){try{sessionStorage.removeItem('tsfg_tasks_id');}catch(e){}location.reload();}
 
 function loadPickers(){
-  fetch(HUB,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'hub_roster'})}).then(function(r){return r.json();}).then(function(d){ROSTER=(d&&d.members)||[];if(OPS&&TASKS.length){populateAgentFilter();renderList();}}).catch(function(){});
+  fetch(HUB.replace('hub-api','hub-roster'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(OPS&&opsTok()?{token:opsTok(),by:CODE}:{code:CODE})}).then(function(r){return r.json();}).then(function(d){ROSTER=(d&&d.members)||[];if(OPS&&TASKS.length){populateAgentFilter();renderList();}}).catch(function(){});
   var b={action:'newbiz_list'};if(OPS&&opsTok())b.token=opsTok();else b.code=CODE;
   fetch(NB,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();}).then(function(d){
     var pols=(d&&d.policies)||[];POLICIES=pols.map(function(p){return {id:String(p.id),client:p.client_name||'(no name)',agent:p.agent_name||'',carrier:p.carrier||''};});

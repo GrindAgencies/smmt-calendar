@@ -344,7 +344,7 @@ html, body{ overflow-x: hidden; }
 <div class="toast" id="toast"></div>
 
 <script>
-var HUB="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/hub-api",UNREADAPI="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/hub-unread";
+var HUB="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/hub-api",ROSTERAPI="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/hub-roster",UNREADAPI="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/hub-unread";
 var BOTS="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/bots-cron";
 var HUBOPS="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/hub-ops";
 var OPSMODE=false,OPSTOKEN='',OPSDMS=[];
@@ -880,8 +880,18 @@ function fillMembers(){var host=$('chMembers');if(!host)return;var list=ROSTER.f
 function createChannel(){var n=$('chName').value.trim();if(!n){toast('Name it');return;}var priv=$('chPriv').checked;var mem=[].slice.call(document.querySelectorAll('#chMembers input:checked')).map(function(x){return x.value;});h({action:'hub_createchannel',name:n,private:priv,members:mem,code:CODE,by:NAME}).then(function(r){if(r&&r.ok){$('chOv').classList.remove('on');$('chName').value='';$('chPriv').checked=false;$('chMembersWrap').style.display='none';loadChannels();toast(priv?'Private channel created \ud83d\udd12':'Channel created');if(r.id){CHAN=r.id;renderHead();loadMsgs(true);}}else toast((r&&r.error)||'Could not create');});}
 /* profile settings + roster */
 var ROSTER=[];
-function loadRoster(){h({action:'hub_roster'}).then(function(r){ROSTER=(r&&r.members)||[];try{renderRooms();}catch(e){}});}
-function openProfileSettings(){$('psAv').innerHTML=avatarInner(CODE,NAME,'');$('psName').value=NAME;var open=function(){h({action:'hub_profile',code:CODE}).then(function(r){var pf=(r&&r.profile)||{};$('psTitle').value=pf.title||'';$('psEmail').value=pf.email||'';$('psPhone').value=pf.phone||'';$('psCal').value=pf.cal_link||'';var sel=$('psDirect');sel.innerHTML='<option value="">\u2014 Select your direct upline \u2014</option>'+ROSTER.filter(function(m){return m.code!==CODE;}).map(function(m){return '<option value="'+m.code+'"'+(pf.direct_to===m.code?' selected':'')+'>'+esc(m.name)+' ('+m.code+')</option>';}).join('');});$('psOv').classList.add('on');};if(!ROSTER.length){h({action:'hub_roster'}).then(function(r){ROSTER=(r&&r.members)||[];open();});}else open();}
+/* The DM directory, the channel-member picker and the upline picker all read ROSTER. hub-api's
+   hub_roster takes no caller and answers with the WHOLE company, so those three lists showed a
+   TITANS agent all 63 people in SMMT. hub-roster is the same payload scoped to your own baseshop,
+   server-side. Operations oversight keeps the full list by passing its token. */
+function hroster(){
+  var b={code:CODE};
+  if(OPSMODE){ b.token=OPSTOKEN; b.by=CODE; }
+  return fetch(ROSTERAPI,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)})
+    .then(function(r){return r.json();}).catch(function(){return {ok:false};});
+}
+function loadRoster(){hroster().then(function(r){ROSTER=(r&&r.members)||[];try{renderRooms();}catch(e){}});}
+function openProfileSettings(){$('psAv').innerHTML=avatarInner(CODE,NAME,'');$('psName').value=NAME;var open=function(){h({action:'hub_profile',code:CODE}).then(function(r){var pf=(r&&r.profile)||{};$('psTitle').value=pf.title||'';$('psEmail').value=pf.email||'';$('psPhone').value=pf.phone||'';$('psCal').value=pf.cal_link||'';var sel=$('psDirect');sel.innerHTML='<option value="">\u2014 Select your direct upline \u2014</option>'+ROSTER.filter(function(m){return m.code!==CODE;}).map(function(m){return '<option value="'+m.code+'"'+(pf.direct_to===m.code?' selected':'')+'>'+esc(m.name)+' ('+m.code+')</option>';}).join('');});$('psOv').classList.add('on');};if(!ROSTER.length){hroster().then(function(r){ROSTER=(r&&r.members)||[];open();});}else open();}
 function saveProfile(){var sel=$('psDirect');var dc=sel.value;var dn=dc?sel.options[sel.selectedIndex].text.replace(/\s*\([^)]*\)\s*$/,'').trim():'';h({action:'hub_setprofile',code:CODE,title:$('psTitle').value.trim(),email:$('psEmail').value.trim(),phone:$('psPhone').value.trim(),cal_link:$('psCal').value.trim(),direct_to:dc,direct_to_name:dn}).then(function(r){if(r&&r.ok){$('psOv').classList.remove('on');toast('Profile saved \u2713');loadRoster();}else toast((r&&r.error)||'Could not save');});}
 function deleteChannel(){if(CHAN.indexOf('c_')!==0)return;if(!confirm('Delete this channel for everyone? This cannot be undone.'))return;h({action:'hub_deletechannel',id:CHAN,code:CODE,token:MODTOKEN||''}).then(function(r){if(r&&r.ok){toast('Channel deleted');CHAN='main';loadChannels();renderHead();loadMsgs(true);}else toast((r&&r.error)||'Could not delete');});}
 function loadChannels(){var call=OPSMODE?hops({action:'channels',name:NAME}):h({action:'hub_channels',code:CODE});call.then(function(r){CHANNELS=(r&&r.channels)||[];if(r&&r.access){ACC=r.access;}syncBotBtn();if(CHAN.indexOf('dm:')!==0&&!CHANNELS.some(function(c){return c.id===CHAN;})){CHAN='main';renderHead();loadMsgs(true);}renderRooms();});}
