@@ -376,7 +376,7 @@ window.openInfo=function(ev,code){
   const n=byCode[code]; if(!n) return;
   $('iName').textContent=n.name; $('iSub').textContent=(levelChip(n.level)?levelChip(n.level)+' · ':'')+code+(n.baseshop?(' · '+n.baseshop):'');
   const up=byCode[n.direct_to];
-  const act=n.active?'Active':(n.days_inactive==null?'No activity yet':(n.days_inactive+' days quiet'));
+  const act=n.limited?'Another baseshop':(n.active?'Active':(n.days_inactive==null?'No activity yet':(n.days_inactive+' days quiet')));
   const rows=[
     ['Direct upline', up?up.name:'—'],
     ['Direct recruits', (KIDS[code]||[]).length],
