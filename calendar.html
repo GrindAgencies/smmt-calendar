@@ -576,7 +576,7 @@ function scopeBar(){
       ? (wider+' trainer'+(wider===1?'':'s')+' in other baseshops hidden')
       : 'Showing every baseshop')+'</span></div>';
 }
-function loadEmds(cb){fetch(AT.replace('atlas-api','sched-ext'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'emds'})}).then(function(r){return r.json();}).then(function(r){EMDS=(r&&r.emds)||[];cb&&cb();}).catch(function(){cb&&cb();});}
+function loadEmds(cb){fetch(AT.replace('atlas-api','sched-ext'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'emds',code:CODE})}).then(function(r){return r.json();}).then(function(r){EMDS=(r&&r.emds)||[];cb&&cb();}).catch(function(){cb&&cb();});}
 function isEmdOnly(name){var inR=bTr().some(function(c){return c.name===name;});return !inR&&EMDS.some(function(e){return e.name===name;});}
 function emdCodeFor(name){var e=EMDS.filter(function(x){return x.name===name;})[0];return e?e.code:'';}
 function opsAll(){return TRAINERS.filter(isOps);}
