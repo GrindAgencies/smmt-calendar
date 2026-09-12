@@ -361,6 +361,13 @@ html.tsfg-session #app{display:grid!important;}
   .tb-search{display:none;}
   .ctx button{padding:7px 11px;}
 }
+.uphint{font-size:12px;margin-top:6px;min-height:16px;color:var(--ink-3);line-height:1.45;}
+.uphint.ok{color:var(--green);font-weight:600;}
+.uphint.warn{color:var(--orange);}
+.uphint .pick{display:inline-block;margin:4px 6px 0 0;padding:3px 9px;border-radius:999px;
+  border:1px solid var(--line-2);background:var(--panel-2);color:var(--ink);cursor:pointer;
+  font-size:11.5px;font-weight:600;}
+.uphint .pick:hover{border-color:var(--accent);color:var(--accent);}
 </style>
 <style id="mobile-safe-fix">
 /* keep the sticky top bar clear of the notch / status bar (phone + installed app), so nothing is cut off */
@@ -506,7 +513,7 @@ html, body{ overflow-x: hidden; }
           <option value="EMD">Executive Marketing Director (EMD)</option>
         </select>
       </div>
-      <div class="gfield"><label>Your direct recruiter's GFI code</label><input id="sUpline" type="text" autocomplete="off" placeholder="e.g. C1991" style="text-transform:uppercase;"></div>
+      <div class="gfield"><label>Your direct recruiter</label><input id="sUpline" type="text" autocomplete="off" placeholder="Their name or GFI code — e.g. Edgar Zavala"><div id="sUpHint" class="uphint" aria-live="polite"></div></div>
       <button class="gbtn" id="sBtn">Create my account →</button>
       <div class="gmsg" id="sMsg"></div>
       <div class="ghint">This places you under your partner and builds your calendar automatically.</div>
@@ -1138,6 +1145,50 @@ function doLogin(){
 function signOut(){try{localStorage.removeItem('tsfg_code');localStorage.removeItem('tsfg_name');}catch(e){}location.reload();}
 
 /* ---------- JOIN / SIGN UP ---------- */
+/* People type their recruiter's NAME far more often than a code — Christopher expects this to be
+   the common case. profile-api resolves a name, a code, an email or a phone to one agent, and
+   refuses to guess when two people share a name or the spelling is off. This shows the answer
+   under the field BEFORE they submit, so a wrong upline is caught here rather than discovered
+   weeks later as a recruit hanging off nobody's leg. */
+var UPT=null, UPSEQ=0;
+/* index.html had no escaper — these names come from the roster and go into innerHTML. */
+function esc(v){return (v==null?'':String(v)).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function upHint(cls,html){var h=$('sUpHint'); if(!h)return; h.className='uphint'+(cls?' '+cls:''); h.innerHTML=html||'';}
+function showUpCands(list,cls){
+  if(!list||!list.length){upHint('','');return;}
+  var lead=(cls==='warn')?'Pick the right one: ':'Did you mean: ';
+  upHint(cls||'warn', lead+list.map(function(c){
+    return '<span class="pick" data-code="'+esc(c.code)+'">'+esc(c.name)+' · '+esc(c.code)+
+           (c.baseshop?' · '+esc(c.baseshop):'')+'</span>';
+  }).join(''));
+}
+function lookupUpline(){
+  var el=$('sUpline'); if(!el) return;
+  var q=(el.value||'').trim();
+  if(q.length<2){upHint('','');return;}
+  var mine=($('sCode').value||'').trim().toUpperCase();
+  var seq=++UPSEQ;
+  upHint('','Checking…');
+  fetch(PA,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'resolve_upline',q:q,code:mine})})
+   .then(function(r){return r.json();}).then(function(r){
+      if(seq!==UPSEQ) return;                    // a later keystroke already won
+      if(r&&r.ok){
+        var via=(r.how==='code')?'':' — matched from what you typed';
+        upHint('ok','✓ '+esc(r.name)+' · '+esc(r.code)+(r.baseshop?' · '+esc(r.baseshop):'')+via);
+      } else if(r&&r.candidates&&r.candidates.length){
+        showUpCands(r.candidates, r.reason==='ambiguous'?'warn':'');
+      } else {
+        upHint('warn', (r&&r.message)||'No match yet — keep typing, or use their GFI code.');
+      }
+   }).catch(function(){ if(seq===UPSEQ) upHint('',''); });
+}
+document.addEventListener('click',function(e){
+  var p=e.target&&e.target.closest?e.target.closest('.uphint .pick'):null;
+  if(!p)return;
+  var el=$('sUpline'); if(el){ el.value=p.getAttribute('data-code'); lookupUpline(); el.focus(); }
+});
+
 function setAuthMode(m){
   $('signinPane').classList.toggle('hide',m==='join');
   $('signupPane').classList.toggle('hide',m!=='join');
@@ -1146,12 +1197,12 @@ function doSignup(){
   var msg=$('sMsg');msg.className='gmsg';
   var first=$('sFirst').value.trim(),last=$('sLast').value.trim();
   var email=$('sEmail').value.trim(),phone=$('sPhone').value.trim();
-  var level=$('sLevel').value,upline=($('sUpline').value||'').trim().toUpperCase();
+  var level=$('sLevel').value,upline=($('sUpline').value||'').trim();
   var code=($('sCode').value||'').trim().toUpperCase();
   if(!first||!last){msg.textContent='Enter your first and last name.';return;}
   if(!code){msg.textContent='Enter the GFI code you were assigned.';return;}
-  if(!upline){msg.textContent="Enter your direct recruiter's GFI code.";return;}
-  if(code===upline){msg.textContent="Your GFI code and your recruiter's code can't be the same.";return;}
+  if(!upline){msg.textContent="Enter your direct recruiter — their name or their GFI code.";return;}
+  if(code===upline.toUpperCase()){msg.textContent="Your GFI code and your recruiter's code can't be the same.";return;}
   var btn=$('sBtn');btn.disabled=true;btn.textContent='Creating…';
   fetch(PA,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'signup',code:code,first_name:first,last_name:last,email:email,phone:phone,contract_level:level,upline_code:upline})})
     .then(function(r){return r.json();}).then(function(r){
@@ -1159,7 +1210,10 @@ function doSignup(){
       if(r&&r.ok){
         msg.className='gmsg ok';msg.textContent='✅ Welcome, '+r.name+'! Your GFI code is '+r.code+' (under '+r.upline+'). Your access is now pending Operations approval — you\'ll be able to sign in as soon as you\'re approved.';
         setTimeout(function(){ setAuthMode('signin'); var g=$('gCode'); if(g)g.value=r.code; },2600);
-      } else { msg.textContent=(r&&r.error)||'Could not create your account.'; }
+      } else { msg.textContent=(r&&r.error)||'Could not create your account.';
+        /* If it came back with people to choose from, show them as one-tap buttons rather than
+           making someone retype a code they may not know. */
+        if(r&&r.candidates&&r.candidates.length) showUpCands(r.candidates,'warn'); }
     }).catch(function(){btn.disabled=false;btn.textContent='Create my account →';msg.textContent='Network error — try again.';});
 }
 
@@ -1167,6 +1221,10 @@ function doSignup(){
 $('gBtn').addEventListener('click',doLogin);
 ['gFirst','gLast','gCode'].forEach(function(id){$(id).addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});});
 $('sBtn').addEventListener('click',doSignup);
+(function(){var u=$('sUpline'); if(!u)return;
+  u.addEventListener('input',function(){clearTimeout(UPT);UPT=setTimeout(lookupUpline,420);});
+  u.addEventListener('blur',function(){clearTimeout(UPT);lookupUpline();});
+})();
 ['sFirst','sLast','sEmail','sPhone','sCode','sUpline'].forEach(function(id){$(id).addEventListener('keydown',function(e){if(e.key==='Enter')doSignup();});});
 /* ===== New members waiting on THIS leader =========================================
    Christopher: "allow for new member approvals to be approved by EMDS in their dashboard main
