@@ -15,7 +15,7 @@ a{color:inherit}
 .head h1{margin:6px 0 2px;font-size:26px;font-weight:900;letter-spacing:-.01em;background:linear-gradient(180deg,#fff4cf,#c99a2e 55%,#cda22f);-webkit-background-clip:text;background-clip:text;color:transparent;}
 .head .sub{font-size:13px;color:var(--muted);max-width:720px;margin:0 auto;line-height:1.5;}
 .stats{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:16px 16px 4px;}
-.stat{background:linear-gradient(160deg,#ffffff,#fbfbfd);border:1px solid #ececf0;border-radius:13px;padding:9px 15px;text-align:center;min-width:86px;}
+.stat{background:linear-gradient(160deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:13px;padding:9px 15px;text-align:center;min-width:86px;}
 .stat b{display:block;font-size:19px;font-weight:900;color:var(--ink);line-height:1;}
 .stat span{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700;}
 .stat.blu b{color:#5f92d6;}.stat.grn b{color:#2fa46d;}.stat.yel b{color:#c99a2e;}.stat.red b{color:#d6543c;}.stat.gold b{color:#c99a2e;}
@@ -55,10 +55,10 @@ a{color:inherit}
 .tree>ul>li::before,.tree>ul>li::after{display:none;}
 .tree li.collapsed>ul{display:none;}
 
-.card{position:relative;display:flex;flex-direction:column;align-items:center;gap:5px;width:140px;border:1px solid #ececf0;border-top-width:4px;border-radius:14px;background:linear-gradient(170deg,#ffffff,#fbfbfd);padding:12px 10px 12px;box-shadow:0 3px 12px rgba(0,0,0,.3);transition:border-color .14s,transform .1s,opacity .14s;user-select:none;-webkit-user-select:none;}
+.card{position:relative;display:flex;flex-direction:column;align-items:center;gap:5px;width:140px;border:1px solid var(--line);border-top-width:4px;border-radius:14px;background:linear-gradient(170deg,var(--panel),var(--panel2));padding:12px 10px 12px;box-shadow:0 3px 12px rgba(0,0,0,.3);transition:border-color .14s,transform .1s,opacity .14s;user-select:none;-webkit-user-select:none;}
 .card:hover{border-color:#4a3f1c;}
 .card.dim{opacity:.3;}
-.av{position:relative;width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:15px;color:#fbfbfd;box-shadow:inset 0 0 0 2px rgba(255,255,255,.15);overflow:hidden;}
+.av{position:relative;width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:15px;color:#fbfbfd;text-shadow:0 1px 2px rgba(0,0,0,.45);box-shadow:inset 0 0 0 2px rgba(255,255,255,.15);overflow:hidden;}
 .av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%;}
 .nm{font-weight:800;font-size:13px;color:var(--ink);line-height:1.15;text-align:center;cursor:pointer;}
 .nm:hover{text-decoration:underline;text-decoration-color:#7fb0e6;text-underline-offset:2px;}
@@ -88,12 +88,12 @@ body.editing .card:active{cursor:grabbing;}
 .unplaced .row{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;}
 /* Alumni — people who have left. They keep their place so the family tree stays whole. */
 .av.c-gone{background:linear-gradient(180deg,#d8d8de,#9a9aa4);} .card.c-gone{border-top-color:#b4b4bd;}
-.card.gone{background:linear-gradient(170deg,#fafafb,#f2f2f5);border-style:dashed;box-shadow:0 2px 7px rgba(0,0,0,.16);opacity:.72;}
+.card.gone{background:linear-gradient(170deg,var(--panel2),var(--bg));border-style:dashed;box-shadow:0 2px 7px rgba(0,0,0,.16);opacity:.72;}
 .card.gone .nm{color:var(--muted);}
 .card.gone .av{filter:grayscale(1);}
 .alum{font-size:8.5px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;padding:2px 7px;border-radius:999px;background:#f0f0f3;color:#86868b;border:1px dashed #c9c9d1;}
 .card.dragsrc{opacity:.4;}
-.card.drop-hover{outline:2px dashed #3b6ea5;outline-offset:3px;background:#eaf2fc;}
+.card.drop-hover{outline:2px dashed var(--blue);outline-offset:3px;background:rgba(59,110,165,.18);}
 #dragGhost{position:fixed;z-index:120;pointer-events:none;background:var(--panel2);border:1px solid #7fb0e6;color:var(--ink);font-weight:800;font-size:12.5px;border-radius:10px;padding:7px 12px;box-shadow:0 10px 26px rgba(0,0,0,.55);opacity:.96;display:none;}
 .foot{margin:10px 16px 0;font-size:11.5px;color:#7c7358;text-align:center;}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--panel2);border:1px solid #8a6d1f;color:var(--ink);padding:10px 16px;border-radius:10px;font-size:13px;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:.2s;z-index:90;}
@@ -102,7 +102,7 @@ body.editing .card:active{cursor:grabbing;}
 /* person info modal */
 .loverlay{position:fixed;inset:0;z-index:130;background:rgba(6,5,2,.72);display:none;align-items:flex-start;justify-content:center;padding:44px 14px;overflow:auto;}
 .loverlay.on{display:flex;}
-.lmodal{width:100%;max-width:440px;background:linear-gradient(170deg,#ffffff,#fbfbfd);border:1px solid #e3e3e8;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.6);overflow:hidden;}
+.lmodal{width:100%;max-width:440px;background:linear-gradient(170deg,var(--panel),var(--panel2));border:1px solid var(--line-2);border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.6);overflow:hidden;}
 .lmhead{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 16px;border-bottom:1px solid #ececf0;}
 .lmhead h3{margin:0;font-size:16px;color:var(--ink);font-weight:900;}
 .lmhead .sub{font-size:11.5px;color:var(--muted);margin-top:2px;}
