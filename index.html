@@ -361,6 +361,7 @@ html.tsfg-session #app{display:grid!important;}
   .tb-search{display:none;}
   .ctx button{padding:7px 11px;}
 }
+.pin-in.pin-name{letter-spacing:0;font-size:15px;text-align:left;font-weight:600;}
 .dupe{text-align:left;border:1px solid var(--orange);background:var(--orange-soft);
   border-radius:var(--radius-sm);padding:13px 14px;margin-top:4px;}
 .dupemsg{font-size:12.5px;line-height:1.5;color:var(--ink);margin-bottom:10px;}
@@ -1069,16 +1070,21 @@ var PINAPI='https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/pin';
 function pinApi(b){return fetch(PINAPI,{method:'POST',headers:{'Content-Type':'application/json'},
   body:JSON.stringify(b)}).then(function(r){return r.json();});}
 
-function pinGate(code, first, last, proceed){
+/* `first`/`last` are what the PERSON TYPED and are what gets sent to 'set' — they are the proof
+   that they are who the code says. `dispFirst`/`dispLast` come from the record and are only ever
+   shown on screen. Keeping them apart matters: this used to pass the SERVER's name into the set
+   call, so the name check compared the record against itself and knowing a public GFI code was
+   enough to claim any account that had not chosen a PIN yet. */
+function pinGate(code, first, last, dispFirst, dispLast, proceed){
   pinApi({action:'status',code:code}).then(function(st){
-    if(!st||!st.ok){ pinShow(code,first,last,proceed,false,(st&&st.error)||'Could not check your PIN.'); return; }
-    pinShow(code, first, last, proceed, !st.has_pin, st.locked?'This account is locked for a few minutes after too many wrong PINs.':'');
+    if(!st||!st.ok){ pinShow(code,first,last,dispFirst,dispLast,proceed,false,(st&&st.error)||'Could not check your PIN.'); return; }
+    pinShow(code, first, last, dispFirst, dispLast, proceed, !st.has_pin, st.locked?'This account is locked for a few minutes after too many wrong PINs.':'');
   }).catch(function(){
-    pinShow(code,first,last,proceed,false,'Could not reach the server. Try again in a moment.');
+    pinShow(code,first,last,dispFirst,dispLast,proceed,false,'Could not reach the server. Try again in a moment.');
   });
 }
 
-function pinShow(code, first, last, proceed, creating, err){
+function pinShow(code, first, last, dispFirst, dispLast, proceed, creating, err){
   var ov=document.getElementById('pinOv');
   if(!ov){
     ov=document.createElement('div'); ov.id='pinOv';
@@ -1089,8 +1095,12 @@ function pinShow(code, first, last, proceed, creating, err){
     '<div class="pin-card" role="dialog" aria-modal="true">'+
       '<h3>'+(creating?'Choose your 4-digit PIN':'Enter your PIN')+'</h3>'+
       '<p class="pin-sub">'+(creating
-        ? 'You will use this every time you sign in. Pick something you will remember — Operations can reset it if you forget.'
-        : 'Signing in as '+String(first||'')+' '+String(last||''))+'</p>'+
+        ? 'You will use this every time you sign in. Confirm your name so we know this code is yours — Operations can reset the PIN if you forget it.'
+        : 'Signing in as '+esc(String(dispFirst||'')+' '+String(dispLast||'')))+'</p>'+
+      (creating
+        ? '<input id="pinFirst" class="pin-in pin-name" type="text" autocomplete="given-name" placeholder="First name" aria-label="First name" value="'+esc(first||'')+'">'+
+          '<input id="pinLast" class="pin-in pin-name" type="text" autocomplete="family-name" placeholder="Last name" aria-label="Last name" value="'+esc(last||'')+'">'
+        : '')+
       '<input id="pin1" class="pin-in" type="password" inputmode="numeric" autocomplete="off" '+
         'maxlength="4" placeholder="••••" aria-label="PIN">'+
       (creating?'<input id="pin2" class="pin-in" type="password" inputmode="numeric" autocomplete="off" maxlength="4" placeholder="Confirm" aria-label="Confirm PIN">':'')+
@@ -1110,12 +1120,15 @@ function pinShow(code, first, last, proceed, creating, err){
       if(p1!==p2) return fail('Those two PINs do not match.');
     }
     go.disabled=true; go.textContent='Checking…'; m.textContent='';
+    var nf=document.getElementById('pinFirst'), nl=document.getElementById('pinLast');
+    var useF=nf?(nf.value||'').trim():first, useL=nl?(nl.value||'').trim():last;
+    if(creating && (!useF||!useL)){ go.disabled=false; go.textContent='Save my PIN'; return fail('Enter your first and last name.'); }
     pinApi(creating
-      ? {action:'set',code:code,first:first,last:last,pin:p1}
+      ? {action:'set',code:code,first:useF,last:useL,pin:p1}
       : {action:'verify',code:code,pin:p1})
       .then(function(r){
         if(r&&r.ok){ ov.className=''; ov.innerHTML=''; proceed(); return; }
-        if(r&&r.needs_pin){ pinShow(code,first,last,proceed,true,'Choose a PIN to finish signing in.'); return; }
+        if(r&&r.needs_pin){ pinShow(code,first,last,dispFirst,dispLast,proceed,true,'Choose a PIN to finish signing in.'); return; }
         fail((r&&r.error)||'That did not work.');
       })
       .catch(function(){ fail('Could not reach the server.'); });
@@ -1154,7 +1167,8 @@ function doLogin(){
       var fullName=((res.agent.first_name||first)+' '+(res.agent.last_name||last)).trim();
       /* The account is real and approved — now the PIN. Everything below only
          runs once the PIN is set or verified. */
-      pinGate(code, (res.agent.first_name||first), (res.agent.last_name||last), function(){
+      /* typed name first (the proof), record name after (the display) */
+      pinGate(code, first, last, (res.agent.first_name||first), (res.agent.last_name||last), function(){
         CODE=code;NAME=fullName;
         try{localStorage.setItem('tsfg_code',CODE);localStorage.setItem('tsfg_name',NAME);}catch(e){}
         try{if(window.__pushReattach)window.__pushReattach();}catch(e){}  // link this device's push token to the code
