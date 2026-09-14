@@ -60,6 +60,22 @@ a{color:inherit}
 .tright{text-align:right;font-size:10.5px;color:var(--muted);font-weight:700;white-space:nowrap;}
 .tright .big{font-size:18px;font-weight:900;color:var(--ink);display:block;line-height:1;}
 @media(max-width:560px){.trow{grid-template-columns:36px 1fr auto;}.tmeta span{margin-right:8px;}}
+/* Custom field chips on each team card. Deliberately quiet: unset fields sit back so a card
+   still reads as a person first, and a set one steps forward with the value. */
+.tchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px;}
+.tchip{display:inline-flex;align-items:center;gap:6px;font:inherit;font-size:11px;font-weight:700;
+  line-height:1;padding:5px 9px;border-radius:999px;cursor:pointer;
+  border:1px dashed var(--line,#ececf0);background:transparent;color:var(--muted,#6e6e73);
+  transition:.12s;}
+.tchip:hover{border-style:solid;border-color:var(--gold,#c99a2e);color:var(--gold,#c99a2e);}
+.tchip.on{border-style:solid;border-color:var(--gold,#c99a2e);
+  background:color-mix(in srgb,var(--gold,#c99a2e) 13%,transparent);color:var(--ink,#1d1d1f);}
+.tchip .tcl{opacity:.72;font-weight:600;}
+.tchip.on .tcl{opacity:.62;}
+.tchip .tcv{font-weight:800;}
+.tfbtn{font:inherit;font-size:12.5px;font-weight:700;padding:8px 13px;border-radius:10px;cursor:pointer;
+  border:1px solid var(--line,#ececf0);background:var(--panel,#fff);color:var(--muted,#6e6e73);}
+.tfbtn:hover{border-color:var(--gold,#c99a2e);color:var(--gold,#c99a2e);}
 </style>
 <style id="tsfg-skin">
 /* --tsfg-side is a WIDTH, not a colour: it must be declared for BOTH
@@ -197,9 +213,104 @@ function render(){
   var legHtml=legs.length?('<div class="legttl">Legs</div><div class="legrow">'+
     '<div class="legcard'+(LEG===''?' on':'')+'" onclick="setLeg(\'\')"><div class="ln">All legs</div><div class="lm">'+(STATS.total_downline||0)+' people</div></div>'+
     legs.map(function(l){return '<div class="legcard'+(LEG===l.code?' on':'')+'" onclick="setLeg(\''+l.code+'\')"><div class="ln">'+esc(l.name)+'</div><div class="lm">'+l.size+' team · '+l.active+' active'+(legNew[l.code]?(' · +'+legNew[l.code]+' new'):'')+'</div></div>';}).join('')+'</div>'):'';
-  var ctrl='<div class="tbar"><input id="q" placeholder="Search your team…" oninput="onSearch()" value="'+esc(Q)+'"><select id="sort" onchange="SORT=this.value;paint()"><option value="team"'+(SORT==='team'?' selected':'')+'>Sort: team size</option><option value="name"'+(SORT==='name'?' selected':'')+'>Sort: name</option><option value="active"'+(SORT==='active'?' selected':'')+'>Sort: activity</option><option value="new"'+(SORT==='new'?' selected':'')+'>Sort: newest</option></select></div>';
+  var fieldsBtn = TCANDEF ? ('<button class="tfbtn" onclick="tfManage()" title="Add or remove the fields tracked on every card">⊕ Fields'+(TFIELDS.length?(' · '+TFIELDS.length):'')+'</button>') : '';
+  var ctrl='<div class="tbar"><input id="q" placeholder="Search your team…" oninput="onSearch()" value="'+esc(Q)+'"><select id="sort" onchange="SORT=this.value;paint()"><option value="team"'+(SORT==='team'?' selected':'')+'>Sort: team size</option><option value="name"'+(SORT==='name'?' selected':'')+'>Sort: name</option><option value="active"'+(SORT==='active'?' selected':'')+'>Sort: activity</option><option value="new"'+(SORT==='new'?' selected':'')+'>Sort: newest</option></select>'+fieldsBtn+'</div>';
   $('teamArea').innerHTML=crumb+stat+legHtml+ctrl+'<div id="roster" style="margin:0 16px"></div>';
   paint();
+}
+/* ===== CUSTOM FIELDS ====================================================================
+   Christopher: "please allow for us to add custom fields to the mix. for instance to track
+   upcoming events within GFI".
+   Definitions come from team-fields; the values live in the same tracker_agents.custom the
+   Ops tracker already writes, so a field added here and a column added there agree about
+   where the answer is kept. A field belongs to the baseshop that made it unless Operations
+   or the org root marks it company-wide — a GFI convention is not one shop's business.
+   Values may only be set on your OWN downline; the server walks direct_to to check. */
+var TFAPI="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/team-fields";
+var TFIELDS=[], TVALS={}, TCANDEF=false;
+function tfLoad(cb){
+  fetch(TFAPI,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'list',code:CODE})})
+   .then(function(r){return r.json();})
+   .then(function(r){ if(r&&r.ok){ TFIELDS=r.fields||[]; TVALS=r.values||{}; TCANDEF=!!r.can_define; } cb&&cb(); })
+   .catch(function(){ cb&&cb(); });
+}
+function tfVal(code,key){ var v=TVALS[(code||'').toUpperCase()]; return (v&&v[key]!=null)?String(v[key]):''; }
+function tfChips(p){
+  if(!TFIELDS.length) return '';
+  return '<div class="tchips">'+TFIELDS.map(function(f){
+    var v=tfVal(p.code,f.key);
+    var shown = f.type==='check' ? (v==='yes'?'✓':'') : v;
+    var on = !!shown;
+    return '<button class="tchip'+(on?' on':'')+'" onclick="event.stopPropagation();tfEdit(\''+p.code+'\',\''+f.key+'\')" '+
+      'title="'+esc(f.label)+(on?(': '+esc(shown)):' — not set')+'">'+
+      '<span class="tcl">'+esc(f.label)+'</span>'+(on?('<span class="tcv">'+esc(shown)+'</span>'):'')+'</button>';
+  }).join('')+'</div>';
+}
+function tfEdit(code,key){
+  var f=TFIELDS.filter(function(x){return x.key===key;})[0]; if(!f) return;
+  var cur=tfVal(code,key), next=null;
+  if(f.type==='check'){ next = (cur==='yes') ? '' : 'yes'; }
+  else if(f.type==='select'){
+    var opts=(f.options||[]);
+    var i=opts.indexOf(cur);
+    next = (i+1>=opts.length) ? '' : opts[i+1];   // cycle through, then back to unset
+  } else {
+    next = window.prompt(f.label+(f.type==='date'?' (YYYY-MM-DD)':''), cur);
+    if(next===null) return;
+    next=String(next).trim();
+  }
+  tfSet(code,key,next);
+}
+function tfSet(code,key,val){
+  fetch(TFAPI,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'set',code:CODE,target:code,key:key,value:val})})
+   .then(function(r){return r.json();})
+   .then(function(r){
+      if(!r||!r.ok){ toast((r&&r.error)||'Could not save'); return; }
+      var k=(code||'').toUpperCase();
+      if(!TVALS[k]) TVALS[k]={};
+      if(val) TVALS[k][key]=val; else delete TVALS[k][key];
+      paint();
+   }).catch(function(){ toast('Could not save'); });
+}
+function tfAdd(){
+  var label=window.prompt('Field name — e.g. “GFI Convention 2026”'); if(!label) return;
+  label=label.trim(); if(!label) return;
+  var t=(window.prompt('Type: check, text, date or choice','check')||'check').trim().toLowerCase();
+  if(['check','text','date','choice','select'].indexOf(t)<0) t='check';
+  if(t==='choice') t='select';
+  var opts=[];
+  if(t==='select'){
+    var raw=window.prompt('Options, separated by commas','Going, Maybe, Not going')||'';
+    opts=raw.split(',').map(function(x){return x.trim();}).filter(Boolean);
+    if(!opts.length){ toast('A choice field needs options'); return; }
+  }
+  var scope = window.confirm('Company-wide?\n\nOK = everyone in the company\nCancel = just your baseshop') ? 'company' : 'base';
+  fetch(TFAPI,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'add',code:CODE,label:label,type:t,options:opts,scope:scope})})
+   .then(function(r){return r.json();})
+   .then(function(r){
+      if(!r||!r.ok){ toast((r&&r.error)||'Could not add that field'); return; }
+      TFIELDS=r.fields||TFIELDS; toast('Added “'+label+'”'); paint();
+   }).catch(function(){ toast('Could not add that field'); });
+}
+function tfManage(){
+  if(!TFIELDS.length){ tfAdd(); return; }
+  var names=TFIELDS.map(function(f,i){return (i+1)+'. '+f.label+(f.baseshop?'':' (company-wide)');}).join('\n');
+  var pick=window.prompt('Your fields:\n\n'+names+'\n\nType a number to REMOVE it, or leave blank to add a new one.');
+  if(pick===null) return;
+  pick=String(pick).trim();
+  if(!pick){ tfAdd(); return; }
+  var f=TFIELDS[parseInt(pick,10)-1]; if(!f){ toast('No field '+pick); return; }
+  if(!window.confirm('Remove “'+f.label+'”?\n\nThe field disappears from every card. Values already recorded are left untouched.')) return;
+  fetch(TFAPI,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'remove',code:CODE,key:f.key})})
+   .then(function(r){return r.json();})
+   .then(function(r){
+      if(!r||!r.ok){ toast((r&&r.error)||'Could not remove that'); return; }
+      TFIELDS=r.fields||[]; toast('Removed'); paint();
+   }).catch(function(){ toast('Could not remove that'); });
 }
 function paint(){
   var el=$('roster'); if(!el)return;
@@ -221,13 +332,13 @@ function paint(){
     return '<div class="trow '+ac+'" onclick="load(\''+p.code+'\')" title="'+(p.downline_total>0?'Open '+esc(p.name)+'’s team':esc(p.name))+'">'+
       '<div class="tav">'+face+esc(initials(p.name))+'</div>'+
       '<div style="min-width:0"><div class="tnm">'+esc(p.name)+lvlBadge(p.level)+(p.is_new?'<span class="tbadge new">New</span>':'')+'</div>'+
-        '<div class="tmeta"><span>'+esc(p.baseshop||'—')+'</span><span>under '+esc(p.direct_to_name||'—')+'</span><span>'+esc(act)+'</span>'+(p.license_status?('<span>'+esc(p.license_status)+'</span>'):'')+'</div></div>'+
+        '<div class="tmeta"><span>'+esc(p.baseshop||'—')+'</span><span>under '+esc(p.direct_to_name||'—')+'</span><span>'+esc(act)+'</span>'+(p.license_status?('<span>'+esc(p.license_status)+'</span>'):'')+'</div>'+tfChips(p)+'</div>'+
       right+'</div>';
   }).join('');
 }
 function onSearch(){ Q=(($('q')||{}).value||'').trim().toLowerCase(); paint(); }
 function setLeg(l){ LEG=l; render(); }
-load(CODE);
+tfLoad(function(){ load(CODE); });
 </script>
 
 <script>
