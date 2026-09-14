@@ -361,6 +361,18 @@ html.tsfg-session #app{display:grid!important;}
   .tb-search{display:none;}
   .ctx button{padding:7px 11px;}
 }
+.dupe{text-align:left;border:1px solid var(--orange);background:var(--orange-soft);
+  border-radius:var(--radius-sm);padding:13px 14px;margin-top:4px;}
+.dupemsg{font-size:12.5px;line-height:1.5;color:var(--ink);margin-bottom:10px;}
+.duperow{display:flex;flex-direction:column;gap:2px;padding:10px 0;border-top:1px solid var(--line-2);}
+.duperow b{font-size:13.5px;color:var(--ink);}
+.duperow span{font-size:11.5px;color:var(--ink-2);}
+.dupego{margin-top:7px;align-self:flex-start;border:0;border-radius:999px;padding:7px 15px;
+  background:var(--accent);color:#fff;font-weight:700;font-size:12.5px;cursor:pointer;font-family:inherit;}
+.dupego:hover{background:var(--accent-2);}
+.dupealt{margin-top:12px;width:100%;background:none;border:0;color:var(--ink-3);font-size:11.5px;
+  text-decoration:underline;cursor:pointer;font-family:inherit;padding:4px;}
+.dupealt:hover{color:var(--ink-2);}
 .uphint{font-size:12px;margin-top:6px;min-height:16px;color:var(--ink-3);line-height:1.45;}
 .uphint.ok{color:var(--green);font-weight:600;}
 .uphint.warn{color:var(--orange);}
@@ -1150,6 +1162,31 @@ function signOut(){try{localStorage.removeItem('tsfg_code');localStorage.removeI
    refuses to guess when two people share a name or the spelling is off. This shows the answer
    under the field BEFORE they submit, so a wrong upline is caught here rather than discovered
    weeks later as a recruit hanging off nobody's leg. */
+/* THE DUPLICATE GUARD, on screen. Three people have registered twice (Abbey Coker, Rudy Sanchez,
+   Priscila Marroquin) — every one already in the roster, signing up again with a fresh code, ending
+   up counted twice in every downline above them. The server now stops and asks. Signing in as the
+   existing account is the prominent action; carrying on is a small link, because the honest odds
+   are that it IS them. */
+function showDupe(r){
+  var msg=$('sMsg'); msg.className='gmsg';
+  var list=(r&&r.existing)||[];
+  var rows=list.map(function(e){
+    var bits=[e.code]; if(e.baseshop)bits.push(e.baseshop);
+    if(e.upline)bits.push('under '+e.upline);
+    if(e.status==='quit')bits.push('departed');
+    return '<div class="duperow"><b>'+esc(e.name)+'</b><span>'+esc(bits.join(' · '))+'</span>'+
+           '<button type="button" class="dupego" data-code="'+esc(e.code)+'">That\'s me — sign in</button></div>';
+  }).join('');
+  msg.innerHTML='<div class="dupe"><div class="dupemsg">'+esc(r.error||'')+'</div>'+rows+
+    (r.can_override?'<button type="button" id="dupeGo" class="dupealt">No — I\'m a different person, create my account</button>':'')+
+    '</div>';
+}
+document.addEventListener('click',function(e){
+  var b=e.target&&e.target.closest?e.target.closest('.dupego'):null;
+  if(b){ setAuthMode('signin'); var g=$('gCode'); if(g){g.value=b.getAttribute('data-code'); g.focus();}
+         var m=$('gMsg'); if(m){m.className='gmsg';m.textContent='Sign in with your existing code.';} return; }
+  if(e.target&&e.target.id==='dupeGo'){ doSignup(true); }
+});
 var UPT=null, UPSEQ=0;
 /* index.html had no escaper — these names come from the roster and go into innerHTML. */
 function esc(v){return (v==null?'':String(v)).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
@@ -1193,8 +1230,8 @@ function setAuthMode(m){
   $('signinPane').classList.toggle('hide',m==='join');
   $('signupPane').classList.toggle('hide',m!=='join');
 }
-function doSignup(){
-  var msg=$('sMsg');msg.className='gmsg';
+function doSignup(force){
+  var msg=$('sMsg');msg.className='gmsg';msg.innerHTML='';
   var first=$('sFirst').value.trim(),last=$('sLast').value.trim();
   var email=$('sEmail').value.trim(),phone=$('sPhone').value.trim();
   var level=$('sLevel').value,upline=($('sUpline').value||'').trim();
@@ -1204,12 +1241,13 @@ function doSignup(){
   if(!upline){msg.textContent="Enter your direct recruiter — their name or their GFI code.";return;}
   if(code===upline.toUpperCase()){msg.textContent="Your GFI code and your recruiter's code can't be the same.";return;}
   var btn=$('sBtn');btn.disabled=true;btn.textContent='Creating…';
-  fetch(PA,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'signup',code:code,first_name:first,last_name:last,email:email,phone:phone,contract_level:level,upline_code:upline})})
+  fetch(PA,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'signup',code:code,first_name:first,last_name:last,email:email,phone:phone,contract_level:level,upline_code:upline,confirm_duplicate:(force===true)})})
     .then(function(r){return r.json();}).then(function(r){
       btn.disabled=false;btn.textContent='Create my account →';
       if(r&&r.ok){
         msg.className='gmsg ok';msg.textContent='✅ Welcome, '+r.name+'! Your GFI code is '+r.code+' (under '+r.upline+'). Your access is now pending Operations approval — you\'ll be able to sign in as soon as you\'re approved.';
         setTimeout(function(){ setAuthMode('signin'); var g=$('gCode'); if(g)g.value=r.code; },2600);
+      } else if(r&&r.reason==='duplicate_person'){ showDupe(r);
       } else { msg.textContent=(r&&r.error)||'Could not create your account.';
         /* If it came back with people to choose from, show them as one-tap buttons rather than
            making someone retype a code they may not know. */
