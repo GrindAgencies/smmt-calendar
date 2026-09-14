@@ -1024,7 +1024,18 @@ html, body{ overflow-x: hidden; }
     carannu.forEach(function(t){var k=t.getAttribute('data-car');var v=cc[k]||{};t.value=v.annuity||'';});}
   function setStat(t,ok){var s=el('saveStat');s.textContent=t;s.className='savestat'+(ok?' ok':'');}
   function showApp(name){el('gate').style.display='none';el('app').style.display='block';el('who').textContent=name+' · GFI '+code;}
-  function showGate(){el('app').style.display='none';el('gate').style.display='flex';}
+  /* LAUNCH HARDENING 2026-09-13 — ONE FRONT DOOR.
+     This page used to carry its own sign-in that called action:'register', which CREATES an
+     agent, then signed the person straight in with NO PIN and NO access_status check. Two ways
+     that bit:
+       1. Security — GFI codes are visible to everyone on the org chart by design, so anyone
+          could open someone else's My Tracker here without knowing their PIN.
+       2. Launch night — a real agent who mistyped their own code got a brand-new EMPTY tracker
+          instead of theirs, which looks exactly like "the app deleted all my progress".
+     Every other page (calendar, new business, marketing, org, team, resources, profile, pfr,
+     teamhub, baseshop) redirects to index.html when there is no session. This one now does too,
+     so sign-in happens in exactly one place, behind the PIN. */
+  function showGate(){ location.replace('index.html'); }
   function api(p){return fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)}).then(function(r){return r.json();});}
 
   /* ---- PATHWAY ---- */
@@ -1412,7 +1423,9 @@ html, body{ overflow-x: hidden; }
     var first=val('gFirst'),last=val('gLast'),c=val('gCode').toUpperCase();
     if(!first||!last||!c){el('gMsg').textContent="Please enter your first name, last name, and GFI code.";return;}
     var btn=el('gBtn');btn.disabled=true;btn.textContent="Loading…";el('gMsg').textContent="";
-    api({action:'register',code:c,first:first,last:last}).then(function(res){
+    /* Never create from here — see showGate(). Kept as a load so any stray caller is
+       harmless rather than account-creating. */
+    api({action:'load',code:c}).then(function(res){
       if(!res||!res.ok){el('gMsg').textContent=(res&&res.error)||"Could not sign in. Try again.";btn.disabled=false;btn.textContent="Start My Tracker →";return;}
       code=c;
       try{localStorage.setItem('tsfg_code',code);localStorage.setItem('tsfg_name',res.agent.first_name+' '+res.agent.last_name);}catch(e){}

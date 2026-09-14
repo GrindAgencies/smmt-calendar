@@ -1132,9 +1132,20 @@ function doLogin(){
   var first=$('gFirst').value.trim(),last=$('gLast').value.trim(),code=($('gCode').value||'').trim().toUpperCase();
   var msg=$('gMsg');msg.className='gmsg';
   if(!code){msg.textContent='Enter your GFI code.';return;}
-  if(/^000[0-4]$/.test(code)){var nm=(first+' '+last).trim();location.href='ops.html?code='+encodeURIComponent(code)+(nm?('&name='+encodeURIComponent(nm)):'');return;}
+  /* Ops seats are 0000-0005 (0005 is GRIND). The old range stopped at 0004, so typing 0005
+     fell through to the agent lookup, came back notfound, and offered to create an agent
+     occupying an Operations seat code. */
+  if(/^000[0-5]$/.test(code)){var nm=(first+' '+last).trim();location.href='ops.html?code='+encodeURIComponent(code)+(nm?('&name='+encodeURIComponent(nm)):'');return;}
   var btn=$('gBtn');btn.disabled=true;btn.textContent='Signing in…';
-  var payload=(first&&last)?{action:'register',code:code,first:first,last:last}:{action:'load',code:code};
+  /* LAUNCH HARDENING 2026-09-13. This used to send action:'register' whenever a name was
+     filled in, and tracker-api CREATES on register. So any visitor typing any name plus any
+     unused code got a live roster row — no upline, no baseshop, no approval, and skipping the
+     duplicate guard entirely. The row lands as access_status 'denied' so they cannot get IN,
+     but with 85 people fumbling their first sign-in that is a pile of junk people in every
+     leader's approval queue and in the org chart's "needs placing" list.
+     Signing in now only ever LOADS. Creating an account is the Join form's job, which asks
+     for a recruiter and checks for duplicates. */
+  var payload={action:'load',code:code};
   api(payload).then(function(res){
     btn.disabled=false;btn.textContent='Enter dashboard →';
     if(res&&res.ok&&res.agent){
@@ -1150,7 +1161,17 @@ function doLogin(){
         showApp();
       });
     } else if(res&&res.notfound){
-      msg.textContent='No agent with that code yet — add your first & last name to create it.';
+      /* Don't leave them guessing: send them to Join with the code already filled in. */
+      msg.className='gmsg'; msg.textContent='No account found with that code. If you are new, tap Join below to create one.';
+      try{ setAuthMode('join'); var sc=$('sCode'); if(sc&&!sc.value){ sc.value=code; }
+           var sf=$('sFirst'), sl=$('sLast');
+           if(sf&&!sf.value&&first) sf.value=first; if(sl&&!sl.value&&last) sl.value=last;
+           var sm=$('sMsg'); if(sm){ sm.className='gmsg'; sm.textContent='Finish creating your account below.'; } }catch(e){}
+    } else if(res&&res.ok===false&&!res.error){
+      /* api() returns a bare {ok:false} when the request itself failed, which is a network
+         problem, not a wrong code. Saying "check your code" sent people to re-type a code
+         that was fine. */
+      msg.textContent='Could not reach the server. Check your connection and try again.';
     } else {msg.textContent=(res&&res.error)||'Could not sign you in. Check your code.';}
   });
 }
