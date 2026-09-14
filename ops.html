@@ -232,6 +232,16 @@ td:has(>select.statuscell){white-space:nowrap}
 .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);background:#1d1d1f;color:#fff;padding:12px 20px;border-radius:12px;font-weight:700;font-size:14px;opacity:0;pointer-events:none;transition:.25s;z-index:80}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 .hide{display:none!important}
+/* Copy control on each New Business row. Quiet until you hover the row, so it never
+   competes with the data for attention. */
+.nbcopy{border:1px solid var(--line);background:var(--panel);color:var(--ink3,#8e8e93);
+  border-radius:7px;width:26px;height:26px;line-height:1;font-size:13px;cursor:pointer;
+  opacity:.45;transition:.12s;font-family:inherit;}
+tr:hover .nbcopy{opacity:1;}
+.nbcopy:hover{border-color:var(--gold);color:var(--gold);}
+.nbcopy.ok{border-color:var(--green);color:var(--green);opacity:1;}
+/* Values in the tracker tables are there to be taken somewhere else — let them be selected. */
+#newbizHost td, #newbizHost th{user-select:text;-webkit-user-select:text;}
 </style>
 <script src="ops-session.js"></script>
 </head>
@@ -704,14 +714,67 @@ function nbCell(t,col){var v=nbVal(t,col.key);var ed=NBEDIT&&!col.ro;var firstKe
   if(col.key===firstKey)return '<a onclick="openTicket(\''+t.id+'\')" style="cursor:pointer;font-weight:800;color:var(--gold);text-decoration:none">'+(esc(v)||'—')+'</a>';
   if(ed)return '<input class="cellin"'+(col.type==='money'?' style="text-align:right"':'')+' value="'+esc(v)+'" placeholder="—" onchange="nbSet(\''+t.id+'\',\''+col.key+'\',this.value)">';
   return col.type==='money'?(esc(nbFmtMoney(v))||nbDash()):(esc(v)||nbDash());}
+/* ===== COPY / PASTE =====================================================================
+   Christopher: "make operations NeW business information COPY and Paste friendly. for
+   transferring between tabs."
+   Operations re-keys the same client into carrier portals all day. Two shapes cover it:
+     ⧉ on a row      -> a labelled block, one field per line, for pasting field by field
+     Copy all        -> tab-separated with a header row, which pastes into Sheets/Excel as
+                        real columns rather than one mangled cell
+   Both copy what is ON SCREEN, so a filter or a search narrows the copy too. */
+function nbClip(text, btn, okLabel){
+  var done=function(){ if(!btn)return; var was=btn.textContent; btn.textContent=okLabel||'✓';
+    btn.classList.add('ok'); setTimeout(function(){ btn.textContent=was; btn.classList.remove('ok'); },1300); };
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(done,function(){nbClipFallback(text,done);});
+  } else nbClipFallback(text,done);
+}
+function nbClipFallback(text,done){
+  var ta=document.createElement('textarea'); ta.value=text; ta.setAttribute('readonly','');
+  ta.style.cssText='position:fixed;left:-9999px;top:0';
+  document.body.appendChild(ta); ta.select(); ta.setSelectionRange(0,text.length);
+  try{ document.execCommand('copy'); done(); }catch(e){}
+  document.body.removeChild(ta);
+}
+function nbRowText(t){
+  var out=[];
+  NBCOLS.forEach(function(col){
+    var v=nbVal(t,col.key); if(v===''||v==null) return;
+    out.push(col.label+': '+(col.type==='money'?nbFmtMoney(v):v));
+  });
+  return out.join('\n');
+}
+function nbCopyRow(id,btn){
+  var t=(NBT||[]).filter(function(x){return String(x.id)===String(id);})[0];
+  if(!t){ toast('Could not find that record'); return; }
+  nbClip(nbRowText(t), btn, '✓');
+  toast('Copied '+(nbVal(t,'client')||'record'));
+}
+function nbCopyAll(btn){
+  var rows=nbFiltered();
+  if(!rows.length){ toast('Nothing to copy'); return; }
+  var head=NBCOLS.map(function(c){return c.label;}).join('\t');
+  var body=rows.map(function(t){
+    return NBCOLS.map(function(col){
+      var v=nbVal(t,col.key);
+      /* tabs and newlines inside a value would break the column alignment on paste */
+      return String(v==null?'':v).replace(/[\t\r\n]+/g,' ');
+    }).join('\t');
+  }).join('\n');
+  nbClip(head+'\n'+body, btn, '✓ Copied');
+  toast('Copied '+rows.length+' record'+(rows.length===1?'':'s')+' — paste into a spreadsheet');
+}
 function paintNewbiz(){var host=$('newbizHost');if(!host)return;var rows=nbFiltered();
-  var head=NBCOLS.map(function(col){var ar=(NBSORT.k===col.key)?('<span class="sarrow on">'+(NBSORT.dir>0?'▲':'▼')+'</span>'):'<span class="sarrow">↕</span>';var hc=col.headerColor?('background:'+col.headerColor+'22;'):'';return '<th style="'+hc+(col.type==='money'?'text-align:right':'')+'"><span class="thlbl" onclick="nbSortBy(\''+col.key+'\')">'+esc(col.label)+ar+'</span></th>';}).join('');
+  var head='<th style="width:34px" title="Copy a record">⧉</th>'+NBCOLS.map(function(col){var ar=(NBSORT.k===col.key)?('<span class="sarrow on">'+(NBSORT.dir>0?'▲':'▼')+'</span>'):'<span class="sarrow">↕</span>';var hc=col.headerColor?('background:'+col.headerColor+'22;'):'';return '<th style="'+hc+(col.type==='money'?'text-align:right':'')+'"><span class="thlbl" onclick="nbSortBy(\''+col.key+'\')">'+esc(col.label)+ar+'</span></th>';}).join('');
   head+='<th><span class="thlbl" onclick="nbSortBy(\'__notes\')">Notes'+(NBSORT.k==='__notes'?('<span class="sarrow on">'+(NBSORT.dir>0?'▲':'▼')+'</span>'):'<span class="sarrow">↕</span>')+'</span></th>';
-  var body=rows.length?rows.map(function(t){var rc=(t.data&&t.data._color)||'';return '<tr'+(rc?(' style="background:'+rc+'22"'):'')+'>'+NBCOLS.map(function(col){return '<td'+(col.type==='money'?' style="text-align:right;white-space:nowrap"':(col.key==='status'||col.type==='select'?'':' style="white-space:nowrap"'))+'>'+nbCell(t,col)+'</td>';}).join('')+'<td onclick="openTicket(\''+t.id+'\')" style="cursor:pointer;white-space:nowrap;color:var(--ink3,#8e8e93)">💬 '+((t.notes&&t.notes.length)||0)+'</td></tr>';}).join(''):'<tr><td colspan="'+(NBCOLS.length+1)+'" class="empty">No records'+(NBEDIT?' yet — click ＋ Add.':'.')+'</td></tr>';
+  var body=rows.length?rows.map(function(t){var rc=(t.data&&t.data._color)||'';return '<tr'+(rc?(' style="background:'+rc+'22"'):'')+'>'+
+      '<td style="white-space:nowrap;padding-right:0"><button class="nbcopy" title="Copy this record" onclick="nbCopyRow(\''+t.id+'\',this)">⧉</button></td>'+
+      NBCOLS.map(function(col){return '<td'+(col.type==='money'?' style="text-align:right;white-space:nowrap"':(col.key==='status'||col.type==='select'?'':' style="white-space:nowrap"'))+'>'+nbCell(t,col)+'</td>';}).join('')+'<td onclick="openTicket(\''+t.id+'\')" style="cursor:pointer;white-space:nowrap;color:var(--ink3,#8e8e93)">💬 '+((t.notes&&t.notes.length)||0)+'</td></tr>';}).join(''):'<tr><td colspan="'+(NBCOLS.length+2)+'" class="empty">No records'+(NBEDIT?' yet — click ＋ Add.':'.')+'</td></tr>';
   var noun=NBLIVE?'policy':(NBBOARD==='gfi'?'ticket':'record');var nouns=NBLIVE?'policies':(noun+'s');
   var liveArchBtn='<button class="dbtn ghost" style="padding:6px 12px;font-size:12.5px'+(NBARCH?';border-color:var(--gold);color:var(--gold)':'')+'" onclick="nbToggleArch()" title="Cancelled, Declined &amp; Incomplete — closed for good, kept for records. A policy that goes IN FORCE is not archived; it moves to the In Force tab.">🗄 '+(NBARCH?'Viewing archive — back to active':'Archived ('+NBARCHCOUNT+')')+'</button>';
   var ifBtn=NBLIVE?('<button class="dbtn ghost" style="padding:6px 12px;font-size:12.5px" onclick="setTab(\'inforce\')" title="On the books — still tracked, just not pending">🟢 In Force ('+NBIFCOUNT+')</button>'):'';
-  var toolbar=NBLIVE?('<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span style="font-size:12px;color:var(--green);font-weight:800">🔄 Live · two-way synced with agents</span>'+ifBtn+liveArchBtn+(NBEDIT?'<button class="dbtn ghost" style="padding:6px 12px;font-size:12.5px" onclick="openNbCols()">⚙ Reorder columns</button>':'')+'</div>'):(NBEDIT?('<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="dbtn ghost" style="padding:6px 12px;font-size:12.5px" onclick="openSheetImport()" title="Bring your existing Google Sheet onto this board">📥 Import from Google Sheets</button><button class="dbtn ghost" style="padding:6px 12px;font-size:12.5px'+(NBARCH?';border-color:var(--gold);color:var(--gold)':'')+'" onclick="nbToggleArch()">🗄 '+(NBARCH?'Viewing archive — back to active':'Archived ('+NBARCHCOUNT+')')+'</button><button class="dbtn ghost" style="padding:6px 12px;font-size:12.5px" onclick="openNbCols()">⚙ Edit columns</button></div>'):'');
+  var copyAllBtn='<button class="dbtn ghost" style="padding:6px 12px;font-size:12.5px" onclick="nbCopyAll(this)" title="Copy every record shown, tab-separated — pastes into Sheets or Excel as columns">⧉ Copy all</button>';
+  var toolbar=NBLIVE?('<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span style="font-size:12px;color:var(--green);font-weight:800">🔄 Live · two-way synced with agents</span>'+ifBtn+liveArchBtn+copyAllBtn+(NBEDIT?'<button class="dbtn ghost" style="padding:6px 12px;font-size:12.5px" onclick="openNbCols()">⚙ Reorder columns</button>':'')+'</div>'):(NBEDIT?('<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="dbtn ghost" style="padding:6px 12px;font-size:12.5px" onclick="openSheetImport()" title="Bring your existing Google Sheet onto this board">📥 Import from Google Sheets</button><button class="dbtn ghost" style="padding:6px 12px;font-size:12.5px'+(NBARCH?';border-color:var(--gold);color:var(--gold)':'')+'" onclick="nbToggleArch()">🗄 '+(NBARCH?'Viewing archive — back to active':'Archived ('+NBARCHCOUNT+')')+'</button><button class="dbtn ghost" style="padding:6px 12px;font-size:12.5px" onclick="openNbCols()">⚙ Edit columns</button></div>'):'');
   host.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin:0 0 10px;flex-wrap:wrap"><div style="font-size:12.5px;color:var(--ink3,#8e8e93)">'+rows.length+' '+(NBARCH?'archived ':'')+(rows.length===1?noun:nouns)+' · click the first cell to open '+(NBLIVE?'notes &amp; history':(NBBOARD==='gfi'?'the ticket &amp; update history':'notes'))+(NBEDIT&&!NBARCH?(NBLIVE?' · every field edits inline &amp; syncs to the agent side (Writing Agent &amp; Baseshop are derived)':' · cells edit inline'):'')+'</div>'+toolbar+'</div>'+
     '<div class="tablewrap" style="overflow-x:auto"><table class="ptable" style="min-width:1200px"><thead><tr>'+head+'</tr></thead><tbody>'+body+'</tbody></table></div>';}
 function nbSet(id,field,val){nbApi({action:'nb_update',id:id,field:field,value:val}).then(function(r){if(!r||!r.ok){toast((r&&r.error)||'Save failed');return;}var t=NBT.filter(function(x){return x.id===id;})[0];if(t){t.data=t.data||{};t.data[field]=val;}if(r.moved){NBT=NBT.filter(function(x){return x.id!==id;});closeDrawer();if(r.moved==='inforce'){NBIFCOUNT++;toast('🟢 In force — still tracked, now on the In Force tab');}else{NBARCHCOUNT++;toast('🗄 Closed — moved to Archived');}paintNewbiz();return;}paintNewbiz();if(field!=='_color')toast('Saved ✓');});}
@@ -1442,12 +1505,43 @@ function deleteAgentPerm(code){var nm=agName(code);
   if(!confirm('Permanently delete '+nm+' ('+code+')? This removes the agent and their data entirely and cannot be undone.'))return;
   api(auth({action:'delete_agent',code:code})).then(function(r){if(!r||!r.ok){toast((r&&r.error)||'Could not delete');return;}toast('Deleted '+(r.name||nm));closeDrawer();loadTracker();});
 }
+var ARCHIVED=[];
+function arcRow(x){
+  return '<div style="display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--line)">'+
+         '<div style="flex:1;min-width:0"><div style="font-weight:700">'+esc(x.name)+'</div>'+
+         '<div class="sub">'+esc(x.code)+' · '+esc(x.baseshop||'—')+
+         (x.license_status?(' · '+esc(x.license_status)):'')+'</div></div>'+
+         '<button class="dbtn" onclick="reactivate(\''+esc(x.code)+'\')">Reactivate</button></div>';
+}
+function renderArchived(q){
+  var db=$('drawer').querySelector('.dbody'); if(!db)return;
+  var t=(q||'').trim().toLowerCase();
+  var rows=!t?ARCHIVED:ARCHIVED.filter(function(x){
+    return (x.name||'').toLowerCase().indexOf(t)>=0
+        || (x.code||'').toLowerCase().indexOf(t)>=0
+        || (x.baseshop||'').toLowerCase().indexOf(t)>=0
+        || (x.contract_level||'').toLowerCase().indexOf(t)>=0
+        || (x.license_status||'').toLowerCase().indexOf(t)>=0;
+  });
+  if(!ARCHIVED.length){ db.innerHTML='<div class="empty">No archived agents.</div>'; return; }
+  db.innerHTML='<div class="sub" style="padding:0 0 8px">'+rows.length+' of '+ARCHIVED.length+'</div>'+
+    (rows.length?rows.map(arcRow).join(''):'<div class="empty">Nobody archived matches “'+esc(t)+'”.</div>');
+}
 function openArchived(){
-  $('drawer').innerHTML='<div class="dhd"><div><h3>Archived agents</h3><div class="sub">Marked as quit — hidden from the tracker. Reactivate to restore.</div></div><button class="x" onclick="closeDrawer()">✕</button></div><div class="dbody"><div class="spin">Loading…</div></div>';
+  $('drawer').innerHTML='<div class="dhd"><div><h3>Archived agents</h3><div class="sub">Marked as quit — hidden from the tracker. Reactivate to restore.</div></div><button class="x" onclick="closeDrawer()">✕</button></div>'+
+    '<div style="padding:0 0 10px"><input id="arcQ" type="search" autocomplete="off" placeholder="Search archived — name, code or baseshop" '+
+      'style="width:100%;font:inherit;font-size:13.5px;padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink)"></div>'+
+    '<div class="dbody"><div class="spin">Loading…</div></div>';
   $('ov').classList.add('on');
   api(auth({action:'archived_agents'})).then(function(r){var db=$('drawer').querySelector('.dbody');if(!db)return;if(!r||!r.ok){db.innerHTML='<div class="empty">'+((r&&r.error)||'Could not load.')+'</div>';return;}
     var a=r.agents||[];
-    db.innerHTML=a.length?a.map(function(x){return '<div style="display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--line)"><div style="flex:1;min-width:0"><div style="font-weight:700">'+esc(x.name)+'</div><div class="sub">'+esc(x.code)+' · '+esc(x.baseshop||'—')+(x.license_status?(' · '+esc(x.license_status)):'')+'</div></div><button class="dbtn" onclick="reactivate(\''+esc(x.code)+'\')">Reactivate</button></div>';}).join(''):'<div class="empty">No archived agents.</div>';
+    /* The archived list is the whole history of the agency and only grows — it is already
+       longer than the live roster. Filter it in the browser: the rows are all here, so
+       there is nothing to wait for and no request per keystroke. */
+    ARCHIVED=a;
+    renderArchived('');
+    var q=$('arcQ');
+    if(q){ q.addEventListener('input',function(){ renderArchived(q.value); }); setTimeout(function(){q.focus();},60); }
   });
 }
 function reactivate(code){api(auth({action:'set_status',code:code,status:'active'})).then(function(r){if(!r||!r.ok){toast((r&&r.error)||'Could not reactivate');return;}toast('Reactivated '+(r.name||code));openArchived();loadTracker();});}
