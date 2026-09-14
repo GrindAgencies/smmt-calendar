@@ -418,7 +418,14 @@
       html += '<button type="button" class="tsfg-more" aria-expanded="' + (inMore ? 'true' : 'false') +
               '" aria-controls="tsfgMore"><span>More</span>' + svg(I.more) + '</button>' +
               '<div class="tsfg-morewrap" id="tsfgMore"' + (inMore ? '' : ' hidden') + '>' +
-              SEC.map(function(it){ return link(it, cls, current); }).join('') + '</div>';
+              SEC.map(function(it){ return link(it, cls, current); }).join('') +
+              /* The walkthrough had a trigger (window.tsfgStartTour) that nothing in the app
+                 ever called, so anyone who missed it on their first sign-in had no way back to
+                 it. Reported 2026-09-14: "few have reported no tutorial at all". This also
+                 rescues anyone whose tour was wrongly retired before the fail-closed fix. */
+              '<a class="' + cls + '" href="#" data-tsfg-tour title="Show me around">' +
+              svg(I.book) + '<span class="lbl">Show me around</span></a>' +
+              '</div>';
 
       /* Language belongs in the menu, not floating over the page. i18n.js
          suppresses its floating pill whenever a visible [data-lang-btn] exists,
@@ -433,6 +440,16 @@
       frag.innerHTML = html;
       var nodes = Array.prototype.slice.call(frag.childNodes);
       nodes.forEach(function(n){ foot ? nav.insertBefore(n, foot) : nav.appendChild(n); });
+
+      var tourLink = nav.querySelector('a[data-tsfg-tour]');
+      if (tourLink) tourLink.addEventListener('click', function(e){
+        e.preventDefault();
+        try { document.body.classList.remove('tsfg-drawer','drawer'); } catch(_){}
+        /* Home is where the tour's anchors live; run it there. */
+        var here = (location.pathname.split('/').pop() || 'index.html').toLowerCase();
+        if (here !== 'index.html' && here !== '') { location.href = 'index.html#tour'; return; }
+        if (typeof window.tsfgStartTour === 'function') window.tsfgStartTour();
+      });
 
       var btn = nav.querySelector('.tsfg-more');
       if (btn) btn.addEventListener('click', function(){
@@ -1159,9 +1176,13 @@ window.tsfgTrack = function (kind, detail) {
   var ONBOARDED_FROM = Date.parse('2026-08-31T00:00:00Z');
   var TRACKER = 'https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/tracker-api';
 
+  /* cb(isNew, certain). The two are NOT the same question, and conflating them is what
+     silently switched the tour off for people. A network blip or a slow first response used
+     to come back as "not new", which marked them done FOR EVER. Now only a definite answer
+     — we read a created_at and it predates the cutoff — is allowed to do that. */
   function isNewEnrolment(cb) {
     var c = code();
-    if (!c) return cb(false);
+    if (!c) return cb(false, false);
     fetch(TRACKER, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'load', code: c })
@@ -1169,24 +1190,63 @@ window.tsfgTrack = function (kind, detail) {
       .then(function (r) { return r.json(); })
       .then(function (r) {
         var created = r && r.agent && r.agent.created_at;
-        /* Fail closed: if we cannot establish that this is a new account, do
-           not show the tour. Better a new agent misses it than an established
-           one gets ambushed by it. */
-        if (!created) return cb(false);
+        if (!created) return cb(false, false);          // couldn't tell — ask again next time
         var t = Date.parse(created);
-        cb(!isNaN(t) && t >= ONBOARDED_FROM);
+        if (isNaN(t)) return cb(false, false);          // couldn't tell
+        cb(t >= ONBOARDED_FROM, true);                  // a real answer, either way
       })
-      .catch(function () { cb(false); });
+      .catch(function () { cb(false, false); });        // offline — couldn't tell
+  }
+
+  /* The dashboard is rendered asynchronously after sign-in, so the anchors the tour points
+     at may not exist the instant we look. Give it a few goes instead of one. */
+  function beginWhenReady(tries) {
+    if (tip || done()) return;
+    if (document.querySelector('.snap, .tsfg-menu')) { begin(); return; }
+    if ((tries || 0) > 12) return;                      // ~15s, then leave it for next load
+    setTimeout(function () { beginWhenReady((tries || 0) + 1); }, 1200);
+  }
+
+  function run() {
+    if (!code() || done()) return;
+    isNewEnrolment(function (ok, certain) {
+      if (!ok) { if (certain) markDone(); return; }     // only a DEFINITE "not new" retires it
+      setTimeout(function () { beginWhenReady(0); }, 2200);
+    });
+  }
+
+  /* THE BUG NEW AGENTS HIT (reported 2026-09-14: "no tutorial at all").
+     start() ran once, at page load. A brand-new agent is sitting on the SIGN-IN screen at
+     that moment, so localStorage has no tsfg_code yet, `!code()` was true, and the function
+     returned and was never called again. Signing in does not reload the page — showApp()
+     just reveals the dashboard — so the tour never got a second chance, and could only ever
+     appear on some LATER visit. Now, if there is no session yet, we watch for one and run
+     the moment they sign in. */
+  function waitForSignIn() {
+    var tries = 0;
+    var iv = setInterval(function () {
+      if (++tries > 240 || done()) { clearInterval(iv); return; }   // give up after ~6 min
+      if (!code()) return;
+      clearInterval(iv);
+      run();
+    }, 1500);
   }
 
   function start() {
     var p = location.pathname.split('/').pop() || 'index.html';
     if (p !== 'index.html' && p !== '') return;
-    if (!code() || done()) return;
-    isNewEnrolment(function (ok) {
-      if (!ok) { markDone(); return; }   // never ask again for this person
-      setTimeout(function () { if (document.querySelector('.snap, .tsfg-menu')) begin(); }, 2200);
-    });
+    /* Arrived from "Show me around" on another page — replay it regardless of having
+       seen it before, and tidy the hash so a refresh does not loop. */
+    if (location.hash === '#tour') {
+      try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+      setTimeout(function () {
+        if (typeof window.tsfgStartTour === 'function') window.tsfgStartTour();
+      }, 1400);
+      return;
+    }
+    if (done()) return;
+    if (!code()) { waitForSignIn(); return; }
+    run();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
   else start();
