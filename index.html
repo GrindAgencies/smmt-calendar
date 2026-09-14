@@ -1039,7 +1039,12 @@ function showApp(){
   $('sideName').textContent=NAME||('GFI '+CODE);$('sideSub').textContent=CODE;$('sideAv').textContent=initials(NAME||CODE);
   paintHeaderTime();tickClock();setInterval(tickClock,1000);setInterval(paintHeaderTime,60000);
   loadData();loadLeaderboard();loadAvatars();startLBPoll();
-  loadProfileNag();
+  /* Declared in a LATER <script> block, and hoisting does not cross blocks — so on the
+     boot/resume path, which runs while the page is still parsing, this threw
+     "loadProfileNag is not defined" and the exception escaped showApp() and boot().
+     Caught live in the browser on 2026-09-13; node --check only proves syntax, not this.
+     Guarded here, and called again once it exists (see the end of that block). */
+  if(typeof loadProfileNag==='function') loadProfileNag();
 }
 function showGate(){ $('app').classList.add('hide'); $('gate').classList.remove('hide'); }
 function gatePending(status, firstName){
@@ -1542,6 +1547,11 @@ function loadProfileNag(){
         +'</div></div>';
    }).catch(function(){});
 }
+
+/* The boot path reaches showApp() before this block is parsed, so the nag is kicked off
+   here too. loadProfileNag() no-ops without a session or a host element, and the banner
+   renders at most once, so running it twice is harmless. */
+try{ if(typeof CODE!=='undefined' && CODE) loadProfileNag(); }catch(e){}
 </script>
 </body>
 </html>
