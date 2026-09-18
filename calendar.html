@@ -579,10 +579,21 @@ function scopeBar(){
 function loadEmds(cb){fetch(AT.replace('atlas-api','sched-ext'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'emds',code:CODE})}).then(function(r){return r.json();}).then(function(r){EMDS=(r&&r.emds)||[];cb&&cb();}).catch(function(){cb&&cb();});}
 function isEmdOnly(name){var inR=bTr().some(function(c){return c.name===name;});return !inR&&EMDS.some(function(e){return e.name===name;});}
 function emdCodeFor(name){var e=EMDS.filter(function(x){return x.name===name;})[0];return e?e.code:'';}
-function opsAll(){return TRAINERS.filter(isOps);}
-var OPS_CALENDLY="https://calendly.com/impactagency-ops/licensing"; /* Operations team books on Calendly */
-function opsCalendlyFor(c){return (c&&c.calendly)||OPS_CALENDLY;}
-function opsForMe(){var mine=(PROFILE&&Array.isArray(PROFILE.accessible_bases))?PROFILE.accessible_bases.map(function(b){return (b||'').toUpperCase();}):[];var myb=((PROFILE&&PROFILE.baseshop)||'').toUpperCase();return opsAll().filter(function(c){var bs=Array.isArray(c.baseshops)?c.baseshops:(c.baseshop?[c.baseshop]:[]);bs=bs.map(function(x){return (x||'').toUpperCase();});if(!bs.length)return true;if(myb&&bs.indexOf(myb)>=0)return true;for(var i=0;i<mine.length;i++)if(bs.indexOf(mine[i])>=0)return true;return false;});}
+/* Operations contacts come from the ops-contacts endpoint, which returns only the ones this
+   agent's own hierarchy is allowed to book. They are deliberately NOT in the trainer roster:
+   that payload goes to every signed-in agent, so an Operations Calendly cannot travel with it. */
+var OPSC=[],OPSC_LOADED=false;
+var OPSCAPI="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/ops-contacts";
+function opsAll(){return OPSC;}
+function opsCalendlyFor(c){return (c&&c.calendly)||'';}
+function loadOpsContacts(cb){
+  if(!CODE){OPSC=[];OPSC_LOADED=true;cb&&cb();return;}
+  fetch(OPSCAPI,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'list',code:CODE})})
+    .then(function(r){return r.json();})
+    .then(function(r){OPSC=(r&&Array.isArray(r.contacts))?r.contacts:[];OPSC_LOADED=true;cb&&cb();})
+    .catch(function(){OPSC=[];OPSC_LOADED=true;cb&&cb();});
+}
+function opsForMe(){return OPSC;} /* the server already scoped this list */
 function myRole(){var me=myTrainerProfile();return me?((me.role||'').toUpperCase()):'';}
 function isEmd(){return myRole()==='EMD';}
 function slugify(s){return (s||'').toString().trim().toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');}
@@ -606,6 +617,7 @@ function isBaseAdmin(){return PROFILE&&(PROFILE.access_scope==='super'||PROFILE.
 function revealOpsTab(){var o=$('tab_ops');if(o)o.style.display='';}
 // === Base Ops (Phase: multi-base) — base-scoped roster + make-bookable ===
 function renderOps(){
+  if(!OPSC_LOADED){$('view').innerHTML='<div class="spin">Loading your Operations team\u2026</div>';loadOpsContacts(renderOps);return;}
   var team=opsForMe();var admin=isBaseAdmin();
   var teamH='<div class="sec"><div class="sech"><h2>Book your Operations team</h2></div>'+(team.length?('<div class="grid g3">'+team.map(opsCard).join('')+'</div>'):'<div class="empty">No Operations contact is set for your hierarchy yet.</div>')+'</div>';
   $('view').innerHTML='<div class="hero" style="background:linear-gradient(135deg,#c99a2e,#5b6cff)"><h1>Base Ops</h1><p>Book your hierarchy’s Operations team'+(admin?' — and manage your base roster below.':'.')+'</p></div>'+teamH+(admin?'<div id="opsBody"><div class="spin">Loading your base…</div></div>':'');
