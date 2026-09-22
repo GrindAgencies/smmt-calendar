@@ -882,7 +882,11 @@ function openCalEvent(id){
   var b=MYB.filter(function(x){return x.id===id;})[0];var role='agent';
   if(!b){b=(MYT.filter(function(x){return x.id===id;})[0])||(COMPANY_EV.filter(function(x){return x.id===id;})[0]);role='trainer';}
   if(!b)return;
-  var C="';$('bkOv').classList.remove('on')";var acts='';
+  /* Appended AFTER the call is already closed with ')', so it must NOT re-open a quote.
+     It used to start with an apostrophe, which produced onclick="purgeBk('id')';$(...)" —
+     a syntax error that silently killed the whole handler. Every button built with this
+     (Approve, Decline, Completed, No-show, Cancel, Delete) clicked and did nothing. */
+  var C=";$('bkOv').classList.remove('on')";var acts='';
   if(role==='agent'){
     if(b.source==='manual')acts='<button class="x can" onclick="delManual(\''+b.id+'\')'+C+'">✕ Delete</button>';
     else if(b.status==='booked'||b.status==='confirmed'||b.status==='pending')
@@ -1161,7 +1165,7 @@ function startBookAt(ds){SELDATE=ds;SELTIME=null;setTab('book');}
 function openCompanyEvent(key){
   if(key.indexOf('tr:')===0){var p=key.split(':');var tr=trainingsFor(wdOf(p[1]))[+p[2]];if(tr)window.open(tr.z,'_blank');return;}
   var b=COMPANY_EV.filter(function(x){return x.id===key.slice(2);})[0];if(!b)return;
-  var CX="';$('bkOv').classList.remove('on')";
+  var CX=";$('bkOv').classList.remove('on')";   /* see C above: no leading quote */
   var active=(b.status==='booked'||b.status==='confirmed'||b.status==='pending');
   var mine=(b.trainer_code||'').toUpperCase()===CODE;
   var acts='';
