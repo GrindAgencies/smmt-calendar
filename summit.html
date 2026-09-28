@@ -1,0 +1,972 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Summit — The Standard</title>
+<link rel="icon" href="favicon-32.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+/* ===== Summit: obsidian / warm charcoal / refined gold / ivory =========================
+   This page deliberately commits to one look rather than following the app's light/dark
+   toggle — it is the championship room, and the handoff specifies a single premium
+   identity. Every colour is painted explicitly so it never borrows a host theme. */
+:root{
+  --summit-black:#090806; --summit-panel:#14110e; --summit-panel2:#1b1713;
+  --summit-gold:#d7ae54; --summit-bright:#f2d17a; --summit-ivory:#f4efe3;
+  --summit-muted:#b9b0a0; --summit-line:rgba(215,174,84,.20); --summit-line2:rgba(215,174,84,.34);
+  --nvp:#ff4d4d; --md:#f2d14f; --sa:#55a8ff; --assoc:#55d982; --pending:#8d8577;
+  color-scheme:dark;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--summit-black);color:var(--summit-ivory);
+  font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  font-size:14px;line-height:1.5;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(900px 600px at 50% -10%,rgba(215,174,84,.07),transparent 60%)}
+button,input,select{font-family:inherit;font-size:inherit;color:inherit}
+button{cursor:pointer;border:none;background:none}
+.wrap{position:relative;z-index:1;max-width:1420px;margin:0 auto;padding:0 18px 80px}
+
+/* ---------- header ---------- */
+.top{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:14px;
+  padding:calc(12px + env(safe-area-inset-top)) 18px 12px;
+  background:rgba(9,8,6,.88);backdrop-filter:saturate(160%) blur(18px);
+  border-bottom:1px solid var(--summit-line)}
+.brand{display:flex;align-items:center;gap:11px;min-width:0}
+.brand .mk{width:34px;height:34px;flex:0 0 auto}
+.brand b{font-size:15px;letter-spacing:.14em;text-transform:uppercase;color:var(--summit-ivory)}
+.brand small{display:block;font-size:9.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--summit-muted)}
+.ptitle{margin-left:auto;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--summit-muted)}
+.iconbtn{width:38px;height:38px;border-radius:11px;border:1px solid var(--summit-line);
+  background:var(--summit-panel);color:var(--summit-ivory);display:flex;align-items:center;
+  justify-content:center;font-size:16px;transition:.16s}
+.iconbtn:hover{border-color:var(--summit-line2);background:var(--summit-panel2)}
+
+/* ---------- tabs ---------- */
+.tabs{display:flex;gap:6px;padding:16px 0 4px;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:0 0 auto;padding:10px 18px;border-radius:12px;border:1px solid transparent;
+  color:var(--summit-muted);font-weight:700;font-size:13px;letter-spacing:.04em;
+  text-transform:uppercase;transition:.16s;white-space:nowrap}
+.tab:hover{color:var(--summit-ivory)}
+.tab.on{color:var(--summit-black);background:linear-gradient(140deg,var(--summit-bright),var(--summit-gold));
+  box-shadow:0 6px 20px rgba(215,174,84,.22)}
+
+/* ---------- generic panel ---------- */
+.panel{border:1px solid var(--summit-line);border-radius:22px;background:
+  linear-gradient(145deg,rgba(25,21,15,.94),rgba(8,7,5,.98));padding:20px}
+.eyebrow{font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--summit-gold);font-weight:800}
+h1.big{margin:4px 0 0;font-size:26px;letter-spacing:-.01em;font-weight:800}
+.muted{color:var(--summit-muted)}
+
+/* ---------- org map ---------- */
+.maptools{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:14px 0}
+.tool{padding:8px 13px;border-radius:10px;border:1px solid var(--summit-line);
+  background:var(--summit-panel);color:var(--summit-muted);font-weight:700;font-size:12.5px;transition:.15s}
+.tool:hover{color:var(--summit-ivory);border-color:var(--summit-line2)}
+.srch{flex:1;min-width:170px;padding:9px 13px;border-radius:10px;border:1px solid var(--summit-line);
+  background:var(--summit-panel);color:var(--summit-ivory);outline:none}
+.srch::placeholder{color:#6f685c}
+.srch:focus{border-color:var(--summit-line2)}
+.zoomwrap{display:flex;align-items:center;gap:6px;margin-left:auto}
+.zpct{min-width:52px;text-align:center;font-weight:800;font-size:12.5px;color:var(--summit-gold);
+  font-variant-numeric:tabular-nums}
+.tagbar{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px}
+.tagchip{padding:6px 12px;border-radius:999px;border:1px solid var(--summit-line);
+  background:var(--summit-panel);color:var(--summit-muted);font-size:12px;font-weight:700;transition:.15s}
+.tagchip.on{background:linear-gradient(140deg,var(--summit-bright),var(--summit-gold));
+  color:var(--summit-black);border-color:transparent}
+
+#stage{position:relative;height:min(82vh,860px);border:1px solid var(--summit-line);
+  border-radius:24px;overflow:hidden;background:
+   radial-gradient(circle at 50% 42%,rgba(215,174,84,.07),transparent 58%),var(--summit-panel);
+  cursor:grab;touch-action:none}
+#stage.grabbing{cursor:grabbing}
+#plane{position:absolute;inset:0;transform-origin:0 0;will-change:transform}
+#wires{position:absolute;left:0;top:0;overflow:visible;pointer-events:none}
+.bub{position:absolute;transform:translate(-50%,-50%);text-align:center;cursor:grab;
+  user-select:none;touch-action:none;transition:opacity .18s}
+.bub.dragging{cursor:grabbing;z-index:20}
+.bub.dim{opacity:.17}
+.bub.hit .disc{border-color:var(--summit-bright);box-shadow:0 0 0 3px rgba(242,209,122,.3),0 8px 26px rgba(0,0,0,.4)}
+.disc{position:relative;border-radius:50%;background:#14110e;
+  border:1px solid rgba(215,174,84,.34);display:flex;align-items:center;justify-content:center;
+  font-weight:800;color:var(--summit-ivory);margin:0 auto;
+  box-shadow:0 7px 24px rgba(0,0,0,.3),inset 0 0 18px rgba(215,174,84,.025);transition:.16s}
+.disc img{width:100%;height:100%;border-radius:50%;object-fit:cover}
+.bub:hover .disc{border-color:var(--summit-line2)}
+.bnm{margin-top:7px;font-size:12.5px;font-weight:700;line-height:1.25;max-width:132px;
+  color:var(--summit-ivory);text-shadow:0 1px 3px rgba(0,0,0,.7)}
+.brk{font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;font-weight:800;margin-top:2px}
+.rank-nvp,.rank-emd{color:var(--nvp)} .rank-md{color:var(--md)}
+.rank-sa{color:var(--sa)} .rank-a{color:var(--assoc)} .rank-pending{color:var(--pending)}
+.prod{position:absolute;top:-4px;right:-6px;background:linear-gradient(140deg,var(--summit-bright),var(--summit-gold));
+  color:#2a1e06;font-size:9.5px;font-weight:900;padding:2px 6px;border-radius:999px;
+  box-shadow:0 3px 9px rgba(0,0,0,.45);font-variant-numeric:tabular-nums}
+.tog{position:absolute;bottom:-3px;right:-3px;width:21px;height:21px;border-radius:50%;
+  background:var(--summit-panel2);border:1px solid var(--summit-line2);color:var(--summit-gold);
+  font-size:13px;font-weight:900;line-height:1;display:flex;align-items:center;justify-content:center}
+.tog:hover{background:var(--summit-gold);color:var(--summit-black)}
+.maphint{margin-top:10px;font-size:12px;color:var(--summit-muted);display:flex;gap:16px;flex-wrap:wrap}
+
+/* ---------- performers ---------- */
+.prow{display:flex;align-items:center;gap:15px;padding:13px 16px;border-radius:15px;
+  border:1px solid var(--summit-line);background:var(--summit-panel);margin-bottom:9px}
+.pplace{width:32px;font-weight:900;font-size:15px;color:var(--summit-gold);
+  font-variant-numeric:tabular-nums;text-align:center}
+.pini{width:42px;height:42px;border-radius:50%;background:linear-gradient(145deg,#231d15,#0e0c09);
+  border:1px solid var(--summit-line2);display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:13px;flex:0 0 auto;overflow:hidden}
+.pini img{width:100%;height:100%;object-fit:cover}
+.ppts{margin-left:auto;text-align:right}
+.ppts b{display:block;font-size:17px;font-weight:900;color:var(--summit-bright);font-variant-numeric:tabular-nums}
+.ppts small{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--summit-muted)}
+.prow.top1{border-color:var(--summit-line2);background:linear-gradient(140deg,rgba(215,174,84,.1),var(--summit-panel))}
+
+/* ---------- road to emd ---------- */
+.rank-top{display:flex;align-items:flex-end;gap:18px;flex-wrap:wrap;margin-bottom:16px}
+.agentsel{margin-left:auto}
+.agentsel small{display:block;font-size:10px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--summit-muted);margin-bottom:5px;font-weight:800}
+.agentsel select{padding:9px 13px;border-radius:11px;border:1px solid var(--summit-line);
+  background:var(--summit-panel);color:var(--summit-ivory);outline:none;min-width:190px}
+.mini-track{display:flex;gap:5px;overflow-x:auto;padding:12px 4px;scrollbar-width:thin;margin-bottom:14px}
+.mini-track::-webkit-scrollbar{height:5px}
+.mini-track::-webkit-scrollbar-thumb{background:var(--summit-line2);border-radius:9px}
+.mini{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:3px;
+  padding:4px 3px;border-radius:10px;border:1px solid transparent;transition:.18s}
+.mini svg{width:34px;height:34px;filter:grayscale(.55) brightness(.68);transition:transform .18s,filter .18s}
+.mini.complete svg{filter:none}
+.mini.current svg{transform:scale(1.2);filter:none}
+.mini.current{border-color:var(--summit-line2);background:rgba(215,174,84,.08)}
+.mini span{font-size:9.5px;font-weight:800;color:var(--summit-muted);font-variant-numeric:tabular-nums}
+.mini.current span{color:var(--summit-bright)}
+.stagewrap{display:flex;align-items:center;gap:12px}
+.arrow{flex:0 0 auto;width:42px;height:42px;border-radius:50%;border:1px solid var(--summit-line);
+  background:var(--summit-panel);color:var(--summit-gold);font-size:20px;line-height:1;transition:.16s}
+.arrow:hover:not(:disabled){background:var(--summit-gold);color:var(--summit-black)}
+.arrow:disabled{opacity:.28;cursor:not-allowed}
+.rank-card{flex:1;min-height:428px;border:1px solid rgba(215,174,84,.28);border-radius:30px;padding:28px;
+  display:grid;grid-template-columns:minmax(280px,1.1fr) minmax(300px,.9fr);gap:28px;
+  background:linear-gradient(145deg,rgba(25,21,15,.94),rgba(8,7,5,.98));
+  box-shadow:inset 0 0 50px rgba(0,0,0,.45),0 24px 60px rgba(0,0,0,.25)}
+.rank-visual{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;
+  border:1px solid rgba(215,174,84,.1);border-radius:24px;
+  background:radial-gradient(circle,rgba(215,174,84,.08),transparent 55%)}
+.rank-visual svg{width:min(300px,78%);height:auto;filter:drop-shadow(0 18px 24px rgba(0,0,0,.42));
+  transition:transform .25s ease,filter .25s ease}
+.rank-visual:hover svg{transform:scale(1.035);filter:drop-shadow(0 20px 32px rgba(215,174,84,.18))}
+.rank-visual p{margin:0;font-size:11px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--summit-gold);font-weight:800}
+.rank-visual small{color:var(--summit-muted);font-size:11px}
+.rank-req{padding:22px;border:1px solid rgba(215,174,84,.18);border-radius:20px;background:rgba(8,7,5,.42)}
+.rank-req>header{display:flex;align-items:flex-start;gap:12px;margin-bottom:16px}
+.rank-req h2{margin:2px 0 0;font-size:20px;font-weight:800;line-height:1.2}
+.rank-req .cnt{margin-left:auto;font-size:19px;font-weight:900;color:var(--summit-bright);
+  font-variant-numeric:tabular-nums}
+.reqrow{display:flex;align-items:flex-start;gap:12px;padding:12px;border-radius:13px;
+  border:1px solid transparent;cursor:pointer;transition:.15s}
+.reqrow:hover{background:rgba(215,174,84,.05)}
+.reqrow.checked{border-color:var(--summit-line);background:rgba(215,174,84,.07)}
+.reqrow input{position:absolute;opacity:0;pointer-events:none}
+.ck{flex:0 0 auto;width:22px;height:22px;border-radius:7px;border:1.5px solid var(--summit-line2);
+  display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;
+  color:transparent;transition:.16s;margin-top:1px}
+.reqrow.checked .ck{background:linear-gradient(140deg,var(--summit-bright),var(--summit-gold));
+  border-color:transparent;color:#1d1405}
+.reqrow strong{display:block;font-size:13.5px;font-weight:700}
+.reqrow small{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--summit-muted);font-weight:800}
+.reqrow.checked small{color:var(--summit-gold)}
+.stepbar{height:6px;border-radius:999px;background:rgba(215,174,84,.13);margin-top:18px;overflow:hidden}
+.stepbar span{display:block;height:100%;border-radius:999px;
+  background:linear-gradient(90deg,var(--summit-gold),var(--summit-bright));transition:width .3s ease}
+.platform{margin-top:14px;padding:11px 13px;border-radius:12px;border:1px dashed var(--summit-line);
+  font-size:12px;color:var(--summit-muted)}
+.platform b{color:var(--summit-bright)}
+.swipe{display:flex;gap:8px;overflow-x:auto;padding:16px 2px 4px;scrollbar-width:thin}
+.swipe::-webkit-scrollbar{height:5px}
+.swipe::-webkit-scrollbar-thumb{background:var(--summit-line2);border-radius:9px}
+.sw{flex:0 0 118px;padding:11px;border-radius:13px;border:1px solid var(--summit-line);
+  background:var(--summit-panel);text-align:left;transition:.16s}
+.sw small{display:block;font-size:10px;font-weight:900;color:var(--summit-muted);
+  font-variant-numeric:tabular-nums}
+.sw span{display:block;font-size:11.5px;font-weight:700;margin-top:3px;line-height:1.25;color:var(--summit-ivory)}
+.sw.active{border-color:var(--summit-gold);background:rgba(215,174,84,.1)}
+.sw.active small{color:var(--summit-bright)}
+
+/* ---------- drawer ---------- */
+.ov{position:fixed;inset:0;background:rgba(3,3,2,.68);z-index:120;display:none;
+  align-items:flex-end;justify-content:center;backdrop-filter:blur(3px)}
+.ov.on{display:flex}
+@media(min-width:640px){.ov{align-items:center}}
+.dr{width:100%;max-width:470px;max-height:86vh;overflow-y:auto;background:var(--summit-panel);
+  border:1px solid var(--summit-line2);border-radius:24px 24px 0 0;padding:24px;
+  padding-bottom:calc(24px + env(safe-area-inset-bottom))}
+@media(min-width:640px){.dr{border-radius:24px}}
+.dr h3{margin:0 0 4px;font-size:19px;font-weight:800}
+.dr .dsub{margin:0 0 18px;font-size:13px;color:var(--summit-muted)}
+.fld{margin-bottom:13px}
+.fld label{display:block;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
+  font-weight:800;color:var(--summit-muted);margin-bottom:6px}
+.fld input,.fld select{width:100%;padding:11px 13px;border-radius:12px;border:1px solid var(--summit-line);
+  background:var(--summit-black);color:var(--summit-ivory);outline:none}
+.fld input:focus,.fld select:focus{border-color:var(--summit-line2)}
+.go{width:100%;padding:13px;border-radius:13px;font-weight:800;
+  background:linear-gradient(140deg,var(--summit-bright),var(--summit-gold));color:#1d1405}
+.ghost{width:100%;padding:12px;border-radius:13px;font-weight:700;border:1px solid var(--summit-line);
+  background:transparent;color:var(--summit-muted);margin-top:8px}
+.menurow{display:flex;align-items:center;gap:12px;width:100%;padding:14px;border-radius:14px;
+  border:1px solid var(--summit-line);background:var(--summit-black);margin-bottom:9px;
+  text-align:left;color:var(--summit-ivory);font-weight:700;transition:.15s}
+.menurow:hover{border-color:var(--summit-line2);background:var(--summit-panel2)}
+.menurow span:first-child{font-size:18px}
+.tagmanrow{display:flex;align-items:center;gap:10px;padding:10px;border-radius:11px;
+  border:1px solid var(--summit-line);margin-bottom:7px}
+.tagmanrow b{flex:1;font-size:13px}
+.xbtn{color:#ff6b6b;font-size:12px;font-weight:800}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:var(--summit-ivory);color:var(--summit-black);padding:12px 20px;border-radius:12px;
+  font-size:13.5px;font-weight:700;opacity:0;transition:.25s;z-index:400;pointer-events:none}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.empty{padding:38px 18px;text-align:center;color:var(--summit-muted);font-size:13.5px}
+.spin{padding:44px;text-align:center;color:var(--summit-muted)}
+
+/* ---------- loading curtain ---------- */
+#curtain{position:fixed;inset:0;z-index:900;background:var(--summit-black);display:flex;
+  flex-direction:column;align-items:center;justify-content:center;gap:16px;transition:opacity .5s}
+#curtain.gone{opacity:0;pointer-events:none}
+#curtain .t1{font-size:10px;letter-spacing:.34em;text-transform:uppercase;color:var(--summit-muted)}
+#curtain .t2{font-size:30px;letter-spacing:.3em;text-transform:uppercase;font-weight:800;
+  background:linear-gradient(90deg,var(--summit-gold),var(--summit-bright),var(--summit-gold));
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+#curtain .bar{width:168px;height:2px;background:rgba(215,174,84,.16);border-radius:9px;overflow:hidden}
+#curtain .bar i{display:block;height:100%;width:34%;border-radius:9px;
+  background:linear-gradient(90deg,transparent,var(--summit-bright),transparent);
+  animation:sweep 1.15s ease-in-out infinite}
+@keyframes sweep{0%{transform:translateX(-120%)}100%{transform:translateX(420%)}}
+#curtain .t3{font-size:9.5px;letter-spacing:.24em;text-transform:uppercase;color:var(--summit-muted)}
+@media (prefers-reduced-motion:reduce){#curtain .bar i{animation:none;width:100%}
+  .rank-visual svg,.mini svg{transition:none}}
+
+@media(max-width:800px){
+  .rank-card{grid-template-columns:1fr;padding:20px;min-height:0}
+  .rank-visual{min-height:280px}
+  .mini svg{width:24px;height:24px}
+  .arrow{width:36px;height:36px;font-size:17px}
+  #stage{height:64vh}
+  .wrap{padding:0 12px 70px}
+}
+</style>
+</head>
+<body>
+
+<div id="curtain">
+  <svg width="54" height="54" viewBox="0 0 64 64" aria-hidden="true">
+    <path d="M6 50 L24 20 L34 36 L42 26 L58 50 Z" fill="none" stroke="#d7ae54" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M24 20 L34 36 L42 26" fill="none" stroke="#f2d17a" stroke-width="2" stroke-linejoin="round"/>
+  </svg>
+  <div class="t1">The Standard Financial Group</div>
+  <div class="t2">Summit</div>
+  <div class="bar"><i></i></div>
+  <div class="t3">Building the organization</div>
+</div>
+
+<header class="top">
+  <div class="brand">
+    <svg class="mk" viewBox="0 0 64 64" aria-hidden="true">
+      <path d="M6 50 L24 20 L34 36 L42 26 L58 50 Z" fill="none" stroke="#d7ae54" stroke-width="3" stroke-linejoin="round"/>
+    </svg>
+    <div><b>Summit</b><small>The Standard</small></div>
+  </div>
+  <div class="ptitle" id="ptitle">Organization Map</div>
+  <button class="iconbtn" onclick="openMenu()" title="Menu" aria-label="Menu">☰</button>
+  <a class="iconbtn" href="dashboard.html" title="Back to dashboard" aria-label="Back to dashboard" style="text-decoration:none">←</a>
+</header>
+
+<div class="wrap">
+  <nav class="tabs" role="tablist">
+    <button class="tab on" id="tab_map"  onclick="setTab('map')">Organization Map</button>
+    <button class="tab"    id="tab_perf" onclick="setTab('perf')">Top Performers</button>
+    <button class="tab"    id="tab_road" onclick="setTab('road')">Road to EMD</button>
+  </nav>
+  <main id="view"><div class="spin">Loading the organization…</div></main>
+</div>
+
+<div class="ov" id="ov" onclick="if(event.target===this)closeDrawer()"><div class="dr" id="drawer"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ========================================================================================
+   Summit — Organization Map · Top Performers · Road to EMD
+   Integrated into the existing app rather than rebuilt: the hierarchy, ranks and production
+   all come from the live platform. org-api owns the tree (and applies baseshop scoping),
+   the policies ledger owns production, and summit-api owns only what is genuinely new —
+   tags, ladder progress and each viewer's own bubble layout.
+   ==================================================================================== */
+var ORGAPI="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/org-api";
+var SUMAPI="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/summit-api";
+var AVATAR="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/avatar";
+
+var CODE=(localStorage.getItem('tsfg_code')||'').toUpperCase();
+var NAME=localStorage.getItem('tsfg_name')||'';
+var TAB='map';
+
+var NODES=[], BYCODE={}, KIDS={}, ROOTS=[];
+var BOARD={tags:[],agent_tags:{},progress:{},production:{},signals:{},layout:{},can_manage:false};
+var POS={}, ZOOM=1, PAN={x:0,y:0}, DRAG=null, COLLAPSED={}, QUERY='', ACTIVETAGS=[];
+var STEP=0, LADDER='';
+
+function $(id){return document.getElementById(id);}
+function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+function toast(m){var t=$('toast');t.textContent=m;t.classList.add('on');setTimeout(function(){t.classList.remove('on');},2200);}
+function initials(n){n=(n||'').trim();if(!n)return '?';var p=n.split(/\s+/);return ((p[0][0]||'')+(p.length>1?p[p.length-1][0]:'')).toUpperCase();}
+function closeDrawer(){$('ov').classList.remove('on');}
+function fmtPts(n){n=Number(n)||0;if(n>=1e6)return (n/1e6).toFixed(1)+'M';if(n>=1e3)return Math.round(n/1e3)+'K';return String(Math.round(n));}
+
+/* ===== rank vocabulary =================================================================
+   Ranks are read from the platform, never invented. Anything the record does not state
+   reads RANK PENDING, exactly as the handoff requires. */
+function rankOf(n){
+  var r=((n&&(n.level||n.title))||'').trim();
+  if(!r)return null;
+  var L=r.toLowerCase();
+  if(L.indexOf('national vice')>=0||L==='nvp')return {short:'NVP',cls:'rank-nvp'};
+  if(L.indexOf('executive marketing')>=0||L==='emd')return {short:'EMD',cls:'rank-emd'};
+  if(L.indexOf('marketing director')>=0||L==='md')return {short:'MD',cls:'rank-md'};
+  if(L.indexOf('senior')>=0)return {short:'Senior Associate',cls:'rank-sa'};
+  if(L.indexOf('associate')>=0)return {short:'Associate',cls:'rank-a'};
+  return {short:r,cls:'rank-pending'};
+}
+
+/* ===== THE 19 RANK BADGES =============================================================
+   The prototype shipped 19 PNGs behind a login we cannot reach, so the emblems are drawn
+   here as SVG instead — which is better anyway: they scale, they theme, they weigh nothing,
+   and they speak the same visual language as the trophy case already in the profile.
+
+   The progression is the point. Call-of-Duty campaign emblems escalate by ACCUMULATING
+   devices, not by swapping art, so each level here adds to the last:
+     metal   iron -> bronze -> silver -> gold -> prestige   (bands of four)
+     burst   6 points climbing to 24
+     laurels from 9, wings from 13, crown from 17
+     gems    from 13, up to five by 19
+     pips    position within the band
+   Level 1 is a plain dark disc. Level 19 is a crowned, winged, jewelled championship crest. */
+var METALS=[
+  {a:'#9aa0a8',b:'#3b3f47',rim:'#23262b',ring:'#2f333a'},   /* iron      1-4  */
+  {a:'#e8a769',b:'#8a4f22',rim:'#53301a',ring:'#6b3d1c'},   /* bronze    5-8  */
+  {a:'#f2f5f8',b:'#97a1ab',rim:'#69727c',ring:'#7d8792'},   /* silver    9-12 */
+  {a:'#f7dd9a',b:'#c08a1e',rim:'#7f5a10',ring:'#a2740f'},   /* gold     13-16 */
+  {a:'#fff6d2',b:'#d7ae54',rim:'#8d6a1c',ring:'#b98f2c'}    /* prestige 17-19 */
+];
+var GEMHUE=['#7ad6ff','#7affc0','#ffd36e','#ff8fa3','#c79bff'];
+function starPath(cx,cy,ro,ri,pts,rot){var p='';for(var i=0;i<pts*2;i++){var a=Math.PI*i/pts-Math.PI/2+(rot||0);var r=(i%2===0)?ro:ri;p+=(i===0?'M':'L')+(cx+Math.cos(a)*r).toFixed(1)+' '+(cy+Math.sin(a)*r).toFixed(1);}return p+'Z';}
+function laurel(side){
+  var d=side<0?-1:1,p='';
+  for(var i=0;i<6;i++){
+    var t=i/5, ang=-2.5+t*2.0, rx=50+d*(30+t*7)*Math.cos(ang*0.5), ry=54+t*22;
+    p+='<ellipse cx="'+rx.toFixed(1)+'" cy="'+ry.toFixed(1)+'" rx="5.4" ry="2.5" transform="rotate('+(d*(28+t*32)).toFixed(0)+' '+rx.toFixed(1)+' '+ry.toFixed(1)+')" opacity="'+(0.5+t*0.42).toFixed(2)+'"/>';
+  }
+  return p;
+}
+/* level: 1..19 · state: 'future' | 'current' | 'complete' */
+function rankBadge(level,state,size){
+  level=Math.max(1,Math.min(19,level|0)); size=size||120;
+  var band=Math.min(4,Math.floor((level-1)/4));
+  var m=METALS[band], uid='rk'+level+'_'+Math.floor(Math.random()*1e6);
+  var pts=6+Math.floor((level-1)/2)*2;                 /* 6 -> 24 */
+  var gems=level>=13?Math.min(5,Math.floor((level-11)/2)):0;
+  var pip=((level-1)%4)+1;
+  var wings=level>=13, crown=level>=17, laur=level>=9;
+  var dim=(state==='future');
+  var g='<g'+(dim?' opacity=".92"':'')+'>';
+
+  /* outer radiance on the last band */
+  if(level>=17&&!dim)g+='<circle cx="50" cy="47" r="46" fill="url(#gl'+uid+')"/>';
+  /* wings */
+  if(wings)g+='<g fill="'+m.ring+'" opacity=".85">'
+    +'<path d="M22 44 C6 40 2 50 12 54 C4 56 6 64 16 62 C10 66 16 72 24 66 Z"/>'
+    +'<path d="M78 44 C94 40 98 50 88 54 C96 56 94 64 84 62 C90 66 84 72 76 66 Z"/></g>';
+  /* laurels */
+  if(laur)g+='<g fill="'+m.a+'" opacity=".55">'+laurel(-1)+laurel(1)+'</g>';
+  /* starburst */
+  g+='<g transform="translate(50,47)">'
+    +'<path d="'+starPath(0,0,42,Math.max(16,42-pts*0.9),pts)+'" fill="'+m.ring+'"/>'
+    +'<path d="'+starPath(0,0,38,Math.max(18,38-pts*0.8),pts,Math.PI/pts)+'" fill="'+m.rim+'" opacity=".62"/></g>';
+  /* crown */
+  if(crown)g+='<g fill="'+m.a+'"><path d="M35 13 L41 22 L50 9 L59 22 L65 13 L63 27 L37 27 Z"/>'
+    +'<rect x="36" y="27" width="28" height="3.4" rx="1.5"/>'
+    +'<circle cx="50" cy="7" r="2.6" fill="'+GEMHUE[2]+'"/></g>';
+  /* the disc */
+  g+='<circle cx="50" cy="47" r="30" fill="'+m.rim+'"/>'
+    +'<circle cx="50" cy="47" r="27" fill="url(#mg'+uid+')" stroke="'+m.rim+'" stroke-width="1.2"/>'
+    +'<circle cx="50" cy="47" r="20" fill="rgba(0,0,0,.22)"/>'
+    +'<ellipse cx="43" cy="36" rx="16" ry="8.5" fill="rgba(255,255,255,.28)"/>';
+  /* summit mark inside */
+  g+='<path d="M36 55 L45 41 L50 49 L54 44 L64 55 Z" fill="none" stroke="'+(dim?'#cfc7b6':'#fff')
+    +'" stroke-width="2.1" stroke-linejoin="round" opacity=".95"/>';
+  /* gems around the rim */
+  for(var i=0;i<gems;i++){
+    var a=-Math.PI/2+(i-(gems-1)/2)*0.52, gx=50+Math.cos(a)*30.5, gy=47+Math.sin(a)*30.5;
+    g+='<circle cx="'+gx.toFixed(1)+'" cy="'+gy.toFixed(1)+'" r="3.5" fill="'+GEMHUE[i%5]+'" stroke="'+m.rim+'" stroke-width="1"/>';
+  }
+  /* banner + level numeral */
+  g+='<path d="M31 72 L69 72 L69 95 L50 87 L31 95 Z" fill="'+m.b+'"/>'
+    +'<path d="M31 72 L69 72 L69 77 L31 77 Z" fill="'+m.rim+'"/>'
+    +'<text x="50" y="86" font-size="12.5" font-weight="900" text-anchor="middle" fill="'+(dim?'#e6e0d2':'#fff')
+    +'" font-family="Inter,-apple-system,sans-serif" letter-spacing=".5">'+(level<10?('0'+level):level)+'</text>';
+  /* band pips */
+  for(var p2=0;p2<pip;p2++){var px=50+(p2-(pip-1)/2)*7.5;
+    g+='<path d="'+starPath(px,66,2.7,1.15,5)+'" fill="'+(dim?'#b9b0a0':'#fff')+'" opacity=".92"/>';}
+  g+='</g>';
+
+  return '<svg viewBox="0 0 100 100" width="'+size+'" height="'+size+'" role="img" aria-label="Level '+level+' emblem">'
+    +'<defs><radialGradient id="mg'+uid+'" cx="42%" cy="28%" r="74%">'
+    +'<stop offset="0" stop-color="'+m.a+'"/><stop offset="1" stop-color="'+m.b+'"/></radialGradient>'
+    +'<radialGradient id="gl'+uid+'" cx="50%" cy="50%" r="50%">'
+    +'<stop offset=".55" stop-color="rgba(215,174,84,0)"/><stop offset="1" stop-color="rgba(242,209,122,.34)"/>'
+    +'</radialGradient></defs>'+g+'</svg>';
+}
+
+var STAGES=["ICA","Orientation 1 / 2","Schedule Exam","Personal Financial Review","Become a Client",
+"First 10 Field Trainings","Senior Associate","Pass Exam","Apply to State","Fully Licensed",
+"Complete 25 FTAs","Sign Off CFT","MD Promotion","50K Watch Earner","Promote","10 Licensed Agents",
+"2 MDs","100K Ring","EMD"];
+
+/* What the platform already knows, shown beside the manual checkboxes. No requirement is
+   invented here — these are facts the app holds, offered as corroboration. */
+function platformSays(i,s){
+  s=s||{}; var L=(s.license_status||''), lvl=(s.contract_level||'').toLowerCase();
+  var ft=Number(s.field_trainings)||0;
+  if(i===0&&s.ica)return 'Your record shows an ICA on file.';
+  if(i===2&&L==='Exam Scheduled')return 'Licensing board: <b>Exam Scheduled</b>.';
+  if(i===5&&ft)return 'Field trainings logged: <b>'+ft+'</b> of 10.';
+  if(i===6&&lvl.indexOf('senior')>=0)return 'Contract level: <b>Senior Associate</b>.';
+  if(i===7&&(L==='Passed Exam'||L==='Fully Licensed & Appointed'))return 'Licensing board: <b>exam passed</b>.';
+  if(i===8&&L.indexOf('Applied to the State')>=0)return 'Licensing board: <b>applied to the state</b>.';
+  if(i===9&&L==='Fully Licensed & Appointed')return 'Licensing board: <b>Fully Licensed &amp; Appointed</b>.';
+  if(i===10&&ft)return 'Field trainings logged: <b>'+ft+'</b> of 25.';
+  if(i===12&&(lvl==='md'||lvl.indexOf('marketing director')>=0))return 'Contract level: <b>Marketing Director</b>.';
+  if(i===15&&s.team_licensed!=null)return 'Licensed agents on your team: <b>'+s.team_licensed+'</b> of 10.';
+  if(i===16&&s.team_mds!=null)return 'MDs on your team: <b>'+s.team_mds+'</b> of 2.';
+  if(i===18&&(lvl==='emd'||lvl.indexOf('executive')>=0))return 'Contract level: <b>Executive Marketing Director</b>.';
+  return null;
+}
+
+/* ===== boot ===================================================================== */
+function boot(){
+  if(!CODE){location.replace('index.html');return;}
+  Promise.all([
+    fetch(ORGAPI,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'tree',code:CODE})}).then(function(r){return r.json();}).catch(function(){return null;}),
+    fetch(SUMAPI,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'board',code:CODE})}).then(function(r){return r.json();}).catch(function(){return null;})
+  ]).then(function(res){
+    var t=res[0]||{}, b=res[1]||{};
+    /* org-api returns the whole company and marks anyone outside your baseshop `limited`.
+       Honour that here or the map quietly hands an associate every other shop's roster —
+       the isolation rule the rest of the platform enforces. Departed people are Alumni and
+       are never counted, per the family-tree rule. */
+    NODES=(t.nodes||[]).filter(function(n){return !n.departed&&!n.limited;});
+    BYCODE={};KIDS={};
+    NODES.forEach(function(n){n.code=(n.code||'').toUpperCase();BYCODE[n.code]=n;});
+    NODES.forEach(function(n){var p=(n.direct_to||'').toUpperCase();if(p&&BYCODE[p])(KIDS[p]=KIDS[p]||[]).push(n);});
+    /* Re-root on what this viewer may actually see: for an ELEVATE associate the company root
+       is out of scope, so their own EMD becomes the centre of their map. */
+    ROOTS=(t.roots||[]).map(function(r){return (typeof r==='string')?r:r.code;})
+            .map(function(c){return (c||'').toUpperCase();})
+            .filter(function(c){return !!BYCODE[c];});
+    if(!ROOTS.length){ROOTS=NODES.filter(function(n){var p=(n.direct_to||'').toUpperCase();return !p||!BYCODE[p];}).map(function(n){return n.code;});}
+    if(b&&b.ok)BOARD=b;
+    POS=Object.assign({},BOARD.layout||{});
+    if(BOARD.zoom)ZOOM=Number(BOARD.zoom)||1;
+    /* Past the second generation the map is unreadable at 138 people, so deeper branches
+       start folded. Every one of them can be opened individually. */
+    /* Opening on 74 bubbles is noise, not insight. The map starts on leadership and their
+       direct teams; every branch below opens with one tap on its own + control. */
+    NODES.forEach(function(n){if(depthOf(n.code)>=1&&(KIDS[n.code]||[]).length)COLLAPSED[n.code]=true;});
+    LADDER=CODE;
+    render();
+    setTimeout(function(){var c=$('curtain');if(c)c.classList.add('gone');},900);
+  });
+}
+function depthOf(code,guard){
+  var d=0,c=code,g=0;
+  while(c&&g++<40){var n=BYCODE[c];if(!n)break;var p=(n.direct_to||'').toUpperCase();if(!p||!BYCODE[p])break;c=p;d++;}
+  return d;
+}
+
+/* ===== tabs ===================================================================== */
+function setTab(t){
+  TAB=t;
+  ['map','perf','road'].forEach(function(k){var b=$('tab_'+k);if(b)b.classList.toggle('on',k===t);});
+  $('ptitle').textContent=(t==='map')?'Organization Map':(t==='perf')?'Top Performers':'Road to EMD';
+  render();
+}
+function render(){
+  if(TAB==='map')renderMap();
+  else if(TAB==='perf')renderPerf();
+  else renderRoad();
+}
+
+/* ===== ORGANIZATION MAP ========================================================= */
+/* Recursive radial layout. The prototype used three fixed rings for seventeen people;
+   this organisation is 138 across six generations, so each subtree is given an angular
+   slice proportional to how many visible descendants it has, and the ring radius grows
+   with depth. Nobody overlaps and arbitrary depth is supported. */
+function visibleKids(code){ return COLLAPSED[code]?[]:(KIDS[code]||[]); }
+function leafCount(code){
+  var k=visibleKids(code);
+  if(!k.length)return 1;
+  var s=0;for(var i=0;i<k.length;i++)s+=leafCount(k[i].code);
+  return s;
+}
+function layout(){
+  /* Two passes, because a ring's size depends on how much of the circle its people actually
+     get. A team of 21 does not receive the whole circumference — it receives its parent's
+     slice — so pass one measures the tightest slice at each depth and pass two lays the map
+     out on rings wide enough for it. Fixed radii were fine for the prototype's seventeen
+     people; at 138 they collided into an unreadable knot. */
+  var cx=700, cy=520, SQUASH=0.95;
+  var minArc=function(d){return d<=2?150:120;};
+  var R={0:0}; for(var d=1;d<=12;d++)R[d]=300+(d-1)*185;
+
+  function run(record){
+    var laid={};
+    function place(code,depth,a0,a1,tier){
+      var r=(R[depth]!==undefined?R[depth]:(300+(depth-1)*185))+((tier||0)*170);
+      var mid=(a0+a1)/2;
+      laid[code]={x:cx+Math.cos(mid)*r, y:cy+Math.sin(mid)*r*SQUASH, depth:depth};
+      var k=visibleKids(code); if(!k.length)return;
+      var span=Math.max(0.0001,a1-a0), total=0;
+      k.forEach(function(c){total+=leafCount(c.code);});
+      /* Slices are proportional to team size so a big team gets room, but every child is
+         guaranteed a floor — otherwise a one-person branch beside a twenty-one person branch
+         gets a sliver and collides with its neighbour while the big team looks fine. */
+      var floorW=Math.min(span/k.length, 0.16);
+      var extra=Math.max(0, span-floorW*k.length);
+      /* A team of thirty-five cannot fit legibly on one ring at any sane radius, so a wide
+         team is dealt onto two concentric sub-rings. Neighbours on the same ring end up twice
+         as far apart, which is what makes the names readable again. */
+      var split=k.length>14, cur=a0;
+      k.forEach(function(c,ix){
+        var w=floorW+extra*(leafCount(c.code)/total);
+        var eff=split?w*2:w;   /* same-ring neighbours are two slices apart */
+        if(record)record[depth+1]=Math.max(record[depth+1]||0, minArc(depth+1)/Math.max(eff,0.0001));
+        place(c.code,depth+1,cur,cur+w,split?(ix%2):0);
+        cur+=w;
+      });
+    }
+    if(ROOTS.length===1){ place(ROOTS[0],0,-Math.PI,Math.PI); }
+    else {
+      var n=ROOTS.length, step=(Math.PI*2)/n;
+      ROOTS.forEach(function(rc,i){ place(rc,0,-Math.PI+i*step,-Math.PI+(i+1)*step); });
+      ROOTS.forEach(function(rc,i){ var a=-Math.PI/2+i*step;
+        if(laid[rc]){laid[rc].x=cx+Math.cos(a)*175;laid[rc].y=cy+Math.sin(a)*150;} });
+    }
+    return laid;
+  }
+
+  var need={};
+  run(need);
+  var prev=0;
+  for(var d2=1;d2<=12;d2++){
+    R[d2]=Math.min(2200, Math.max(prev+185, 300+(d2-1)*185, need[d2]||0));
+    prev=R[d2];
+  }
+  return run(null);
+}
+function shownTagsOf(code){ return BOARD.agent_tags[code]||[]; }
+function passesTags(code){
+  if(!ACTIVETAGS.length)return true;
+  var t=shownTagsOf(code);
+  return ACTIVETAGS.every(function(x){return t.indexOf(x)>=0;});
+}
+function renderMap(){
+  var tagbar=BOARD.tags.length?('<div class="tagbar">'+BOARD.tags.map(function(t){
+      return '<button class="tagchip'+(ACTIVETAGS.indexOf(t.id)>=0?' on':'')+'" onclick="toggleTag(\''+esc(t.id)+'\')">'+esc(t.label)+'</button>';
+    }).join('')+(ACTIVETAGS.length?'<button class="tagchip" onclick="ACTIVETAGS=[];renderMap()">Clear</button>':'')+'</div>'):'';
+  $('view').innerHTML=
+    '<div class="maptools">'
+    +'<input class="srch" id="q" placeholder="Search a name…" value="'+esc(QUERY)+'" oninput="QUERY=this.value;paintBubbles()">'
+    +'<button class="tool" onclick="centreMap()">Center</button>'
+    +'<button class="tool" onclick="resetLayout()">Reset layout</button>'
+    +'<button class="tool" onclick="expandAll()">Expand all</button>'
+    +'<button class="tool" onclick="collapseDeep()">Collapse</button>'
+    +'<span class="zoomwrap"><button class="iconbtn" onclick="bumpZoom(-0.15)">−</button>'
+    +'<span class="zpct" id="zpct">'+Math.round(ZOOM*100)+'%</span>'
+    +'<button class="iconbtn" onclick="bumpZoom(0.15)">+</button></span></div>'
+    +tagbar
+    +'<div id="stage"><div id="plane"><svg id="wires"></svg></div></div>'
+    +'<div class="maphint"><span>Drag a bubble to move it</span><span>Drag the canvas to pan</span>'
+    +'<span>Scroll to zoom</span><span>− / + on a bubble folds that team</span></div>';
+  wireStage();
+  paintBubbles();
+}
+function paintBubbles(){
+  var plane=$('plane'); if(!plane)return;
+  var laid=layout();
+  var q=QUERY.trim().toLowerCase();
+  /* wires first so bubbles sit above them */
+  var svg=$('wires'); var lines='';
+  Object.keys(laid).forEach(function(code){
+    visibleKids(code).forEach(function(c){
+      var a=POS[code]||laid[code], b=POS[c.code]||laid[c.code];
+      if(!a||!b)return;
+      lines+='<line x1="'+a.x.toFixed(1)+'" y1="'+a.y.toFixed(1)+'" x2="'+b.x.toFixed(1)+'" y2="'+b.y.toFixed(1)
+        +'" stroke="rgba(242,209,122,.5)" stroke-width="1.6" stroke-linecap="round" vector-effect="non-scaling-stroke"/>';
+    });
+  });
+  svg.setAttribute('width','1400');svg.setAttribute('height','1100');
+  svg.innerHTML=lines;
+  /* bubbles */
+  var html='';
+  Object.keys(laid).forEach(function(code){
+    var n=BYCODE[code];if(!n)return;
+    var p=POS[code]||laid[code];
+    var d=laid[code].depth;
+    var size=d===0?96:(d===1?76:62);
+    var rk=rankOf(n);
+    var prod=(BOARD.production[code]||{}).points||0;
+    var kids=(KIDS[code]||[]).length;
+    var hit=q&&(n.name||'').toLowerCase().indexOf(q)>=0;
+    var dim=(q&&!hit)||!passesTags(code);
+    var face=n.has_photo
+      ? '<img src="'+AVATAR+'?code='+encodeURIComponent(code)+'" alt="" loading="lazy">'
+      : esc(initials(n.name));
+    html+='<div class="bub'+(dim?' dim':'')+(hit?' hit':'')+'" data-code="'+esc(code)+'" '
+      +'style="left:'+p.x.toFixed(1)+'px;top:'+p.y.toFixed(1)+'px" onclick="openAgent(\''+esc(code)+'\')">'
+      +'<div class="disc" style="width:'+size+'px;height:'+size+'px;font-size:'+(size*0.3).toFixed(0)+'px">'+face
+      +(prod?'<span class="prod">'+fmtPts(prod)+'</span>':'')
+      +(kids?'<button class="tog" onclick="event.stopPropagation();toggleBranch(\''+esc(code)+'\')" title="Fold this team">'+(COLLAPSED[code]?'+':'−')+'</button>':'')
+      +'</div>'
+      +'<div class="bnm"'+(d>=3?' style="font-size:11px;max-width:104px"':'')+'>'+esc(n.name||code)+'</div>'
+      +((d>=3&&!rk)?'':'<div class="brk '+(rk?rk.cls:'rank-pending')+'">'+esc(rk?rk.short:'Rank pending')+'</div>')
+      +'</div>';
+  });
+  /* keep the svg, replace the bubbles */
+  Array.prototype.slice.call(plane.querySelectorAll('.bub')).forEach(function(e){e.remove();});
+  plane.insertAdjacentHTML('beforeend',html);
+  applyTransform();
+}
+function applyTransform(){
+  var p=$('plane');if(!p)return;
+  p.style.transform='translate('+PAN.x+'px,'+PAN.y+'px) scale('+ZOOM+')';
+  var z=$('zpct');if(z)z.textContent=Math.round(ZOOM*100)+'%';
+}
+var clampZ=function(v){return Math.max(.35,Math.min(2.2,v));};
+function bumpZoom(d){ZOOM=clampZ(ZOOM+d);applyTransform();saveLayout();}
+function centreMap(){
+  var st=$('stage');if(!st)return;
+  var r=st.getBoundingClientRect();
+  PAN.x=r.width/2-700*ZOOM; PAN.y=r.height/2-520*ZOOM;
+  applyTransform();saveLayout();
+}
+function resetLayout(){
+  POS={};ZOOM=1;PAN={x:0,y:0};
+  fetch(SUMAPI,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'layout_reset',code:CODE})}).catch(function(){});
+  paintBubbles();centreMap();toast('Layout reset');
+}
+function fitToView(){
+  /* A correctly spaced ring can be very wide, so the camera frames whatever is open rather
+     than leaving people to hunt for their team off the edge of the canvas. */
+  var st=$('stage');if(!st)return;
+  var laid=layout(), xs=[], ys=[];
+  Object.keys(laid).forEach(function(c){var p=POS[c]||laid[c];xs.push(p.x);ys.push(p.y);});
+  if(!xs.length)return;
+  var pad=130;
+  var minX=Math.min.apply(null,xs)-pad, maxX=Math.max.apply(null,xs)+pad;
+  var minY=Math.min.apply(null,ys)-pad, maxY=Math.max.apply(null,ys)+pad;
+  var r=st.getBoundingClientRect();
+  var z=clampZ(Math.min(r.width/(maxX-minX), r.height/(maxY-minY)));
+  ZOOM=z;
+  PAN.x=r.width/2-((minX+maxX)/2)*z;
+  PAN.y=r.height/2-((minY+maxY)/2)*z;
+  applyTransform();saveLayout();
+}
+function expandAll(){COLLAPSED={};paintBubbles();fitToView();}
+function collapseDeep(){COLLAPSED={};NODES.forEach(function(n){if(depthOf(n.code)>=1&&(KIDS[n.code]||[]).length)COLLAPSED[n.code]=true;});paintBubbles();centreMap();}
+function focusOn(code){
+  /* Framing the whole company every time a branch opens just shrinks everyone. Opening a team
+     frames THAT team at a readable size; the rest is still there to pan to. */
+  var st=$('stage');if(!st)return;
+  var laid=layout(), xs=[], ys=[];
+  (function collect(c){var p=POS[c]||laid[c];if(p){xs.push(p.x);ys.push(p.y);}
+    visibleKids(c).forEach(function(k){collect(k.code);});})(code);
+  var parent=(BYCODE[code]&&(BYCODE[code].direct_to||'').toUpperCase());
+  if(parent&&(POS[parent]||laid[parent])){var pp=POS[parent]||laid[parent];xs.push(pp.x);ys.push(pp.y);}
+  if(!xs.length)return fitToView();
+  var pad=150;
+  var minX=Math.min.apply(null,xs)-pad, maxX=Math.max.apply(null,xs)+pad;
+  var minY=Math.min.apply(null,ys)-pad, maxY=Math.max.apply(null,ys)+pad;
+  var r=st.getBoundingClientRect();
+  ZOOM=clampZ(Math.min(r.width/(maxX-minX), r.height/(maxY-minY), 1.25));
+  PAN.x=r.width/2-((minX+maxX)/2)*ZOOM;
+  PAN.y=r.height/2-((minY+maxY)/2)*ZOOM;
+  applyTransform();saveLayout();
+}
+function toggleBranch(code){
+  var opening=!COLLAPSED[code];
+  COLLAPSED[code]=!COLLAPSED[code];
+  paintBubbles();
+  if(opening)focusOn(code); else fitToView();
+}
+function toggleTag(id){var i=ACTIVETAGS.indexOf(id);if(i>=0)ACTIVETAGS.splice(i,1);else ACTIVETAGS.push(id);renderMap();}
+var saveT=null;
+function saveLayout(){
+  if(saveT)clearTimeout(saveT);
+  saveT=setTimeout(function(){
+    fetch(SUMAPI,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'layout_save',code:CODE,positions:POS,zoom:ZOOM})}).catch(function(){});
+  },900);
+}
+function wireStage(){
+  var st=$('stage');if(!st)return;
+  st.addEventListener('wheel',function(e){
+    e.preventDefault();
+    var before=ZOOM; ZOOM=clampZ(ZOOM-e.deltaY*0.0016);
+    var r=st.getBoundingClientRect(), mx=e.clientX-r.left, my=e.clientY-r.top;
+    PAN.x=mx-(mx-PAN.x)*(ZOOM/before); PAN.y=my-(my-PAN.y)*(ZOOM/before);
+    applyTransform();saveLayout();
+  },{passive:false});
+  st.addEventListener('pointerdown',function(e){
+    var b=e.target.closest?e.target.closest('.bub'):null;
+    if(b&&!e.target.closest('.tog')){
+      var code=b.getAttribute('data-code');
+      var laid=layout(); var cur=POS[code]||laid[code];
+      DRAG={kind:'node',code:code,sx:e.clientX,sy:e.clientY,ox:cur.x,oy:cur.y,moved:false};
+      b.classList.add('dragging');
+    } else if(!b){
+      DRAG={kind:'canvas',sx:e.clientX,sy:e.clientY,ox:PAN.x,oy:PAN.y,moved:false};
+      st.classList.add('grabbing');
+    }
+    if(DRAG)st.setPointerCapture(e.pointerId);
+  });
+  st.addEventListener('pointermove',function(e){
+    if(!DRAG)return;
+    var dx=e.clientX-DRAG.sx, dy=e.clientY-DRAG.sy;
+    if(Math.abs(dx)>3||Math.abs(dy)>3)DRAG.moved=true;
+    if(DRAG.kind==='canvas'){PAN.x=DRAG.ox+dx;PAN.y=DRAG.oy+dy;applyTransform();}
+    else{
+      POS[DRAG.code]={x:DRAG.ox+dx/ZOOM,y:DRAG.oy+dy/ZOOM};
+      var el=$('plane').querySelector('.bub[data-code="'+DRAG.code+'"]');
+      if(el){el.style.left=POS[DRAG.code].x+'px';el.style.top=POS[DRAG.code].y+'px';}
+      redrawWires();
+    }
+  });
+  function endDrag(){
+    if(!DRAG)return;
+    var wasNode=DRAG.kind==='node', moved=DRAG.moved, code=DRAG.code;
+    DRAG=null;
+    st.classList.remove('grabbing');
+    var d=$('plane').querySelector('.bub.dragging');if(d)d.classList.remove('dragging');
+    if(wasNode&&moved){saveLayout();}
+    if(wasNode&&!moved&&code){/* a tap, not a drag */}
+  }
+  st.addEventListener('pointerup',endDrag);
+  st.addEventListener('pointercancel',endDrag);
+  setTimeout(fitToView,30);
+}
+function redrawWires(){
+  var laid=layout(), lines='';
+  Object.keys(laid).forEach(function(code){
+    visibleKids(code).forEach(function(c){
+      var a=POS[code]||laid[code], b=POS[c.code]||laid[c.code];
+      if(!a||!b)return;
+      lines+='<line x1="'+a.x.toFixed(1)+'" y1="'+a.y.toFixed(1)+'" x2="'+b.x.toFixed(1)+'" y2="'+b.y.toFixed(1)
+        +'" stroke="rgba(242,209,122,.5)" stroke-width="1.6" stroke-linecap="round" vector-effect="non-scaling-stroke"/>';
+    });
+  });
+  var s=$('wires');if(s)s.innerHTML=lines;
+}
+
+/* ===== agent drawer ============================================================= */
+function openAgent(code){
+  if(DRAG)return;
+  var n=BYCODE[code];if(!n)return;
+  var rk=rankOf(n), prod=BOARD.production[code]||{points:0,deals:0};
+  var tags=shownTagsOf(code).map(function(id){
+    var t=BOARD.tags.filter(function(x){return x.id===id;})[0];return t?t.label:id;});
+  var manage=BOARD.can_manage?('<button class="ghost" onclick="openTagsFor(\''+esc(code)+'\')">Manage this agent’s tags</button>'):'';
+  $('drawer').innerHTML='<h3>'+esc(n.name||code)+'</h3>'
+    +'<p class="dsub">'+esc(rk?rk.short:'Rank pending')+' · '+esc(n.baseshop||'—')+'</p>'
+    +'<div class="fld"><label>Reports to</label><div>'+esc(n.direct_to_name||'—')+'</div></div>'
+    +'<div class="fld"><label>Team</label><div>'+(n.directs||0)+' direct · '+(n.downline_total||0)+' total</div></div>'
+    +'<div class="fld"><label>Submitted production</label><div>'+fmtPts(prod.points)+' points across '+(prod.deals||0)+' deals</div></div>'
+    +(tags.length?'<div class="fld"><label>Tags</label><div>'+esc(tags.join(' · '))+'</div></div>':'')
+    +'<button class="go" onclick="closeDrawer();LADDER=\''+esc(code)+'\';setTab(\'road\')">View Road to EMD</button>'
+    +manage
+    +'<button class="ghost" onclick="closeDrawer()">Close</button>';
+  $('ov').classList.add('on');
+}
+
+/* ===== TOP PERFORMERS =========================================================== */
+function renderPerf(){
+  var rows=Object.keys(BOARD.production).map(function(code){
+    var n=BYCODE[code];
+    return {code:code,name:n?n.name:code,rank:rankOf(n),base:n?n.baseshop:'',
+            photo:n&&n.has_photo,pts:BOARD.production[code].points,deals:BOARD.production[code].deals};
+  }).filter(function(r){return r.pts>0;}).sort(function(a,b){return b.pts-a.pts;});
+  var body=rows.length?rows.map(function(r,i){
+    return '<div class="prow'+(i===0?' top1':'')+'">'
+      +'<div class="pplace">'+(i+1)+'</div>'
+      +'<div class="pini">'+(r.photo?'<img src="'+AVATAR+'?code='+encodeURIComponent(r.code)+'" alt="" loading="lazy">':esc(initials(r.name)))+'</div>'
+      +'<div style="min-width:0"><div style="font-weight:700;font-size:14.5px">'+esc(r.name)+'</div>'
+      +'<div class="brk '+(r.rank?r.rank.cls:'rank-pending')+'">'+esc(r.rank?r.rank.short:'Rank pending')+(r.base?(' · '+esc(r.base)):'')+'</div></div>'
+      +'<div class="ppts"><b>'+Math.round(r.pts).toLocaleString()+'</b><small>'+r.deals+' deal'+(r.deals===1?'':'s')+'</small></div>'
+      +'</div>';
+  }).join(''):'<div class="empty">No submitted production recorded yet.</div>';
+  $('view').innerHTML='<div class="panel" style="margin-top:8px">'
+    +'<div class="eyebrow">Personal submitted production</div><h1 class="big">Top Performers</h1>'
+    +'<p class="muted" style="margin:8px 0 18px;font-size:13px">Straight from New Business. On a split, each side is credited their own share — never both.</p>'
+    +body+'</div>';
+}
+
+/* ===== ROAD TO EMD ============================================================== */
+function ladderAgents(){
+  var out=NODES.slice().sort(function(a,b){return (a.name||'').localeCompare(b.name||'');});
+  return out;
+}
+function checksFor(code,i){
+  var p=(BOARD.progress[code]||{})[String(i)];
+  return Array.isArray(p)?p:[false,false,false,false];
+}
+function stageComplete(code,i){var c=checksFor(code,i);return c.length&&c.every(Boolean);}
+function renderRoad(){
+  if(!LADDER)LADDER=CODE;
+  var agents=ladderAgents();
+  var mine=BYCODE[LADDER];
+  var sig=(LADDER===CODE)?(BOARD.signals||{}):{};
+  var checks=checksFor(LADDER,STEP), done=checks.filter(Boolean).length;
+
+  var mini=STAGES.map(function(s,i){
+    var cls=(i===STEP?'current ':'')+(stageComplete(LADDER,i)?'complete':'');
+    return '<button class="mini '+cls+'" onclick="goStep('+i+')" title="'+esc(s)+'">'
+      +rankBadge(i+1,stageComplete(LADDER,i)?'complete':(i===STEP?'current':'future'),34)
+      +'<span>'+(i+1)+'</span></button>';
+  }).join('');
+
+  var reqs=[0,1,2,3].map(function(i){
+    return '<label class="reqrow'+(checks[i]?' checked':'')+'" onclick="toggleReq('+i+')">'
+      +'<span class="ck">✓</span>'
+      +'<div><strong>Promotion Requirement '+(i+1)+'</strong>'
+      +'<small>'+(checks[i]?'Completed':'Requirement pending')+'</small></div></label>';
+  }).join('');
+
+  var says=platformSays(STEP,sig);
+  var swipe=STAGES.map(function(s,i){
+    return '<button class="sw'+(i===STEP?' active':'')+'" onclick="goStep('+i+')">'
+      +'<small>'+(i<9?('0'+(i+1)):(i+1))+'</small><span>'+esc(s)+'</span></button>';
+  }).join('');
+
+  $('view').innerHTML=
+    '<div class="rank-top" style="margin-top:10px">'
+    +'<div><div class="eyebrow">The leadership ascent</div><h1 class="big">Road to EMD</h1></div>'
+    +'<label class="agentsel"><small>Viewing agent</small>'
+    +'<select onchange="LADDER=this.value;STEP=0;renderRoad()">'
+    +agents.map(function(a){return '<option value="'+esc(a.code)+'"'+(a.code===LADDER?' selected':'')+'>'+esc(a.name||a.code)+'</option>';}).join('')
+    +'</select></label></div>'
+    +'<div class="mini-track">'+mini+'</div>'
+    +'<div class="stagewrap">'
+    +'<button class="arrow" onclick="goStep('+(STEP-1)+')"'+(STEP===0?' disabled':'')+' aria-label="Previous stage">‹</button>'
+    +'<div class="rank-card">'
+    +'<div class="rank-visual">'+rankBadge(STEP+1,stageComplete(LADDER,STEP)?'complete':'current',300)
+    +'<p>Level '+(STEP<9?('0'+(STEP+1)):(STEP+1))+' emblem</p><small>Summit progression badge</small></div>'
+    +'<div class="rank-req"><header><div><div class="eyebrow">Progression step</div>'
+    +'<h2>'+esc(STAGES[STEP])+'</h2></div><span class="cnt">'+done+'/4</span></header>'
+    +reqs
+    +'<div class="stepbar"><span style="width:'+(done*25)+'%"></span></div>'
+    +(says?('<div class="platform">'+says+'</div>'):'')
+    +'</div></div>'
+    +'<button class="arrow" onclick="goStep('+(STEP+1)+')"'+(STEP===STAGES.length-1?' disabled':'')+' aria-label="Next stage">›</button>'
+    +'</div>'
+    +'<div class="swipe">'+swipe+'</div>';
+}
+function goStep(n){STEP=Math.max(0,Math.min(STAGES.length-1,n));renderRoad();}
+function toggleReq(i){
+  var c=checksFor(LADDER,STEP).slice();
+  c[i]=!c[i];
+  if(!BOARD.progress[LADDER])BOARD.progress[LADDER]={};
+  BOARD.progress[LADDER][String(STEP)]=c;
+  renderRoad();
+  fetch(SUMAPI,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'progress_set',code:CODE,agent_code:LADDER,stage_index:STEP,checks:c})})
+   .then(function(r){return r.json();}).then(function(r){
+     if(!r||!r.ok){
+       c[i]=!c[i];BOARD.progress[LADDER][String(STEP)]=c;renderRoad();
+       toast((r&&r.error)||'Could not save');
+     }
+   }).catch(function(){toast('Network error — not saved');});
+}
+
+/* ===== menu ===================================================================== */
+function openMenu(){
+  $('drawer').innerHTML='<h3>Summit controls</h3><p class="dsub">'+esc(NAME||CODE)+'</p>'
+    +(BOARD.can_manage
+      ? '<button class="menurow" onclick="openTags()"><span>🏷️</span><span>Manage tags</span></button>'
+      : '<div class="platform" style="margin:0 0 12px">Tags are managed by your leadership.</div>')
+    +'<button class="menurow" onclick="closeDrawer();setTab(\'road\')"><span>🎖️</span><span>Road to EMD</span></button>'
+    +'<button class="menurow" onclick="closeDrawer();setTab(\'perf\')"><span>🏆</span><span>Top Performers</span></button>'
+    +'<button class="menurow" onclick="resetLayout();closeDrawer()"><span>🧭</span><span>Reset map layout</span></button>'
+    +'<button class="ghost" onclick="closeDrawer()">Close</button>';
+  $('ov').classList.add('on');
+}
+function openTags(){
+  var rows=BOARD.tags.map(function(t){
+    return '<div class="tagmanrow"><b>'+esc(t.label)+'</b>'
+      +'<button class="xbtn" onclick="delTag(\''+esc(t.id)+'\')">Remove</button></div>';
+  }).join('')||'<div class="muted" style="font-size:13px;margin-bottom:10px">No tags yet.</div>';
+  $('drawer').innerHTML='<h3>Manage tags</h3><p class="dsub">Tags filter the map. They are never drawn inside the bubbles.</p>'
+    +rows
+    +'<div class="fld" style="margin-top:14px"><label>New tag</label><input id="newtag" placeholder="e.g. Fast Start"></div>'
+    +'<button class="go" onclick="addTag()">Create tag</button>'
+    +'<button class="ghost" onclick="closeDrawer()">Done</button>';
+  $('ov').classList.add('on');
+}
+function addTag(){
+  var v=($('newtag').value||'').trim();if(!v)return toast('Give the tag a name');
+  fetch(SUMAPI,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'tag_create',code:CODE,label:v})})
+   .then(function(r){return r.json();}).then(function(r){
+     if(!r||!r.ok)return toast((r&&r.error)||'Could not create');
+     BOARD.tags.push({id:r.id,label:r.label});toast('Tag created');openTags();
+   }).catch(function(){toast('Network error');});
+}
+function delTag(id){
+  fetch(SUMAPI,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'tag_delete',code:CODE,id:id})})
+   .then(function(r){return r.json();}).then(function(r){
+     if(!r||!r.ok)return toast((r&&r.error)||'Could not remove');
+     BOARD.tags=BOARD.tags.filter(function(t){return t.id!==id;});
+     Object.keys(BOARD.agent_tags).forEach(function(c){
+       BOARD.agent_tags[c]=BOARD.agent_tags[c].filter(function(x){return x!==id;});});
+     ACTIVETAGS=ACTIVETAGS.filter(function(x){return x!==id;});
+     toast('Tag removed');openTags();
+   }).catch(function(){toast('Network error');});
+}
+function openTagsFor(code){
+  var n=BYCODE[code];if(!n)return;
+  var have=shownTagsOf(code);
+  var rows=BOARD.tags.map(function(t){
+    var on=have.indexOf(t.id)>=0;
+    return '<label class="reqrow'+(on?' checked':'')+'" onclick="setTagOn(\''+esc(code)+'\',\''+esc(t.id)+'\','+(!on)+')">'
+      +'<span class="ck">✓</span><div><strong>'+esc(t.label)+'</strong>'
+      +'<small>'+(on?'Applied':'Not applied')+'</small></div></label>';
+  }).join('')||'<div class="muted" style="font-size:13px">No tags exist yet.</div>';
+  $('drawer').innerHTML='<h3>'+esc(n.name||code)+'</h3><p class="dsub">Which tags apply?</p>'+rows
+    +'<button class="ghost" onclick="closeDrawer()">Done</button>';
+  $('ov').classList.add('on');
+}
+function setTagOn(code,id,on){
+  fetch(SUMAPI,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'tag_assign',code:CODE,agent_code:code,tag_id:id,on:on})})
+   .then(function(r){return r.json();}).then(function(r){
+     if(!r||!r.ok)return toast((r&&r.error)||'Could not update');
+     var cur=BOARD.agent_tags[code]||[];
+     BOARD.agent_tags[code]=on?cur.concat([id]):cur.filter(function(x){return x!==id;});
+     openTagsFor(code);
+   }).catch(function(){toast('Network error');});
+}
+
+boot();
+</script>
+</body>
+</html>
