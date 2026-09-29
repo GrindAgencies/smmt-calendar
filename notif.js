@@ -316,7 +316,6 @@
     ['My Team',        'team.html',      I.team],
     ['Org Chart',      'org.html',       I.tree],
     ['Summit',         'summit.html',    I.tree],
-    ['My Journey',     'roadmap.html',   I.check],
     /* Leaders only — hidden for everyone else by leaderOnly() below. */
     ['Baseshop Settings','baseshop.html', I.users, 'leader']
   ];
