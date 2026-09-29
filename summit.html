@@ -184,6 +184,48 @@ h1.big{margin:4px 0 0;font-size:26px;letter-spacing:-.01em;font-weight:800}
 .platform{margin-top:14px;padding:11px 13px;border-radius:12px;border:1px dashed var(--summit-line);
   font-size:12px;color:var(--summit-muted)}
 .platform b{color:var(--summit-bright)}
+/* ---------- ladder: overall progress, stage state, team view ---------- */
+.rv{display:flex;gap:4px;padding:4px;border-radius:13px;border:1px solid var(--summit-line);
+  background:var(--summit-panel)}
+.rvb{padding:8px 15px;border-radius:10px;font-weight:800;font-size:12.5px;color:var(--summit-muted);
+  white-space:nowrap;transition:.15s}
+.rvb.on{background:linear-gradient(140deg,var(--summit-bright),var(--summit-gold));color:var(--summit-black)}
+.overall{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:13px 17px;margin:2px 0 4px;
+  border:1px solid var(--summit-line);border-radius:15px;background:var(--summit-panel)}
+.ov1{font-size:13px;color:var(--summit-muted)} .ov1 b{color:var(--summit-bright);font-size:16px}
+.ov2{font-size:12px;color:var(--summit-muted);font-variant-numeric:tabular-nums}
+.ov2 b{color:var(--summit-ivory)}
+.ovbar{flex:1;min-width:130px;height:7px;border-radius:999px;background:rgba(215,174,84,.14);overflow:hidden}
+.ovbar>span{display:block;height:100%;border-radius:999px;
+  background:linear-gradient(90deg,var(--summit-gold),var(--summit-bright));transition:width .35s ease}
+.stchip{display:inline-block;margin-top:7px;padding:3px 10px;border-radius:999px;font-size:10px;
+  font-weight:900;letter-spacing:.12em;text-transform:uppercase;border:1px solid var(--summit-line)}
+.stchip.complete{background:rgba(215,174,84,.16);color:var(--summit-bright);border-color:var(--summit-line2)}
+.stchip.started{color:var(--summit-gold)} .stchip.open{color:var(--summit-muted)}
+.sw.done{border-color:var(--summit-line2)}
+.sw.done small{color:var(--summit-gold)}
+.tstats{display:flex;gap:26px;flex-wrap:wrap;margin-top:10px}
+.tstats span{display:flex;flex-direction:column}
+.tstats b{font-size:22px;font-weight:900;color:var(--summit-bright);font-variant-numeric:tabular-nums}
+.tstats i{font-style:normal;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--summit-muted);font-weight:700}
+.tl{display:flex;align-items:center;gap:14px;width:100%;padding:11px 13px;border-radius:14px;
+  border:1px solid var(--summit-line);background:var(--summit-panel);margin-bottom:8px;
+  text-align:left;transition:.15s}
+.tl:hover{border-color:var(--summit-line2);background:var(--summit-panel2)}
+.tlb{flex:0 0 auto;display:flex}
+.tli{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.tli b{font-size:14px;font-weight:700;color:var(--summit-ivory)}
+.tli i{font-style:normal}
+.tls{flex:0 0 165px;display:none;flex-direction:column;gap:1px}
+.tls b{font-size:12.5px;color:var(--summit-bright);font-weight:800}
+.tls i{font-style:normal;font-size:11.5px;color:var(--summit-muted)}
+.tlp{flex:0 0 118px;display:flex;align-items:center;gap:9px}
+.tlbar{flex:1;height:6px;border-radius:999px;background:rgba(215,174,84,.14);overflow:hidden}
+.tlbar>span{display:block;height:100%;border-radius:999px;
+  background:linear-gradient(90deg,var(--summit-gold),var(--summit-bright))}
+.tlp i{font-style:normal;font-size:11px;font-weight:800;color:var(--summit-muted);
+  font-variant-numeric:tabular-nums}
+@media(min-width:760px){.tls{display:flex}}
 .swipe{display:flex;gap:8px;overflow-x:auto;padding:16px 2px 4px;scrollbar-width:thin}
 .swipe::-webkit-scrollbar{height:5px}
 .swipe::-webkit-scrollbar-thumb{background:var(--summit-line2);border-radius:9px}
@@ -250,6 +292,9 @@ h1.big{margin:4px 0 0;font-size:26px;letter-spacing:-.01em;font-weight:800}
   .rank-visual svg,.mini svg{transition:none}}
 
 @media(max-width:800px){
+  .rank-top{gap:12px}
+  .agentsel{margin-left:0;width:100%}
+  .agentsel select{width:100%}
   .rank-card{grid-template-columns:1fr;padding:20px;min-height:0}
   .rank-visual{min-height:280px}
   .mini svg{width:24px;height:24px}
@@ -315,7 +360,7 @@ var TAB='map';
 var NODES=[], BYCODE={}, KIDS={}, ROOTS=[];
 var BOARD={tags:[],agent_tags:{},progress:{},production:{},signals:{},layout:{},can_manage:false};
 var POS={}, ZOOM=1, PAN={x:0,y:0}, DRAG=null, COLLAPSED={}, QUERY='', ACTIVETAGS=[];
-var STEP=0, LADDER='';
+var STEP=0, LADDER='', ROADVIEW='mine';
 /* My Tracker opens this page straight on the ladder (?tab=road), so the Road to EMD is the
    tracker rather than a third tab someone has to go looking for. */
 (function(){var m=/[?&]tab=(map|perf|road)/.exec(location.search);
@@ -847,53 +892,119 @@ function firstOpenStage(code){
   for(var i=0;i<STAGES.length;i++)if(!stageComplete(code,i))return i;
   return STAGES.length-1;
 }
+function stagesDone(code){var n=0;for(var i=0;i<STAGES.length;i++)if(stageComplete(code,i))n++;return n;}
+/* Everyone beneath you in the tree — this is what makes it a TEAM tracker rather than a
+   personal one. Alumni are already filtered out of NODES, so nobody departed is counted. */
+function descendantsOf(code){
+  var out=[], seen={};
+  (function walk(c){
+    (KIDS[c]||[]).forEach(function(k){
+      if(seen[k.code])return; seen[k.code]=1; out.push(k); walk(k.code);
+    });
+  })(code);
+  return out;
+}
+function stageState(code,i){
+  if(stageComplete(code,i))return 'complete';
+  var c=checksFor(code,i);
+  return c.some(Boolean)?'started':'open';
+}
+function roadHeader(){
+  var agents=ladderAgents();
+  var team=descendantsOf(CODE);
+  var toggle=team.length?('<div class="rv">'
+    +'<button class="rvb'+(ROADVIEW==='mine'?' on':'')+'" onclick="ROADVIEW=\'mine\';renderRoad()">My ladder</button>'
+    +'<button class="rvb'+(ROADVIEW==='team'?' on':'')+'" onclick="ROADVIEW=\'team\';renderRoad()">My team ('+team.length+')</button>'
+    +'</div>'):'';
+  return '<div class="rank-top" style="margin-top:10px">'
+    +'<div><div class="eyebrow">The leadership ascent</div><h1 class="big">Road to EMD</h1></div>'
+    +toggle
+    +(ROADVIEW==='mine'?('<label class="agentsel"><small>Viewing agent</small>'
+      +'<select onchange="LADDER=this.value;STEP=firstOpenStage(LADDER);renderRoad()">'
+      +agents.map(function(a){return '<option value="'+esc(a.code)+'"'+(a.code===LADDER?' selected':'')+'>'+esc(a.name||a.code)+'</option>';}).join('')
+      +'</select></label>'):'')
+    +'</div>';
+}
+function renderTeamLadder(){
+  var team=descendantsOf(CODE).map(function(n){
+    var done=stagesDone(n.code), cur=firstOpenStage(n.code);
+    return {n:n,done:done,cur:cur};
+  }).sort(function(a,b){return b.done-a.done||(a.n.name||'').localeCompare(b.n.name||'');});
+  var rows=team.length?team.map(function(t){
+    var n=t.n, rk=rankOf(n);
+    return '<button class="tl" onclick="LADDER=\''+esc(n.code)+'\';STEP=firstOpenStage(\''+esc(n.code)+'\');ROADVIEW=\'mine\';renderRoad()">'
+      +'<span class="tlb">'+rankBadge(t.cur+1,t.done>t.cur?'complete':'current',40)+'</span>'
+      +'<span class="tli">'
+        +'<b>'+esc(n.name||n.code)+'</b>'
+        +'<i class="brk '+(rk?rk.cls:'rank-pending')+'">'+esc(rk?rk.short:'Rank pending')+'</i>'
+      +'</span>'
+      +'<span class="tls"><b>Stage '+(t.cur+1)+'</b><i>'+esc(STAGES[t.cur])+'</i></span>'
+      +'<span class="tlp"><span class="tlbar"><span style="width:'+Math.round(t.done/STAGES.length*100)+'%"></span></span>'
+        +'<i>'+t.done+'/19</i></span>'
+      +'</button>';
+  }).join(''):'<div class="empty">Nobody reports to you yet.</div>';
+  var avg=team.length?Math.round(team.reduce(function(a,b){return a+b.done;},0)/team.length*10)/10:0;
+  $('view').innerHTML=roadHeader()
+    +'<div class="panel" style="margin-bottom:14px"><div class="eyebrow">Team progression</div>'
+    +'<div class="tstats">'
+      +'<span><b>'+team.length+'</b><i>on your team</i></span>'
+      +'<span><b>'+team.filter(function(t){return t.done>0;}).length+'</b><i>have started</i></span>'
+      +'<span><b>'+avg+'</b><i>average stages cleared</i></span>'
+      +'<span><b>'+team.filter(function(t){return t.done>=19;}).length+'</b><i>at EMD</i></span>'
+    +'</div></div>'
+    +'<div class="panel">'+rows+'</div>';
+}
 function renderRoad(){
   if(!LADDER)LADDER=CODE;
+  if(ROADVIEW==='team')return renderTeamLadder();
   var agents=ladderAgents();
-  var mine=BYCODE[LADDER];
   var sig=(LADDER===CODE)?(BOARD.signals||{}):{};
   var checks=checksFor(LADDER,STEP), done=checks.filter(Boolean).length;
+  var cleared=stagesDone(LADDER), pctAll=Math.round(cleared/STAGES.length*100);
+  var st=stageState(LADDER,STEP);
 
-  var mini=STAGES.map(function(s,i){
+  var mini=STAGES.map(function(sg,i){
     var cls=(i===STEP?'current ':'')+(stageComplete(LADDER,i)?'complete':'');
-    return '<button class="mini '+cls+'" onclick="goStep('+i+')" title="'+esc(s)+'">'
+    return '<button class="mini '+cls+'" onclick="goStep('+i+')" title="'+esc((i+1)+'. '+sg)+'">'
       +rankBadge(i+1,stageComplete(LADDER,i)?'complete':(i===STEP?'current':'future'),34)
       +'<span>'+(i+1)+'</span></button>';
   }).join('');
 
   var reqs=[0,1,2,3].map(function(i){
     return '<label class="reqrow'+(checks[i]?' checked':'')+'" onclick="toggleReq('+i+')">'
-      +'<span class="ck">✓</span>'
+      +'<span class="ck">\u2713</span>'
       +'<div><strong>Promotion Requirement '+(i+1)+'</strong>'
       +'<small>'+(checks[i]?'Completed':'Requirement pending')+'</small></div></label>';
   }).join('');
 
   var says=platformSays(STEP,sig);
-  var swipe=STAGES.map(function(s,i){
-    return '<button class="sw'+(i===STEP?' active':'')+'" onclick="goStep('+i+')">'
-      +'<small>'+(i<9?('0'+(i+1)):(i+1))+'</small><span>'+esc(s)+'</span></button>';
+  var swipe=STAGES.map(function(sg,i){
+    var sc=stageComplete(LADDER,i)?' done':'';
+    return '<button class="sw'+(i===STEP?' active':'')+sc+'" onclick="goStep('+i+')">'
+      +'<small>'+(i<9?('0'+(i+1)):(i+1))+'</small><span>'+esc(sg)+'</span></button>';
   }).join('');
 
-  $('view').innerHTML=
-    '<div class="rank-top" style="margin-top:10px">'
-    +'<div><div class="eyebrow">The leadership ascent</div><h1 class="big">Road to EMD</h1></div>'
-    +'<label class="agentsel"><small>Viewing agent</small>'
-    +'<select onchange="LADDER=this.value;STEP=firstOpenStage(LADDER);renderRoad()">'
-    +agents.map(function(a){return '<option value="'+esc(a.code)+'"'+(a.code===LADDER?' selected':'')+'>'+esc(a.name||a.code)+'</option>';}).join('')
-    +'</select></label></div>'
+  $('view').innerHTML=roadHeader()
+    +'<div class="overall">'
+      +'<span class="ov1">Stage <b>'+(STEP+1)+'</b> of 19</span>'
+      +'<span class="ovbar"><span style="width:'+pctAll+'%"></span></span>'
+      +'<span class="ov2"><b>'+cleared+'</b> of 19 stages cleared \u00b7 '+pctAll+'%</span>'
+    +'</div>'
     +'<div class="mini-track">'+mini+'</div>'
     +'<div class="stagewrap">'
-    +'<button class="arrow" onclick="goStep('+(STEP-1)+')"'+(STEP===0?' disabled':'')+' aria-label="Previous stage">‹</button>'
+    +'<button class="arrow" onclick="goStep('+(STEP-1)+')"'+(STEP===0?' disabled':'')+' aria-label="Previous stage">\u2039</button>'
     +'<div class="rank-card">'
-    +'<div class="rank-visual">'+rankBadge(STEP+1,stageComplete(LADDER,STEP)?'complete':'current',300)
+    +'<div class="rank-visual">'+rankBadge(STEP+1,stageComplete(LADDER,STEP)?'complete':'current',290)
     +'<p>Level '+(STEP<9?('0'+(STEP+1)):(STEP+1))+' emblem</p><small>Summit progression badge</small></div>'
     +'<div class="rank-req"><header><div><div class="eyebrow">Progression step</div>'
-    +'<h2>'+esc(STAGES[STEP])+'</h2></div><span class="cnt">'+done+'/4</span></header>'
+    +'<h2>'+esc(STAGES[STEP])+'</h2>'
+    +'<span class="stchip '+st+'">'+(st==='complete'?'Stage complete':(st==='started'?'In progress':'Not started'))+'</span>'
+    +'</div><span class="cnt">'+done+'/4</span></header>'
     +reqs
     +'<div class="stepbar"><span style="width:'+(done*25)+'%"></span></div>'
     +(says?('<div class="platform">'+says+'</div>'):'')
     +'</div></div>'
-    +'<button class="arrow" onclick="goStep('+(STEP+1)+')"'+(STEP===STAGES.length-1?' disabled':'')+' aria-label="Next stage">›</button>'
+    +'<button class="arrow" onclick="goStep('+(STEP+1)+')"'+(STEP===STAGES.length-1?' disabled':'')+' aria-label="Next stage">\u203a</button>'
     +'</div>'
     +'<div class="swipe">'+swipe+'</div>';
 }
