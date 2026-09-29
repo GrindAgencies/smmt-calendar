@@ -316,6 +316,10 @@ var NODES=[], BYCODE={}, KIDS={}, ROOTS=[];
 var BOARD={tags:[],agent_tags:{},progress:{},production:{},signals:{},layout:{},can_manage:false};
 var POS={}, ZOOM=1, PAN={x:0,y:0}, DRAG=null, COLLAPSED={}, QUERY='', ACTIVETAGS=[];
 var STEP=0, LADDER='';
+/* My Tracker opens this page straight on the ladder (?tab=road), so the Road to EMD is the
+   tracker rather than a third tab someone has to go looking for. */
+(function(){var m=/[?&]tab=(map|perf|road)/.exec(location.search);
+  if(m)TAB=m[1]; else if(location.hash==='#road')TAB='road';})();
 
 function $(id){return document.getElementById(id);}
 function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
@@ -438,17 +442,21 @@ var STAGES=["ICA","Orientation 1 / 2","Schedule Exam","Personal Financial Review
 function platformSays(i,s){
   s=s||{}; var L=(s.license_status||''), lvl=(s.contract_level||'').toLowerCase();
   var ft=Number(s.field_trainings)||0;
+  /* Once a count is past its target, saying "14 of 10" reads like a mistake. */
+  var tally=function(cur,tgt,noun){
+    return cur>=tgt ? (noun+': <b>'+cur+'</b> — target of '+tgt+' met.')
+                    : (noun+': <b>'+cur+'</b> of '+tgt+'.');};
   if(i===0&&s.ica)return 'Your record shows an ICA on file.';
   if(i===2&&L==='Exam Scheduled')return 'Licensing board: <b>Exam Scheduled</b>.';
-  if(i===5&&ft)return 'Field trainings logged: <b>'+ft+'</b> of 10.';
+  if(i===5&&ft)return tally(ft,10,'Field trainings logged');
   if(i===6&&lvl.indexOf('senior')>=0)return 'Contract level: <b>Senior Associate</b>.';
   if(i===7&&(L==='Passed Exam'||L==='Fully Licensed & Appointed'))return 'Licensing board: <b>exam passed</b>.';
   if(i===8&&L.indexOf('Applied to the State')>=0)return 'Licensing board: <b>applied to the state</b>.';
   if(i===9&&L==='Fully Licensed & Appointed')return 'Licensing board: <b>Fully Licensed &amp; Appointed</b>.';
-  if(i===10&&ft)return 'Field trainings logged: <b>'+ft+'</b> of 25.';
+  if(i===10&&ft)return tally(ft,25,'Field trainings logged');
   if(i===12&&(lvl==='md'||lvl.indexOf('marketing director')>=0))return 'Contract level: <b>Marketing Director</b>.';
-  if(i===15&&s.team_licensed!=null)return 'Licensed agents on your team: <b>'+s.team_licensed+'</b> of 10.';
-  if(i===16&&s.team_mds!=null)return 'MDs on your team: <b>'+s.team_mds+'</b> of 2.';
+  if(i===15&&s.team_licensed!=null)return tally(Number(s.team_licensed)||0,10,'Licensed agents on your team');
+  if(i===16&&s.team_mds!=null)return tally(Number(s.team_mds)||0,2,'MDs on your team');
   if(i===18&&(lvl==='emd'||lvl.indexOf('executive')>=0))return 'Contract level: <b>Executive Marketing Director</b>.';
   return null;
 }
@@ -484,6 +492,9 @@ function boot(){
        direct teams; every branch below opens with one tap on its own + control. */
     NODES.forEach(function(n){if(depthOf(n.code)>=1&&(KIDS[n.code]||[]).length)COLLAPSED[n.code]=true;});
     LADDER=CODE;
+    STEP=firstOpenStage(LADDER);
+    ['map','perf','road'].forEach(function(k){var b=$('tab_'+k);if(b)b.classList.toggle('on',k===TAB);});
+    $('ptitle').textContent=(TAB==='map')?'Organization Map':(TAB==='perf')?'Top Performers':'Road to EMD';
     render();
     setTimeout(function(){var c=$('curtain');if(c)c.classList.add('gone');},900);
   });
@@ -830,6 +841,12 @@ function checksFor(code,i){
   return Array.isArray(p)?p:[false,false,false,false];
 }
 function stageComplete(code,i){var c=checksFor(code,i);return c.length&&c.every(Boolean);}
+/* As a tracker this has to open where you ARE. Starting everyone on stage one every time
+   makes a nineteen-stage ladder feel like a brochure instead of a progress board. */
+function firstOpenStage(code){
+  for(var i=0;i<STAGES.length;i++)if(!stageComplete(code,i))return i;
+  return STAGES.length-1;
+}
 function renderRoad(){
   if(!LADDER)LADDER=CODE;
   var agents=ladderAgents();
@@ -861,7 +878,7 @@ function renderRoad(){
     '<div class="rank-top" style="margin-top:10px">'
     +'<div><div class="eyebrow">The leadership ascent</div><h1 class="big">Road to EMD</h1></div>'
     +'<label class="agentsel"><small>Viewing agent</small>'
-    +'<select onchange="LADDER=this.value;STEP=0;renderRoad()">'
+    +'<select onchange="LADDER=this.value;STEP=firstOpenStage(LADDER);renderRoad()">'
     +agents.map(function(a){return '<option value="'+esc(a.code)+'"'+(a.code===LADDER?' selected':'')+'>'+esc(a.name||a.code)+'</option>';}).join('')
     +'</select></label></div>'
     +'<div class="mini-track">'+mini+'</div>'

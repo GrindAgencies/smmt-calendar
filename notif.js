@@ -305,7 +305,7 @@
     ['Team Hub',     'teamhub.html',     I.chat],
     ['Scheduler',    'calendar.html',    I.calendar],
     ['New Business', 'newbusiness.html', I.dollar],
-    ['My Tracker',   'checklist.html',   I.check],
+    ['My Tracker',   'summit.html?tab=road', I.check],
     ['Resources',    'resources.html',   I.book]
   ];
 
@@ -316,6 +316,7 @@
     ['My Team',        'team.html',      I.team],
     ['Org Chart',      'org.html',       I.tree],
     ['Summit',         'summit.html',    I.tree],
+    ['My Journey',     'roadmap.html',   I.check],
     /* Leaders only — hidden for everyone else by leaderOnly() below. */
     ['Baseshop Settings','baseshop.html', I.users, 'leader']
   ];
