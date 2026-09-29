@@ -226,6 +226,17 @@ h1.big{margin:4px 0 0;font-size:26px;letter-spacing:-.01em;font-weight:800}
 .tlp i{font-style:normal;font-size:11px;font-weight:800;color:var(--summit-muted);
   font-variant-numeric:tabular-nums}
 @media(min-width:760px){.tls{display:flex}}
+.cashbox{margin-top:14px;padding:15px;border-radius:15px;border:1px solid var(--summit-line2);
+  background:linear-gradient(140deg,rgba(215,174,84,.1),rgba(8,7,5,.5))}
+.cashhead{display:flex;align-items:baseline;gap:12px}
+.cashhead b{margin-left:auto;font-size:22px;font-weight:900;color:var(--summit-bright);
+  font-variant-numeric:tabular-nums}
+.cashstars{display:flex;align-items:center;gap:5px;margin-top:9px}
+.cashstars .cs{font-size:15px;color:rgba(215,174,84,.26)}
+.cashstars .cs.on{color:var(--summit-bright);text-shadow:0 0 9px rgba(242,209,122,.5)}
+.cashstars i{font-style:normal;margin-left:8px;font-size:10.5px;letter-spacing:.14em;
+  text-transform:uppercase;font-weight:900;color:var(--summit-gold)}
+.cashnote{margin-top:9px;font-size:12px;color:var(--summit-muted)}
 .swipe{display:flex;gap:8px;overflow-x:auto;padding:16px 2px 4px;scrollbar-width:thin}
 .swipe::-webkit-scrollbar{height:5px}
 .swipe::-webkit-scrollbar-thumb{background:var(--summit-line2);border-radius:9px}
@@ -358,7 +369,7 @@ var NAME=localStorage.getItem('tsfg_name')||'';
 var TAB='map';
 
 var NODES=[], BYCODE={}, KIDS={}, ROOTS=[];
-var BOARD={tags:[],agent_tags:{},progress:{},production:{},signals:{},layout:{},can_manage:false};
+var BOARD={tags:[],agent_tags:{},progress:{},production:{},derived:{},cash:{},signals:{},layout:{},can_manage:false};
 var POS={}, ZOOM=1, PAN={x:0,y:0}, DRAG=null, COLLAPSED={}, QUERY='', ACTIVETAGS=[];
 var STEP=0, LADDER='', ROADVIEW='mine';
 /* My Tracker opens this page straight on the ladder (?tab=road), so the Road to EMD is the
@@ -418,20 +429,29 @@ function laurel(side){
   }
   return p;
 }
-/* level: 1..19 · state: 'future' | 'current' | 'complete' */
-function rankBadge(level,state,size){
+/* level: 1..19 · state: 'future' | 'current' | 'complete' · prestige: 0..5 (EMD only)
+   Past EMD the emblem stops tracking rank and starts tracking money — Christopher: "once
+   people become EMDs they start to really grow in cashflow and their emblem needs to grow
+   based on their cashflow and less about their promotion." Each cashflow tier adds a gem and
+   a brighter aura to the level 19 crest, so an EMD keeps climbing after the ladder ends. */
+function rankBadge(level,state,size,prestige){
   level=Math.max(1,Math.min(19,level|0)); size=size||120;
+  prestige=(level>=19)?Math.max(0,Math.min(5,prestige|0)):0;
   var band=Math.min(4,Math.floor((level-1)/4));
   var m=METALS[band], uid='rk'+level+'_'+Math.floor(Math.random()*1e6);
   var pts=6+Math.floor((level-1)/2)*2;                 /* 6 -> 24 */
   var gems=level>=13?Math.min(5,Math.floor((level-11)/2)):0;
+  gems=Math.min(9,gems+prestige);   /* every cashflow tier sets another stone */
   var pip=((level-1)%4)+1;
   var wings=level>=13, crown=level>=17, laur=level>=9;
   var dim=(state==='future');
   var g='<g'+(dim?' opacity=".92"':'')+'>';
 
   /* outer radiance on the last band */
-  if(level>=17&&!dim)g+='<circle cx="50" cy="47" r="46" fill="url(#gl'+uid+')"/>';
+  if(level>=17&&!dim)g+='<circle cx="50" cy="47" r="'+(46+prestige*1.6).toFixed(1)+'" fill="url(#gl'+uid+')"/>';
+  /* a prestige wreath of rays, one pass per cashflow tier */
+  if(prestige&&!dim)g+='<g transform="translate(50,47)" opacity="'+(0.2+prestige*0.1).toFixed(2)
+    +'"><path d="'+starPath(0,0,48+prestige*2,26,20+prestige*2)+'" fill="'+m.a+'"/></g>';
   /* wings */
   if(wings)g+='<g fill="'+m.ring+'" opacity=".85">'
     +'<path d="M22 44 C6 40 2 50 12 54 C4 56 6 64 16 62 C10 66 16 72 24 66 Z"/>'
@@ -465,8 +485,9 @@ function rankBadge(level,state,size){
     +'<text x="50" y="86" font-size="12.5" font-weight="900" text-anchor="middle" fill="'+(dim?'#e6e0d2':'#fff')
     +'" font-family="Inter,-apple-system,sans-serif" letter-spacing=".5">'+(level<10?('0'+level):level)+'</text>';
   /* band pips */
-  for(var p2=0;p2<pip;p2++){var px=50+(p2-(pip-1)/2)*7.5;
-    g+='<path d="'+starPath(px,66,2.7,1.15,5)+'" fill="'+(dim?'#b9b0a0':'#fff')+'" opacity=".92"/>';}
+  var pipN=(level>=19&&prestige)?prestige:pip;
+  for(var p2=0;p2<pipN;p2++){var px=50+(p2-(pipN-1)/2)*7.5;
+    g+='<path d="'+starPath(px,66,2.7,1.15,5)+'" fill="'+(dim?'#b9b0a0':((level>=19&&prestige)?GEMHUE[2]:'#fff'))+'" opacity=".95"/>';}
   g+='</g>';
 
   return '<svg viewBox="0 0 100 100" width="'+size+'" height="'+size+'" role="img" aria-label="Level '+level+' emblem">'
@@ -881,11 +902,28 @@ function ladderAgents(){
   var out=NODES.slice().sort(function(a,b){return (a.name||'').localeCompare(b.name||'');});
   return out;
 }
+/* Where the platform already places this agent — EMD clears the whole ladder, MD clears to
+   stage 13, everyone else sits at whatever their promotion and licensing record proves. */
+function derivedOf(code){return Number((BOARD.derived||{})[code])||0;}
+function isDerived(code,i){return i<derivedOf(code);}
 function checksFor(code,i){
+  /* A rank the company has already awarded outranks a checkbox. If the record says EMD, the
+     ladder beneath it is cleared — a stray all-false row must not un-complete it. Manual ticks
+     only ever ADD, above the derived floor. */
+  if(isDerived(code,i))return [true,true,true,true];
   var p=(BOARD.progress[code]||{})[String(i)];
   return Array.isArray(p)?p:[false,false,false,false];
 }
-function stageComplete(code,i){var c=checksFor(code,i);return c.length&&c.every(Boolean);}
+function stageComplete(code,i){
+  if(isDerived(code,i))return true;
+  var c=checksFor(code,i);return c.length&&c.every(Boolean);
+}
+function cashOf(code){var c=(BOARD.cash||{})[code];return c?c:{amount:0,prestige:0};}
+var CASH_TIERS=[100000,250000,500000,1000000,2500000];
+function money(n){n=Number(n)||0;
+  if(n>=1e6)return '$'+(Math.round(n/1e5)/10)+'M';
+  if(n>=1e3)return '$'+Math.round(n/1e3)+'K';
+  return '$'+Math.round(n);}
 /* As a tracker this has to open where you ARE. Starting everyone on stage one every time
    makes a nineteen-stage ladder feel like a brochure instead of a progress board. */
 function firstOpenStage(code){
@@ -933,7 +971,7 @@ function renderTeamLadder(){
   var rows=team.length?team.map(function(t){
     var n=t.n, rk=rankOf(n);
     return '<button class="tl" onclick="LADDER=\''+esc(n.code)+'\';STEP=firstOpenStage(\''+esc(n.code)+'\');ROADVIEW=\'mine\';renderRoad()">'
-      +'<span class="tlb">'+rankBadge(t.cur+1,t.done>t.cur?'complete':'current',40)+'</span>'
+      +'<span class="tlb">'+rankBadge(t.cur+1,t.done>t.cur?'complete':'current',40,cashOf(n.code).prestige)+'</span>'
       +'<span class="tli">'
         +'<b>'+esc(n.name||n.code)+'</b>'
         +'<i class="brk '+(rk?rk.cls:'rank-pending')+'">'+esc(rk?rk.short:'Rank pending')+'</i>'
@@ -966,15 +1004,16 @@ function renderRoad(){
   var mini=STAGES.map(function(sg,i){
     var cls=(i===STEP?'current ':'')+(stageComplete(LADDER,i)?'complete':'');
     return '<button class="mini '+cls+'" onclick="goStep('+i+')" title="'+esc((i+1)+'. '+sg)+'">'
-      +rankBadge(i+1,stageComplete(LADDER,i)?'complete':(i===STEP?'current':'future'),34)
+      +rankBadge(i+1,stageComplete(LADDER,i)?'complete':(i===STEP?'current':'future'),34,cashOf(LADDER).prestige)
       +'<span>'+(i+1)+'</span></button>';
   }).join('');
 
+  var auto=isDerived(LADDER,STEP);
   var reqs=[0,1,2,3].map(function(i){
     return '<label class="reqrow'+(checks[i]?' checked':'')+'" onclick="toggleReq('+i+')">'
       +'<span class="ck">\u2713</span>'
       +'<div><strong>Promotion Requirement '+(i+1)+'</strong>'
-      +'<small>'+(checks[i]?'Completed':'Requirement pending')+'</small></div></label>';
+      +'<small>'+(checks[i]?(auto?'Cleared by record':'Completed'):'Requirement pending')+'</small></div></label>';
   }).join('');
 
   var says=platformSays(STEP,sig);
@@ -994,7 +1033,7 @@ function renderRoad(){
     +'<div class="stagewrap">'
     +'<button class="arrow" onclick="goStep('+(STEP-1)+')"'+(STEP===0?' disabled':'')+' aria-label="Previous stage">\u2039</button>'
     +'<div class="rank-card">'
-    +'<div class="rank-visual">'+rankBadge(STEP+1,stageComplete(LADDER,STEP)?'complete':'current',290)
+    +'<div class="rank-visual">'+rankBadge(STEP+1,stageComplete(LADDER,STEP)?'complete':'current',290,cashOf(LADDER).prestige)
     +'<p>Level '+(STEP<9?('0'+(STEP+1)):(STEP+1))+' emblem</p><small>Summit progression badge</small></div>'
     +'<div class="rank-req"><header><div><div class="eyebrow">Progression step</div>'
     +'<h2>'+esc(STAGES[STEP])+'</h2>'
@@ -1002,14 +1041,45 @@ function renderRoad(){
     +'</div><span class="cnt">'+done+'/4</span></header>'
     +reqs
     +'<div class="stepbar"><span style="width:'+(done*25)+'%"></span></div>'
+    +(auto?('<div class="platform">Cleared automatically from '+esc(LADDER===CODE?'your':'their')+' record \u2014 '
+            +esc(rankLabelOf(LADDER))+'.</div>'):'')
     +(says?('<div class="platform">'+says+'</div>'):'')
+    +(STEP===18?cashPanel(LADDER):'')
     +'</div></div>'
     +'<button class="arrow" onclick="goStep('+(STEP+1)+')"'+(STEP===STAGES.length-1?' disabled':'')+' aria-label="Next stage">\u203a</button>'
     +'</div>'
     +'<div class="swipe">'+swipe+'</div>';
 }
+function rankLabelOf(code){
+  var n=BYCODE[code], rk=rankOf(n);
+  var lic=(code===CODE&&BOARD.signals)?(BOARD.signals.license_status||''):'';
+  return (rk?rk.short:'rank pending')+(lic?(' \u00b7 '+lic):'');
+}
+/* Past EMD the ladder is finished, so the last card tracks cashflow instead of checkboxes. */
+function cashPanel(code){
+  var c=cashOf(code), amt=c.amount, pr=c.prestige;
+  var next=null;
+  for(var i=0;i<CASH_TIERS.length;i++){if(amt<CASH_TIERS[i]){next=CASH_TIERS[i];break;}}
+  var prevT=pr>0?CASH_TIERS[pr-1]:0;
+  var pct=next?Math.max(2,Math.round((amt-prevT)/(next-prevT)*100)):100;
+  return '<div class="cashbox">'
+    +'<div class="cashhead"><span class="eyebrow">Cashflow from here</span>'
+    +'<b>'+money(amt)+'</b></div>'
+    +'<div class="cashstars">'+[0,1,2,3,4].map(function(i){
+        return '<span class="cs'+(i<pr?' on':'')+'">\u2605</span>';}).join('')
+    +'<i>'+(pr?('Prestige '+pr):'EMD')+'</i></div>'
+    +'<div class="stepbar" style="margin-top:12px"><span style="width:'+pct+'%"></span></div>'
+    +'<div class="cashnote">'+(next
+        ? (money(next-amt)+' more cashflow lifts the emblem to prestige '+(pr+1)+'.')
+        : 'Top prestige reached \u2014 the emblem is fully set.')+'</div>'
+    +'</div>';
+}
 function goStep(n){STEP=Math.max(0,Math.min(STAGES.length-1,n));renderRoad();}
 function toggleReq(i){
+  if(isDerived(LADDER,STEP)){
+    toast('Already cleared by '+(LADDER===CODE?'your':'their')+' promotion record');
+    return;
+  }
   var c=checksFor(LADDER,STEP).slice();
   c[i]=!c[i];
   if(!BOARD.progress[LADDER])BOARD.progress[LADDER]={};
