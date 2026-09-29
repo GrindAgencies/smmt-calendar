@@ -369,7 +369,7 @@ var NAME=localStorage.getItem('tsfg_name')||'';
 var TAB='map';
 
 var NODES=[], BYCODE={}, KIDS={}, ROOTS=[];
-var BOARD={tags:[],agent_tags:{},progress:{},production:{},derived:{},cash:{},signals:{},layout:{},can_manage:false};
+var BOARD={tags:[],agent_tags:{},progress:{},production:{},stages:{},cash:{},requirements:{},signals:{},layout:{},can_manage:false,can_set_standards:false,my_baseshop:''};
 var POS={}, ZOOM=1, PAN={x:0,y:0}, DRAG=null, COLLAPSED={}, QUERY='', ACTIVETAGS=[];
 var STEP=0, LADDER='', ROADVIEW='mine';
 /* My Tracker opens this page straight on the ladder (?tab=road), so the Road to EMD is the
@@ -902,17 +902,29 @@ function ladderAgents(){
   var out=NODES.slice().sort(function(a,b){return (a.name||'').localeCompare(b.name||'');});
   return out;
 }
-/* Where the platform already places this agent — EMD clears the whole ladder, MD clears to
-   stage 13, everyone else sits at whatever their promotion and licensing record proves. */
-function derivedOf(code){return Number((BOARD.derived||{})[code])||0;}
-function isDerived(code,i){return i<derivedOf(code);}
+/* Stages the platform can already prove for this agent: rank, the licensing board, the steps
+   they ticked in My Tracker, and logged field trainings. Per stage rather than a single floor —
+   somebody can have ten field trainings done and still not have passed the exam. */
+function stagesOf(code){var a=(BOARD.stages||{})[code];return Array.isArray(a)?a:[];}
+function isDerived(code,i){return stagesOf(code).indexOf(i)>=0;}
+
+/* Each baseshop sets its own promotion standards; a shop that has set none uses the placeholders. */
+var DEFAULT_REQS=['Promotion Requirement 1','Promotion Requirement 2','Promotion Requirement 3','Promotion Requirement 4'];
+function shopOf(code){var n=BYCODE[code];return ((n&&n.baseshop)||BOARD.my_baseshop||'').toLowerCase();}
+function reqLabels(code,i){
+  var byShop=(BOARD.requirements||{})[shopOf(code)]||{};
+  var l=byShop[String(i)];
+  return (Array.isArray(l)&&l.length)?l:DEFAULT_REQS;
+}
 function checksFor(code,i){
+  var n=reqLabels(code,i).length;
   /* A rank the company has already awarded outranks a checkbox. If the record says EMD, the
      ladder beneath it is cleared — a stray all-false row must not un-complete it. Manual ticks
-     only ever ADD, above the derived floor. */
-  if(isDerived(code,i))return [true,true,true,true];
+     only ever ADD, on top of what the platform can prove. */
+  if(isDerived(code,i)){var t=[];for(var j=0;j<n;j++)t.push(true);return t;}
   var p=(BOARD.progress[code]||{})[String(i)];
-  return Array.isArray(p)?p:[false,false,false,false];
+  var out=[];for(var k=0;k<n;k++)out.push(Array.isArray(p)?(p[k]===true):false);
+  return out;
 }
 function stageComplete(code,i){
   if(isDerived(code,i))return true;
@@ -997,7 +1009,7 @@ function renderRoad(){
   if(ROADVIEW==='team')return renderTeamLadder();
   var agents=ladderAgents();
   var sig=(LADDER===CODE)?(BOARD.signals||{}):{};
-  var checks=checksFor(LADDER,STEP), done=checks.filter(Boolean).length;
+  var checks=checksFor(LADDER,STEP), done=checks.filter(Boolean).length, total=checks.length||4;
   var cleared=stagesDone(LADDER), pctAll=Math.round(cleared/STAGES.length*100);
   var st=stageState(LADDER,STEP);
 
@@ -1009,10 +1021,11 @@ function renderRoad(){
   }).join('');
 
   var auto=isDerived(LADDER,STEP);
-  var reqs=[0,1,2,3].map(function(i){
+  var labels=reqLabels(LADDER,STEP);
+  var reqs=labels.map(function(lb,i){
     return '<label class="reqrow'+(checks[i]?' checked':'')+'" onclick="toggleReq('+i+')">'
       +'<span class="ck">\u2713</span>'
-      +'<div><strong>Promotion Requirement '+(i+1)+'</strong>'
+      +'<div><strong>'+esc(lb)+'</strong>'
       +'<small>'+(checks[i]?(auto?'Cleared by record':'Completed'):'Requirement pending')+'</small></div></label>';
   }).join('');
 
@@ -1038,13 +1051,14 @@ function renderRoad(){
     +'<div class="rank-req"><header><div><div class="eyebrow">Progression step</div>'
     +'<h2>'+esc(STAGES[STEP])+'</h2>'
     +'<span class="stchip '+st+'">'+(st==='complete'?'Stage complete':(st==='started'?'In progress':'Not started'))+'</span>'
-    +'</div><span class="cnt">'+done+'/4</span></header>'
+    +'</div><span class="cnt">'+done+'/'+total+'</span></header>'
     +reqs
-    +'<div class="stepbar"><span style="width:'+(done*25)+'%"></span></div>'
+    +'<div class="stepbar"><span style="width:'+Math.round(done/total*100)+'%"></span></div>'
     +(auto?('<div class="platform">Cleared automatically from '+esc(LADDER===CODE?'your':'their')+' record \u2014 '
             +esc(rankLabelOf(LADDER))+'.</div>'):'')
     +(says?('<div class="platform">'+says+'</div>'):'')
     +(STEP===18?cashPanel(LADDER):'')
+    +(BOARD.can_set_standards?('<button class="ghost" style="margin-top:12px" onclick="openStandards('+STEP+')">Edit '+esc(shopOf(LADDER).toUpperCase()||'shop')+' standards for this stage</button>'):'')
     +'</div></div>'
     +'<button class="arrow" onclick="goStep('+(STEP+1)+')"'+(STEP===STAGES.length-1?' disabled':'')+' aria-label="Next stage">\u203a</button>'
     +'</div>'
@@ -1073,6 +1087,42 @@ function cashPanel(code){
         ? (money(next-amt)+' more cashflow lifts the emblem to prestige '+(pr+1)+'.')
         : 'Top prestige reached \u2014 the emblem is fully set.')+'</div>'
     +'</div>';
+}
+/* An EMD writes their own shop's promotion standards. Up to six per stage; clearing them all
+   puts that stage back on the placeholders. Only this shop's EMD or Operations gets here —
+   the server checks again, so hiding the button is convenience rather than the control. */
+function openStandards(stage){
+  var shop=shopOf(LADDER)||BOARD.my_baseshop||'';
+  var cur=reqLabels(LADDER,stage);
+  var isDefault=!(((BOARD.requirements||{})[shop]||{})[String(stage)]||[]).length;
+  var fields='';
+  for(var i=0;i<6;i++){
+    var v=(!isDefault&&cur[i])?cur[i]:'';
+    fields+='<div class="fld"><label>Requirement '+(i+1)+(i>3?' (optional)':'')+'</label>'
+      +'<input id="rq'+i+'" value="'+esc(v)+'" placeholder="'+(i<4?'e.g. Submit 3 applications':'Leave blank to skip')+'"></div>';
+  }
+  $('drawer').innerHTML='<h3>'+esc(shop.toUpperCase()||'Baseshop')+' standards</h3>'
+    +'<p class="dsub">Stage '+(stage+1)+' \u00b7 '+esc(STAGES[stage])+'. These apply to everyone in '
+    +esc(shop.toUpperCase()||'this shop')+' \u2014 other baseshops keep their own.</p>'
+    +(isDefault?'<div class="platform" style="margin:0 0 14px">Currently on the default placeholders.</div>':'')
+    +fields
+    +'<button class="go" onclick="saveStandards('+stage+')">Save standards</button>'
+    +'<button class="ghost" onclick="closeDrawer()">Cancel</button>';
+  $('ov').classList.add('on');
+}
+function saveStandards(stage){
+  var shop=shopOf(LADDER)||BOARD.my_baseshop||'';
+  var labels=[];
+  for(var i=0;i<6;i++){var e=$('rq'+i);var v=e?(e.value||'').trim():'';if(v)labels.push(v);}
+  fetch(SUMAPI,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'req_set',code:CODE,baseshop:shop,stage_index:stage,labels:labels})})
+   .then(function(r){return r.json();}).then(function(r){
+     if(!r||!r.ok)return toast((r&&r.error)||'Could not save');
+     if(!BOARD.requirements[shop])BOARD.requirements[shop]={};
+     BOARD.requirements[shop][String(stage)]=r.labels||[];
+     closeDrawer();renderRoad();
+     toast(labels.length?'Standards saved for '+shop.toUpperCase():'Back to the default requirements');
+   }).catch(function(){toast('Network error');});
 }
 function goStep(n){STEP=Math.max(0,Math.min(STAGES.length-1,n));renderRoad();}
 function toggleReq(i){
