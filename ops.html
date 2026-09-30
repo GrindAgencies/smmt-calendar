@@ -242,6 +242,14 @@ tr:hover .nbcopy{opacity:1;}
 .nbcopy.ok{border-color:var(--green);color:var(--green);opacity:1;}
 /* Values in the tracker tables are there to be taken somewhere else — let them be selected. */
 #newbizHost td, #newbizHost th{user-select:text;-webkit-user-select:text;}
+.stflag{display:inline-block;padding:2px 8px;border-radius:7px;font-weight:800;font-size:12px;
+  line-height:1.5;white-space:nowrap}
+.stflag.red{background:rgba(214,69,80,.15);color:#d64550;border:1px solid rgba(214,69,80,.45)}
+.stflag.orange{background:rgba(224,122,47,.15);color:#e07a2f;border:1px solid rgba(224,122,47,.45)}
+input.cellin.stin{font-weight:800}
+input.cellin.stin.red{background:rgba(214,69,80,.14);color:#d64550;border-color:rgba(214,69,80,.5)}
+input.cellin.stin.orange{background:rgba(224,122,47,.14);color:#e07a2f;border-color:rgba(224,122,47,.5)}
+.stlegend{display:inline-flex;align-items:center;gap:13px;flex-wrap:wrap;font-size:11.5px;color:var(--ink3,#8e8e93)}
 </style>
 <script src="ops-session.js"></script>
 </head>
@@ -708,10 +716,49 @@ function nbFiltered(){var q=($('search').value||'').trim().toLowerCase();var a=N
 function nbSortBy(k){if(NBSORT.k===k)NBSORT.dir=-NBSORT.dir;else{NBSORT.k=k;NBSORT.dir=1;}paintNewbiz();}
 function nbSelectCell(t,col){var v=nbVal(t,col.key);var c=nbOptColor(col,v);return '<select class="cellin'+(col.key==='status'?' statuscell':'')+'" style="font-weight:700'+(v?(';color:'+c):'')+'" onchange="nbSet(\''+t.id+'\',\''+col.key+'\',this.value)"><option value=""></option>'+nbOpts(col).map(function(o,i){return '<option value="'+esc(o.value)+'"'+(o.value===v?' selected':'')+' style="color:'+esc(o.color)+'">'+esc((i+1)+'. '+o.value)+'</option>';}).join('')+'</select>';}
 function nbSelectPill(col,v){if(!v)return nbDash();var c=nbOptColor(col,v);var i=nbOptIndex(col,v);return '<span class="cpill" style="background:'+c+'22;color:'+c+'">'+esc((i>=0?(i+1)+'. ':'')+v)+'</span>';}
+/* ===== STATE RISK FLAGS (New Business / client profile only — never Licensing) ==========
+   Christopher listed fifteen states to watch and three to treat as red. The State column is
+   written both ways in the real data — "FL" and "Florida" both appear, and so do "VA" and
+   "Virginia" — so both spellings are matched. West Virginia is kept distinct from Virginia,
+   which a naive "starts with V" check would quietly collapse. */
+var ST_RED = {'fl':1,'florida':1,'va':1,'virginia':1,'wv':1,'west virginia':1};
+var ST_ORANGE = {'al':1,'alabama':1,'ga':1,'georgia':1,'nm':1,'new mexico':1,
+  'sd':1,'south dakota':1,'la':1,'louisiana':1,'ky':1,'kentucky':1,'ma':1,'massachusetts':1,
+  'ms':1,'mississippi':1,'mt':1,'montana':1,'nc':1,'north carolina':1,'pa':1,'pennsylvania':1,
+  'pr':1,'puerto rico':1,'sc':1,'south carolina':1,'ut':1,'utah':1,'wi':1,'wisconsin':1};
+function stateFlag(v){
+  var k=(v==null?'':String(v)).trim().toLowerCase().replace(/[.]/g,'').replace(/\s+/g,' ');
+  if(!k)return '';
+  if(ST_RED[k])return 'red';
+  if(ST_ORANGE[k])return 'orange';
+  return '';
+}
+/* Colour with no key is just decoration, so the header says what the two colours mean —
+   and only when this board actually has a State column with something flagged in it. */
+function stateLegend(rows){
+  if(!NBCOLS.some(function(c){return c.key==='state';}))return '';
+  var red=0,orange=0;
+  (rows||[]).forEach(function(t){var f=stateFlag(nbVal(t,'state'));if(f==='red')red++;else if(f==='orange')orange++;});
+  if(!red&&!orange)return '';
+  var bits=[];
+  if(red)bits.push('<span class="stflag red">'+red+' red</span>');
+  if(orange)bits.push('<span class="stflag orange">'+orange+' watch</span>');
+  return ' <span class="stlegend">'+bits.join('')+'</span>';
+}
+function stateCellHtml(v){
+  var f=stateFlag(v);
+  if(!f)return (esc(v)||'—');
+  return '<span class="stflag '+f+'" title="'+(f==='red'?'Red state':'Watch state')+'">'+esc(v)+'</span>';
+}
 function nbCell(t,col){var v=nbVal(t,col.key);var ed=NBEDIT&&!col.ro;var firstKey=NBCOLS[0]&&NBCOLS[0].key;
   if(col.type==='select')return ed?nbSelectCell(t,col):nbSelectPill(col,v);
   if(col.key==='client'&&NBLIVE&&v)return '<button class="namebtn" onclick="openClient(\''+esc(String(v)).replace(/'/g,"\\'")+'\')" title="Open client profile">'+esc(v)+'</button><a onclick="openTicket(\''+t.id+'\')" title="Open policy ticket" style="cursor:pointer;color:var(--ink3);margin-left:7px;font-size:12px;text-decoration:none">📄</a>';
   if(col.key===firstKey)return '<a onclick="openTicket(\''+t.id+'\')" style="cursor:pointer;font-weight:800;color:var(--gold);text-decoration:none">'+(esc(v)||'—')+'</a>';
+  if(col.key==='state'){
+    var sf=stateFlag(v);
+    if(ed)return '<input class="cellin'+(sf?(' stin '+sf):'')+'" value="'+esc(v)+'" placeholder="—" onchange="nbSet(\''+t.id+'\',\''+col.key+'\',this.value)">';
+    return stateCellHtml(v);
+  }
   if(ed)return '<input class="cellin"'+(col.type==='money'?' style="text-align:right"':'')+' value="'+esc(v)+'" placeholder="—" onchange="nbSet(\''+t.id+'\',\''+col.key+'\',this.value)">';
   return col.type==='money'?(esc(nbFmtMoney(v))||nbDash()):(esc(v)||nbDash());}
 /* ===== COPY / PASTE =====================================================================
@@ -775,7 +822,7 @@ function paintNewbiz(){var host=$('newbizHost');if(!host)return;var rows=nbFilte
   var ifBtn=NBLIVE?('<button class="dbtn ghost" style="padding:6px 12px;font-size:12.5px" onclick="setTab(\'inforce\')" title="On the books — still tracked, just not pending">🟢 In Force ('+NBIFCOUNT+')</button>'):'';
   var copyAllBtn='<button class="dbtn ghost" style="padding:6px 12px;font-size:12.5px" onclick="nbCopyAll(this)" title="Copy every record shown, tab-separated — pastes into Sheets or Excel as columns">⧉ Copy all</button>';
   var toolbar=NBLIVE?('<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span style="font-size:12px;color:var(--green);font-weight:800">🔄 Live · two-way synced with agents</span>'+ifBtn+liveArchBtn+copyAllBtn+(NBEDIT?'<button class="dbtn ghost" style="padding:6px 12px;font-size:12.5px" onclick="openNbCols()">⚙ Reorder columns</button>':'')+'</div>'):(NBEDIT?('<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="dbtn ghost" style="padding:6px 12px;font-size:12.5px" onclick="openSheetImport()" title="Bring your existing Google Sheet onto this board">📥 Import from Google Sheets</button><button class="dbtn ghost" style="padding:6px 12px;font-size:12.5px'+(NBARCH?';border-color:var(--gold);color:var(--gold)':'')+'" onclick="nbToggleArch()">🗄 '+(NBARCH?'Viewing archive — back to active':'Archived ('+NBARCHCOUNT+')')+'</button><button class="dbtn ghost" style="padding:6px 12px;font-size:12.5px" onclick="openNbCols()">⚙ Edit columns</button></div>'):'');
-  host.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin:0 0 10px;flex-wrap:wrap"><div style="font-size:12.5px;color:var(--ink3,#8e8e93)">'+rows.length+' '+(NBARCH?'archived ':'')+(rows.length===1?noun:nouns)+' · click the first cell to open '+(NBLIVE?'notes &amp; history':(NBBOARD==='gfi'?'the ticket &amp; update history':'notes'))+(NBEDIT&&!NBARCH?(NBLIVE?' · every field edits inline &amp; syncs to the agent side (Writing Agent &amp; Baseshop are derived)':' · cells edit inline'):'')+'</div>'+toolbar+'</div>'+
+  host.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin:0 0 10px;flex-wrap:wrap"><div style="font-size:12.5px;color:var(--ink3,#8e8e93)">'+rows.length+' '+(NBARCH?'archived ':'')+(rows.length===1?noun:nouns)+stateLegend(rows)+' · click the first cell to open '+(NBLIVE?'notes &amp; history':(NBBOARD==='gfi'?'the ticket &amp; update history':'notes'))+(NBEDIT&&!NBARCH?(NBLIVE?' · every field edits inline &amp; syncs to the agent side (Writing Agent &amp; Baseshop are derived)':' · cells edit inline'):'')+'</div>'+toolbar+'</div>'+
     '<div class="tablewrap" style="overflow-x:auto"><table class="ptable" style="min-width:1200px"><thead><tr>'+head+'</tr></thead><tbody>'+body+'</tbody></table></div>';}
 function nbSet(id,field,val){nbApi({action:'nb_update',id:id,field:field,value:val}).then(function(r){if(!r||!r.ok){toast((r&&r.error)||'Save failed');return;}var t=NBT.filter(function(x){return x.id===id;})[0];if(t){t.data=t.data||{};t.data[field]=val;}if(r.moved){NBT=NBT.filter(function(x){return x.id!==id;});closeDrawer();if(r.moved==='inforce'){NBIFCOUNT++;toast('🟢 In force — still tracked, now on the In Force tab');}else{NBARCHCOUNT++;toast('🗄 Closed — moved to Archived');}paintNewbiz();return;}paintNewbiz();if(field!=='_color')toast('Saved ✓');});}
 function nbDrawerField(id,col,v){var ed=NBEDIT&&!col.ro;
@@ -1287,7 +1334,7 @@ function paintClient(){
     +((!cPh&&!cEm)?'<span class="sub">No phone or email on file yet.</span>':'')
     +'</div></div>';
   // policies
-  h+='<div class="dsec"><h4>📄 Policies</h4>'+(pols.length?pols.map(function(t){var d=t.data||{};return '<div class="polrow"><div class="pt">'+esc(d.carrier||'—')+(d.product?(' · '+esc(d.product)):'')+' · '+money(d.ap)+'</div><div class="pm"><span>'+esc(d.agent||'')+'</span><span>'+esc(d.status||'')+'</span><span>#'+esc(d.policy_num||'—')+'</span></div></div>';}).join(''):'<div class="sub">No policies on record for this name.</div>')+'</div>';
+  h+='<div class="dsec"><h4>📄 Policies</h4>'+(pols.length?pols.map(function(t){var d=t.data||{};return '<div class="polrow"><div class="pt">'+esc(d.carrier||'—')+(d.product?(' · '+esc(d.product)):'')+' · '+money(d.ap)+'</div><div class="pm"><span>'+esc(d.agent||'')+'</span>'+(d.state?('<span>'+stateCellHtml(d.state)+'</span>'):'')+'<span>'+esc(d.status||'')+'</span><span>#'+esc(d.policy_num||'—')+'</span></div></div>';}).join(''):'<div class="sub">No policies on record for this name.</div>')+'</div>';
   // tasks / commission tickets
   var overdue=tk.overdue||[],open=tk.open||[],done=tk.completed||[];
   h+='<div class="dsec"><h4>✅ Tasks &amp; Commission Tickets <span style="color:var(--ink3);font-weight:700;text-transform:none;letter-spacing:0">· '+(overdue.length)+' overdue · '+(open.length)+' open · '+(done.length)+' done</span></h4>';
