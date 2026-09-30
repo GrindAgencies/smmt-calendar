@@ -247,8 +247,6 @@ tr:hover .nbcopy{opacity:1;}
 .stflag.red{background:rgba(214,69,80,.15);color:#d64550;border:1px solid rgba(214,69,80,.45)}
 .stflag.orange{background:rgba(224,122,47,.15);color:#e07a2f;border:1px solid rgba(224,122,47,.45)}
 input.cellin.stin{font-weight:800}
-input.cellin.stin.red{background:rgba(214,69,80,.14);color:#d64550;border-color:rgba(214,69,80,.5)}
-input.cellin.stin.orange{background:rgba(224,122,47,.14);color:#e07a2f;border-color:rgba(224,122,47,.5)}
 .strow{display:flex;align-items:center;gap:8px;margin-bottom:7px}
 .strow input[type=color]{width:38px;height:32px;padding:0;border:1px solid var(--line2);border-radius:8px;background:none;cursor:pointer}
 .strow input:not([type=color]){flex:1;padding:7px 10px;border-radius:9px;border:1px solid var(--line2);background:var(--panel)}
@@ -851,8 +849,11 @@ function nbCell(t,col){var v=nbVal(t,col.key);var ed=NBEDIT&&!col.ro;var firstKe
   if(col.key==='client'&&NBLIVE&&v)return '<button class="namebtn" onclick="openClient(\''+esc(String(v)).replace(/'/g,"\\'")+'\')" title="Open client profile">'+esc(v)+'</button><a onclick="openTicket(\''+t.id+'\')" title="Open policy ticket" style="cursor:pointer;color:var(--ink3);margin-left:7px;font-size:12px;text-decoration:none">📄</a>';
   if(col.key===firstKey)return '<a onclick="openTicket(\''+t.id+'\')" style="cursor:pointer;font-weight:800;color:var(--gold);text-decoration:none">'+(esc(v)||'—')+'</a>';
   if(col.key==='state'){
-    var sf=stateFlag(v);
-    if(ed)return '<input class="cellin'+(sf?(' stin '+sf):'')+'" value="'+esc(v)+'" placeholder="—" onchange="nbSet(\''+t.id+'\',\''+col.key+'\',this.value)">';
+    /* Categories are Operations' own now, so the tint comes from the category's colour rather
+       than a fixed class — an editable cell keeps its colour while Ops is typing in it. */
+    var sc=stateCatObj(stateCat(v));
+    if(ed)return '<input class="cellin stin"'+(sc?(' style="background:'+sc.color+'24;color:'+sc.color+';border-color:'+sc.color+'80"'):'')
+      +' value="'+esc(v)+'" placeholder="—" onchange="nbSet(\''+t.id+'\',\''+col.key+'\',this.value)">';
     return stateCellHtml(v);
   }
   if(ed)return '<input class="cellin"'+(col.type==='money'?' style="text-align:right"':'')+' value="'+esc(v)+'" placeholder="—" onchange="nbSet(\''+t.id+'\',\''+col.key+'\',this.value)">';
