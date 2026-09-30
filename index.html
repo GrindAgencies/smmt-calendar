@@ -549,7 +549,7 @@ html, body{ overflow-x: hidden; }
     <a class="side-link" href="checklist.html">${ICON.check}<span class="lbl">Road to EMD</span></a>
     <a class="side-link" href="marketing.html">${ICON.users}<span class="lbl">Marketing Plan</span></a>
     <a class="side-link" href="team.html">${ICON.team}<span class="lbl">My Team</span></a>
-    <a class="side-link" href="org.html">${ICON.tree}<span class="lbl">Org Chart</span></a>
+    <a class="side-link" href="summit.html?tab=map">${ICON.tree}<span class="lbl">Org Chart</span></a>
     <a class="side-link" href="resources.html">${ICON.book}<span class="lbl">Resources</span></a>
     <div class="side-sec">Leadership</div>
     <a class="side-link" href="ops.html">${ICON.chart}<span class="lbl">Ops Dashboard</span></a>
@@ -606,7 +606,7 @@ html, body{ overflow-x: hidden; }
         <a class="qa-card" href="checklist.html"><div class="ic">${ICON.check}</div><div class="t">Road to EMD</div><div class="d">19-stage ladder</div></a>
         <a class="qa-card" href="marketing.html"><div class="ic">${ICON.users}</div><div class="t">Call List</div><div class="d">Work your leads</div></a>
         <a class="qa-card" href="team.html"><div class="ic">${ICON.team}</div><div class="t">My Team</div><div class="d">Coach your people</div></a>
-        <a class="qa-card" href="org.html"><div class="ic">${ICON.tree}</div><div class="t">Org Chart</div><div class="d">See the baseshop</div></a>
+        <a class="qa-card" href="summit.html?tab=map"><div class="ic">${ICON.tree}</div><div class="t">Org Chart</div><div class="d">See the baseshop</div></a>
       </div>
 
       <!-- AGENCY ACTIVITY (full width) -->
@@ -1424,7 +1424,7 @@ var AS_INDEX=[
  {t:'Road to EMD',i:'\u2705',s:'Your fast-start checklist and levels',h:'checklist.html',k:'tracker checklist fast start licensing license exam prelicensing prelicense carriers writing code onboarding levels promotion'},
  {t:'Marketing Plan',i:'\u{1F4C7}',s:'Your Top 100 and warm market',h:'marketing.html',k:'marketing plan leads lead top 100 warm market prospects contacts names list namelist calls'},
  {t:'My Team',i:'\u{1F465}',s:'Your downline and their numbers',h:'team.html',k:'team downline recruits agents roster my team stats partners'},
- {t:'Org Chart',i:'\u{1F3DB}',s:'The full hierarchy',h:'org.html',k:'org chart hierarchy upline downline structure tree baseshop base shop reporting'},
+ {t:'Org Chart',i:'\u{1F3DB}',s:'The full hierarchy',h:'summit.html?tab=map',k:'org chart hierarchy upline downline structure tree baseshop base shop reporting'},
  {t:'Resources',i:'\u{1F4DA}',s:'Carriers, scripts, recordings',h:'resources.html',k:'resources library tools documents'},
  {t:'Scripts',i:'\u{1F4DC}',s:'In Resources \u00b7 phone and objection scripts',h:'resources.html?tab=script',k:'scripts script objection objections rebuttal rebuttals phone call talk track wording what to say'},
  {t:'Carriers',i:'\u{1F3E6}',s:'In Resources \u00b7 contacts and writing codes',h:'resources.html?tab=carrier',k:'carrier carriers underwriting rep contact writing code appointment products'},
@@ -1445,7 +1445,7 @@ function asPeople(q){
         if(!r||!r.name)return;var key=String(r.code||r.name).toUpperCase();if(seen[key])return;
         if(String(r.name).toLowerCase().indexOf(q)<0&&String(r.code||'').toLowerCase().indexOf(q)<0)return;
         seen[key]=1;
-        out.push({t:r.name,i:'\u{1F464}',s:(r.code||'')+(r.baseshop?(' \u00b7 '+r.baseshop):''),h:'org.html',kind:'Person'});
+        out.push({t:r.name,i:'\u{1F464}',s:(r.code||'')+(r.baseshop?(' \u00b7 '+r.baseshop):''),h:'summit.html?tab=map',kind:'Person'});
       });
     });
   }catch(e){}

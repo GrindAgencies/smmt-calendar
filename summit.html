@@ -313,6 +313,17 @@ h1.big{margin:4px 0 0;font-size:26px;letter-spacing:-.01em;font-weight:800}
   #stage{height:64vh}
   .wrap{padding:0 12px 70px}
 }
+
+/* Everyone is on this chart, so the chart has to say who is who at a glance. */
+.bub.alum{opacity:.42;filter:grayscale(.85)}
+.bub.alum .bname::after{content:' \00b7 Alumni';font-size:9px;color:var(--ink3,#8e8e93);font-weight:700}
+.bub.othershop{opacity:.82}
+.bub .mv{position:absolute;left:-6px;bottom:-6px;width:22px;height:22px;border-radius:50%;
+  border:1px solid rgba(242,209,122,.55);background:#14110a;color:#f2d17a;font-size:12px;line-height:1;
+  cursor:pointer;display:grid;place-items:center;padding:0;font-family:inherit}
+.bub .mv:hover{background:#241d0c}
+.bub.moving{outline:2px dashed #f2d17a;outline-offset:4px;z-index:40}
+.bub.droptarget{outline:2px solid rgba(90,200,120,.85);outline-offset:3px;cursor:copy}
 </style>
 </head>
 <body>
@@ -335,14 +346,14 @@ h1.big{margin:4px 0 0;font-size:26px;letter-spacing:-.01em;font-weight:800}
     </svg>
     <div><b>Summit</b><small>The Standard</small></div>
   </div>
-  <div class="ptitle" id="ptitle">Organization Map</div>
+  <div class="ptitle" id="ptitle">Org Chart</div>
   <button class="iconbtn" onclick="openMenu()" title="Menu" aria-label="Menu">☰</button>
   <a class="iconbtn" href="dashboard.html" title="Back to dashboard" aria-label="Back to dashboard" style="text-decoration:none">←</a>
 </header>
 
 <div class="wrap">
   <nav class="tabs" role="tablist">
-    <button class="tab on" id="tab_map"  onclick="setTab('map')">Organization Map</button>
+    <button class="tab on" id="tab_map"  onclick="setTab('map')">Org Chart</button>
     <button class="tab"    id="tab_perf" onclick="setTab('perf')">Top Performers</button>
     <button class="tab"    id="tab_road" onclick="setTab('road')">Road to EMD</button>
   </nav>
@@ -354,7 +365,7 @@ h1.big{margin:4px 0 0;font-size:26px;letter-spacing:-.01em;font-weight:800}
 
 <script>
 /* ========================================================================================
-   Summit — Organization Map · Top Performers · Road to EMD
+   Summit — Org Chart · Top Performers · Road to EMD
    Integrated into the existing app rather than rebuilt: the hierarchy, ranks and production
    all come from the live platform. org-api owns the tree (and applies baseshop scoping),
    the policies ledger owns production, and summit-api owns only what is genuinely new —
@@ -369,6 +380,7 @@ var NAME=localStorage.getItem('tsfg_name')||'';
 var TAB='map';
 
 var NODES=[], BYCODE={}, KIDS={}, ROOTS=[];
+var CANEDIT=false, SCOPE='baseshop', MOVING=null, SHOWALUM=false;   /* MOVING = the code currently being re-parented */
 var BOARD={tags:[],agent_tags:{},progress:{},production:{},stages:{},cash:{},requirements:{},signals:{},layout:{},can_manage:false,can_set_standards:false,my_baseshop:''};
 var POS={}, ZOOM=1, PAN={x:0,y:0}, DRAG=null, COLLAPSED={}, QUERY='', ACTIVETAGS=[];
 var STEP=0, LADDER='', ROADVIEW='mine';
@@ -507,7 +519,11 @@ function rankBadgeSVG(level,state,size,prestige){
    does not pull a megabyte of artwork to draw thumbnails. */
 function rankBadge(level,state,size,prestige){
   level=Math.max(1,Math.min(19,level|0)); size=size||120;
-  prestige=(level>=19)?Math.max(0,Math.min(5,prestige|0)):0;
+  /* Past EMD the emblem grows on CASHFLOW, not promotion. The artwork is fixed, so each level Eli
+     has set adds a DIAMOND under the badge — Christopher, 2026-09-30: "set more levels to be able
+     to add diamonds to the emblem to make them grow". The cap is however many levels exist. */
+  var maxPrestige=cashTiers().length;
+  prestige=(level>=19)?Math.max(0,Math.min(maxPrestige,prestige|0)):0;
   var nn=(level<10?'0':'')+level;
   var src=(size<=72?'assets/ranks/sm/rank-':'assets/ranks/rank-')+nn+'.webp';
   var future=(state==='future');
@@ -519,9 +535,19 @@ function rankBadge(level,state,size,prestige){
   var glow=(prestige&&!future)
     ? '<span style="position:absolute;inset:'+(-Math.round(size*0.06))+'px;border-radius:50%;pointer-events:none;background:radial-gradient(circle,rgba(212,175,55,'+(0.10+prestige*0.05).toFixed(2)+') 0%,rgba(212,175,55,0) 70%)"></span>'
     : '';
-  var chip=(prestige&&size>=90)
-    ? '<span style="position:absolute;right:'+Math.round(size*0.02)+'px;bottom:'+Math.round(size*0.02)+'px;background:linear-gradient(180deg,#f5cf5b,#a8841f);color:#1a1405;font-weight:900;font-size:'+Math.max(9,Math.round(size*0.075))+'px;line-height:1;padding:'+Math.round(size*0.022)+'px '+Math.round(size*0.045)+'px;border-radius:999px;box-shadow:0 1px 4px rgba(0,0,0,.5)">\u2605'+prestige+'</span>'
-    : '';
+  var chip='';
+  if(prestige){
+    var ds=Math.max(7,Math.round(size*0.105)), gems='';
+    for(var gi=0;gi<prestige;gi++){
+      gems+='<span title="'+esc(tierName(gi))+'" style="width:'+ds+'px;height:'+ds+'px;'
+         +'background:linear-gradient(145deg,#eaf6ff 0%,#7fc4ff 40%,#2a7fd4 75%,#0d3f73 100%);'
+         +'transform:rotate(45deg);border-radius:'+Math.max(1,Math.round(ds*0.12))+'px;'
+         +'box-shadow:0 0 '+Math.round(ds*0.5)+'px rgba(120,190,255,.75),inset 0 0 2px rgba(255,255,255,.9);'
+         +'display:inline-block"></span>';
+    }
+    chip='<span style="position:absolute;left:0;right:0;bottom:'+Math.round(-ds*0.55)+'px;display:flex;gap:'
+       +Math.max(2,Math.round(ds*0.42))+'px;justify-content:center;align-items:center;pointer-events:none">'+gems+'</span>';
+  }
   /* The fallback is wired through one delegated listener rather than an inline onerror: inline
      handlers are the first thing a Content-Security-Policy blocks, and a rank that silently
      renders as a blank square is worse than one drawn from the old SVG. */
@@ -582,11 +608,16 @@ function boot(){
     fetch(SUMAPI,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'board',code:CODE})}).then(function(r){return r.json();}).catch(function(){return null;})
   ]).then(function(res){
     var t=res[0]||{}, b=res[1]||{};
-    /* org-api returns the whole company and marks anyone outside your baseshop `limited`.
-       Honour that here or the map quietly hands an associate every other shop's roster —
-       the isolation rule the rest of the platform enforces. Departed people are Alumni and
-       are never counted, per the family-tree rule. */
-    NODES=(t.nodes||[]).filter(function(n){return !n.departed&&!n.limited;});
+    /* THE ORG CHART IS THE ONE DELIBERATELY COMPANY-WIDE VIEW. Christopher, asked directly
+       (org-api v10): "Names company-wide, details own shop only." org-api already enforces that
+       — a `limited` node arrives with its name, level and upline but with email, phone, licence
+       status, activity and streak stripped. Filtering those people out here, as this map did
+       from 2026-09-28, hid most of the company from most of the company and contradicted the
+       rule the Org Chart page itself has always followed.
+       Departed people stay as shadow Alumni: on the tree, never counted. */
+    NODES=(t.nodes||[]).slice();
+    CANEDIT=!!t.can_edit_hierarchy;
+    SCOPE=t.scope||'baseshop';
     BYCODE={};KIDS={};
     NODES.forEach(function(n){n.code=(n.code||'').toUpperCase();BYCODE[n.code]=n;});
     NODES.forEach(function(n){var p=(n.direct_to||'').toUpperCase();if(p&&BYCODE[p])(KIDS[p]=KIDS[p]||[]).push(n);});
@@ -607,7 +638,7 @@ function boot(){
     LADDER=CODE;
     STEP=firstOpenStage(LADDER);
     ['map','perf','road'].forEach(function(k){var b=$('tab_'+k);if(b)b.classList.toggle('on',k===TAB);});
-    $('ptitle').textContent=(TAB==='map')?'Organization Map':(TAB==='perf')?'Top Performers':'Road to EMD';
+    $('ptitle').textContent=(TAB==='map')?'Org Chart':(TAB==='perf')?'Top Performers':'Road to EMD';
     render();
     setTimeout(function(){var c=$('curtain');if(c)c.classList.add('gone');},900);
   });
@@ -622,7 +653,7 @@ function depthOf(code,guard){
 function setTab(t){
   TAB=t;
   ['map','perf','road'].forEach(function(k){var b=$('tab_'+k);if(b)b.classList.toggle('on',k===t);});
-  $('ptitle').textContent=(t==='map')?'Organization Map':(t==='perf')?'Top Performers':'Road to EMD';
+  $('ptitle').textContent=(t==='map')?'Org Chart':(t==='perf')?'Top Performers':'Road to EMD';
   render();
 }
 function render(){
@@ -636,7 +667,19 @@ function render(){
    this organisation is 138 across six generations, so each subtree is given an angular
    slice proportional to how many visible descendants it has, and the ring radius grows
    with depth. Nobody overlaps and arbitrary depth is supported. */
-function visibleKids(code){ return COLLAPSED[code]?[]:(KIDS[code]||[]); }
+/* 51 of the 189 people on this chart have left. They belong on a family tree, but drawing all of
+   them at once put 139 bubbles on top of each other — the radial layout was sized for the ~138
+   working roster. Alumni are therefore folded away by default and brought back with one toggle. */
+function alumHidden(n){ return !SHOWALUM && n && n.departed; }
+function toggleAlumni(){ SHOWALUM=!SHOWALUM; paintBubbles(); fitToView();
+  var b=document.getElementById('alumBtn'); if(b)b.textContent=SHOWALUM?('Hide alumni ('+alumCount()+')'):('Show alumni ('+alumCount()+')');
+}
+function alumCount(){ return NODES.filter(function(n){return n.departed;}).length; }
+  function visibleKids(code){
+    if(COLLAPSED[code])return [];
+    var k=KIDS[code]||[];
+    return SHOWALUM ? k : k.filter(function(c){return !c.departed;});
+  }
 function leafCount(code){
   var k=visibleKids(code);
   if(!k.length)return 1;
@@ -714,13 +757,16 @@ function renderMap(){
     +'<button class="tool" onclick="centreMap()">Center</button>'
     +'<button class="tool" onclick="resetLayout()">Reset layout</button>'
     +'<button class="tool" onclick="expandAll()">Expand all</button>'
+    +'<button class="tool" id="alumBtn" onclick="toggleAlumni()" title="People who have left stay on the family tree but are never counted">Show alumni ('+alumCount()+')</button>'
+    +(CANEDIT?'<button class="tool" id="mvCancel" onclick="cancelMove()" style="display:none">Cancel move</button>':'')
     +'<button class="tool" onclick="collapseDeep()">Collapse</button>'
     +'<span class="zoomwrap"><button class="iconbtn" onclick="bumpZoom(-0.15)">−</button>'
     +'<span class="zpct" id="zpct">'+Math.round(ZOOM*100)+'%</span>'
     +'<button class="iconbtn" onclick="bumpZoom(0.15)">+</button></span></div>'
     +tagbar
     +'<div id="stage"><div id="plane"><svg id="wires"></svg></div></div>'
-    +'<div class="maphint"><span>Drag a bubble to move it</span><span>Drag the canvas to pan</span>'
+    +'<div class="maphint">'+(CANEDIT?'<span><b style="color:var(--gold)">\u21c4</b> on a bubble, then tap their new upline</span>':'')
+    +'<span>Drag a bubble to move it</span><span>Drag the canvas to pan</span>'
     +'<span>Scroll to zoom</span><span>− / + on a bubble folds that team</span></div>';
   wireStage();
   paintBubbles();
@@ -756,11 +802,15 @@ function paintBubbles(){
     var face=n.has_photo
       ? '<img src="'+AVATAR+'?code='+encodeURIComponent(code)+'" alt="" loading="lazy">'
       : esc(initials(n.name));
-    html+='<div class="bub'+(dim?' dim':'')+(hit?' hit':'')+'" data-code="'+esc(code)+'" '
-      +'style="left:'+p.x.toFixed(1)+'px;top:'+p.y.toFixed(1)+'px" onclick="openAgent(\''+esc(code)+'\')">'
+    var alum=!!n.departed, other=!!n.limited;
+      var extra=(alum?' alum':'')+(other?' othershop':'')+((MOVING===code)?' moving':'')
+              +((MOVING&&MOVING!==code&&canDropOn(code))?' droptarget':'');
+      html+='<div class="bub'+(dim?' dim':'')+(hit?' hit':'')+extra+'" data-code="'+esc(code)+'" '
+      +'style="left:'+p.x.toFixed(1)+'px;top:'+p.y.toFixed(1)+'px" onclick="bubbleTap(\''+esc(code)+'\')">'
       +'<div class="disc" style="width:'+size+'px;height:'+size+'px;font-size:'+(size*0.3).toFixed(0)+'px">'+face
       +(prod?'<span class="prod">'+fmtPts(prod)+'</span>':'')
       +(kids?'<button class="tog" onclick="event.stopPropagation();toggleBranch(\''+esc(code)+'\')" title="Fold this team">'+(COLLAPSED[code]?'+':'−')+'</button>':'')
+      +((CANEDIT&&!n.departed&&code!==ROOTS[0])?'<button class="mv" onclick="event.stopPropagation();startMove(\''+esc(code)+'\')" title="Move this person under a different upline">\u21c4</button>':'')
       +'</div>'
       +'<div class="bnm"'+(d>=3?' style="font-size:11px;max-width:104px"':'')+'>'+esc(n.name||code)+'</div>'
       +((d>=3&&!rk)?'':'<div class="brk '+(rk?rk.cls:'rank-pending')+'">'+esc(rk?rk.short:'Rank pending')+'</div>')
@@ -807,6 +857,118 @@ function fitToView(){
   applyTransform();saveLayout();
 }
 function expandAll(){COLLAPSED={};paintBubbles();fitToView();}
+
+/* ===== Cashflow levels (Eli + Operations only) =====
+   Adding a level is deliberately NOT an EMD power: an EMD could otherwise invent a level they
+   have just cleared and hand themselves a diamond. summit-api enforces the same rule server-side,
+   so this button only hides a control that would be refused anyway. */
+function canSetLevels(){ return !!(BOARD && BOARD.can_set_levels); }
+function openLevels(){
+  if(!canSetLevels()){ toast('Only Elijah Cox and Operations can change the cashflow levels.'); return; }
+  var t=cashTiers();
+  var rows=t.map(function(x,i){return lvlRow(x.at,x.name,i);}).join('');
+  var h='<h3>Cashflow levels past EMD</h3>'
+   +'<p style="font-size:12.5px;color:var(--ink3);line-height:1.5;margin:0 0 14px">Every level someone crosses adds a diamond to their emblem. Paid cashflow only \u2014 the same number the Road to EMD already shows.</p>'
+   +'<div id="lvlRows">'+rows+'</div>'
+   +'<button class="tool" style="margin-top:10px" onclick="addLvlRow()">+ Add a level</button>'
+   +'<div id="lvlErr" style="color:#e0533d;font-size:12.5px;margin-top:10px"></div>'
+   +'<div class="dact" style="margin-top:16px;display:flex;gap:8px"><button class="go" id="lvlSave" onclick="saveLevels()">Save levels</button>'
+   +'<button class="tool" onclick="closeDrawer()">Cancel</button></div>';
+  $('drawer').innerHTML=h; $('ov').classList.add('on');
+}
+function lvlRow(at,name,i){
+  return '<div class="lvlrow" style="display:flex;gap:8px;align-items:center;margin-bottom:8px">'
+   +'<span style="width:22px;height:22px;flex:0 0 auto;background:linear-gradient(145deg,#eaf6ff,#7fc4ff 40%,#2a7fd4 75%,#0d3f73);transform:rotate(45deg);border-radius:3px"></span>'
+   +'<input class="lvlAt" type="number" min="1" step="1000" value="'+(Number(at)||0)+'" placeholder="500000" style="width:130px;border:1.5px solid var(--line2,#2b2410);border-radius:10px;padding:9px 11px;background:var(--panel,#111006);color:var(--ink,#f6f1e0);font-family:inherit;font-size:14px">'
+   +'<input class="lvlName" value="'+esc(name||'')+'" placeholder="Name this level" style="flex:1;min-width:0;border:1.5px solid var(--line2,#2b2410);border-radius:10px;padding:9px 11px;background:var(--panel,#111006);color:var(--ink,#f6f1e0);font-family:inherit;font-size:14px">'
+   +'<button class="tool" onclick="this.parentNode.remove()" title="Remove this level">\u2715</button></div>';
+}
+function addLvlRow(){ var h=document.getElementById('lvlRows'); if(h)h.insertAdjacentHTML('beforeend', lvlRow('','',0)); }
+function saveLevels(){
+  var rows=[].slice.call(document.querySelectorAll('#lvlRows .lvlrow'));
+  var tiers=rows.map(function(r){
+    return { at: Math.round(Number(r.querySelector('.lvlAt').value)||0),
+             name: (r.querySelector('.lvlName').value||'').trim() };
+  }).filter(function(t){return t.at>0;});
+  var err=document.getElementById('lvlErr');
+  if(!tiers.length){ err.textContent='Add at least one level.'; return; }
+  var btn=document.getElementById('lvlSave'); btn.disabled=true; btn.textContent='Saving\u2026';
+  fetch(SUMAPI,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'tiers_set',code:CODE,tiers:tiers})})
+   .then(function(r){return r.json();})
+   .then(function(r){
+     if(!r||!r.ok){ err.textContent=(r&&r.error)||'Could not save.'; btn.disabled=false; btn.textContent='Save levels'; return; }
+     BOARD.tiers=r.tiers; closeDrawer(); toast('Levels saved \u2014 emblems update on the next load');
+     if(typeof renderRoad==='function')renderRoad(); else paintBubbles();
+   })
+   .catch(function(){ err.textContent='Network error.'; btn.disabled=false; btn.textContent='Save levels'; });
+}
+
+/* ===== Moving someone on the tree =====
+   Reparenting is TWO TAPS, not a drag: dragging a bubble already repositions it, and drag-and-drop
+   is miserable on a phone — which is where most of this team works. Tap the person, then tap their
+   new upline. org-api is the authority on who may do this (Operations and Eli Cox only, NOT every
+   MD/EMD), so the button only appears when the API says can_edit_hierarchy. org.html decided that
+   client-side from the viewer's level, which offered the control to MDs whose save was then
+   refused with a 403. */
+function canDropOn(target){
+  if(!MOVING||target===MOVING)return false;
+  var n=BYCODE[target]; if(!n||n.departed)return false;          /* never report to an alumnus */
+  /* descendantsOf() is the page's own helper and returns an ARRAY OF NODES, not a lookup —
+     a second copy of it here silently lost to the original and let someone be moved under
+     their own downline, which org-api would then refuse. */
+  var below=descendantsOf(MOVING)||[];
+  for(var i=0;i<below.length;i++) if(below[i] && below[i].code===target) return false;
+  return true;
+}
+function bubbleTap(code){
+  if(!MOVING){ openAgent(code); return; }
+  if(code===MOVING){ MOVING=null; paintBubbles(); toast('Move cancelled'); return; }
+  if(!canDropOn(code)){
+    var n=BYCODE[code];
+    toast(n&&n.departed ? 'That person has left — pick someone active.'
+                        : 'You can\u2019t move someone under their own downline.');
+    return;
+  }
+  var who=BYCODE[MOVING], up=BYCODE[code];
+  if(!confirm('Move '+(who&&who.name||MOVING)+' to report to '+(up&&up.name||code)+'?')) return;
+  doMove(MOVING, code);
+}
+function startMove(code){
+  if(!CANEDIT){ toast('The hierarchy is managed by Operations and Eli Cox.'); return; }
+  MOVING=code; paintBubbles();
+  var n=BYCODE[code];
+  toast('Now tap '+((n&&n.name||'this person').split(' ')[0])+'\u2019s new upline \u2014 or tap them again to cancel');
+}
+function cancelMove(){ MOVING=null; paintBubbles(); }
+function doMove(code,upline){
+  var prev=MOVING; MOVING=null; paintBubbles();
+  fetch(ORGAPI,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'set_upline',code:code,direct_to:upline,by:CODE})})
+   .then(function(r){return r.json();})
+   .then(function(r){
+     if(!r||!r.ok){ toast((r&&r.error)||'Could not move them.'); MOVING=prev; paintBubbles(); return; }
+     var n=BYCODE[code]; if(n){ n.direct_to=upline; n.direct_to_name=(BYCODE[upline]||{}).name||''; }
+     toast('Moved \u2713 reloading the tree\u2026');
+     reloadTree();
+   })
+   .catch(function(){ toast('Network error.'); MOVING=prev; paintBubbles(); });
+}
+function reloadTree(){
+  fetch(ORGAPI,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'tree',code:CODE})})
+   .then(function(r){return r.json();})
+   .then(function(t){
+     if(!t||!t.ok)return;
+     NODES=(t.nodes||[]).slice(); CANEDIT=!!t.can_edit_hierarchy; SCOPE=t.scope||SCOPE;
+     BYCODE={};KIDS={};
+     NODES.forEach(function(n){n.code=(n.code||'').toUpperCase();BYCODE[n.code]=n;});
+     NODES.forEach(function(n){var p=(n.direct_to||'').toUpperCase();if(p&&BYCODE[p])(KIDS[p]=KIDS[p]||[]).push(n);});
+     ROOTS=(t.roots||[]).map(function(r){return (typeof r==='string')?r:r.code;})
+             .map(function(c){return (c||'').toUpperCase();}).filter(function(c){return !!BYCODE[c];});
+     if(!ROOTS.length){ROOTS=NODES.filter(function(n){var p=(n.direct_to||'').toUpperCase();return !p||!BYCODE[p];}).map(function(n){return n.code;});}
+     paintBubbles();
+   });
+}
 function collapseDeep(){COLLAPSED={};NODES.forEach(function(n){if(depthOf(n.code)>=1&&(KIDS[n.code]||[]).length)COLLAPSED[n.code]=true;});paintBubbles();centreMap();}
 function focusOn(code){
   /* Framing the whole company every time a branch opens just shrinks everyone. Opening a team
@@ -978,7 +1140,13 @@ function stageComplete(code,i){
   var c=checksFor(code,i);return c.length&&c.every(Boolean);
 }
 function cashOf(code){var c=(BOARD.cash||{})[code];return c?c:{amount:0,prestige:0};}
-var CASH_TIERS=[100000,250000,500000,1000000,2500000];
+/* The cashflow levels past EMD are Eli's and Operations' to set (summit-api v5,
+   app_settings.summit_cash_tiers). This array used to be hardcoded here AND in summit_ladder()'s
+   SQL — two copies that both needed a code change to add a level. The literal below is only a
+   cold-load fallback. */
+function cashTiers(){var t=(typeof BOARD!=='undefined'&&BOARD&&BOARD.tiers)||[];return t.length?t:[{at:100000,name:'100K Ring'},{at:250000,name:'Quarter Million'},{at:500000,name:'Half Million'},{at:1000000,name:'Million Dollar'},{at:2500000,name:'Multi-Million'}];}
+function tierAmounts(){return cashTiers().map(function(t){return t.at;});}
+function tierName(i){var t=cashTiers()[i];return t?(t.name||('Level '+(i+1))):'';}
 function money(n){n=Number(n)||0;
   if(n>=1e6)return '$'+(Math.round(n/1e5)/10)+'M';
   if(n>=1e3)return '$'+Math.round(n/1e3)+'K';
@@ -1120,8 +1288,8 @@ function rankLabelOf(code){
 function cashPanel(code){
   var c=cashOf(code), amt=c.amount, pr=c.prestige;
   var next=null;
-  for(var i=0;i<CASH_TIERS.length;i++){if(amt<CASH_TIERS[i]){next=CASH_TIERS[i];break;}}
-  var prevT=pr>0?CASH_TIERS[pr-1]:0;
+  var _ct=tierAmounts();for(var i=0;i<_ct.length;i++){if(amt<_ct[i]){next=_ct[i];break;}}
+  var prevT=pr>0?tierAmounts()[pr-1]:0;
   var pct=next?Math.max(2,Math.round((amt-prevT)/(next-prevT)*100)):100;
   return '<div class="cashbox">'
     +'<div class="cashhead"><span class="eyebrow">Cashflow from here</span>'
@@ -1201,6 +1369,7 @@ function openMenu(){
     +'<button class="menurow" onclick="closeDrawer();setTab(\'road\')"><span>🎖️</span><span>Road to EMD</span></button>'
     +'<button class="menurow" onclick="closeDrawer();setTab(\'perf\')"><span>🏆</span><span>Top Performers</span></button>'
     +'<button class="menurow" onclick="resetLayout();closeDrawer()"><span>🧭</span><span>Reset map layout</span></button>'
+      +(canSetLevels()?'<button class="menurow" onclick="closeDrawer();openLevels()"><span>\ud83d\udc8e</span><span>Cashflow levels &amp; diamonds</span></button>':'')
     +'<button class="ghost" onclick="closeDrawer()">Close</button>';
   $('ov').classList.add('on');
 }
