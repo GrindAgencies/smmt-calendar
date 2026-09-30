@@ -348,7 +348,20 @@ var HUB="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/hub-api",ROSTERAP
 var BOTS="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/bots-cron";
 var HUBOPS="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/hub-ops";
 var OPSMODE=false,OPSTOKEN='',OPSDMS=[];
-(function(){try{var q=new URLSearchParams(location.search);if(q.get('ops')==='1'){OPSMODE=true;OPSTOKEN='2026';}}catch(e){}})();
+/* Ops mode used to hand itself the literal string '2026', which was a master key on ~20 live
+   endpoints AND was printed in this page for anyone to read. The Operations seat already holds a
+   real session token from ops-auth; this page is loaded same-origin inside ops.html, so it simply
+   reads that token out of the shared sessionStorage. Nothing is passed through the URL, because a
+   URL ends up in history and logs. No session, no ops mode. */
+(function(){try{
+  var q=new URLSearchParams(location.search);
+  if(q.get('ops')!=='1')return;
+  var t='';
+  try{ t=sessionStorage.getItem('tsfg_ops_token')||''; }catch(e){}
+  if(!t){ try{ t=(window.parent&&window.parent!==window&&window.parent.sessionStorage.getItem('tsfg_ops_token'))||''; }catch(e){} }
+  if(!t){ OPSMODE=false; OPSTOKEN=''; return; }
+  OPSMODE=true; OPSTOKEN=t;
+}catch(e){}})();
 function hops(b){b=b||{};b.token=OPSTOKEN;return fetch(HUBOPS,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();}).catch(function(){return{ok:false};});}
 var ACC={mod:false,role:'agent',licensed:false},MODTOKEN='';
 var AVATARS={},EMB={};

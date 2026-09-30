@@ -111,8 +111,20 @@ function slug(s){return (s||'').toLowerCase().replace(/[^a-z0-9]+/g,'_').replace
 
 function enter(){
   var c=($('gcode').value||'').trim();
-  if(c==='0000'||c==='2026'){TOKEN='2026';$('gate').style.display='none';$('app').classList.add('on');load();}
-  else{$('gmsg').textContent='Builder is for the Standard Operations master (0000).';}
+  /* Typing 0000 or 2026 used to be the whole gate, and it handed out the platform-wide master
+     token. The builder now needs a real Operations session — the same PIN sign-in as every other
+     Operations page. */
+  var t='';
+  try{ t=sessionStorage.getItem('tsfg_ops_token')||''; }catch(e){}
+  if(!t){
+    $('gmsg').textContent='Sign in on the Operations Dashboard first, then reopen the builder.';
+    return;
+  }
+  if(!/^0{3}[0-5]$|^9999$/.test(c)){
+    $('gmsg').textContent='Builder is for an Operations seat (0000-0005).';
+    return;
+  }
+  TOKEN=t; $('gate').style.display='none'; $('app').classList.add('on'); load();
 }
 function load(){
   fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'config'})}).then(function(r){return r.json();}).then(function(d){
