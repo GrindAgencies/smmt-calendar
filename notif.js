@@ -305,7 +305,7 @@
     ['Team Hub',     'teamhub.html',     I.chat],
     ['Scheduler',    'calendar.html',    I.calendar],
     ['New Business', 'newbusiness.html', I.dollar],
-    ['My Tracker',   'summit.html?tab=road', I.check],
+    ['Road to EMD',   'summit.html?tab=road', I.check],
     ['Resources',    'resources.html',   I.book]
   ];
 
@@ -1014,7 +1014,7 @@ window.tsfgTrack = function (kind, detail) {
       { title: (n ? ('Welcome, ' + n + '.') : 'Welcome.'),
         body: "This is The Standard — everything you need to build your business in one place. Ninety seconds and I'll show you around." },
       { sel: '.tsfg-menu', title: 'Everything lives behind Menu',
-        body: 'Team Hub, Scheduler, New Business, My Tracker and Resources. Tap Menu any time to move around.' },
+        body: 'Team Hub, Scheduler, New Business, Road to EMD and Resources. Tap Menu any time to move around.' },
       { sel: '.snap', text: "today's snapshot", title: 'Your month, at a glance',
         body: "Four numbers that matter: new partners, premium submitted, field trainings and families helped. Tap the pencil on any card to set your own goal." },
       { sel: '.ctx', title: 'Personal, or the whole team',
