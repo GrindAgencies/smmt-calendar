@@ -808,7 +808,7 @@ window.tsfgTrack = function (kind, detail) {
   }
 
   var STARTERS = ['How do I log a sale?', 'How do I book a field trainer?',
-                  'Where do I set my monthly goal?', 'When is the morning huddle?'];
+                  'Where do I set my monthly goal?', 'When is the next live training?'];
 
   /* Keep the Ask button off whatever is pinned to the bottom of THIS page.
      It used to sit 14px up on every screen, which is fine until a page pins its own
@@ -1022,7 +1022,7 @@ window.tsfgTrack = function (kind, detail) {
       { text: 'leaderboard', title: 'Where you stand',
         body: 'The leaderboard updates live as business is written. It is the fastest way to see who is moving.' },
       { sel: '#askFab', title: 'Stuck? Just ask.',
-        body: "I'm here on every screen. Ask me anything — how to log a sale, when the huddle is, where a setting lives. I'll point you straight to it." },
+        body: "I'm here on every screen. Ask me anything — how to log a sale, when the next training is, where a setting lives. I'll point you straight to it." },
       { title: 'Your first three steps',
         body: "1. Say hello in Team Hub.\n2. Book a field training on the Scheduler.\n3. Add your warm market to the Marketing Plan.\n\nDo those and you're properly started." }
     ];

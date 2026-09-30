@@ -806,11 +806,11 @@ function renderSnapshot(){
 }
 
 /* ---------- FOCUS LIST (personal daily non-negotiables preview) ---------- */
-var NN=[['Attend the 8 AM Morning Huddle','8:00 AM PT'],['Talk to people — every day','momentum'],['Be in GroupMe','briefings'],['One PFR booked or done','weekday min'],['Update your tracker','by EOD'],['Plug into live training','6 PM PT']];
+var NN=[['Talk to people — every day','momentum'],['Be in GroupMe','briefings'],['One PFR booked or done','weekday min'],['Update your tracker','by EOD'],['Plug into live training','6 PM PT']];
 function renderFocus(){
   var host=$('focusList');if(!host)return;
   var done={};try{var s=JSON.parse(localStorage.getItem('tsfg_daily_'+CODE)||'null');if(s&&s.date===ptToday())done=s.ids||{};}catch(e){}
-  var ids=['dnHuddle','dnTalk','dnGroup','dnPFR','dnTracker','dnTrain'];
+  var ids=['dnTalk','dnGroup','dnPFR','dnTracker','dnTrain'];
   host.innerHTML=NN.map(function(n,i){
     var isDone=!!done[ids[i]];
     return '<div class="focus-item"><div class="fi-check'+(isDone?' done':'')+'">'+I.check+'</div><div class="fi-body"><div class="t'+(isDone?' done':'')+'">'+n[0]+'</div><div class="m">'+n[1]+'</div></div></div>';

@@ -531,9 +531,8 @@ html, body{ overflow-x: hidden; }
       <div class="s">🔥 Current streak: <b id="streakNum">0</b> days &nbsp;·&nbsp; Best: <b id="bestNum" style="font-size:14px;color:var(--gold);">0</b></div>
       <div class="milestones">Milestones: 7 · 14 · 30 · 60 · 90 · 180 days</div>
     </div>
-    <div class="dailystat" id="dailyStat">Check off all 6 each day to keep your streak alive.</div>
+    <div class="dailystat" id="dailyStat">Check off every one each day to keep your streak alive.</div>
     <div class="sec-body">
-      <div class="item"><input type="checkbox" class="dchk" id="dnHuddle"><label for="dnHuddle"><b>Attend the 8 AM Morning Huddle</b> <span class="meta">8:00 AM PST · <a href="https://us02web.zoom.us/j/9646509994?pwd=a2s1OXhzeTB3N3BBOWRkUmw1VHE2Zz09" target="_blank" rel="noopener">Join Zoom →</a> · <a href="https://grindagencies.github.io/smmt-calendar/ics/huddle.ics" target="_blank" rel="noopener">Add to Calendar →</a></span></label></div>
       <div class="item"><input type="checkbox" class="dchk" id="dnTalk"><label for="dnTalk">Talk to people every single day — momentum comes from conversations</label></div>
       <div class="wm-log">
         <div class="wm-log-h">📇 Log who you talked to <span class="meta" style="color:var(--muted);font-weight:700;">→ saved to your Marketing Plan as a fresh lead</span></div>
@@ -1385,7 +1384,7 @@ html, body{ overflow-x: hidden; }
     var s=0,best=0;
     if(agent){best=agent.best_streak||0; if(agent.last_daily===t||agent.last_daily===addDaysC(t,-1))s=agent.streak||0;}
     el('streakNum').textContent=s; el('bestNum').textContent=Math.max(best,s);
-    el('dailyStat').textContent = doneToday ? ('Logged today ✓ — '+s+'-day streak. Come back tomorrow!') : 'Check off all 6 each day to keep your streak alive.';
+    el('dailyStat').textContent = doneToday ? ('Logged today ✓ — '+s+'-day streak. Come back tomorrow!') : 'Check off every one each day to keep your streak alive.';
     updateDailyGlow();
   }
   function updateDailyGlow(){
@@ -1410,7 +1409,7 @@ html, body{ overflow-x: hidden; }
       }).catch(function(){el('dailyStat').textContent='Saved on this device.';});
     } else if(code){
       var n=dboxes.filter(function(x){return x.checked;}).length;
-      el('dailyStat').textContent=n+' of 6 done today — finish all 6 to log your streak.';
+      el('dailyStat').textContent=n+' of '+dboxes.length+' done today — finish them all to log your streak.';
     }
   });});
 
