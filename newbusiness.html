@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script src="session.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>New Business — The Standard</title>
@@ -388,7 +389,7 @@ function buildSide(){
   h+='<div class="sfoot"><a class="slink" href="profile.html" title="My profile &amp; settings" style="align-items:center"><span style="width:26px;height:26px;border-radius:50%;background:var(--accent,#5b6cff);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex:0 0 auto">'+esc(initials(NAME||CODE))+'</span><span style="display:flex;flex-direction:column;line-height:1.15;overflow:hidden"><b style="font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(NAME||('GFI '+CODE))+'</b><span style="font-size:11px;opacity:.7">'+esc(CODE)+'</span></span></a><a class="slink" href="#" onclick="signOut();return false;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg><span>Sign out</span></a></div>';
   $('side').innerHTML=h;
 }
-function signOut(){try{localStorage.removeItem('tsfg_code');localStorage.removeItem('tsfg_name');}catch(e){}location.href='index.html';}
+function signOut(){try{if(window.tsfgSession)tsfgSession.clear();}catch(e){}try{localStorage.removeItem('tsfg_code');localStorage.removeItem('tsfg_name');}catch(e){}location.href='index.html';}
 
 function setBiz(b){BIZ=b;try{calcAnnuityPremium(true);}catch(e){}$('bLife').classList.toggle('on',b==='life');$('bAnn').classList.toggle('on',b==='annuity');load();}
 function setScope(s){SCOPE=s;load();}

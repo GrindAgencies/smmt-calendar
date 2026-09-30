@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script src="session.js"></script>
 <script>/* The Road to EMD replaced this tracker (2026-09-28). The page is kept, not deleted,
    so nothing is lost — ?keep=1 still opens it. Christopher: "take out the My journey, i want
    it replaced ... i want to go with the road to EMD platform." */
@@ -1443,7 +1444,7 @@ html, body{ overflow-x: hidden; }
       btn.disabled=false;btn.textContent="Start My Tracker →";
     }).catch(function(){el('gMsg').textContent="Network issue — please try again.";btn.disabled=false;btn.textContent="Start My Tracker →";});
   }
-  function signOut(){try{localStorage.removeItem('tsfg_code');}catch(e){}code=null;currentPath=null;ftLog={};warmMarket=[];activityLog=[];emd="";md="";restoreUpline("","");applyProgress({});applyCarriers({});bizCount();renderWarm();renderActivity();setView('tracker');dboxes.forEach(function(b){b.checked=false;});showGate();el('gFirst').value="";el('gLast').value="";el('gCode').value="";el('gMsg').textContent="";}
+  function signOut(){try{if(window.tsfgSession)tsfgSession.clear();}catch(e){}try{localStorage.removeItem('tsfg_code');}catch(e){}code=null;currentPath=null;ftLog={};warmMarket=[];activityLog=[];emd="";md="";restoreUpline("","");applyProgress({});applyCarriers({});bizCount();renderWarm();renderActivity();setView('tracker');dboxes.forEach(function(b){b.checked=false;});showGate();el('gFirst').value="";el('gLast').value="";el('gCode').value="";el('gMsg').textContent="";}
 
   function boot(){
     try{code=localStorage.getItem('tsfg_code');}catch(e){code=null;}
@@ -1460,7 +1461,7 @@ html, body{ overflow-x: hidden; }
         setStat('Progress loaded ✓',true);
         return;
       }
-      try{localStorage.removeItem('tsfg_code');}catch(e){}code=null;showGate();
+      try{if(window.tsfgSession)tsfgSession.clear();}catch(e){}try{localStorage.removeItem('tsfg_code');}catch(e){}code=null;showGate();
     }).catch(function(){
       var cached=null;try{cached=JSON.parse(localStorage.getItem('tsfg_prog_'+code)||'null');}catch(e){}
       applyProgress(cached||{});showApp((localStorage.getItem('tsfg_name')||('GFI '+code)));restorePath();update();loadDaily(null);renderWarm();
@@ -1493,7 +1494,7 @@ html, body{ overflow-x: hidden; }
 function tsfgToggle(){ if(window.innerWidth<=860){tsfgDrawer(!document.body.classList.contains('tsfg-drawer'));} }
 function tsfgDrawer(on){document.body.classList.toggle('tsfg-drawer',!!on);}
 function tsfgTheme(){var d=document.documentElement.getAttribute('data-theme')==='dark';document.documentElement.setAttribute('data-theme',d?'light':'dark');try{localStorage.setItem('gfi_theme',d?'light':'dark');}catch(e){}}
-function tsfgSignOut(){try{localStorage.removeItem('tsfg_code');localStorage.removeItem('tsfg_name');}catch(e){}location.href='index.html';}
+function tsfgSignOut(){try{if(window.tsfgSession)tsfgSession.clear();}catch(e){}try{localStorage.removeItem('tsfg_code');localStorage.removeItem('tsfg_name');}catch(e){}location.href='index.html';}
 </script>
 
 <!-- ===== AI Training Coach ===== -->

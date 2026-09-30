@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script src="session.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Marketing Plan — The Standard Financial Group</title>
@@ -1014,7 +1015,7 @@ html, body{ overflow-x: hidden; }
 function tsfgToggle(){ if(window.innerWidth<=860){tsfgDrawer(!document.body.classList.contains('tsfg-drawer'));} }
 function tsfgDrawer(on){document.body.classList.toggle('tsfg-drawer',!!on);}
 function tsfgTheme(){var d=document.documentElement.getAttribute('data-theme')==='dark';document.documentElement.setAttribute('data-theme',d?'light':'dark');try{localStorage.setItem('gfi_theme',d?'light':'dark');}catch(e){}}
-function tsfgSignOut(){try{localStorage.removeItem('tsfg_code');localStorage.removeItem('tsfg_name');}catch(e){}location.href='index.html';}
+function tsfgSignOut(){try{if(window.tsfgSession)tsfgSession.clear();}catch(e){}try{localStorage.removeItem('tsfg_code');localStorage.removeItem('tsfg_name');}catch(e){}location.href='index.html';}
 </script>
 
 <script defer src="notif.js"></script>

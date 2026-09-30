@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script src="session.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Team Hub — The Standard</title>
@@ -412,7 +413,7 @@ function buildSide(){
 function onAvatar(ev){var f=ev.target.files[0];if(!f)return;var rd=new FileReader();rd.onload=function(){var img=new Image();img.onload=function(){var c=document.createElement('canvas');var S=256;c.width=S;c.height=S;var x=c.getContext('2d');var sq=Math.min(img.width,img.height);x.drawImage(img,(img.width-sq)/2,(img.height-sq)/2,sq,sq,0,0,S,S);var url=c.toDataURL('image/jpeg',0.82);h({action:'hub_setavatar',code:CODE,url:url}).then(function(r){if(r&&r.ok){AVATARS[CODE]=url;renderMsgs(false);renderRooms();var pa=document.getElementById('psAv');if(pa)pa.innerHTML=avatarInner(CODE,NAME,'');toast('Photo updated');}else toast((r&&r.error)||'Could not save photo');});};img.src=rd.result;};rd.readAsDataURL(f);ev.target.value='';}
 function loadAvatars(){h({action:'hub_avatars'}).then(function(r){if(r&&r.avatars){AVATARS=r.avatars;renderMsgs(false);renderRooms();}});}
 function toggleMod(){if(MODTOKEN){MODTOKEN='';$('modBtn').textContent='🔒';toast('Moderator off');renderMsgs(false);return;}if(ACC.mod){toast('You already moderate as Leadership');return;}var pc=prompt('Operations moderator passcode:');if(!pc)return;if(pc==='2026'){MODTOKEN='2026';$('modBtn').textContent='🛡️';toast('Moderator mode — you can remove any message');renderMsgs(false);}else toast('Incorrect passcode');}
-function signOut(){try{localStorage.removeItem('tsfg_code');localStorage.removeItem('tsfg_name');}catch(e){}location.href='index.html';}
+function signOut(){try{if(window.tsfgSession)tsfgSession.clear();}catch(e){}try{localStorage.removeItem('tsfg_code');localStorage.removeItem('tsfg_name');}catch(e){}location.href='index.html';}
 
 /* rooms */
 function renderRooms(){

@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script src="session.js"></script>
 <!-- MERGED INTO THE BUBBLE CHART (2026-09-30). Christopher: "Combine Summit and ORG Chart into
      one ... Name it as ORG Chart". The hierarchy now lives on summit.html?tab=map, which shows the
      same tree as bubbles and can re-parent people. This page is kept only as an escape hatch:
@@ -494,7 +495,7 @@ load();
 function tsfgToggle(){ if(window.innerWidth<=860){tsfgDrawer(!document.body.classList.contains('tsfg-drawer'));} }
 function tsfgDrawer(on){document.body.classList.toggle('tsfg-drawer',!!on);}
 function tsfgTheme(){var d=document.documentElement.getAttribute('data-theme')==='dark';document.documentElement.setAttribute('data-theme',d?'light':'dark');try{localStorage.setItem('gfi_theme',d?'light':'dark');}catch(e){}}
-function tsfgSignOut(){try{localStorage.removeItem('tsfg_code');localStorage.removeItem('tsfg_name');}catch(e){}location.href='index.html';}
+function tsfgSignOut(){try{if(window.tsfgSession)tsfgSession.clear();}catch(e){}try{localStorage.removeItem('tsfg_code');localStorage.removeItem('tsfg_name');}catch(e){}location.href='index.html';}
 </script>
 <script defer src="notif.js"></script>
 <script src="i18n.js"></script>

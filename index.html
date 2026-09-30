@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script src="session.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>GRIND Agencies — Home</title>
@@ -1052,7 +1053,7 @@ function showApp(){
 }
 function showGate(){ $('app').classList.add('hide'); $('gate').classList.remove('hide'); }
 function gatePending(status, firstName){
-  try{localStorage.removeItem('tsfg_code');localStorage.removeItem('tsfg_name');}catch(e){}
+  try{if(window.tsfgSession)tsfgSession.clear();}catch(e){}try{localStorage.removeItem('tsfg_code');localStorage.removeItem('tsfg_name');}catch(e){}
   CODE=null; NAME='';
   showGate();
   var msg=$('gMsg');
@@ -1142,7 +1143,12 @@ function pinShow(code, first, last, dispFirst, dispLast, proceed, creating, err)
       ? {action:'set',code:code,first:useF,last:useL,pin:p1,proof:((document.getElementById('pinProof')||{}).value||'').trim()}
       : {action:'verify',code:code,pin:p1})
       .then(function(r){
-        if(r&&r.ok){ ov.className=''; ov.innerHTML=''; proceed(); return; }
+        if(r&&r.ok){
+          /* The token minted by proving the PIN is what identifies this person to every
+             endpoint from here on. Without it they are just a code, which is public. */
+          if(r.session&&window.tsfgSession)tsfgSession.set(r.session);
+          ov.className=''; ov.innerHTML=''; proceed(); return;
+        }
         if(r&&r.needs_pin){ pinShow(code,first,last,dispFirst,dispLast,proceed,true,'Choose a PIN to finish signing in.'); return; }
         if(r&&r.needs_proof){
           var want = r.has_email && r.has_phone ? 'the email address on your record, or the last 4 digits of your phone number'
@@ -1211,7 +1217,7 @@ function doLogin(){
     } else {msg.textContent=(res&&res.error)||'Could not sign you in. Check your code.';}
   });
 }
-function signOut(){try{localStorage.removeItem('tsfg_code');localStorage.removeItem('tsfg_name');}catch(e){}location.reload();}
+function signOut(){try{if(window.tsfgSession)tsfgSession.clear();}catch(e){}try{if(window.tsfgSession)tsfgSession.clear();}catch(e){}try{localStorage.removeItem('tsfg_code');localStorage.removeItem('tsfg_name');}catch(e){}location.reload();}
 
 /* ---------- JOIN / SIGN UP ---------- */
 /* People type their recruiter's NAME far more often than a code — Christopher expects this to be
@@ -1405,7 +1411,7 @@ try{ setTimeout(leaderInit,600); }catch(e){}
            the dashboard on screen. Every link out of Home then hit a page with no
            session and bounced the user to sign-in, which is what "none of the
            buttons work" looked like. Sign out properly and say so. */
-        try{localStorage.removeItem('tsfg_code');localStorage.removeItem('tsfg_name');}catch(e){}
+        try{if(window.tsfgSession)tsfgSession.clear();}catch(e){}try{localStorage.removeItem('tsfg_code');localStorage.removeItem('tsfg_name');}catch(e){}
         CODE=null;NAME='';
         document.documentElement.classList.remove('tsfg-session');
         showGate();

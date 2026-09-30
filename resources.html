@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script src="session.js"></script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Resources — The Standard Financial Group</title>
@@ -573,7 +574,7 @@ else { loadPresentations(); loadKind('carrier',renderCarriers); }
 <script>
 function tsfgToggle(){ if(window.innerWidth<=860){tsfgDrawer(!document.body.classList.contains('tsfg-drawer'));} }
 function tsfgDrawer(on){document.body.classList.toggle('tsfg-drawer',!!on);}
-function tsfgSignOut(){try{localStorage.removeItem('tsfg_code');localStorage.removeItem('tsfg_name');}catch(e){}location.href='index.html';}
+function tsfgSignOut(){try{if(window.tsfgSession)tsfgSession.clear();}catch(e){}try{localStorage.removeItem('tsfg_code');localStorage.removeItem('tsfg_name');}catch(e){}location.href='index.html';}
 </script>
 <script defer src="notif.js"></script>
 <script src="i18n.js"></script>

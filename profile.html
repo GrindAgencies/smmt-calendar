@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
+<script src="session.js"></script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>My Profile — The Standard Financial Group</title>
@@ -187,13 +188,13 @@ function doDeleteAccount(){
    .then(function(r){return r.json();})
    .then(function(d){
      if(!d||!d.ok){btn.disabled=false;btn.textContent='Delete permanently';err.textContent=(d&&d.error)||'Could not delete.';return;}
-     try{localStorage.removeItem('tsfg_code');localStorage.removeItem('tsfg_name');}catch(e){}
+     try{if(window.tsfgSession)tsfgSession.clear();}catch(e){}try{localStorage.removeItem('tsfg_code');localStorage.removeItem('tsfg_name');}catch(e){}
      $('bkDrawer').innerHTML='<h3>Your account is deleted</h3><p style="color:var(--ink3);font-size:13.5px;line-height:1.55">'+esc(d.message||'')+'</p>'
        +'<button onclick="location.href=\'index.html\'" style="width:100%;margin-top:16px;border:0;border-radius:11px;padding:13px;font-family:inherit;font-weight:800;font-size:14px;background:var(--accent,#b8891f);color:#1a1405;cursor:pointer">Close</button>';
    })
    .catch(function(){btn.disabled=false;btn.textContent='Delete permanently';err.textContent='Network error — try again.';});
 }
-function signOut(){try{localStorage.removeItem('tsfg_code');localStorage.removeItem('tsfg_name');}catch(e){}location.href='index.html';}
+function signOut(){try{if(window.tsfgSession)tsfgSession.clear();}catch(e){}try{localStorage.removeItem('tsfg_code');localStorage.removeItem('tsfg_name');}catch(e){}location.href='index.html';}
 (function(){try{var t=localStorage.getItem('gfi_theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
 
 // ---- boot ----

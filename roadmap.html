@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script src="session.js"></script>
 <script>/* The Road to EMD replaced this tracker (2026-09-28). The page is kept, not deleted,
    so nothing is lost — ?keep=1 still opens it. Christopher: "take out the My journey, i want
    it replaced ... i want to go with the road to EMD platform." */
@@ -969,7 +970,7 @@ function fireConfetti(){
 }
 function tsfgToggle(){if(window.innerWidth<=860)tsfgDrawer(!document.body.classList.contains('tsfg-drawer'));}
 function tsfgDrawer(on){document.body.classList.toggle('tsfg-drawer',!!on);}
-function tsfgSignOut(){try{localStorage.removeItem('tsfg_code');localStorage.removeItem('tsfg_name');}catch(e){}location.href='index.html';}
+function tsfgSignOut(){try{if(window.tsfgSession)tsfgSession.clear();}catch(e){}try{localStorage.removeItem('tsfg_code');localStorage.removeItem('tsfg_name');}catch(e){}location.href='index.html';}
 load();
 </script>
 <script defer src="notif.js"></script>
