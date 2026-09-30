@@ -419,7 +419,7 @@ var NAVI=[['home','Home','index.html','M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-6H
 ['calendar','Scheduler','calendar.html','M3 4.5h18v16H3zM3 9h18M8 3v3M16 3v3'],
 ['dollar','New Business','newbusiness.html','M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6'],
 ['pfr','PFR Builder','pfr.html','M8 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-2M9 12h6M9 16h6M9 8h6'],
-['check','My Tracker','checklist.html','M20 6 9 17l-5-5'],
+['check','Road to EMD','checklist.html','M20 6 9 17l-5-5'],
 ['users','Leads','marketing.html','M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z'],
 ['team','My Team','team.html','M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z'],
 ['tree','Org Chart','org.html','M9 3h6v5H9zM3 16h6v5H3zM15 16h6v5h-6zM12 8v4M6 16v-2h12v2'],
@@ -728,10 +728,20 @@ function loadCalEvents(cb){
     cb&&cb();
   }).catch(function(){CALEV=[];CALBYDATE={};cb&&cb();});
 }
+/* The Calendly overlay and the appointment list are two views of the same appointments once an
+   event has been synced, and nothing used to cross-check them — so every synced Calendly meeting
+   appeared TWICE on the Scheduler: once as an appointment, once as a gold "CALENDLY · Import" row.
+   A booking that already carries the Calendly uuid IS that event, so the overlay skips it. */
+function bookedCalendlyUuids(){
+  var seen={};
+  (MYB||[]).forEach(function(b){if(b&&b.calendly_event_uuid)seen[b.calendly_event_uuid]=1;});
+  (COMPANY_EV||[]).forEach(function(b){if(b&&b.calendly_event_uuid)seen[b.calendly_event_uuid]=1;});
+  return seen;
+}
 function dayItems(ds){
-  var out=[];
+  var out=[];var already=bookedCalendlyUuids();
   calEventsFor(ds).forEach(function(e){out.push({kind:'internal',id:e.id,inst:e.inst,time:e.time,title:e.title,sub:e.sub,status:e.status,color:e.color,source:e.source,dur:e.dur});});
-  (CALBYDATE[ds]||[]).forEach(function(e){var inst=new Date(e.start_time);out.push({kind:'calendly',uuid:e.event_uuid,inst:inst,time:vTimeOf(inst),title:(e.invitee_name||'Client'),sub:(e.event_type_name||e.name||''),join:e.join_url,name:e.event_type_name||e.name,email:e.invitee_email,start:e.start_time,end:e.end_time});});
+  (CALBYDATE[ds]||[]).forEach(function(e){if(already[e.event_uuid])return;var inst=new Date(e.start_time);out.push({kind:'calendly',uuid:e.event_uuid,inst:inst,time:vTimeOf(inst),title:(e.invitee_name||'Client'),sub:(e.event_type_name||e.name||''),join:e.join_url,name:e.event_type_name||e.name,email:e.invitee_email,start:e.start_time,end:e.end_time});});
   out.sort(function(a,b){return (a.inst&&b.inst)?(a.inst-b.inst):(t2min(a.time)-t2min(b.time));});
   return out;
 }
@@ -1300,25 +1310,145 @@ function aptRow(b){var col=avColor(b.trainer_name);
   var ck=aptClientKey(b);
   var who=ck?('<button onclick="event.stopPropagation();openClient(\''+esc(ck)+'\')" title="Open this client" style="border:none;background:none;padding:0;font:inherit;font-size:12.5px;font-weight:700;color:var(--accent);cursor:pointer">'+esc(b.agent_name||'Client')+' →</button>'):'';
   return '<div class="apt"><div class="tav" style="width:42px;height:42px;font-size:14px;background:'+col+'">'+initials(b.trainer_name)+'</div><div style="min-width:0"><div style="font-weight:700;font-size:14.5px">'+esc(b.trainer_name)+' · '+esc(b.category||'Training')+(b.status==='confirmed'?' <span style="color:var(--green);font-weight:800">✓</span>':'')+'</div><div style="font-size:12.5px;color:var(--ink3)">'+prettyDate(dispDate(b))+' · '+esc(dispTime(b))+tzTag()+' <span class="conf">· '+esc(b.conf||'')+'</span></div>'+(who?('<div style="margin-top:3px">'+who+'</div>'):'')+'</div>'+right+'</div>';}
+/* ===== Book a trainer — ONE booking, made in Calendly =====
+   Christopher, 2026-09-29: "books straight to the calendly account attached ... i do not want for
+   someone to be able to book on one without the other."
+
+   The old screen asked for a date, then one of five TSFG categories, then showed times pooled
+   across trainers — then created a TSFG booking AND opened Calendly to book a second time. Two
+   records, and the second step was optional.
+
+   Now: pick the trainer, pick from THEIR OWN Calendly meeting types, pick from THEIR OWN open
+   times, confirm. calendly-book puts it in their Calendly and mirrors the confirmation straight
+   back onto this calendar. There is no second step and no native booking to drift from it. */
+var CBOOK="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/calendly-book";
+var CBTR=[],CBWAIT=[],CBSEL=null,CBTYPES=[],CBTYPE=null,CBSLOTS=[],CBSLOT=null;
+function cbApi(b){return fetch(CBOOK,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();}).catch(function(){return{ok:false,error:'Network error — try again.'};});}
+
 function renderBook(){
-  if(!SELDATE)SELDATE=todayStr();
-  var h='<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap"><div style="font-size:12.5px;color:var(--ink3)">Booking a training for yourself? Use the steps below. Booking a client appointment for someone else?</div><button class="qbtn" style="margin:0" onclick="openStaffBook()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Book for a client</button></div>';
-  h+='<button onclick="openMyCalendly()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:9px;border:1px solid rgba(201,154,46,.45);background:rgba(201,154,46,.10);color:var(--gold);font-weight:800;font-size:14px;padding:13px;border-radius:13px;margin-bottom:16px;font-family:inherit;cursor:pointer">\ud83d\udcc5 Book via Calendly \u2014 automatic, shows on both schedules</button>';
-  h+=scopeBar();
-  /* A shop with no trainer of its own would otherwise show an empty screen and look broken.
-     Say what happened and offer the one control that fixes it. */
-  if(SHOPONLY && !shopHasTrainers()){
-    h+='<div class="empty" style="padding:20px 16px;line-height:1.6">'+
-       'Nobody in <b>'+esc(myBase()||'your baseshop')+'</b> has published training hours yet.'+
-       (allTr().length?('<br><button class="x" style="margin-top:10px" onclick="setShopScope(false)">Show the whole hierarchy instead</button>'):'')+
-       '</div>';
-  }
-  h+='<div class="bstep"><div class="lbl">1 · Pick a date</div><div class="dstrip" id="dstrip"></div></div>';
-  h+='<div class="bstep"><div class="lbl">2 · Training type</div><div class="catrow" id="catrow"></div></div>';
-  h+='<div class="bstep"><div class="lbl">3 · Available times</div><div id="timesWrap"><div class="spin">Loading availability…</div></div></div>';
-  h+='<div class="bstep" id="trWrap"></div>';
-  $('view').innerHTML=h;renderDStrip();renderCats();loadDayBooked(SELDATE,function(){renderTimes();});
+  var h='<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap"><div style="font-size:12.5px;color:var(--ink3)">Booking a training for yourself? Pick your trainer below. Booking a client appointment for someone else?</div><button class="qbtn" style="margin:0" onclick="openStaffBook()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Book for a client</button></div>';
+  h+='<div style="display:flex;align-items:center;gap:8px;border:1px solid rgba(201,154,46,.35);background:rgba(201,154,46,.08);color:var(--gold);font-weight:700;font-size:12.5px;padding:10px 13px;border-radius:12px;margin-bottom:16px;line-height:1.45">📅 Booked in Calendly, shown here — one appointment, both calendars. Invites come from Calendly.</div>';
+  h+='<div class="bstep"><div class="lbl">1 · Who do you want to train with?</div><div id="cbTr"><div class="spin">Loading trainers…</div></div></div>';
+  h+='<div class="bstep" id="cbTypeStep" style="display:none"><div class="lbl">2 · What kind of meeting?</div><div id="cbTypes"></div></div>';
+  h+='<div class="bstep" id="cbSlotStep" style="display:none"><div class="lbl">3 · Pick a time</div><div id="cbSlots"></div></div>';
+  $('view').innerHTML=h;
+  cbLoadTrainers();
 }
+function cbLoadTrainers(){
+  cbApi({action:'trainers'}).then(function(r){
+    var host=$('cbTr'); if(!host)return;
+    if(!r||!r.ok){host.innerHTML='<div class="empty">Could not load trainers.</div>';return;}
+    CBTR=r.trainers||[]; CBWAIT=r.awaiting_connection||[];
+    if(SHOPONLY)CBTR=CBTR.filter(function(t){return sameShop(t);});
+    if(!CBTR.length){
+      host.innerHTML='<div class="empty" style="line-height:1.6">No trainer in '+esc(SHOPONLY?(myBase()||'your baseshop'):'the hierarchy')+' has connected their Calendly yet.'+
+        (SHOPONLY?'<br><button class="x" style="margin-top:10px" onclick="setShopScope(false)">Show the whole hierarchy</button>':'')+'</div>';
+      return;
+    }
+    host.innerHTML='<div class="catrow">'+CBTR.map(function(t){
+      return '<button class="cat'+(CBSEL&&CBSEL.code===t.code?' on':'')+'" onclick="cbPickTrainer(\''+esc(t.code)+'\')">'+esc(t.name)+'</button>';
+    }).join('')+'</div>'+
+    (CBWAIT.length?('<div style="font-size:11.5px;color:var(--ink3);margin-top:9px;line-height:1.5">'+CBWAIT.length+' more trainer'+(CBWAIT.length===1?'':'s')+' ('+esc(CBWAIT.map(function(w){return w.name;}).join(', '))+') are hidden until they connect Calendly, so nothing can be booked that their calendar would not show.</div>'):'');
+    if(CBSEL)cbPickTrainer(CBSEL.code);
+  });
+}
+function cbPickTrainer(code){
+  CBSEL=CBTR.filter(function(t){return t.code===code;})[0]||null;
+  CBTYPE=null;CBSLOT=null;CBSLOTS=[];
+  cbLoadTrainers===null;
+  var host=$('cbTr');
+  if(host)Array.prototype.slice.call(host.querySelectorAll('.cat')).forEach(function(b){b.classList.toggle('on',b.getAttribute('onclick').indexOf("'"+code+"'")>=0);});
+  $('cbTypeStep').style.display='';
+  $('cbSlotStep').style.display='none';
+  $('cbTypes').innerHTML='<div class="spin">Reading '+esc((CBSEL&&CBSEL.name||'').split(' ')[0])+'’s Calendly…</div>';
+  cbApi({action:'types',trainer_code:code}).then(function(r){
+    if(!$('cbTypes'))return;
+    if(!r||!r.ok){$('cbTypes').innerHTML='<div class="empty">'+esc((r&&r.error)||'Could not read their Calendly.')+'</div>';return;}
+    CBTYPES=r.types||[];
+    if(!CBTYPES.length){$('cbTypes').innerHTML='<div class="empty">They have no active meeting types in Calendly right now.</div>';return;}
+    $('cbTypes').innerHTML=CBTYPES.map(function(t,i){
+      return '<button class="tcard" style="display:block;width:100%;text-align:left;border:1.5px solid '+(CBTYPE&&CBTYPE.uri===t.uri?'var(--accent)':'var(--line2)')+';background:var(--panel);cursor:pointer;margin-bottom:8px;font-family:inherit" onclick="cbPickType('+i+')">'+
+        '<div style="font-weight:800;font-size:14px;color:var(--ink)">'+esc(t.name)+'</div>'+
+        '<div style="font-size:12px;color:var(--ink3);margin-top:3px">'+t.duration+' minutes'+(t.description?(' · '+esc(t.description.slice(0,90))):'')+'</div></button>';
+    }).join('');
+  });
+}
+function cbPickType(i){
+  CBTYPE=CBTYPES[i]||null; CBSLOT=null;
+  if(!CBTYPE)return;
+  $('cbTypes').innerHTML=CBTYPES.map(function(t,ix){
+    return '<button class="tcard" style="display:block;width:100%;text-align:left;border:1.5px solid '+(ix===i?'var(--accent)':'var(--line2)')+';background:var(--panel);cursor:pointer;margin-bottom:8px;font-family:inherit" onclick="cbPickType('+ix+')">'+
+      '<div style="font-weight:800;font-size:14px;color:var(--ink)">'+esc(t.name)+'</div>'+
+      '<div style="font-size:12px;color:var(--ink3);margin-top:3px">'+t.duration+' minutes'+(t.description?(' · '+esc(t.description.slice(0,90))):'')+'</div></button>';
+  }).join('');
+  $('cbSlotStep').style.display='';
+  $('cbSlots').innerHTML='<div class="spin">Checking their open times…</div>';
+  cbApi({action:'slots',trainer_code:CBSEL.code,event_type:CBTYPE.uri,days:14}).then(function(r){
+    if(!$('cbSlots'))return;
+    if(!r||!r.ok){$('cbSlots').innerHTML='<div class="empty">'+esc((r&&r.error)||'Could not read their availability.')+'</div>';return;}
+    CBSLOTS=r.slots||[];
+    if(!CBSLOTS.length){$('cbSlots').innerHTML='<div class="empty">No open times in the next two weeks for this meeting.</div>';return;}
+    var byDate={},order=[];
+    CBSLOTS.forEach(function(s){if(!byDate[s.date]){byDate[s.date]=[];order.push(s.date);}byDate[s.date].push(s);});
+    $('cbSlots').innerHTML='<div style="font-size:11.5px;color:var(--ink3);margin-bottom:8px">'+tzNote()+'</div>'+
+      order.map(function(d){
+        return '<div style="margin-bottom:12px"><div style="font-size:12.5px;font-weight:800;color:var(--ink2);margin-bottom:6px">'+esc(prettyDate(d))+'</div><div class="tchips">'+
+          byDate[d].map(function(s){
+            return '<button class="tchip'+(CBSLOT&&CBSLOT.start_time===s.start_time?' on':'')+'" onclick="cbPickSlot(\''+esc(s.start_time)+'\')">'+esc(localSlot(s.date,s.time))+'</button>';
+          }).join('')+'</div></div>';
+      }).join('');
+  });
+}
+function cbPickSlot(iso){
+  CBSLOT=CBSLOTS.filter(function(s){return s.start_time===iso;})[0]||null;
+  if(!CBSLOT)return;
+  cbConfirm();
+}
+function cbConfirm(){
+  var email=(PROFILE&&PROFILE.email)||'';
+  $('bkDrawer').innerHTML='<div class="dh"><h3>Confirm your booking</h3><button class="x" onclick="$(\'bkOv\').classList.remove(\'on\')">Close</button></div>'+
+    '<div class="confrow"><div class="cl">Trainer</div><div class="cv">'+esc(CBSEL.name)+'</div></div>'+
+    '<div class="confrow"><div class="cl">Meeting</div><div class="cv">'+esc(CBTYPE.name)+'</div></div>'+
+    '<div class="confrow"><div class="cl">When</div><div class="cv">'+esc(prettyDate(CBSLOT.date))+'</div></div>'+
+    '<div class="confrow"><div class="cl">Time</div><div class="cv">'+esc(localSlot(CBSLOT.date,CBSLOT.time))+tzTag()+' · '+CBTYPE.duration+' min</div></div>'+
+    '<div style="margin-top:14px"><label style="'+_LST+'">Your email (Calendly sends the invite here)</label><input id="cb_email" value="'+esc(email)+'" placeholder="you@email.com" style="'+_IST+'"></div>'+
+    '<div style="margin-top:10px"><label style="'+_LST+'">Guests to copy in (optional, comma separated)</label><input id="cb_guests" placeholder="teammate@email.com" style="'+_IST+'"></div>'+
+    '<div style="margin-top:10px"><label style="'+_LST+'">Anything they should know (optional)</label><input id="cb_notes" placeholder="What you want to cover" style="'+_IST+'"></div>'+
+    '<div class="err" id="cb_err" style="color:var(--red);font-size:12.5px;margin-top:9px"></div>'+
+    '<div class="dact" style="margin-top:16px"><button class="go" id="cb_btn" onclick="cbBook()">Confirm booking</button></div>'+
+    '<div style="font-size:11.5px;color:var(--ink3);margin-top:11px;line-height:1.5">This books it in '+esc(CBSEL.name.split(' ')[0])+'’s Calendly and puts it on your schedule here. One appointment, not two.</div>';
+  $('bkOv').classList.add('on');
+}
+function cbBook(){
+  var btn=$('cb_btn'),err=$('cb_err');
+  var email=($('cb_email').value||'').trim(), guests=($('cb_guests').value||'').trim(), notes=($('cb_notes').value||'').trim();
+  if(email.indexOf('@')<1){err.textContent='Add an email address so Calendly can send the invite.';return;}
+  btn.disabled=true;btn.textContent='Booking in Calendly…';err.textContent='';
+  cbApi({action:'book',trainer_code:CBSEL.code,by_code:CODE,name:NAME,email:email,guests:guests,notes:notes,
+         event_type:CBTYPE.uri,event_type_name:CBTYPE.name,duration:CBTYPE.duration,
+         start_time:CBSLOT.start_time,timezone:(viewerTz()||'America/Los_Angeles')}).then(function(r){
+    if(r&&r.taken){btn.disabled=false;btn.textContent='Confirm booking';err.textContent=r.error||'That time was just taken.';cbPickType(CBTYPES.indexOf(CBTYPE));return;}
+    if(r&&r.needs_calendly){
+      /* Calendly wants something only a person can give. Send them to that exact slot rather than
+         invent an answer — it is still one booking, still made in Calendly. */
+      $('bkDrawer').innerHTML='<div class="done"><div class="chk" style="background:var(--gold)">→</div><h3>Finish in Calendly</h3>'+
+        '<p class="dsub">'+esc(r.reason||'This meeting needs a detail only you can give.')+'</p>'+
+        '<div style="margin-top:14px"><a class="go" style="display:inline-block;text-decoration:none" href="'+esc(r.scheduling_url||'')+'" target="_blank" rel="noopener" onclick="setTimeout(function(){$(\'bkOv\').classList.remove(\'on\');loadMy(function(){});},400)">Open '+esc(CBSEL.name.split(' ')[0])+'’s Calendly →</a></div>'+
+        '<div style="font-size:11.5px;color:var(--ink3);margin-top:12px;line-height:1.5">It opens on this exact time. Once you finish there it appears here automatically.</div></div>';
+      return;
+    }
+    if(!r||!r.ok){btn.disabled=false;btn.textContent='Confirm booking';err.textContent=(r&&r.error)||'Could not book.';return;}
+    var b=r.booking||{};
+    $('bkDrawer').innerHTML='<div class="done"><div class="chk">✓</div><h3>You’re booked!</h3>'+
+      '<p class="dsub">'+esc(CBSEL.name)+' · '+esc(prettyDate(CBSLOT.date))+' at '+esc(localSlot(CBSLOT.date,CBSLOT.time))+tzTag()+'</p>'+
+      '<div class="cnum">Confirmation '+esc(r.conf||b.conf||'')+'</div>'+
+      '<div style="font-size:12px;color:var(--ink3);margin-top:12px;line-height:1.5">Booked in Calendly and on your schedule here. Calendly is sending the invite'+(guests?' to you and your guests':'')+'.</div>'+
+      (r.warning?('<div style="font-size:11.5px;color:var(--gold);margin-top:10px;line-height:1.5">'+esc(r.warning)+'</div>'):'')+
+      '<div class="dact" style="margin-top:18px"><button class="go" onclick="finishBook()">Done</button></div></div>';
+    loadMy(function(){});loadCalEvents(function(){render&&render();});
+  });
+}
+
 // === Book for a client (3c — book-on-behalf) ===
 var BTYPES=[],SBSLOTS=[];
 var _IST='width:100%;border:1.5px solid var(--line2);border-radius:12px;padding:11px 13px;font-size:15px;background:var(--panel);color:var(--ink);outline:none';
@@ -1379,19 +1509,6 @@ function doStaffBook(){
     loadMyTrainer(function(){render();});
   }).catch(function(){btn.disabled=false;btn.textContent='Book appointment';err.textContent='Network error — try again.';});
 }
-function renderDStrip(){var h='';for(var i=0;i<14;i++){var d=addDays(i);var ds=ymd(d);var on=ds===SELDATE?' on':'';var td=ds===todayStr()?' today':'';
-  var wname=d.toLocaleDateString('en-US',{weekday:'short',timeZone:'UTC'});var dn=d.getUTCDate();var mn=d.toLocaleDateString('en-US',{month:'short',timeZone:'UTC'});
-  h+='<div class="dpill'+on+td+'" onclick="pickDate(\''+ds+'\')"><div class="dw">'+(ds===todayStr()?'Today':wname)+'</div><div class="dd">'+dn+'</div><div class="dm">'+mn+'</div></div>';}
-  $('dstrip').innerHTML=h;}
-function renderCats(){$('catrow').innerHTML=CATS.map(function(c){return '<button class="cat'+(c===SELCAT?' on':'')+'" onclick="SELCAT=\''+c+'\';renderCats()">'+esc(c)+'</button>';}).join('');}
-function pickDate(ds){SELDATE=ds;SELTIME=null;renderDStrip();$('timesWrap').innerHTML='<div class="spin">Checking Calendly availability…</div>';$('trWrap').innerHTML='';loadDayBooked(ds,function(){loadCalAvail(ds,function(){renderTimes();});});}
-function renderTimes(){var times=allTimesForDate(SELDATE);
-  if(!times.length){$('timesWrap').innerHTML='<div class="empty">No trainer availability on '+prettyDate(SELDATE)+'. Try another day.</div>';return;}
-  $('timesWrap').innerHTML='<div style="font-size:11.5px;color:var(--ink3);margin-bottom:8px">'+tzNote()+'</div><div class="tchips">'+times.map(function(o){return '<button class="tchip'+(o.time===SELTIME?' on':'')+'" onclick="pickTime(\''+o.time+'\')">'+esc(localSlot(SELDATE,o.time))+'<span class="cnt">'+o.count+' free</span></button>';}).join('')+'</div>';}
-function pickTime(t){SELTIME=t;renderTimes();var trs=trainersAt(SELDATE,t);
-  $('trWrap').innerHTML='<div class="lbl">4 · Choose your trainer</div><div class="grid g3">'+trs.map(function(c){return bookTrainerCard(c);}).join('')+'</div>';
-  $('trWrap').scrollIntoView({behavior:'smooth',block:'center'});}
-function bookTrainerCard(c){var col=avColor(c.name);return '<div class="tcard"><div class="th"><div class="tav" style="background:'+col+'">'+initials(c.name)+'</div><div><div class="tn">'+esc(c.name)+'</div><div class="tr">'+esc(roleLabel(c.role))+'</div></div></div><div class="tmeta"><span class="m">'+esc(localSlot(SELDATE,SELTIME))+tzTag()+'</span><span class="m">'+esc(SELCAT)+'</span></div><button class="book" onclick="confirmBook(\''+encodeURIComponent(c.name)+'\')">Book this time</button></div>';}
 function startBookWith(encName){var name=decodeURIComponent(encName);var c=TRAINERS.filter(function(x){return x.name===name;})[0];if(!c)return;
   if(c.calendly){window.open(c.calendly,'_blank','noopener');toast('Opening '+name.split(' ')[0]+'’s Calendly…');return;}
   toast(name.split(' ')[0]+' hasn’t connected their Calendly yet.');}
@@ -1399,7 +1516,7 @@ function quickSchedule(){
   for(var i=0;i<14;i++){var ds=ymd(addDays(i));var wd=wdOf(ds);var times={};
     bTr().forEach(function(c){var key=DAYS[wd];var slots=(c.slots&&c.slots[key])||[];slots.forEach(function(t){if(!times[t])times[t]=c;});});
     var keys=Object.keys(times).sort(function(a,b){return t2min(a)-t2min(b);});
-    if(keys.length){SELDATE=ds;SELTIME=keys[0];setTab('book');(function(dd,tt){loadDayBooked(dd,function(){renderTimes();pickTime(tt);});})(ds,keys[0]);toast('Earliest opening: '+shortDate(ds)+' at '+keys[0]);return;}}
+    if(keys.length){setTab('book');toast('Earliest opening is '+shortDate(ds)+' at '+keys[0]+' — pick the trainer to see their times');return;}}
   toast('No open trainer times in the next 2 weeks.');
 }
 
@@ -1477,47 +1594,6 @@ function calBookUrl(base,agentName,agentEmail,guests,dateStr){
   return u+(p.length?((u.indexOf('?')>=0?'&':'?')+p.join('&')):'');
 }
 var _CFIN='width:100%;border:1px solid var(--line2);border-radius:9px;padding:8px 10px;font-size:13.5px;font-family:inherit;background:var(--panel);color:var(--ink)';
-function confirmBook(encName){var name=decodeURIComponent(encName);var c=TRAINERS.filter(function(x){return x.name===name;})[0];if(!c||!SELDATE||!SELTIME){toast('Pick a date and time first.');return;}
-  var col=avColor(name);var hasCal=!!(c&&c.calendly);
-  $('bkDrawer').innerHTML='<h3>Confirm your training</h3><p class="dsub">Review, add guests, and confirm.</p>'+
-    '<div style="display:flex;align-items:center;gap:13px;margin-bottom:8px"><div class="tav" style="background:'+col+'">'+initials(name)+'</div><div><div style="font-weight:800;font-size:16px">'+esc(name)+'</div><div style="font-size:12.5px;color:var(--ink3)">'+esc(roleLabel(c.role))+'</div></div></div>'+
-    '<div class="confrow"><div class="cl">When</div><div class="cv">'+prettyDate(dispDate({date:SELDATE,time:SELTIME}))+'</div></div>'+
-    '<div class="confrow"><div class="cl">Time</div><div class="cv">'+esc(localSlot(SELDATE,SELTIME))+' · '+esc(tzShort()||(TZ.split(" ")[0]||"PT"))+'</div></div>'+
-    '<div class="confrow"><div class="cl">Type</div><div class="cv">'+esc(SELCAT)+'</div></div>'+
-    '<div class="confrow"><div class="cl">Agent</div><div class="cv">'+esc(NAME||CODE)+'</div></div>'+
-    '<div style="margin-top:10px"><label style="font-size:11.5px;font-weight:700;color:var(--ink2)">Your email</label><input id="bk_email" value="'+esc(PROFILE.email||'')+'" placeholder="you@email.com" style="'+_CFIN+';margin-top:4px"></div>'+
-    '<div style="margin-top:10px"><label style="font-size:11.5px;font-weight:700;color:var(--ink2)">Invite guests <span style="font-weight:500;color:var(--ink3)">· comma-separated emails</span></label><input id="bk_guests" placeholder="guest@email.com, other@email.com" style="'+_CFIN+';margin-top:4px"></div>'+
-    (hasCal?('<div style="font-size:11.5px;color:var(--gold-br,#b8891f);background:var(--goldsoft,rgba(201,154,46,.12));border-radius:10px;padding:9px 11px;margin-top:12px;line-height:1.45">📅 <b>'+esc(name.split(" ")[0])+' schedules on Calendly.</b> Confirming books it here <b>and</b> opens their Calendly to finalize the time &amp; send calendar invites to you &amp; any guests.</div>'):'')+
-    '<div class="dact"><button onclick="$(\'bkOv\').classList.remove(\'on\')">Back</button><button class="go" id="cbtn" onclick="doBook(\''+encodeURIComponent(name)+'\')">'+(hasCal?'Confirm &amp; open Calendly':'Confirm booking')+'</button></div>';
-  $('bkOv').classList.add('on');
-}
-function doBook(encName){var name=decodeURIComponent(encName);var c=TRAINERS.filter(function(x){return x.name===name;})[0];if(!c)return;
-  $('cbtn').disabled=true;$('cbtn').textContent='Booking…';
-  var email=($('bk_email')?($('bk_email').value||'').trim():'');var guests=($('bk_guests')?($('bk_guests').value||'').trim():'');
-  var hasCal=!!(c&&c.calendly);
-  /* open Calendly synchronously on the click so popup blockers don't stop it; fill URL after we know it's booked */
-  var calWin=hasCal?window.open('','_blank'):null;
-  var bkNotes=[(guests?('Guests: '+guests):''),(email?('Agent email: '+email):'')].filter(Boolean).join(' · ');
-  fetch(AT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'atlas_book',code:CODE,agent_name:NAME,trainer_name:name,trainer_calendly:c.calendly||'',category:SELCAT,date:SELDATE,time:SELTIME,notes:bkNotes,invitee_email:email,guests:guests})}).then(function(r){return r.json();}).then(function(r){
-    if(r&&r.taken){if(calWin)calWin.close();toast(r.error||'That time was just taken.');$('bkOv').classList.remove('on');loadDayBooked(SELDATE,function(){SELTIME=null;$('trWrap').innerHTML='';renderTimes();});return;}
-    if(!r||!r.ok){if(calWin)calWin.close();toast((r&&r.error)||'Could not book.');$('cbtn').disabled=false;$('cbtn').textContent='Confirm booking';return;}
-    var b=r.booking;
-    function showDone(calUrl,exact){
-      if(calWin){if(calUrl){try{calWin.location.href=calUrl;}catch(e){}}else{try{calWin.close();}catch(e){}}}
-      $('bkDrawer').innerHTML='<div class="done"><div class="chk">✓</div><h3>You’re booked!</h3><p class="dsub">'+esc(name)+' · '+prettyDate(dispDate({date:SELDATE,time:SELTIME}))+' at '+esc(dispTime({date:SELDATE,time:SELTIME}))+tzTag()+'</p><div class="cnum">Confirmation '+esc(b.conf||'')+'</div>'+
-        (calUrl?('<div style="font-size:12px;color:var(--gold-br,#b8891f);margin-top:12px;line-height:1.45">📅 Calendly opened to '+(exact?'this exact time':'this day')+' to finalize &amp; send invites'+(guests?(' to your guests'):'')+'. It also shows here on the Scheduler. <a href="'+esc(calUrl)+'" target="_blank" rel="noopener" style="color:var(--accent);font-weight:700">Reopen</a></div>'):'')+
-        '<div class="dact" style="margin-top:20px"><button class="go" onclick="finishBook()">Done</button></div>'+
-        '<div style="font-size:11.5px;color:var(--ink3);margin-top:12px">Notification sent to '+esc(name.split(' ')[0])+'. You can cancel any time from My Schedule.</div></div>';
-      loadMy(function(){});
-    }
-    if(hasCal){
-      fetch(CALS,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'exact_slot',trainer_name:name,date:SELDATE,time:SELTIME,name:NAME,email:email,guests:guests,event_type_name:SELCAT})}).then(function(rr){return rr.json();}).then(function(x){
-        if(x&&x.ok&&x.scheduling_url)showDone(x.scheduling_url,true);
-        else showDone(calBookUrl(c.calendly,NAME,email,guests,SELDATE),false);
-      }).catch(function(){showDone(calBookUrl(c.calendly,NAME,email,guests,SELDATE),false);});
-    }else{showDone('',false);}
-  }).catch(function(){if(calWin)calWin.close();toast('Network error — try again.');$('cbtn').disabled=false;$('cbtn').textContent='Confirm booking';});
-}
 function finishBook(){$('bkOv').classList.remove('on');SELTIME=null;setTab('me');}
 /* Delete, as distinct from Cancel. Cancel leaves the appointment on the board
    marked cancelled; delete removes it from the scheduler, the Ops bookings tab,
@@ -2078,7 +2154,7 @@ function spotSearch(){var q=($('spotI').value||'').toLowerCase();var items=[];
   bTr().forEach(function(c){if(!q||c.name.toLowerCase().indexOf(q)>=0||(roleLabel(c.role).toLowerCase().indexOf(q)>=0)){items.push({t:c.name,s:roleLabel(c.role),k:'Trainer',act:function(){closeSpot();startBookWith(encodeURIComponent(c.name));}});}});
   MYB.forEach(function(b){var hay=((b.trainer_name||'')+' '+(b.category||'')+' '+(b.conf||'')+' '+(b.status||'')).toLowerCase();if(!q||hay.indexOf(q)>=0){items.push({t:b.trainer_name+' · '+(b.category||'Training'),s:prettyDate(dispDate(b))+' · '+b.time+' · '+(b.conf||''),k:'Appt',act:function(){closeSpot();setTab('me');}});}});
   TRAININGS.forEach(function(s){if(!q||s.t.toLowerCase().indexOf(q)>=0||s.host.toLowerCase().indexOf(q)>=0){items.push({t:s.t,s:fmtHMlocal(s.h,s.m)+tzTag()+' · '+s.host,k:'Training',act:function(){window.open(s.z,'_blank');}});}});
-  CATS.forEach(function(c){if(q&&c.toLowerCase().indexOf(q)>=0)items.push({t:c,s:'Start a booking',k:'Type',act:function(){closeSpot();SELCAT=c;setTab('book');}});});
+  CATS.forEach(function(c){if(q&&c.toLowerCase().indexOf(q)>=0)items.push({t:c,s:'Start a booking',k:'Type',act:function(){closeSpot();setTab('book');}});});
   SPOTITEMS=items.slice(0,12);SPOTSEL=0;
   $('spotR').innerHTML=SPOTITEMS.length?SPOTITEMS.map(function(x,i){return '<div class="sres'+(i===0?' sel':'')+'" onclick="SPOTITEMS['+i+'].act()"><div class="si">'+esc((x.k[0]||'?'))+'</div><div><div class="st">'+esc(x.t)+'</div><div class="ss">'+esc(x.s)+'</div></div><span class="kind">'+esc(x.k)+'</span></div>';}).join(''):'<div class="empty" style="border:none">No matches.</div>';}
 function spotKey(e){if(e.key==='ArrowDown'){e.preventDefault();SPOTSEL=Math.min(SPOTITEMS.length-1,SPOTSEL+1);spotHi();}else if(e.key==='ArrowUp'){e.preventDefault();SPOTSEL=Math.max(0,SPOTSEL-1);spotHi();}else if(e.key==='Enter'){if(SPOTITEMS[SPOTSEL])SPOTITEMS[SPOTSEL].act();}}
