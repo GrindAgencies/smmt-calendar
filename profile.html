@@ -123,6 +123,21 @@ input.in[readonly]{background:var(--panel2);color:var(--ink2)}
 
 <div class="wrap" id="wrap"><div class="spin">Loading your profile…</div></div>
 
+<!-- Apple 5.1.1(v): an app that has accounts must let a person delete theirs FROM INSIDE THE APP.
+     Google Play requires the same plus a route that works without the app (delete-account.html).
+     Deliberately last on the page, behind a typed confirmation, and it asks for the PIN — deleting
+     an account is the wrong place to inherit this platform's habit of trusting a bare agent code. -->
+<div class="wrap" style="margin-top:8px">
+  <div style="border:1px solid rgba(179,38,30,.35);background:rgba(179,38,30,.05);border-radius:14px;padding:18px">
+    <div style="font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);font-weight:800;margin-bottom:8px">Danger zone</div>
+    <div style="font-weight:700;margin-bottom:4px">Delete my account</div>
+    <div style="font-size:13px;color:var(--ink3);line-height:1.5;margin-bottom:12px">
+      Closes your account permanently. You will not be able to sign in again, and this cannot be undone.
+    </div>
+    <button onclick="openDeleteAccount()" style="border:1px solid rgba(179,38,30,.5);background:transparent;color:#b3261e;font-weight:800;font-size:13.5px;padding:10px 15px;border-radius:10px;cursor:pointer;font-family:inherit">Delete my account…</button>
+  </div>
+</div>
+
 <div class="ov" id="bkOv"><div class="drawer" id="bkDrawer"></div></div>
 <div class="toast" id="toast"></div>
 
@@ -138,6 +153,46 @@ function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){retu
 function toast(t){var e=$('toast');e.textContent=t;e.classList.add('on');clearTimeout(e._t);e._t=setTimeout(function(){e.classList.remove('on');},2400);}
 function initials(nm){nm=(nm||'').trim();var p=nm.split(/\s+/);return (((p[0]||'')[0]||'')+((p[1]||'')[0]||'')).toUpperCase();}
 function toggleTheme(){var d=document.documentElement.getAttribute('data-theme')==='dark';document.documentElement.setAttribute('data-theme',d?'light':'dark');try{localStorage.setItem('gfi_theme',d?'light':'dark');}catch(e){}}
+var ACCDEL="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/account-delete";
+function openDeleteAccount(){
+  $('bkDrawer').innerHTML='<h3>Delete my account</h3><div class="spin">Loading…</div>';
+  $('bkOv').classList.add('on');
+  fetch(ACCDEL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'what_happens'})})
+   .then(function(r){return r.json();})
+   .then(function(d){
+     if(!d||!d.ok){$('bkDrawer').innerHTML='<h3>Delete my account</h3><p>Could not load. Email admin@grindagencies.com.</p>';return;}
+     var li=function(a){return (a||[]).map(function(x){return '<li style="margin-bottom:6px">'+esc(x)+'</li>';}).join('');};
+     $('bkDrawer').innerHTML='<h3>Delete my account</h3>'
+      +'<p style="color:var(--ink3);font-size:13.5px;line-height:1.55;margin:0 0 14px">This cannot be undone.</p>'
+      +'<div style="font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink3);font-weight:800;margin-bottom:6px">What gets deleted</div>'
+      +'<ul style="margin:0 0 16px;padding-left:20px;font-size:13.5px">'+li(d.destroyed)+'</ul>'
+      +'<div style="font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink3);font-weight:800;margin-bottom:6px">What we have to keep</div>'
+      +'<ul style="margin:0 0 6px;padding-left:20px;font-size:13.5px">'+li(d.retained)+'</ul>'
+      +'<p style="color:var(--ink3);font-size:12.5px;line-height:1.5;margin:0 0 16px">'+esc(d.why_retained||'')+'</p>'
+      +'<label style="display:block;font-size:12.5px;font-weight:700;color:var(--ink2);margin-bottom:5px">Enter your 4-digit PIN to confirm it is you</label>'
+      +'<input id="delPin" inputmode="numeric" maxlength="4" placeholder="••••" style="width:100%;border:1.5px solid var(--line2);border-radius:11px;padding:11px 13px;font-size:16px;font-family:inherit;background:var(--panel);color:var(--ink)">'
+      +'<div id="delErr" style="color:#b3261e;font-size:12.5px;margin-top:9px"></div>'
+      +'<div style="display:flex;gap:8px;margin-top:16px">'
+      +'<button id="delGo" onclick="doDeleteAccount()" style="flex:1;border:0;border-radius:11px;padding:13px;font-family:inherit;font-weight:800;font-size:14px;background:#b3261e;color:#fff;cursor:pointer">Delete permanently</button>'
+      +'<button onclick="$(\'bkOv\').classList.remove(\'on\')" style="border:1px solid var(--line2);background:var(--panel);color:var(--ink2);font-weight:700;font-size:14px;padding:13px 16px;border-radius:11px;cursor:pointer;font-family:inherit">Cancel</button></div>';
+   });
+}
+function doDeleteAccount(){
+  var pin=(($('delPin')||{}).value||'').trim(), err=$('delErr'), btn=$('delGo');
+  if(!/^[0-9]{4}$/.test(pin)){err.textContent='Enter your 4-digit PIN.';return;}
+  if(!confirm('Delete your account permanently?\n\nYou will not be able to sign in again.'))return;
+  btn.disabled=true; btn.textContent='Deleting…'; err.textContent='';
+  fetch(ACCDEL,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'delete',code:CODE,pin:pin,channel:'in_app'})})
+   .then(function(r){return r.json();})
+   .then(function(d){
+     if(!d||!d.ok){btn.disabled=false;btn.textContent='Delete permanently';err.textContent=(d&&d.error)||'Could not delete.';return;}
+     try{localStorage.removeItem('tsfg_code');localStorage.removeItem('tsfg_name');}catch(e){}
+     $('bkDrawer').innerHTML='<h3>Your account is deleted</h3><p style="color:var(--ink3);font-size:13.5px;line-height:1.55">'+esc(d.message||'')+'</p>'
+       +'<button onclick="location.href=\'index.html\'" style="width:100%;margin-top:16px;border:0;border-radius:11px;padding:13px;font-family:inherit;font-weight:800;font-size:14px;background:var(--accent,#b8891f);color:#1a1405;cursor:pointer">Close</button>';
+   })
+   .catch(function(){btn.disabled=false;btn.textContent='Delete permanently';err.textContent='Network error — try again.';});
+}
 function signOut(){try{localStorage.removeItem('tsfg_code');localStorage.removeItem('tsfg_name');}catch(e){}location.href='index.html';}
 (function(){try{var t=localStorage.getItem('gfi_theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
 
