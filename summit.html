@@ -634,7 +634,9 @@ function boot(){
        start folded. Every one of them can be opened individually. */
     /* Opening on 74 bubbles is noise, not insight. The map starts on leadership and their
        direct teams; every branch below opens with one tap on its own + control. */
-    NODES.forEach(function(n){if(depthOf(n.code)>=1&&(KIDS[n.code]||[]).length)COLLAPSED[n.code]=true;});
+    /* Opening on depth 1 alone showed 9 bubbles out of 136 people and read as if the rest of the
+       company had never been loaded. Two levels shows every leader AND their team leads. */
+    NODES.forEach(function(n){if(depthOf(n.code)>=2&&(KIDS[n.code]||[]).length)COLLAPSED[n.code]=true;});
     LADDER=CODE;
     STEP=firstOpenStage(LADDER);
     ['map','perf','road'].forEach(function(k){var b=$('tab_'+k);if(b)b.classList.toggle('on',k===TAB);});
@@ -765,13 +767,14 @@ function renderMap(){
     +'<button class="iconbtn" onclick="bumpZoom(0.15)">+</button></span></div>'
     +tagbar
     +'<div id="stage"><div id="plane"><svg id="wires"></svg></div></div>'
-    +'<div class="maphint">'+(CANEDIT?'<span><b style="color:var(--gold)">\u21c4</b> on a bubble, then tap their new upline</span>':'')
+    +'<div class="maphint"><span id="shownCount" style="color:var(--gold)"></span>'+(CANEDIT?'<span><b style="color:var(--gold)">\u21c4</b> on a bubble, then tap their new upline</span>':'')
     +'<span>Drag a bubble to move it</span><span>Drag the canvas to pan</span>'
     +'<span>Scroll to zoom</span><span>− / + on a bubble folds that team</span></div>';
   wireStage();
   paintBubbles();
 }
 function paintBubbles(){
+  setTimeout(updateShownCount,0);
   var plane=$('plane'); if(!plane)return;
   var laid=layout();
   var q=QUERY.trim().toLowerCase();
@@ -857,6 +860,13 @@ function fitToView(){
   applyTransform();saveLayout();
 }
 function expandAll(){COLLAPSED={};paintBubbles();fitToView();}
+/* "9 of 136" is the difference between a folded chart and a chart that looks broken. */
+function updateShownCount(){
+  var el=document.getElementById('shownCount'); if(!el)return;
+  var shown=document.querySelectorAll('.bub').length;
+  var total=NODES.filter(function(n){return !n.departed;}).length;
+  el.textContent=shown+' of '+total+' shown'+(shown<total?' \u2014 Expand all for the rest':'');
+}
 
 /* ===== Cashflow levels (Eli + Operations only) =====
    Adding a level is deliberately NOT an EMD power: an EMD could otherwise invent a level they

@@ -315,7 +315,6 @@
     ['Marketing Plan', 'marketing.html', I.users],
     ['My Team',        'team.html',      I.team],
     ['Org Chart',      'summit.html?tab=map', I.tree],
-    ['Summit',         'summit.html',    I.tree],
     /* Leaders only — hidden for everyone else by leaderOnly() below. */
     ['Baseshop Settings','baseshop.html', I.users, 'leader']
   ];
