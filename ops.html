@@ -249,6 +249,15 @@ tr:hover .nbcopy{opacity:1;}
 input.cellin.stin{font-weight:800}
 input.cellin.stin.red{background:rgba(214,69,80,.14);color:#d64550;border-color:rgba(214,69,80,.5)}
 input.cellin.stin.orange{background:rgba(224,122,47,.14);color:#e07a2f;border-color:rgba(224,122,47,.5)}
+.strow{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.strow input[type=color]{width:38px;height:32px;padding:0;border:1px solid var(--line2);border-radius:8px;background:none;cursor:pointer}
+.strow input:not([type=color]){flex:1;padding:7px 10px;border-radius:9px;border:1px solid var(--line2);background:var(--panel)}
+.stlist{max-height:330px;overflow-y:auto;border:1px solid var(--line);border-radius:12px;padding:6px}
+.strow2{display:flex;align-items:center;gap:9px;padding:6px 9px;border-radius:9px;margin-bottom:3px;
+  border-left:3px solid transparent;background:var(--panel2,rgba(0,0,0,.02))}
+.strow2 b{flex:1;font-size:13px;font-weight:600}
+.stcode{font-size:11px;font-weight:800;color:var(--ink3,#8e8e93);width:26px}
+.strow2 select{padding:5px 8px;border-radius:8px;border:1px solid var(--line2);background:var(--panel);font-size:12.5px}
 .stlegend{display:inline-flex;align-items:center;gap:13px;flex-wrap:wrap;font-size:11.5px;color:var(--ink3,#8e8e93)}
 </style>
 <script src="ops-session.js"></script>
@@ -331,6 +340,7 @@ input.cellin.stin.orange{background:rgba(224,122,47,.14);color:#e07a2f;border-co
 
 <script>
 var OD="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/ops-directory";
+var SC="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/ops-statecolors";
 var OPSPLAT="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/ops-platform";
 var ROADMAP="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/roadmap-api";
 var ACCESS="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/access-api";
@@ -699,6 +709,7 @@ function nbOpts(col){return Array.isArray(col.options)?col.options:[];}
 function nbOptColor(col,val){var o=nbOpts(col).filter(function(x){return x.value===val;})[0];return o?o.color:'#8e8e93';}
 function nbOptIndex(col,val){var a=nbOpts(col);for(var i=0;i<a.length;i++){if(a[i].value===val)return i;}return -1;}
 function renderNewbiz(){NBBOARD=(TAB==='gfi')?'gfi':'newbiz';NBLIVE=(TAB==='newbiz');var host=$('newbizHost');if(!host)return;host.innerHTML='<div class="spin">Loading…</div>';
+  if(!STCFG.categories.length)loadStateColors(function(){if(TAB==='newbiz'||TAB==='gfi')paintNewbiz();});
   nbApi({action:'nb_list',archived:NBARCH}).then(function(r){if(!r||!r.ok){host.innerHTML='<div class="empty">Could not load.</div>';return;}NBT=r.tickets||[];NBCOLS=r.columns||[];NBEDIT=!!r.can_edit;NBARCHCOUNT=r.archived_count||0;NBIFCOUNT=r.inforce_count||0;
     if(NBSORT.k!=='__notes'&&!NBCOLS.some(function(c){return c.key===NBSORT.k;}))NBSORT.k=(NBCOLS[0]&&NBCOLS[0].key)||'client_name';
     paintNewbiz();}).catch(function(){host.innerHTML='<div class="empty">Could not load.</div>';});}
@@ -716,39 +727,124 @@ function nbFiltered(){var q=($('search').value||'').trim().toLowerCase();var a=N
 function nbSortBy(k){if(NBSORT.k===k)NBSORT.dir=-NBSORT.dir;else{NBSORT.k=k;NBSORT.dir=1;}paintNewbiz();}
 function nbSelectCell(t,col){var v=nbVal(t,col.key);var c=nbOptColor(col,v);return '<select class="cellin'+(col.key==='status'?' statuscell':'')+'" style="font-weight:700'+(v?(';color:'+c):'')+'" onchange="nbSet(\''+t.id+'\',\''+col.key+'\',this.value)"><option value=""></option>'+nbOpts(col).map(function(o,i){return '<option value="'+esc(o.value)+'"'+(o.value===v?' selected':'')+' style="color:'+esc(o.color)+'">'+esc((i+1)+'. '+o.value)+'</option>';}).join('')+'</select>';}
 function nbSelectPill(col,v){if(!v)return nbDash();var c=nbOptColor(col,v);var i=nbOptIndex(col,v);return '<span class="cpill" style="background:'+c+'22;color:'+c+'">'+esc((i>=0?(i+1)+'. ':'')+v)+'</span>';}
-/* ===== STATE RISK FLAGS (New Business / client profile only — never Licensing) ==========
-   Christopher listed fifteen states to watch and three to treat as red. The State column is
-   written both ways in the real data — "FL" and "Florida" both appear, and so do "VA" and
-   "Virginia" — so both spellings are matched. West Virginia is kept distinct from Virginia,
-   which a naive "starts with V" check would quietly collapse. */
-var ST_RED = {'fl':1,'florida':1,'va':1,'virginia':1,'wv':1,'west virginia':1};
-var ST_ORANGE = {'al':1,'alabama':1,'ga':1,'georgia':1,'nm':1,'new mexico':1,
-  'sd':1,'south dakota':1,'la':1,'louisiana':1,'ky':1,'kentucky':1,'ma':1,'massachusetts':1,
-  'ms':1,'mississippi':1,'mt':1,'montana':1,'nc':1,'north carolina':1,'pa':1,'pennsylvania':1,
-  'pr':1,'puerto rico':1,'sc':1,'south carolina':1,'ut':1,'utah':1,'wi':1,'wisconsin':1};
-function stateFlag(v){
-  var k=(v==null?'':String(v)).trim().toLowerCase().replace(/[.]/g,'').replace(/\s+/g,' ');
-  if(!k)return '';
-  if(ST_RED[k])return 'red';
-  if(ST_ORANGE[k])return 'orange';
+/* ===== STATE COLOURS — Operations owns these ===========================================
+   Christopher: "allow for OPERATIONS to change and manipulate the state colors based on
+   categories they deem fit." The rules were hardcoded here; they are data now, in
+   app_settings.ops_state_colors, edited from the board by Operations.
+
+   States are keyed by two-letter code because the ledger writes them BOTH ways — "FL" and
+   "Florida" both appear, so do "VA" and "Virginia". Everything typed is normalised to a code
+   before lookup, so a rule set once catches every spelling of that state. */
+var STCFG={categories:[],states:{}}, STEDIT=false;
+var US_ABBR={'alabama':'AL','alaska':'AK','arizona':'AZ','arkansas':'AR','california':'CA',
+ 'colorado':'CO','connecticut':'CT','delaware':'DE','district of columbia':'DC','washington dc':'DC',
+ 'florida':'FL','georgia':'GA','hawaii':'HI','idaho':'ID','illinois':'IL','indiana':'IN','iowa':'IA',
+ 'kansas':'KS','kentucky':'KY','louisiana':'LA','maine':'ME','maryland':'MD','massachusetts':'MA',
+ 'michigan':'MI','minnesota':'MN','mississippi':'MS','missouri':'MO','montana':'MT','nebraska':'NE',
+ 'nevada':'NV','new hampshire':'NH','new jersey':'NJ','new mexico':'NM','new york':'NY',
+ 'north carolina':'NC','north dakota':'ND','ohio':'OH','oklahoma':'OK','oregon':'OR',
+ 'pennsylvania':'PA','puerto rico':'PR','rhode island':'RI','south carolina':'SC',
+ 'south dakota':'SD','tennessee':'TN','texas':'TX','utah':'UT','vermont':'VT','virginia':'VA',
+ 'washington':'WA','west virginia':'WV','wisconsin':'WI','wyoming':'WY'};
+var US_NAME={};for(var _k in US_ABBR){if(!US_NAME[US_ABBR[_k]])US_NAME[US_ABBR[_k]]=_k.replace(/\b\w/g,function(c){return c.toUpperCase();});}
+function stateCode(v){
+  var t=(v==null?'':String(v)).trim().toLowerCase().replace(/[.]/g,'').replace(/\s+/g,' ');
+  if(!t)return '';
+  if(US_ABBR[t])return US_ABBR[t];                       /* full name, however it was typed */
+  if(/^[a-z]{2}$/.test(t))return t.toUpperCase();        /* already a code */
   return '';
 }
-/* Colour with no key is just decoration, so the header says what the two colours mean —
-   and only when this board actually has a State column with something flagged in it. */
-function stateLegend(rows){
-  if(!NBCOLS.some(function(c){return c.key==='state';}))return '';
-  var red=0,orange=0;
-  (rows||[]).forEach(function(t){var f=stateFlag(nbVal(t,'state'));if(f==='red')red++;else if(f==='orange')orange++;});
-  if(!red&&!orange)return '';
-  var bits=[];
-  if(red)bits.push('<span class="stflag red">'+red+' red</span>');
-  if(orange)bits.push('<span class="stflag orange">'+orange+' watch</span>');
-  return ' <span class="stlegend">'+bits.join('')+'</span>';
+function stateCat(v){var c=stateCode(v);return c?(STCFG.states[c]||''):'';}
+function stateCatObj(id){
+  for(var i=0;i<(STCFG.categories||[]).length;i++)if(STCFG.categories[i].id===id)return STCFG.categories[i];
+  return null;
 }
 function stateCellHtml(v){
-  var f=stateFlag(v);
-  if(!f)return (esc(v)||'—');
-  return '<span class="stflag '+f+'" title="'+(f==='red'?'Red state':'Watch state')+'">'+esc(v)+'</span>';
+  var cat=stateCatObj(stateCat(v));
+  if(!cat)return (esc(v)||'\u2014');
+  return '<span class="stflag" style="background:'+cat.color+'26;color:'+cat.color+';border-color:'+cat.color+'73" title="'+esc(cat.label)+'">'+esc(v)+'</span>';
+}
+/* Colour with no key is decoration, so the header names the categories actually in play. */
+function stateLegend(rows){
+  if(!NBCOLS.some(function(c){return c.key==='state';}))return '';
+  var n={};(rows||[]).forEach(function(t){var c=stateCat(nbVal(t,'state'));if(c)n[c]=(n[c]||0)+1;});
+  var bits=(STCFG.categories||[]).filter(function(c){return n[c.id];}).map(function(c){
+    return '<span class="stflag" style="background:'+c.color+'26;color:'+c.color+';border-color:'+c.color+'73">'+n[c.id]+' '+esc(c.label)+'</span>';});
+  if(!bits.length)return '';
+  var edit=STEDIT?'<a onclick="openStateColors()" style="cursor:pointer;color:var(--gold);font-weight:700;text-decoration:none">edit</a>':'';
+  return ' <span class="stlegend">'+bits.join('')+edit+'</span>';
+}
+function loadStateColors(cb){
+  fetch(SC,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(auth({action:'get'}))})
+   .then(function(r){return r.json();}).then(function(r){
+     if(r&&r.ok&&r.config){STCFG={categories:r.config.categories||[],states:r.config.states||{}};STEDIT=!!r.can_edit;}
+     cb&&cb();
+   }).catch(function(){cb&&cb();});
+}
+/* Operations edits the categories AND which state sits in each. Deleting a category releases
+   its states rather than leaving them pointing at a colour that no longer exists — the server
+   drops orphan references too, so a stale rule cannot survive a round trip. */
+var STDRAFT=null;
+function openStateColors(){
+  STDRAFT={categories:JSON.parse(JSON.stringify(STCFG.categories||[])),
+           states:JSON.parse(JSON.stringify(STCFG.states||{}))};
+  paintStateColors();
+  $('ov').classList.add('on');
+}
+function paintStateColors(){
+  var cats=STDRAFT.categories;
+  var catRows=cats.map(function(c,i){
+    return '<div class="strow">'
+      +'<input type="color" value="'+esc(c.color)+'" onchange="STDRAFT.categories['+i+'].color=this.value;paintStateColors()" title="Colour">'
+      +'<input value="'+esc(c.label)+'" placeholder="Category name" onchange="STDRAFT.categories['+i+'].label=this.value">'
+      +'<button class="x" onclick="stDelCat('+i+')" title="Remove">✕</button></div>';
+  }).join('')||'<div class="sub">No categories yet — add one below.</div>';
+
+  var codes=Object.keys(US_NAME).sort(function(a,b){return US_NAME[a].localeCompare(US_NAME[b]);});
+  var opts=function(sel){return '<option value="">—</option>'+cats.map(function(c){
+    return '<option value="'+esc(c.id)+'"'+(sel===c.id?' selected':'')+'>'+esc(c.label)+'</option>';}).join('');};
+  var stateRows=codes.map(function(cd){
+    var cur=STDRAFT.states[cd]||'';
+    var co=stateCatObj2(cur);
+    return '<div class="strow2"'+(co?(' style="border-left:3px solid '+co.color+'"'):'')+'>'
+      +'<b>'+esc(US_NAME[cd])+'</b><span class="stcode">'+cd+'</span>'
+      +'<select onchange="stSet(\''+cd+'\',this.value)">'+opts(cur)+'</select></div>';
+  }).join('');
+
+  var assigned=Object.keys(STDRAFT.states).length;
+  $('drawer').innerHTML='<div class="dhd"><div><h3>🎨 State colours</h3>'
+    +'<div class="sub">Your categories, and which states fall into each. Applies to New Business and client profiles — not Licensing.</div></div>'
+    +'<button class="x" onclick="closeDrawer()">✕</button></div><div class="dbody">'
+    +'<div class="dsec"><h4>Categories</h4>'+catRows
+    +'<button class="dbtn ghost" style="margin-top:8px;padding:6px 12px;font-size:12.5px" onclick="stAddCat()">＋ Add category</button></div>'
+    +'<div class="dsec"><h4>States <span class="sub" style="font-weight:600">· '+assigned+' assigned</span></h4>'
+    +'<div class="stlist">'+stateRows+'</div></div>'
+    +'<div class="dsec"><button class="dbtn" onclick="saveStateColors()">Save colours</button>'
+    +'<button class="dbtn ghost" style="margin-left:8px" onclick="closeDrawer()">Cancel</button></div>'
+    +'</div>';
+}
+function stateCatObj2(id){for(var i=0;i<STDRAFT.categories.length;i++)if(STDRAFT.categories[i].id===id)return STDRAFT.categories[i];return null;}
+function stAddCat(){
+  var n=STDRAFT.categories.length+1;
+  STDRAFT.categories.push({id:'cat-'+Date.now().toString(36),label:'Category '+n,color:'#8e8e93'});
+  paintStateColors();
+}
+function stDelCat(i){
+  var id=STDRAFT.categories[i].id;
+  STDRAFT.categories.splice(i,1);
+  Object.keys(STDRAFT.states).forEach(function(k){if(STDRAFT.states[k]===id)delete STDRAFT.states[k];});
+  paintStateColors();
+}
+function stSet(code,cat){ if(cat)STDRAFT.states[code]=cat; else delete STDRAFT.states[code]; paintStateColors(); }
+function saveStateColors(){
+  fetch(SC,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(auth({action:'save',config:STDRAFT}))})
+   .then(function(r){return r.json();}).then(function(r){
+     if(!r||!r.ok){toast((r&&r.error)||'Could not save');return;}
+     STCFG={categories:r.config.categories||[],states:r.config.states||{}};
+     closeDrawer();toast('State colours saved ✓');
+     if(TAB==='newbiz'||TAB==='gfi')paintNewbiz();
+   }).catch(function(){toast('Network error');});
 }
 function nbCell(t,col){var v=nbVal(t,col.key);var ed=NBEDIT&&!col.ro;var firstKey=NBCOLS[0]&&NBCOLS[0].key;
   if(col.type==='select')return ed?nbSelectCell(t,col):nbSelectPill(col,v);
