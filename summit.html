@@ -434,7 +434,11 @@ function laurel(side){
    people become EMDs they start to really grow in cashflow and their emblem needs to grow
    based on their cashflow and less about their promotion." Each cashflow tier adds a gem and
    a brighter aura to the level 19 crest, so an EMD keeps climbing after the ladder ends. */
-function rankBadge(level,state,size,prestige){
+/* The 19 ranks are real artwork now (Summit_Website_Logo_Assets, 2026-09-30) — gunmetal through
+   gold to gemstone, one file per stage, matched to the ladder by the designer's manifest. The
+   generated SVG below stays as rankBadgeSVG(): it is what draws if an image ever fails to load,
+   so a rank is never a blank square. */
+function rankBadgeSVG(level,state,size,prestige){
   level=Math.max(1,Math.min(19,level|0)); size=size||120;
   prestige=(level>=19)?Math.max(0,Math.min(5,prestige|0)):0;
   var band=Math.min(4,Math.floor((level-1)/4));
@@ -498,6 +502,49 @@ function rankBadge(level,state,size,prestige){
     +'</radialGradient></defs>'+g+'</svg>';
 }
 
+/* Same signature as before: level 1-19, state complete|current|future, pixel size, prestige 0-5.
+   Small list badges (34-40px) load the 128px set; the 290px hero loads the 512px one, so the map
+   does not pull a megabyte of artwork to draw thumbnails. */
+function rankBadge(level,state,size,prestige){
+  level=Math.max(1,Math.min(19,level|0)); size=size||120;
+  prestige=(level>=19)?Math.max(0,Math.min(5,prestige|0)):0;
+  var nn=(level<10?'0':'')+level;
+  var src=(size<=72?'assets/ranks/sm/rank-':'assets/ranks/rank-')+nn+'.webp';
+  var future=(state==='future');
+  var fx=future
+    ? 'filter:grayscale(1) brightness(.45) contrast(.95);opacity:.5'
+    : (state==='current' ? 'filter:drop-shadow(0 0 '+Math.max(5,Math.round(size*0.05))+'px rgba(212,175,55,.6))' : '');
+  /* Past EMD the emblem grows on CASHFLOW, not promotion — Christopher, 2026-09-28. The artwork is
+     fixed, so prestige shows as a widening glow plus a star chip rather than extra gemstones. */
+  var glow=(prestige&&!future)
+    ? '<span style="position:absolute;inset:'+(-Math.round(size*0.06))+'px;border-radius:50%;pointer-events:none;background:radial-gradient(circle,rgba(212,175,55,'+(0.10+prestige*0.05).toFixed(2)+') 0%,rgba(212,175,55,0) 70%)"></span>'
+    : '';
+  var chip=(prestige&&size>=90)
+    ? '<span style="position:absolute;right:'+Math.round(size*0.02)+'px;bottom:'+Math.round(size*0.02)+'px;background:linear-gradient(180deg,#f5cf5b,#a8841f);color:#1a1405;font-weight:900;font-size:'+Math.max(9,Math.round(size*0.075))+'px;line-height:1;padding:'+Math.round(size*0.022)+'px '+Math.round(size*0.045)+'px;border-radius:999px;box-shadow:0 1px 4px rgba(0,0,0,.5)">\u2605'+prestige+'</span>'
+    : '';
+  /* The fallback is wired through one delegated listener rather than an inline onerror: inline
+     handlers are the first thing a Content-Security-Policy blocks, and a rank that silently
+     renders as a blank square is worse than one drawn from the old SVG. */
+  return '<span style="position:relative;display:inline-block;line-height:0;width:'+size+'px;height:'+size+'px">'
+    + glow
+    + '<img src="'+src+'" width="'+size+'" height="'+size+'" loading="lazy" decoding="async"'
+    + ' data-rank="'+level+'" data-state="'+String(state||'')+'" data-size="'+size+'" data-prestige="'+prestige+'"'
+    + ' alt="Rank '+level+' \u2014 '+(STAGES[level-1]||'').replace(/"/g,'')+'"'
+    + ' style="position:relative;display:block;width:'+size+'px;height:'+size+'px;object-fit:contain;'+fx+'">'
+    + chip + '</span>';
+}
+/* One listener, installed once, for every rank image on the page — now and after any re-render. */
+document.addEventListener('error', function(e){
+  var t=e.target;
+  if(!t||t.tagName!=='IMG'||!t.hasAttribute('data-rank'))return;
+  if(t.getAttribute('data-fellback'))return;
+  t.setAttribute('data-fellback','1');
+  try{
+    var svg=rankBadgeSVG(+t.getAttribute('data-rank'), t.getAttribute('data-state'),
+                         +t.getAttribute('data-size'), +t.getAttribute('data-prestige')||0);
+    if(t.parentNode)t.parentNode.innerHTML=svg;
+  }catch(_){}
+}, true);
 var STAGES=["ICA","Orientation 1 / 2","Schedule Exam","Personal Financial Review","Become a Client",
 "First 10 Field Trainings","Senior Associate","Pass Exam","Apply to State","Fully Licensed",
 "Complete 25 FTAs","Sign Off CFT","MD Promotion","50K Watch Earner","Promote","10 Licensed Agents",
