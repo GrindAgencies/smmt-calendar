@@ -414,7 +414,9 @@ function endHM(h,m,dur){var t=h*60+m+(dur||0);return{h:Math.floor(t/60)%24,m:t%6
 function fmtRangeLocal(h,m,dur){var s=fmtHMlocal(h,m);if(!dur)return s;var e=endHM(h,m,dur);return s+'–'+fmtHMlocal(e.h,e.m);}
 function fmtRangePT(h,m,dur){var s=fmtHM(h,m);if(!dur)return s;var e=endHM(h,m,dur);return s+'–'+fmtHM(e.h,e.m);}
 function trainingsFor(wd){return TRAININGS.filter(function(s){return s.d.indexOf(wd)>=0;}).sort(function(a,b){return (a.h*60+a.m)-(b.h*60+b.m);});}
-function trainingBaseshopOK(){var b=((PROFILE&&PROFILE.baseshop)||'').toUpperCase();return b===''||b.indexOf('SUMMIT')>=0||b.indexOf('SMMT')>=0||b.indexOf('GRIND')>=0;}
+/* One shop, one name. SMMT and GRIND were the same people under older labels; both were
+   retired on 2026-10-02, so there is nothing left to test for but SUMMIT. */
+function trainingBaseshopOK(){var b=((PROFILE&&PROFILE.baseshop)||'').toUpperCase();return b===''||b.indexOf('SUMMIT')>=0;}
 var NAVI=[['home','Home','index.html','M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z'],
 ['hub','Team Hub','teamhub.html','M21 15a2 2 0 0 1-2 2H8l-4 4V5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z'],
 ['calendar','Scheduler','calendar.html','M3 4.5h18v16H3zM3 9h18M8 3v3M16 3v3'],
