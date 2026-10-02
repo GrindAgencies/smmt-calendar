@@ -456,6 +456,18 @@ function saveTask(){
     var saved=sessionStorage.getItem('tsfg_tasks_id');
     if(pre){ $('gCode').value=pre; enter(); }
     else if(saved){ var s=JSON.parse(saved); OPS=!!s.ops; CODE=s.code||''; NAME=OPS?'Operations':CODE; startApp(); }
+    else {
+      /* Someone already signed in should never be asked to type their code again. The identity
+         above lives in sessionStorage, so it dies with the tab: anyone following a direct or
+         shared link to their tasks met a second sign-in screen and, reasonably, read the page
+         as broken. Every other screen takes who you are from the sign-in; so does this one now.
+         It grants nothing extra — the backend derives identity from the session token, not from
+         this code — and enter() still verifies the code before opening anything. */
+      var signedIn=(localStorage.getItem('tsfg_code')||'').trim();
+      /* A four-digit code is an Operations seat, and an Ops seat must still authenticate
+         rather than be waved through on a leftover value — so only a GFI code resumes. */
+      if(signedIn && !/^\d{4}$/.test(signedIn)){ $('gCode').value=signedIn; enter(); }
+    }
   }catch(e){}
 })();
 </script>
