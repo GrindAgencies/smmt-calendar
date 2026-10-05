@@ -459,7 +459,10 @@ function renderBlockBar(){
     +'<button onclick="openBlocked()">Manage</button>';}
 function openBlocked(){
   var rows=BLOCKED.length?BLOCKED.map(function(c){
-      return '<div class="blkrow"><span>'+esc(MEMBERS[c]||c)+' <span class="mc">'+esc(c)+'</span></span>'
+      /* When we have no display name the lookup falls back to the code, and printing the
+         code chip beside it reads as 'DEMO2026 DEMO2026'. Show the chip only when it adds something. */
+      var nm=MEMBERS[c]||c;
+      return '<div class="blkrow"><span>'+esc(nm)+(nm!==c?' <span class="mc">'+esc(c)+'</span>':'')+'</span>'
         +'<button onclick="unblockUser(\''+esc(c)+'\')">Unblock</button></div>';}).join('')
     :'<p style="color:var(--ink3);margin:0">You have not blocked anyone.</p>';
   $('blkBody').innerHTML='<h3 style="margin:0 0 4px">Blocked people</h3>'
