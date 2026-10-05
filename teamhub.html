@@ -406,18 +406,45 @@ function loadBlocks(){return hs({action:'my_blocks'}).then(function(r){
   if(r&&r.ok){BLOCKED=(r.blocked||[]).map(function(c){return (c||'').toUpperCase();});
     try{renderMsgs(false);}catch(e){}}
   return BLOCKED;});}
+/* Deliberately NOT prompt()/confirm(). Inside the iOS WebView those render as bare system
+   dialogs, and this is the one flow App Review asked to be shown. Same modal furniture as
+   the rest of the app. */
+function safetyModal(html){$('blkBody').innerHTML=html;$('blkOv').classList.add('on');}
+function closeSafety(){$('blkOv').classList.remove('on');}
 function reportMsg(id){
-  var why=prompt('Report this message to Operations.\n\nWhat is wrong with it? (optional)');
-  if(why===null)return;
+  safetyModal('<h3 style="margin:0 0 4px">Report this message</h3>'
+    +'<p style="color:var(--ink3);font-size:13px;margin:0 0 12px">It goes to Operations, who can remove it '
+    +'and act on the account. The sender is not told who reported it.</p>'
+    +'<textarea id="rptWhy" rows="3" placeholder="What is wrong with it? (optional)" '
+    +'style="width:100%;box-sizing:border-box;border-radius:10px;border:1px solid var(--line);'
+    +'background:var(--panel2,#1a1f27);color:var(--ink);padding:10px;font:inherit;font-size:14px"></textarea>'
+    +'<div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end">'
+    +'<button class="gbtn" style="background:transparent;border:1px solid var(--line);color:var(--ink)" '
+    +'onclick="closeSafety()">Cancel</button>'
+    +'<button class="gbtn" onclick="sendReport('+id+')">Send report</button></div>');
+  setTimeout(function(){var t=$('rptWhy');if(t)t.focus();},60);}
+function sendReport(id){
+  var t=$('rptWhy');var why=t?t.value:'';
   hs({action:'report',message_id:id,reason:why||''}).then(function(r){
-    alert(r&&r.ok?(r.message||'Reported. Operations will review this.'):((r&&r.error)||'Could not send that report.'));});}
+    safetyModal('<h3 style="margin:0 0 6px">'+(r&&r.ok?'Thank you':'Something went wrong')+'</h3>'
+      +'<p style="color:var(--ink2);font-size:14px;margin:0 0 14px">'
+      +esc(r&&r.ok?(r.message||'Operations will review this.'):((r&&r.error)||'Could not send that report.'))+'</p>'
+      +'<div style="text-align:right"><button class="gbtn" onclick="closeSafety()">Done</button></div>');});}
 function blockUser(code,name){
   code=(code||'').toUpperCase(); if(!code)return;
-  if(!confirm('Block '+(name||code)+'?\n\nYou will stop seeing their messages. They are not told, and '
-    +'nothing is removed for anyone else. You can undo this at any time.'))return;
+  safetyModal('<h3 style="margin:0 0 4px">Block '+esc(name||code)+'?</h3>'
+    +'<p style="color:var(--ink2);font-size:14px;margin:0 0 14px">You will stop seeing their messages. '
+    +'They are not told, nothing is removed for anyone else, and you can undo this at any time.</p>'
+    +'<div style="display:flex;gap:8px;justify-content:flex-end">'
+    +'<button class="gbtn" style="background:transparent;border:1px solid var(--line);color:var(--ink)" '
+    +'onclick="closeSafety()">Cancel</button>'
+    +'<button class="gbtn" onclick="doBlock(\''+esc(code)+'\')">Block</button></div>');}
+function doBlock(code){
   hs({action:'block',code:code}).then(function(r){
-    if(r&&r.ok){if(!isBlocked(code))BLOCKED.push(code);renderMsgs(false);renderBlockBar();}
-    else alert((r&&r.error)||'Could not block.');});}
+    if(r&&r.ok){if(!isBlocked(code))BLOCKED.push(code);renderMsgs(false);renderBlockBar();closeSafety();}
+    else safetyModal('<h3 style="margin:0 0 6px">Could not block</h3><p style="color:var(--ink2);margin:0 0 14px">'
+      +esc((r&&r.error)||'Please try again.')+'</p><div style="text-align:right">'
+      +'<button class="gbtn" onclick="closeSafety()">Done</button></div>');});}
 function unblockUser(code){
   hs({action:'unblock',code:(code||'').toUpperCase()}).then(function(r){
     if(r&&r.ok){BLOCKED=BLOCKED.filter(function(c){return c!==(code||'').toUpperCase();});
