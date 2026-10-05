@@ -34,6 +34,17 @@ a{color:inherit;text-decoration:none;}button{font-family:inherit;cursor:pointer;
 .tic svg{width:18px;height:18px;}.ttl{font-weight:800;font-size:16px;letter-spacing:-.02em;}
 .scrim{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:880;}
 body.drawer .scrim{display:block;}
+/* Reporting & blocking (Guideline 1.2) */
+.blockbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 14px 8px;
+  padding:8px 12px;border-radius:10px;background:var(--panel2,#1a1f27);border:1px solid var(--line);
+  font-size:12.5px;color:var(--ink2)}
+.blockbar button{border:0;background:transparent;color:var(--accent,#5b6cff);font-weight:700;
+  font-size:12.5px;cursor:pointer;padding:2px 4px}
+.blkrow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;
+  border-bottom:1px solid var(--line)}
+.blkrow:last-of-type{border-bottom:0}
+.blkrow button{border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:8px;
+  padding:5px 12px;font-size:12.5px;font-weight:700;cursor:pointer}
 /* hub layout: rooms | messages */
 .hub{position:fixed;left:var(--side);top:56px;right:0;bottom:0;display:grid;grid-template-columns:270px 1fr;grid-template-rows:minmax(0,1fr);}
 @media(max-width:980px){.hub{grid-template-columns:1fr;}.rooms{position:fixed;left:var(--side);top:56px;bottom:0;width:270px;transform:translateX(-100%);transition:.22s;z-index:60;box-shadow:var(--shadow-lg);}body.rooms-open .rooms{transform:none;}}
@@ -298,6 +309,7 @@ html, body{ overflow-x: hidden; }
   <div class="msgpane">
     <div class="chead" id="chead"></div>
     <div class="pinbar" id="pinbar"></div>
+    <div class="blockbar" id="blockBar" style="display:none"></div>
     <div class="mlist" id="mlist"></div>
     <div class="composer">
       <div class="typing" id="typing" aria-live="polite"></div>
@@ -342,9 +354,14 @@ html, body{ overflow-x: hidden; }
 </div></div>
 <!-- profile modal -->
 <div class="ov" id="pfOv"><div class="modal" id="pfBody"></div></div>
+<div class="ov" id="blkOv"><div class="modal" id="blkBody"></div></div>
 <div class="toast" id="toast"></div>
 
 <script>
+var SAFETY="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/hub-safety";
+/* Who this person has blocked. A block hides that author from this reader only — it
+   never deletes anything for anybody else, and the blocked person is not told. */
+var BLOCKED=[];
 var HUB="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/hub-api",ROSTERAPI="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/hub-roster",UNREADAPI="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/hub-unread";
 var BOTS="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/bots-cron";
 var HUBOPS="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/hub-ops";
@@ -379,6 +396,50 @@ var lastActivity=Date.now(),MYSTATUS='active';
 ['mousemove','mousedown','keydown','touchstart','scroll','click','focus'].forEach(function(ev){window.addEventListener(ev,function(){lastActivity=Date.now();},{passive:true});});
 function timeAgo(iso){if(!iso)return '';var t=new Date(iso).getTime();if(isNaN(t))return '';var sec=Math.max(0,Math.floor((Date.now()-t)/1000));if(sec<60)return 'just now';var m=Math.floor(sec/60);if(m<60)return m+' min ago';var h=Math.floor(m/60);if(h<24)return h+'h ago';var d=Math.floor(h/24);return d+'d ago';}
 var $=function(i){return document.getElementById(i);};
+/* ===== Reporting and blocking (App Store Guideline 1.2) =====================
+   An app where one person writes and another reads must let the reader report the
+   content and block the writer. Team Hub had neither until 2026-10-05. */
+function hs(b){return fetch(SAFETY,{method:'POST',headers:{'Content-Type':'application/json'},
+  body:JSON.stringify(b)}).then(function(r){return r.json();}).catch(function(){return{ok:false};});}
+function isBlocked(code){return BLOCKED.indexOf((code||'').toUpperCase())>=0;}
+function loadBlocks(){return hs({action:'my_blocks'}).then(function(r){
+  if(r&&r.ok){BLOCKED=(r.blocked||[]).map(function(c){return (c||'').toUpperCase();});
+    try{renderMsgs(false);}catch(e){}}
+  return BLOCKED;});}
+function reportMsg(id){
+  var why=prompt('Report this message to Operations.\n\nWhat is wrong with it? (optional)');
+  if(why===null)return;
+  hs({action:'report',message_id:id,reason:why||''}).then(function(r){
+    alert(r&&r.ok?(r.message||'Reported. Operations will review this.'):((r&&r.error)||'Could not send that report.'));});}
+function blockUser(code,name){
+  code=(code||'').toUpperCase(); if(!code)return;
+  if(!confirm('Block '+(name||code)+'?\n\nYou will stop seeing their messages. They are not told, and '
+    +'nothing is removed for anyone else. You can undo this at any time.'))return;
+  hs({action:'block',code:code}).then(function(r){
+    if(r&&r.ok){if(!isBlocked(code))BLOCKED.push(code);renderMsgs(false);renderBlockBar();}
+    else alert((r&&r.error)||'Could not block.');});}
+function unblockUser(code){
+  hs({action:'unblock',code:(code||'').toUpperCase()}).then(function(r){
+    if(r&&r.ok){BLOCKED=BLOCKED.filter(function(c){return c!==(code||'').toUpperCase();});
+      renderMsgs(false);renderBlockBar();openBlocked();}});}
+/* A standing reminder that someone is hidden, and the way back. Without it a block is a
+   trapdoor: people forget they muted a colleague and wonder why they missed things. */
+function renderBlockBar(){
+  var el=$('blockBar'); if(!el)return;
+  if(!BLOCKED.length){el.style.display='none';el.innerHTML='';return;}
+  el.style.display='';
+  el.innerHTML='<span>You have blocked '+BLOCKED.length+' '+(BLOCKED.length===1?'person':'people')+'</span>'
+    +'<button onclick="openBlocked()">Manage</button>';}
+function openBlocked(){
+  var rows=BLOCKED.length?BLOCKED.map(function(c){
+      return '<div class="blkrow"><span>'+esc(MEMBERS[c]||c)+' <span class="mc">'+esc(c)+'</span></span>'
+        +'<button onclick="unblockUser(\''+esc(c)+'\')">Unblock</button></div>';}).join('')
+    :'<p style="color:var(--ink3);margin:0">You have not blocked anyone.</p>';
+  $('blkBody').innerHTML='<h3 style="margin:0 0 4px">Blocked people</h3>'
+    +'<p style="color:var(--ink3);font-size:13px;margin:0 0 14px">You do not see messages from anyone listed '
+    +'here. They are not told they were blocked.</p>'+rows
+    +'<div style="margin-top:16px;text-align:right"><button class="gbtn" onclick="document.getElementById(\'blkOv\').classList.remove(\'on\')">Done</button></div>';
+  $('blkOv').classList.add('on');}
 function h(b){if(OPSMODE&&b){if(b.token===undefined)b.token=OPSTOKEN;if(b.by===undefined)b.by=CODE;}return fetch(HUB,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();}).catch(function(){return{ok:false};});}
 function loadOpsDMs(){hops({action:'dms'}).then(function(r){OPSDMS=(r&&r.dms)||[];if(typeof renderRooms==='function')renderRooms();});}
 function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
@@ -658,7 +719,8 @@ function msgTap(ev){
 
 function renderMsgs(scroll){
   var host=$('mlist');var prev=null;var newlineDone=false;
-  host.innerHTML=MSGS.map(function(m){
+  renderBlockBar();
+  host.innerHTML=MSGS.filter(function(m){return !isBlocked(m.author_code);}).map(function(m){
     var cont=prev&&prev.author_code===m.author_code&&m.kind==='text'&&prev.kind==='text'&&(new Date(m.created_at)-new Date(prev.created_at)<360000);
     var sep=daySep(prev,m); if(sep)cont=false;
     var nl='';
@@ -683,7 +745,7 @@ function renderMsgs(scroll){
     }
     var rx='';var rk=m.reactions&&typeof m.reactions==='object'?m.reactions:{};
     var keys=Object.keys(rk);if(keys.length){rx='<div class="rx">'+keys.map(function(e){var mine=rk[e].indexOf(CODE)>=0;return '<button class="rxb'+(mine?' mine':'')+'" onclick="react('+m.id+',\''+e+'\')">'+e+' '+rk[e].length+'</button>';}).join('')+'</div>';}
-    var acts=(m.deleted||m.kind==='ai')?'':'<div class="mact"><button onclick="reactPop(event,'+m.id+')" title="React">😀</button><button onclick="setReply('+m.id+')" title="Reply">↩</button><button onclick="pinMsg('+m.id+')" title="Pin">📌</button>'+((m.author_code===CODE)?'<button onclick="editMsg('+m.id+')" title="Edit">✏️</button>':'')+((m.author_code===CODE||ACC.mod||MODTOKEN)?'<button onclick="delMsg('+m.id+')" title="Delete">🗑</button>':'')+'</div>';
+    var acts=(m.deleted||m.kind==='ai')?'':'<div class="mact"><button onclick="reactPop(event,'+m.id+')" title="React">😀</button><button onclick="setReply('+m.id+')" title="Reply">↩</button><button onclick="pinMsg('+m.id+')" title="Pin">📌</button>'+((m.author_code===CODE)?'<button onclick="editMsg('+m.id+')" title="Edit">✏️</button>':'')+((m.author_code===CODE||ACC.mod||MODTOKEN)?'<button onclick="delMsg('+m.id+')" title="Delete">🗑</button>':'')+((m.author_code&&m.author_code!==CODE&&!isBot)?'<button onclick="reportMsg('+m.id+')" title="Report to Operations">🚩</button><button onclick="blockUser(\''+m.author_code+'\',\''+esc((m.author_name||'').replace(/'/g,'')) +'\')" title="Block this person">🚫</button>':'')+'</div>';
     var seen='';
     if(m.author_code===CODE&&SEEN[m.id]&&SEEN[m.id].count>0){
       var sv=SEEN[m.id];
@@ -968,6 +1030,7 @@ function heartbeat(){var st=(Date.now()-lastActivity>600000)?'away':'active';if(
      on screen when you come back. Expire it immediately on return rather than
      waiting for the next tick. */
   document.addEventListener('visibilitychange',function(){if(!document.hidden){loadMsgs(false);heartbeat();paintTyping();}});
+  loadBlocks();
   var _ml=$('mlist'); if(_ml)_ml.addEventListener('click',msgTap);
 })();
 </script>
