@@ -34,6 +34,14 @@ a{color:inherit;text-decoration:none;}button{font-family:inherit;cursor:pointer;
 .tic svg{width:18px;height:18px;}.ttl{font-weight:800;font-size:16px;letter-spacing:-.02em;}
 .scrim{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:880;}
 body.drawer .scrim{display:block;}
+/* DM inbox */
+.room.thr{position:relative;padding-right:30px}
+.room.thr .thx{position:absolute;right:4px;top:50%;transform:translateY(-50%);border:0;background:transparent;
+  color:var(--ink3);font-size:13px;line-height:1;cursor:pointer;padding:5px 6px;border-radius:6px;opacity:0}
+.room.thr:hover .thx,.room.thr.on .thx{opacity:1}
+@media (hover:none){.room.thr .thx{opacity:1}}
+.room.thr .thx:hover{background:var(--line);color:var(--ink)}
+.chev.unread{background:var(--accent,#5b6cff);color:#fff;border-radius:9px;padding:1px 7px;font-size:11px;font-weight:800}
 /* Reporting & blocking (Guideline 1.2) */
 .blockbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 14px 8px;
   padding:8px 12px;border-radius:10px;background:var(--panel2,#1a1f27);border:1px solid var(--line);
@@ -359,6 +367,10 @@ html, body{ overflow-x: hidden; }
 
 <script>
 var SAFETY="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/hub-safety";
+var INBOX="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/hub-inbox";
+/* Your DM conversations. Until now the sidebar showed only the thread you had open, so a
+   message you navigated away from was unreachable. */
+var THREADS=[];
 /* Who this person has blocked. A block hides that author from this reader only — it
    never deletes anything for anybody else, and the blocked person is not told. */
 var BLOCKED=[];
@@ -401,6 +413,40 @@ var $=function(i){return document.getElementById(i);};
    content and block the writer. Team Hub had neither until 2026-10-05. */
 function hs(b){return fetch(SAFETY,{method:'POST',headers:{'Content-Type':'application/json'},
   body:JSON.stringify(b)}).then(function(r){return r.json();}).catch(function(){return{ok:false};});}
+function hi(b){return fetch(INBOX,{method:'POST',headers:{'Content-Type':'application/json'},
+  body:JSON.stringify(b)}).then(function(r){return r.json();}).catch(function(){return{ok:false};});}
+function loadThreads(){return hi({action:'threads'}).then(function(r){
+  if(r&&r.ok){THREADS=r.threads||[];try{renderRooms();}catch(e){}}
+  return THREADS;});}
+function threadList(){
+  if(!THREADS.length)return '';
+  return '<div class="bshdr">Conversations</div>'+THREADS.map(function(t){
+    var nm=t.other_name||t.other_code||'';
+    var un=(t.unread>0)?'<span class="chev unread">'+t.unread+'</span>':'';
+    return '<div class="room thr'+(CHAN===t.channel?' on':'')+'" onclick="openChan(\''+esc(t.channel)+'\')">'
+      +'<div class="dmav">'+esc(initials(nm))+'</div>'
+      +'<div class="rn">'+esc(nm)+'</div>'+un
+      +'<button class="thx" title="Clear this conversation" '
+      +'onclick="hideThread(event,\''+esc(t.channel)+'\',\''+esc(nm.replace(/\'/g,''))+'\')">\u2715</button>'
+      +'</div>';}).join('');}
+/* Clearing is a row, not a delete. The thread comes back if they write again — in a working
+   team you want tidiness, not the risk of losing a message you were supposed to answer. */
+function hideThread(ev,ch,name){
+  if(ev&&ev.stopPropagation)ev.stopPropagation();
+  safetyModal('<h3 style="margin:0 0 4px">Clear this conversation?</h3>'
+    +'<p style="color:var(--ink2);font-size:14px;margin:0 0 14px">It disappears from your list. '
+    +'Nothing is deleted, and it comes back if '+esc(name||'they')+' writes again.</p>'
+    +'<div style="display:flex;gap:8px;justify-content:flex-end">'
+    +'<button class="gbtn" style="background:transparent;border:1px solid var(--line);color:var(--ink)" '
+    +'onclick="closeSafety()">Cancel</button>'
+    +'<button class="gbtn" onclick="doHideThread(\''+esc(ch)+'\')">Clear</button></div>');}
+function doHideThread(ch){
+  hi({action:'hide',channel:ch}).then(function(r){
+    if(r&&r.ok){THREADS=THREADS.filter(function(t){return t.channel!==ch;});closeSafety();
+      try{renderRooms();}catch(e){}}
+    else safetyModal('<h3 style="margin:0 0 6px">Could not clear it</h3><p style="color:var(--ink2);margin:0 0 14px">'
+      +esc((r&&r.error)||'Please try again.')+'</p><div style="text-align:right">'
+      +'<button class="gbtn" onclick="closeSafety()">Done</button></div>');});}
 function isBlocked(code){return BLOCKED.indexOf((code||'').toUpperCase())>=0;}
 function loadBlocks(){return hs({action:'my_blocks'}).then(function(r){
   if(r&&r.ok){BLOCKED=(r.blocked||[]).map(function(c){return (c||'').toUpperCase();});
@@ -529,7 +575,9 @@ function renderRooms(){
     $('dmList').innerHTML='<div class="bshdr">All conversations ('+OPSDMS.length+')</div>'+coachPin+OPSDMS.filter(function(dm){return dm.parts.indexOf('KYLE')<0;}).map(function(dm){return '<div class="room'+(CHAN===dm.channel?' on':'')+'" onclick="openChan(\''+esc(dm.channel)+'\')" title="'+esc(dm.label)+'"><div class="dmav">'+esc(initials(dm.names[0]||'?'))+'</div><div class="rn" style="font-size:12.5px">'+esc(dm.label)+'</div><span class="chev">'+dm.count+'</span></div>';}).join('')+OPSDMS.filter(function(dm){return dm.parts.indexOf('KYLE')>=0;}).map(function(dm){return '<div class="room'+(CHAN===dm.channel?' on':'')+'" onclick="openChan(\''+esc(dm.channel)+'\')" title="'+esc(dm.label)+' (Kyle coach thread)"><div class="dmav" style="background:linear-gradient(135deg,#c79a2e,#8a6d1f);color:#fff">📣</div><div class="rn" style="font-size:12.5px">'+esc(dm.names.filter(function(n){return n!=='Coach';})[0]||'')+' · Kyle</div><span class="chev">'+dm.count+'</span></div>';}).join('');
     return;
   }
-  $('dmList').innerHTML=coachPin+active+dmPicker();
+  /* A thread already in the list does not need the stand-alone 'active' row above it. */
+  var inList=THREADS.some(function(t){return t.channel===CHAN;});
+  $('dmList').innerHTML=coachPin+threadList()+(inList?'':active)+dmPicker();
 }
 /* One flat list of 86 names was unusable, and grouping on the raw baseshop field
    was worse: it produced LORENZ, COX, ZAVALA and UNASSIGNED sitting beside the
@@ -1053,14 +1101,14 @@ function heartbeat(){var st=(Date.now()-lastActivity>600000)?'away':'active';if(
      runs at all when the websocket is unavailable — see pollTyping. */
   setInterval(paintTyping,1000);
   pollTyping(); setInterval(pollTyping,5000);
-  loadPins(); setInterval(function(){if(!document.hidden){loadPins();loadSeen();}},30000); /* fallback only — realtime broadcast drives live updates */
+  loadPins(); setInterval(function(){if(!document.hidden){loadPins();loadSeen();loadThreads();}},30000); /* fallback only — realtime broadcast drives live updates */
   setInterval(function(){if(!document.hidden)heartbeat();},60000);
   setInterval(function(){if(!document.hidden)loadAvatars();},120000);
   /* Chrome throttles timers in a background tab, so a "typing…" line can still be
      on screen when you come back. Expire it immediately on return rather than
      waiting for the next tick. */
   document.addEventListener('visibilitychange',function(){if(!document.hidden){loadMsgs(false);heartbeat();paintTyping();}});
-  loadBlocks();
+  loadBlocks(); loadThreads();
   var _ml=$('mlist'); if(_ml)_ml.addEventListener('click',msgTap);
 })();
 </script>
