@@ -57,6 +57,12 @@ body.scripton .notes{transform:none}
 .notes .nh{display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--line);flex:0 0 auto}
 .notes .nh b{font-size:11.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--gold)}
 .warn{font-size:11px;color:var(--ink3)}
+.mynotes{padding:0 18px 16px;flex:0 0 auto;border-top:1px solid var(--line);margin-top:auto}
+.mynotes label{display:block;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink3);margin:12px 0 6px}
+.mynotes label span{font-weight:600;letter-spacing:0;text-transform:none;opacity:.8}
+.mynotes textarea{width:100%;box-sizing:border-box;border-radius:10px;border:1px solid var(--line);
+  background:var(--bg,#0b0f1a);color:var(--ink);padding:9px 11px;font:inherit;font-size:14px;resize:vertical}
 .notes .nb{padding:14px 18px 20px;overflow:auto;white-space:pre-wrap;font-size:15px;line-height:1.62;color:var(--ink)}
 .notes .nb:empty::after{content:'No script for this slide yet.';color:var(--ink3)}
 
@@ -116,6 +122,11 @@ body.scripton .shot{bottom:38vh}
 <div class="notes" id="notes">
   <div class="nh"><b>Your script</b><span class="warn">— only you see this. Hide it before sharing your screen.</span></div>
   <div class="nb" id="nb"></div>
+  <div class="mynotes">
+    <label for="mynb">My notes <span>— yours only, saved automatically</span></label>
+    <textarea id="mynb" rows="3" placeholder="Your own reminder for this slide…"
+      oninput="queueMyNote()" onblur="saveMyNote()"></textarea>
+  </div>
 </div>
 
 <div class="prog" id="prog" style="width:0"></div>
@@ -139,11 +150,38 @@ fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},
    /* Pick up where you left off, so a mis-tap or a locked phone mid-meeting is not a disaster. */
    try{ var s=sessionStorage.getItem('pres_'+KEY); if(s!==null) I=Math.max(0,Math.min(P.slides.length-1,parseInt(s,10)||0)); }catch(e){}
    render();
+   loadMyNotes();
  }).catch(function(){ $('stage').innerHTML='<div class="load">Network error.</div>'; });
 
+/* The agent's own notes, kept separate from the company script above. The deck and its
+   approved wording are compliance material and are never edited here; this is the line
+   about the person sitting opposite, and only this agent ever sees it. */
+var NOTEAPI='https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/present-notes';
+var MYNOTES={}, _noteT=null;
+function loadMyNotes(){
+  return fetch(NOTEAPI,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'get',key:KEY})})
+    .then(function(r){return r.json();})
+    .then(function(r){ if(r&&r.ok) MYNOTES=r.notes||{}; paintMyNote(); })
+    .catch(function(){});
+}
+function paintMyNote(){ var t=$('mynb'); if(t) t.value=MYNOTES[String(I)]||''; }
+/* Debounced while typing so a long note is not one request per keystroke; blur saves at once. */
+function queueMyNote(){ clearTimeout(_noteT); _noteT=setTimeout(saveMyNote,900); }
+function saveMyNote(){
+  clearTimeout(_noteT);
+  var t=$('mynb'); if(!t) return;
+  var slide=I, val=t.value;
+  if((MYNOTES[String(slide)]||'')===val) return;      /* nothing changed */
+  MYNOTES[String(slide)]=val;
+  fetch(NOTEAPI,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'save',key:KEY,slide:slide,note:val})}).catch(function(){});
+}
 function render(){
   if(!P||!P.slides||!P.slides.length) return;
+  saveMyNote();                 /* flush the previous slide's note before moving on */
   I=Math.max(0,Math.min(P.slides.length-1,I));
+  paintMyNote();
   var s=P.slides[I];
   $('ttl').textContent=P.title;
   $('count').textContent=(I+1)+' / '+P.slides.length;

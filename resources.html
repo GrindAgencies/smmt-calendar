@@ -349,9 +349,38 @@ function renderScripts(){
       var e=s.effectiveness||0;
       return '<div class="scard"><div class="sh"><h3>'+esc(s.title)+'</h3>'+(s.effectiveness!=null?'<span class="eff">'+e+'% <span class="effbar"><i style="width:'+e+'%"></i></span></span>':'')+'</div>'+
         '<div class="sbody">'+esc(s.body)+'</div>'+
-        '<div class="srow"><button class="sbtn" onclick="copyScript(\''+s.id+'\')">📋 Copy</button><button class="sbtn ai" onclick="aiImprove(\''+s.id+'\')">✨ Improve with AI</button><button class="sbtn" onclick="editScript(\''+s.id+'\')">✏️ Edit</button></div></div>';
+        '<div class="srow"><button class="sbtn" onclick="copyScript(\''+s.id+'\')">📋 Copy</button><button class="sbtn" onclick="downloadScript(\''+s.id+'\')">⬇ Download</button><button class="sbtn ai" onclick="aiImprove(\''+s.id+'\')">✨ Improve with AI</button><button class="sbtn" onclick="editScript(\''+s.id+'\')">✏️ Edit</button></div></div>';
     }).join('');
   }).join('');
+}
+/* Download a script as a plain text file.
+   Inside the iOS app a blob download silently does nothing — WKWebView has nowhere to put
+   the file — so the share sheet is the real route there: it offers Files, Mail, Messages and
+   everything else the phone can do with a document. Desktop browsers fall through to an
+   ordinary download. */
+function downloadScript(id){
+  var s=DATA.script.filter(function(x){return x.id===id;})[0]; if(!s)return;
+  var text=(s.title||'Script')+'\n'+(s.category?s.category+'\n':'')
+    +(s.effectiveness!=null?'Effectiveness: '+s.effectiveness+'%\n':'')
+    +'\n'+(s.body||'')+'\n\n— The Standard Financial Group\n';
+  var fname=((s.title||'script').replace(/[^\w\- ]+/g,'').trim().replace(/\s+/g,'-')||'script')+'.txt';
+  try{
+    var file=new File([text],fname,{type:'text/plain'});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){
+      navigator.share({files:[file],title:s.title||'Script'})
+        .then(function(){toast('Shared ✓');})
+        .catch(function(){});
+      return;
+    }
+  }catch(e){}
+  try{
+    var blob=new Blob([text],{type:'text/plain;charset=utf-8'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a'); a.href=url; a.download=fname;
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){URL.revokeObjectURL(url); a.remove();},1500);
+    toast('Downloaded ✓');
+  }catch(e){ toast('Could not download — use Copy instead'); }
 }
 function copyScript(id){var s=DATA.script.filter(function(x){return x.id===id;})[0];if(!s)return;var t=s.body;if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(function(){toast('Script copied 📋');},function(){window.prompt('Copy:',t);});}else window.prompt('Copy:',t);}
 function editScript(id){var s=id?DATA.script.filter(function(x){return x.id===id;})[0]:{effectiveness:70,category:''};if(!s)return;

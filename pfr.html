@@ -298,7 +298,16 @@ html, body{ overflow-x: hidden; }
     <div><h1 class="pgh">PFR Builder</h1><p class="pgsub">Personal Financial Reviews — build, review, and export for your clients.</p></div>
     <button class="newbtn" onclick="startNew()"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg> New PFR</button>
   </div>
+  <style>
+  .privrow{display:flex;align-items:center;gap:10px;margin:0 0 12px 2px;flex-wrap:wrap}
+  .privbtn{border:1px solid var(--line);background:transparent;color:var(--ink2);border-radius:999px;
+    padding:6px 13px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer}
+  .privbtn:hover{color:var(--ink)}
+  .privnote{font-size:12px;color:var(--ink3)}
+  </style>
   <div class="srch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input id="gq" placeholder="Search by client name or note…" oninput="renderGallery()"></div>
+  <div class="privrow"><button class="privbtn" id="privBtn" onclick="togglePfrNames()"></button>
+    <span class="privnote" id="privNote"></span></div>
   <div class="cards" id="cards"></div>
 </div>
 
@@ -388,10 +397,36 @@ function loadPFRs(){
   var p={action:'pfr_list',code:CODE};if(OPS&&opsTok())p.token=opsTok();
   api(p).then(function(r){PFRS=(r&&r.pfrs)||[];renderGallery();});
 }
+/* Client names are hidden by default. A PFR names a real person and their money, and the
+   gallery is the screen most likely to be open when somebody is looking over your shoulder
+   or you are sharing a screen. The agent can always reveal them — this is privacy from the
+   room, not from the person whose book it is. The choice is remembered on this device. */
+var PFRMASK=true;
+try{ PFRMASK = (localStorage.getItem('tsfg_pfr_names')!=='show'); }catch(e){}
+function maskName(nm){
+  nm=(nm||'').trim(); if(!nm) return 'Untitled Client';
+  var parts=nm.split(/\s+/).filter(Boolean);
+  return parts.map(function(w){return w.charAt(0).toUpperCase()+'.';}).join(' ') || 'Client';
+}
+function dispName(nm){ return PFRMASK ? maskName(nm) : (nm||'Untitled Client'); }
+function togglePfrNames(){
+  PFRMASK=!PFRMASK;
+  try{ localStorage.setItem('tsfg_pfr_names', PFRMASK?'hide':'show'); }catch(e){}
+  renderGallery();
+}
+function paintPrivBtn(){
+  var b=document.getElementById('privBtn'), n=document.getElementById('privNote');
+  if(!b)return;
+  b.textContent = PFRMASK ? '\uD83D\uDC41 Show client names' : '\uD83D\uDE48 Hide client names';
+  if(n) n.textContent = PFRMASK
+    ? 'Names are hidden for client privacy. Search still works on the full name.'
+    : 'Names are visible on this device.';
+}
 function pfrNotesArr(x){try{return (x.data&&x.data.producerNotes)||[];}catch(e){return [];}}
 function pfrNotesText(x){return pfrNotesArr(x).map(function(n){return n&&n.t||'';}).join(' ').toLowerCase();}
 function pfrNoteCount(x){return pfrNotesArr(x).length;}
 function renderGallery(){
+  paintPrivBtn();
   var q=($('gq').value||'').toLowerCase();
   var list=PFRS.filter(function(x){return !q||((x.client_name||'').toLowerCase().indexOf(q)>=0)||(pfrNotesText(x).indexOf(q)>=0);});
   if(!list.length){
@@ -399,7 +434,10 @@ function renderGallery(){
     return;
   }
   $('cards').innerHTML=list.map(function(x){
-    var nm=x.client_name||'Untitled Client';var col=avColor(nm);
+    var real=x.client_name||'Untitled Client';
+    var nm=dispName(real);
+    /* colour from the REAL name so a card keeps its identity when names are hidden */
+    var col=avColor(real);
     var st=x.status==='complete'?'complete':'draft';var done=st==='complete';
     return '<div class="card" onclick="openPFR(\''+x.id+'\''+(done?',true':'')+')" title="'+(done?'View the completed summary':'Continue this review')+'">'+
       '<button class="cmenu" onclick="event.stopPropagation();togglePop(\''+x.id+'\')">&#8942;</button>'+
