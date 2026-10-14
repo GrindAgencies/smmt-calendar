@@ -413,9 +413,22 @@ function pinShow(on,newPin){
 }
 function needSession(ops,msg){
   OPSPEND=ops;
-  if(!window.tsfgOps){ OPS=ops; showApp(); return; }              // helper missing: do not block
+  /* These two paths used to fall through to showApp() with no PIN. The comment above
+     explained why: the legacy token still covered the gap while seats were being migrated.
+     That token was removed on 2026-09-30, and on 2026-10-14 the server stopped accepting a
+     bare seat code as identity — so falling through now lands somebody in an Operations
+     shell where every panel quietly fails. Better to say plainly what is wrong. */
+  if(!window.tsfgOps){
+    msg.style.color='var(--red)';
+    msg.textContent='Could not start a secure session — reload the page and try again.';
+    return;
+  }
   tsfgOps.status(ops.code).then(function(st){
-    if(!st||!st.ok){ OPS=ops; showApp(); return; }                 // not a registered seat: do not block
+    if(!st||!st.ok){
+      msg.style.color='var(--red)';
+      msg.textContent='That Operations seat is not registered. Ask Operations to set it up.';
+      return;
+    }
     if(st.locked){ msg.style.color='var(--red)'; msg.textContent='Too many wrong PINs on this seat. Try again in a few minutes.'; return; }
     pinShow(true, !st.has_pin);
     msg.style.color='var(--ink3)';
