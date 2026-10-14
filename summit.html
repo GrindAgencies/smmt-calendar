@@ -323,6 +323,11 @@ h1.big{margin:4px 0 0;font-size:26px;letter-spacing:-.01em;font-weight:800}
   border:1px solid rgba(242,209,122,.55);background:#14110a;color:#f2d17a;font-size:12px;line-height:1;
   cursor:pointer;display:grid;place-items:center;padding:0;font-family:inherit}
 .bub .mv:hover{background:#241d0c}
+.bub .arch{position:absolute;right:-6px;bottom:-6px;width:22px;height:22px;border-radius:50%;
+  border:1px solid rgba(142,142,147,.55);background:#141414;color:#c9c9cf;font-size:11px;line-height:1;
+  cursor:pointer;display:grid;place-items:center;padding:0;font-family:inherit}
+.bub .arch:hover{background:#242424;color:#fff}
+.bub.alum .arch{border-color:rgba(122,200,150,.55);color:#7ac896}
 .bub.moving{outline:2px dashed #f2d17a;outline-offset:4px;z-index:40}
 .bub.droptarget{outline:2px solid rgba(90,200,120,.85);outline-offset:3px;cursor:copy}
 </style>
@@ -618,6 +623,7 @@ function boot(){
        Departed people stay as shadow Alumni: on the tree, never counted. */
     NODES=(t.nodes||[]).slice();
     CANEDIT=!!t.can_edit_hierarchy;
+    loadCanArchive();
     SCOPE=t.scope||'baseshop';
     BYCODE={};KIDS={};
     NODES.forEach(function(n){n.code=(n.code||'').toUpperCase();BYCODE[n.code]=n;});
@@ -674,6 +680,41 @@ function render(){
    them at once put 139 bubbles on top of each other — the radial layout was sized for the ~138
    working roster. Alumni are therefore folded away by default and brought back with one toggle. */
 function alumHidden(n){ return !SHOWALUM && n && n.departed; }
+/* An EMD folding someone away on their own chart.
+   This is NOT a delete — the org chart is a family tree and nobody is ever removed. It moves
+   the person to Alumni: still on the tree, never counted, one toggle from visible again. That
+   reversibility is the point. The quit flag has been wrong at least six times on this
+   platform, so the action that can be wrong is the action that must be undoable.
+   Permission and scope are decided server-side: an EMD reaches their own downline only. */
+var ARCHAPI='https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/org-archive';
+var CANARCH=false;
+function loadCanArchive(){
+  return fetch(ARCHAPI,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'can'})})
+    .then(function(r){return r.json();})
+    .then(function(r){ if(r&&r.ok&&r.allowed){ CANARCH=true; try{paintBubbles();}catch(e){} } })
+    .catch(function(){});
+}
+function toggleDeparted(code,departed){
+  var n=BYCODE[code]; if(!n) return;
+  var nm=n.name||code;
+  var q=departed
+    ? 'Move '+nm+' to Alumni?\n\nThey stay on the family tree but stop showing on the chart and '
+      +'stop being counted. You can bring them back at any time.'
+    : 'Bring '+nm+' back onto the active chart?';
+  if(!window.confirm(q)) return;
+  fetch(ARCHAPI,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'set',code:code,departed:!!departed})})
+   .then(function(r){return r.json();})
+   .then(function(r){
+     if(!r||!r.ok){ toast((r&&r.error)||'Could not update that person.'); return; }
+     n.departed=!!departed;
+     paintBubbles(); fitToView();
+     var b=document.getElementById('alumBtn');
+     if(b)b.textContent=SHOWALUM?('Hide alumni ('+alumCount()+')'):('Show alumni ('+alumCount()+')');
+     toast(r.message||'Updated');
+   }).catch(function(){ toast('Could not reach the server.'); });
+}
 function toggleAlumni(){ SHOWALUM=!SHOWALUM; paintBubbles(); fitToView();
   var b=document.getElementById('alumBtn'); if(b)b.textContent=SHOWALUM?('Hide alumni ('+alumCount()+')'):('Show alumni ('+alumCount()+')');
 }
@@ -815,6 +856,7 @@ function paintBubbles(){
       +(prod?'<span class="prod">'+fmtPts(prod)+'</span>':'')
       +(kids?'<button class="tog" onclick="event.stopPropagation();toggleBranch(\''+esc(code)+'\')" title="Fold this team">'+(COLLAPSED[code]?'+':'−')+'</button>':'')
       +((CANEDIT&&!n.departed&&code!==ROOTS[0])?'<button class="mv" onclick="event.stopPropagation();startMove(\''+esc(code)+'\')" title="Move this person under a different upline">\u21c4</button>':'')
+      +((CANARCH&&code!==ROOTS[0]&&code!==CODE)?'<button class="arch" onclick="event.stopPropagation();toggleDeparted(\''+esc(code)+'\','+(n.departed?'false':'true')+')" title="'+(n.departed?'Bring back onto the active chart':'Move to Alumni — stays on the family tree, stops being counted')+'">'+(n.departed?'\u21a9':'\u2715')+'</button>':'')
       +'</div>'
       +'<div class="bnm"'+(d>=3?' style="font-size:11px;max-width:104px"':'')+'>'+esc(n.name||code)+'</div>'
       +((d>=3&&!rk)?'':'<div class="brk '+(rk?rk.cls:'rank-pending')+'">'+esc(rk?rk.short:'Rank pending')+'</div>')
