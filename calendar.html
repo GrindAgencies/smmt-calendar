@@ -1426,6 +1426,10 @@ function cbBook(){
   var btn=$('cb_btn'),err=$('cb_err');
   var email=($('cb_email').value||'').trim(), guests=($('cb_guests').value||'').trim(), notes=($('cb_notes').value||'').trim();
   if(email.indexOf('@')<1){err.textContent='Add an email address so Calendly can send the invite.';return;}
+  /* Reading CBTYPE.uri with nothing picked threw, and the throw happened AFTER the button
+     was disabled — so Confirm sat on "Booking in Calendly…" for ever with no error and no
+     booking. Seen live on the real site. Check before touching the button. */
+  if(!CBTYPE||!CBSLOT){err.textContent='Pick a meeting type and a time first.';return;}
   btn.disabled=true;btn.textContent='Booking in Calendly…';err.textContent='';
   cbApi({action:'book',trainer_code:CBSEL.code,by_code:CODE,name:NAME,email:email,guests:guests,notes:notes,
          event_type:CBTYPE.uri,event_type_name:CBTYPE.name,duration:CBTYPE.duration,

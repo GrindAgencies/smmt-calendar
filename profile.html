@@ -223,7 +223,10 @@ function renderShell(){
     +'<div id="profBody"></div>';
 }
 function setProfSub(s){PROFSUB=s;var a=$('psub_profile'),b=$('psub_emblems');if(a)a.classList.toggle('on',s==='profile');if(b)b.classList.toggle('on',s==='emblems');
-  if(s==='emblems'){if(EMBDATA)paintEmblems(EMBDATA);else{$('profBody').innerHTML='<div class="spin">Loading your trophy case…</div>';loadEmblems(function(){paintEmblems(EMBDATA);});}}
+  /* profBody only exists once the shell has painted. Switching tabs before that threw and
+     left the page half-drawn — paintEmblems already guards for this, these two did not. */
+  var pb=$('profBody'); if(!pb)return;
+  if(s==='emblems'){if(EMBDATA)paintEmblems(EMBDATA);else{pb.innerHTML='<div class="spin">Loading your trophy case…</div>';loadEmblems(function(){paintEmblems(EMBDATA);});}}
   else paintProfile(PROFILE_P||{});}
 
 // ---- profile form ----
