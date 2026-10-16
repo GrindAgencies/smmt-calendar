@@ -430,6 +430,15 @@ function needSession(ops,msg){
       return;
     }
     if(st.locked){ msg.style.color='var(--red)'; msg.textContent='Too many wrong PINs on this seat. Try again in a few minutes.'; return; }
+    /* A seat with no PIN used to show the "choose a 6-digit PIN" box to anyone who typed its
+       code, and whoever got there first owned the seat. Setting a first PIN now needs a short
+       window opened by a master seat, so when one is not open, say so instead of offering a
+       box that will be refused. */
+    if(!st.has_pin && !st.can_enroll){
+      msg.style.color='var(--red)';
+      msg.textContent='This Operations seat has not been set up yet. Ask Operations to open setup for it, then sign in again.';
+      pinShow(false,false); return;
+    }
     pinShow(true, !st.has_pin);
     msg.style.color='var(--ink3)';
     msg.textContent = st.has_pin
