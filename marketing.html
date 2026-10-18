@@ -339,6 +339,8 @@ html, body{ overflow-x: hidden; }
 :root[data-theme="dark"] .marker b{color:#f5f5f7!important;}
 :root[data-theme="dark"] .wm-score,
 :root[data-theme="dark"] .wm-goal-top,
+:root[data-theme="dark"] .lead{--fta:#45d6c4!important;--hi:#f079c8!important;}
+:root[data-theme="dark"] .pbtn{background:#1e1e22!important;border-color:#2e2e33!important;color:#77777e!important;}
 :root[data-theme="dark"] .lead-name{color:#f5f5f7!important;}
 /* Containers that hardcode a white background instead of var(--panel). The
    page's dark variables were correct all along — these rules simply never
@@ -454,6 +456,26 @@ html, body{ overflow-x: hidden; }
         .lead.open .lead-chev{transform:rotate(90deg);}
         .lead-detail{padding:2px 13px 13px;}
         .lead-tag{display:inline-block;font-size:9.5px;font-weight:900;border-radius:5px;padding:1px 6px;margin-left:6px;vertical-align:middle;}
+        /* WHAT IS THIS PERSON FOR? Two reasons to pick up the phone — a field training
+           appointment (a client) or a hiring interview (a recruit). The field already
+           existed as "Meeting type", buried in the detail panel and only ever shown once
+           an appointment was booked, so you could not look down the list and see who you
+           were calling for which purpose. It is on the row now: a colour down the left
+           edge, a badge by the name, and one tap to set it. */
+        .lead{--fta:#0f8f83;--hi:#a8277f;}
+        .lead.p-fta{border-left:4px solid var(--fta);}
+        .lead.p-hi{border-left:4px solid var(--hi);}
+        .lead-tag.fta{background:rgba(15,143,131,.13);color:var(--fta);}
+        .lead-tag.hi{background:rgba(168,39,127,.12);color:var(--hi);}
+        .pbtn{flex:0 0 auto;font-family:inherit;font-weight:900;font-size:10.5px;letter-spacing:.03em;
+              height:38px;min-width:40px;padding:0 8px;border-radius:10px;cursor:pointer;
+              border:1px solid var(--line);background:#fff;color:#b8b8bf;transition:.12s;}
+        .pbtn:hover{border-color:var(--gold-deep);}
+        .pbtn.fta{border-color:var(--fta);color:var(--fta);background:rgba(15,143,131,.08);}
+        .pbtn.hi{border-color:var(--hi);color:var(--hi);background:rgba(168,39,127,.07);}
+        .wm-split{font-size:12px;font-weight:700;margin:2px 2px 8px;display:flex;gap:10px;flex-wrap:wrap;}
+        .wm-split .sp-fta{color:var(--fta);} .wm-split .sp-hi{color:var(--hi);}
+        .wm-split .sp-un{color:var(--muted);}
         .lead-tag.lock{background:rgba(212,175,55,.16);color:var(--gold-deep);}
         .lead-tag.pool{background:#fff7ed;color:#9a3412;}
         .lead-tag.won{background:var(--green);color:#fff;}
@@ -472,8 +494,12 @@ html, body{ overflow-x: hidden; }
             <button type="button" class="wm-chip" data-f="tocall" onclick="wmSetFilter('tocall')">☎ To call</button>
             <button type="button" class="wm-chip" data-f="scheduled" onclick="wmSetFilter('scheduled')">📅 Scheduled</button>
             <button type="button" class="wm-chip" data-f="won" onclick="wmSetFilter('won')">🏆 Won</button>
+            <button type="button" class="wm-chip" data-f="fta" onclick="wmSetFilter('fta')">🤝 FTA</button>
+            <button type="button" class="wm-chip" data-f="hi" onclick="wmSetFilter('hi')">🧑‍💼 HI</button>
+            <button type="button" class="wm-chip" data-f="untagged" onclick="wmSetFilter('untagged')">◻ Untagged</button>
           </div>
         </div>
+        <div class="wm-split" id="wmSplit" style="order:4"></div>
         <div class="wm-listcount" id="wmListCount" style="order:5"></div>
         <style>
         .wm-tools{margin:0 0 14px;}
@@ -620,6 +646,7 @@ html, body{ overflow-x: hidden; }
           <th onclick="sortBy('how_know')">How They Know</th>
           <th>Profile</th>
           <th onclick="sortBy('direct_to')">Direct To</th>
+          <th onclick="sortBy('appt_type')">Purpose</th>
           <th onclick="sortBy('appt_date')">Appt</th>
           <th onclick="sortBy('outcome')">Status</th>
           <th onclick="sortBy('broker')">Broker ▾</th>
@@ -769,11 +796,33 @@ html, body{ overflow-x: hidden; }
   var WMFILTER='all', WMQ='', WMOPEN={};
   var WMEMO={fresh:'🟢',called:'📞',scheduled:'📅',followup:'🔁',won:'🏆',lost:'✖'};
   var WMRANK={scheduled:0,followup:1,fresh:2,called:3,won:5,lost:6};
+  /* One reader for the purpose, because the field arrived with three spellings in the data
+     ("appointment", "Appointment", "hiring") and anything unset must read as untagged. */
+  function purposeOf(c){var v=String((c&&c.apptType)||'').trim().toLowerCase();
+    if(v==='hiring'||v==='hi')return 'hi';
+    if(v==='appointment'||v==='fta')return 'fta';
+    return '';}
+  var PURPLBL={fta:'FTA',hi:'HI'};
+  var PURPFULL={fta:'field training appointment',hi:'hiring interview'};
+  /* Tap the pill on a row to cycle: untagged -> FTA -> HI -> untagged. Tagging a hundred
+     people one dropdown at a time is the reason this never got used. */
+  function wmCyclePurpose(id){
+    for(var i=0;i<warmMarket.length;i++){
+      if(warmMarket[i].id===id){
+        var cur=purposeOf(warmMarket[i]);
+        warmMarket[i].apptType = (cur===''?'appointment':cur==='fta'?'hiring':'');
+        break;
+      }
+    }
+    renderWarm(); wmSave(true);
+  }
   function niceDate(d){try{var p=String(d).split('-');return new Date(+p[0],+p[1]-1,+p[2]).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});}catch(e){return d;}}
   function leadSub(c){var s=statusOf(c);
     if(s==='won')return 'Won 🏆';
     if(s==='lost')return 'Not a fit';
-    if(c.apptDate)return '📅 '+niceDate(c.apptDate)+(c.apptType==='hiring'?' · hiring interview':' · appointment');
+    var pp=purposeOf(c);
+    if(c.apptDate)return '📅 '+niceDate(c.apptDate)+(pp?(' · '+PURPFULL[pp]):'');
+    if(pp&&s==='fresh')return PURPFULL[pp]+(c.howKnow?(' · '+c.howKnow):'');
     if(s==='followup')return '🔁 Follow up'+(c.howKnow?(' · '+c.howKnow):'');
     if(s==='called')return 'Reached'+(c.outreachType==='talked'?' · talked':c.outreachType==='voicemail'?' · left msg':'')+(c.howKnow?(' · '+c.howKnow):'');
     return c.howKnow?c.howKnow:'Not contacted yet';
@@ -801,21 +850,30 @@ html, body{ overflow-x: hidden; }
       if(WMFILTER==='tocall'){if(s!=='fresh'&&s!=='followup')return false;}
       else if(WMFILTER==='scheduled'){if(s!=='scheduled'&&!(c.apptDate&&s!=='won'&&s!=='lost'))return false;}
       else if(WMFILTER==='won'){if(c.outcome!=='win')return false;}
+      else if(WMFILTER==='fta'){if(purposeOf(c)!=='fta')return false;}
+      else if(WMFILTER==='hi'){if(purposeOf(c)!=='hi')return false;}
+      else if(WMFILTER==='untagged'){if(purposeOf(c)!=='')return false;}
       if(q){var hay=((c.name||'')+' '+(c.phone||'')+' '+(c.howKnow||'')+' '+(c.notes||'')+' '+(c.email||'')+' '+(c.traits||'')).toLowerCase();if(hay.indexOf(q)<0)return false;}
       return true;
     });
     list.sort(function(a,b){var ra=(WMRANK[statusOf(a)]!=null?WMRANK[statusOf(a)]:4),rb=(WMRANK[statusOf(b)]!=null?WMRANK[statusOf(b)]:4);if(ra!==rb)return ra-rb;if(ra===0){var aa=a.apptDate||'~',bb=b.apptDate||'~';if(aa!==bb)return aa<bb?-1:1;}return String(a.name||'').toLowerCase().localeCompare(String(b.name||'').toLowerCase());});
     if(el('wmListCount'))el('wmListCount').textContent=n?((WMFILTER==='all'&&!q)?(n+' in your list · sorted by who to work next'):(list.length+' of '+n+' shown')):'';
+    if(el('wmSplit')){
+      var nf=0,nh=0;warmMarket.forEach(function(c){var p=purposeOf(c);if(p==='fta')nf++;else if(p==='hi')nh++;});
+      el('wmSplit').innerHTML = n ? ('<span class="sp-fta">🤝 '+nf+' FTA</span><span class="sp-hi">🧑‍💼 '+nh+' HI</span><span class="sp-un">◻ '+(n-nf-nh)+' untagged</span>') : '';
+    }
     L.innerHTML='';
     if(n&&!list.length){L.innerHTML='<div class="wm-empty">No leads match — clear the search or filter.</div>';return;}
     list.forEach(function(c){
       var s=statusOf(c);var op=!!WMOPEN[c.id];
-      var row=document.createElement('div');row.className='lead'+(op?' open':'');
-      var tags=(c.locked?'<span class="lead-tag lock">🔒</span>':'')+((c.pooled&&!c.locked)?'<span class="lead-tag pool">shared</span>':'')+(c.outcome==='win'?'<span class="lead-tag won">WON</span>':'');
+      var row=document.createElement('div');row.className='lead'+(op?' open':'')+(pp?(' p-'+pp):'');
+      var pp=purposeOf(c);
+      var purpBtn='<button class="pbtn'+(pp?' '+pp:'')+'" title="'+(pp?('Calling for a '+PURPFULL[pp]+' — tap to change'):'Tap to set: FTA (field training appointment) or HI (hiring interview)')+'" onclick="event.stopPropagation();wmCyclePurpose(\''+c.id+'\')">'+(pp?PURPLBL[pp]:'–')+'</button>';
+      var tags=(pp?('<span class="lead-tag '+pp+'">'+PURPLBL[pp]+'</span>'):'')+(c.locked?'<span class="lead-tag lock">🔒</span>':'')+((c.pooled&&!c.locked)?'<span class="lead-tag pool">shared</span>':'')+(c.outcome==='win'?'<span class="lead-tag won">WON</span>':'');
       var phone=c.phone?('<a class="lead-call" href="tel:'+escH(c.phone)+'" onclick="event.stopPropagation()" title="Call">☎</a>'):'';
       row.innerHTML='<div class="lead-row"><span class="lead-dot s-'+s+'">'+(WMEMO[s]||'🟢')+'</span>'+
         '<div class="lead-main"><div class="lead-name">'+(escH(c.name)||'<span style="color:#9a9aa1">(no name)</span>')+tags+'</div><div class="lead-sub">'+escH(leadSub(c))+'</div></div>'+
-        phone+'<button class="lead-del" title="Remove lead" onclick="event.stopPropagation();wmQuickDel(\''+c.id+'\')">✕</button><span class="lead-chev">›</span></div>'+
+        purpBtn+phone+'<button class="lead-del" title="Remove lead" onclick="event.stopPropagation();wmQuickDel(\''+c.id+'\')">✕</button><span class="lead-chev">›</span></div>'+
         '<div class="lead-detail" style="display:'+(op?'block':'none')+'"></div>';
       row.querySelector('.lead-row').addEventListener('click',(function(cc,rr){return function(){wmToggle(cc,rr);};})(c,row));
       if(op)buildDetail(c,row);
@@ -840,7 +898,7 @@ html, body{ overflow-x: hidden; }
         wmFld('🤝 How you know them','howKnow',c.howKnow,'text')+
         wmTz(c.timeZone)+
         wmFld('📅 Appointment date','apptDate',c.apptDate,'date')+
-        wmSel('Meeting type','apptType',c.apptType,[['','— type —'],['appointment','📅 Appointment'],['hiring','🧑‍💼 Hiring Interview']])+
+        wmSel('🎯 What are you calling them for?','apptType',purposeOf(c)==='fta'?'appointment':purposeOf(c)==='hi'?'hiring':'',[['','— not set —'],['appointment','🤝 FTA · Field training appointment'],['hiring','🧑‍💼 HI · Hiring interview']])+
         wmFld('✉ Email','email',c.email,'email')+
         wmFld('Age','age',c.age,'text')+
         wmFld('3 character traits','traits',c.traits,'text')+
@@ -853,7 +911,7 @@ html, body{ overflow-x: hidden; }
     det.querySelector('.wm-status').addEventListener('change',function(){wmSetStatus(c.id,this.value);});
     det.querySelector('.wm-lock').addEventListener('click',function(){wmLock(c.id);});
     det.querySelector('.wm-del').addEventListener('click',function(){if(confirm('Remove this lead?'))wmRemove(c.id);});
-    Array.prototype.forEach.call(det.querySelectorAll('[data-f]'),function(inp){var f=inp.getAttribute('data-f');if(inp.type==='checkbox'){inp.addEventListener('change',function(){wmField(c.id,f,inp.checked,true);});}else if(inp.tagName==='SELECT'||inp.type==='date'){inp.addEventListener('change',function(){wmField(c.id,f,inp.value,true);});}else{inp.addEventListener('input',function(){wmField(c.id,f,inp.value,false);if(f==='name'){var nm=row.querySelector('.lead-name');if(nm)nm.textContent=inp.value||'(no name)';}});inp.addEventListener('change',function(){wmField(c.id,f,inp.value,true);});}});
+    Array.prototype.forEach.call(det.querySelectorAll('[data-f]'),function(inp){var f=inp.getAttribute('data-f');if(inp.type==='checkbox'){inp.addEventListener('change',function(){wmField(c.id,f,inp.checked,true);});}else if(inp.tagName==='SELECT'||inp.type==='date'){inp.addEventListener('change',function(){wmField(c.id,f,inp.value,true);/* the purpose paints the row itself, so repaint when it changes */if(f==='apptType')renderWarm();});}else{inp.addEventListener('input',function(){wmField(c.id,f,inp.value,false);if(f==='name'){var nm=row.querySelector('.lead-name');if(nm)nm.textContent=inp.value||'(no name)';}});inp.addEventListener('change',function(){wmField(c.id,f,inp.value,true);});}});
   }
   var poolLeads=[],poolLoaded=false,poolLoading=false;
   function mpTab(t){var pool=(t==='pool');if(el('myPlanWrap'))el('myPlanWrap').style.display=pool?'none':'flex';if(el('phoneZone'))el('phoneZone').style.display=pool?'block':'none';if(el('mpTabMine'))el('mpTabMine').classList.toggle('on',!pool);if(el('mpTabPool'))el('mpTabPool').classList.toggle('on',pool);if(pool&&!poolLoaded)loadPool(false);window.scrollTo(0,0);}
@@ -942,7 +1000,7 @@ html, body{ overflow-x: hidden; }
       if(sf==='appt' && !l.appt_date)return false;
       if(sf==='win' && l.outcome!=='win')return false;
       if(sf==='lose' && l.outcome!=='lose')return false;
-      if(q){ var hay=(l.name+' '+l.phone+' '+l.email+' '+l.agent_name+' '+l.agent_code+' '+l.how_know+' '+l.notes+' '+l.direct_to+' '+l.traits).toLowerCase(); if(hay.indexOf(q)===-1)return false; }
+      if(q){ var hay=(l.name+' '+l.phone+' '+l.email+' '+l.agent_name+' '+l.agent_code+' '+l.how_know+' '+l.notes+' '+l.direct_to+' '+l.traits+' '+(String(l.appt_type||'').toLowerCase()==='hiring'?'hi hiring interview':String(l.appt_type||'')?'fta field training appointment':'')).toLowerCase(); if(hay.indexOf(q)===-1)return false; }
       return true;
     });
     rows.sort(function(a,b){
@@ -978,6 +1036,10 @@ html, body{ overflow-x: hidden; }
         '<td>'+(l.how_know?esc(l.how_know):'<span class="ago">—</span>')+'</td>'+
         '<td class="prof">'+(prof.join(' · ')||'<span class="ago">—</span>')+'</td>'+
         '<td>'+(l.direct_to?'<span class="tag">'+esc(l.direct_to)+'</span>':'<span class="ago">—</span>')+'</td>'+
+        '<td>'+(function(){var pz=String(l.appt_type||'').trim().toLowerCase();
+            if(pz==='hiring'||pz==='hi')return '<span class="lead-tag hi">HI</span>';
+            if(pz==='appointment'||pz==='fta')return '<span class="lead-tag fta">FTA</span>';
+            return '<span class="ago">—</span>';})()+'</td>'+
         '<td>'+(l.appt_date?'<span class="appt">📅 '+esc(l.appt_date)+'</span>':'<span class="ago">—</span>')+'</td>'+
         '<td>'+ocb+'</td>'+
         '<td class="brk">'+(l.emd?('<b>'+esc(l.emd)+'</b>'+(l.md?'<span class="em"> › '+esc(l.md)+'</span>':'')):'<span class="ago">— Unassigned —</span>')+'</td>'+
