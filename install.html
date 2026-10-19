@@ -69,6 +69,7 @@
     color:var(--muted);margin:0 0 11px}
   .signin ol{margin:0;padding-left:19px;font-size:14px;color:var(--ink2);line-height:1.65}
   .signin b{color:var(--ink)}
+  .autoNote{font-size:12.5px;color:var(--muted);text-align:center;margin:-4px 0 20px}
   .note{font-size:12.5px;color:var(--muted);margin-top:20px;line-height:1.55;text-align:center}
   .note a{color:var(--gold)}
 </style>
@@ -97,6 +98,13 @@
   <div class="warn" id="warnSafari">
     <b>Open this page in Safari first</b>
     <p>You're in an in-app browser, and iPhone only offers "Add to Home Screen" from Safari. Tap the <b>•••</b> or <b>compass</b> icon and choose <b>Open in Safari</b>, then come back to this page.</p>
+  </div>
+
+  <!-- Android and desktop Chrome fire beforeinstallprompt, which is a real native install
+       dialog. iOS Safari has no equivalent and never shows this. -->
+  <div id="autoWrap" style="display:none">
+    <button class="open" id="autoBtn" onclick="doInstall()">⬇  Install now — one tap</button>
+    <p class="autoNote" id="autoNote">Your phone can install it directly. No steps needed.</p>
   </div>
 
   <div class="tabs" id="tabs">
@@ -185,6 +193,55 @@
   }
 
   pick(isIOS ? 'ios' : isAndroid ? 'android' : 'desktop');
+
+  /* ONE-TAP INSTALL, WHERE THE PLATFORM ALLOWS IT.
+     Chrome (Android and desktop) fires beforeinstallprompt when a site is installable. Hold
+     onto the event and a button can open the real native install dialog instead of asking
+     somebody to find a menu. The prompt MUST be triggered by a genuine tap — Chrome refuses
+     a programmatic call, so there is no way to make this fully automatic, and anyone telling
+     you otherwise is describing a browser that does not exist.
+
+     iOS Safari fires nothing and has no install API at all: on an iPhone, Add to Home Screen
+     is a manual action by Apple's design. The written steps above are the whole of what is
+     possible there, which is why they stay. */
+  var deferred = null;
+  window.addEventListener('beforeinstallprompt', function(e){
+    e.preventDefault();            // stop Chrome's own mini-infobar; we present it properly
+    deferred = e;
+    if(!standalone){
+      document.getElementById('autoWrap').style.display='block';
+      /* The steps are still there if they prefer them, just demoted. */
+      document.getElementById('steps').style.display='none';
+      document.getElementById('tabs').style.display='none';
+    }
+  });
+
+  window.doInstall = function(){
+    if(!deferred) return;
+    var note=document.getElementById('autoNote');
+    deferred.prompt();
+    deferred.userChoice.then(function(c){
+      if(c && c.outcome === 'accepted'){
+        note.textContent='Installing — look for the icon on your home screen.';
+        document.getElementById('autoBtn').style.display='none';
+      } else {
+        /* They said no. Give them the manual route back rather than a dead button. */
+        note.textContent='No problem — here are the steps instead.';
+        document.getElementById('autoBtn').style.display='none';
+        document.getElementById('steps').style.display='';
+        document.getElementById('tabs').style.display='';
+      }
+      deferred=null;
+    });
+  };
+
+  /* Chrome tells us when it actually landed. */
+  window.addEventListener('appinstalled', function(){
+    document.getElementById('autoWrap').style.display='none';
+    document.getElementById('steps').style.display='none';
+    document.getElementById('tabs').style.display='none';
+    document.getElementById('done').style.display='block';
+  });
 })();
 </script>
 </body>
