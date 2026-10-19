@@ -343,6 +343,22 @@ html, body{ overflow-x: hidden; }
 :root[data-theme="dark"] .wm-sec,
 :root[data-theme="dark"] .wm-split{--fta:#45d6c4!important;--hi:#f079c8!important;}
 :root[data-theme="dark"] .wm-sec{background:#1b1b1f!important;border-color:#2e2e33!important;}
+/* PUT THE PURPOSE COLOURS BACK IN DARK MODE. Three separate rules in this theme set
+   border-color / color with !important on containers that happen to include .lead, .wm-sec
+   and .pbtn — so the teal and magenta that carry the whole FTA / HI distinction were being
+   flattened to grey, and only in dark mode. Two classes plus !important beats all of them
+   regardless of source order. Caught by looking at the page, not by reading the file: the
+   markup and the CSS were both present and correct, and every check still passed. */
+:root[data-theme="dark"] .lead.p-fta{border-left-color:#45d6c4!important;}
+:root[data-theme="dark"] .lead.p-hi{border-left-color:#f079c8!important;}
+:root[data-theme="dark"] .wm-sec.fta{border-left-color:#45d6c4!important;background:rgba(69,214,196,.07)!important;}
+:root[data-theme="dark"] .wm-sec.hi{border-left-color:#f079c8!important;background:rgba(240,121,200,.06)!important;}
+:root[data-theme="dark"] .wm-sec.fta .wm-sec-t{color:#45d6c4!important;}
+:root[data-theme="dark"] .wm-sec.hi .wm-sec-t{color:#f079c8!important;}
+:root[data-theme="dark"] .pbtn.fta{color:#45d6c4!important;border-color:#45d6c4!important;background:rgba(69,214,196,.10)!important;}
+:root[data-theme="dark"] .pbtn.hi{color:#f079c8!important;border-color:#f079c8!important;background:rgba(240,121,200,.09)!important;}
+:root[data-theme="dark"] .lead-tag.fta{background:rgba(69,214,196,.16)!important;color:#45d6c4!important;}
+:root[data-theme="dark"] .lead-tag.hi{background:rgba(240,121,200,.15)!important;color:#f079c8!important;}
 :root[data-theme="dark"] .wm-sec-n{background:rgba(255,255,255,.09)!important;}
 :root[data-theme="dark"] .pbtn{background:#1e1e22!important;border-color:#2e2e33!important;color:#77777e!important;}
 :root[data-theme="dark"] .lead-name{color:#f5f5f7!important;}
