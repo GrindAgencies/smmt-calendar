@@ -339,7 +339,11 @@ html, body{ overflow-x: hidden; }
 :root[data-theme="dark"] .marker b{color:#f5f5f7!important;}
 :root[data-theme="dark"] .wm-score,
 :root[data-theme="dark"] .wm-goal-top,
-:root[data-theme="dark"] .lead{--fta:#45d6c4!important;--hi:#f079c8!important;}
+:root[data-theme="dark"] .lead,
+:root[data-theme="dark"] .wm-sec,
+:root[data-theme="dark"] .wm-split{--fta:#45d6c4!important;--hi:#f079c8!important;}
+:root[data-theme="dark"] .wm-sec{background:#1b1b1f!important;border-color:#2e2e33!important;}
+:root[data-theme="dark"] .wm-sec-n{background:rgba(255,255,255,.09)!important;}
 :root[data-theme="dark"] .pbtn{background:#1e1e22!important;border-color:#2e2e33!important;color:#77777e!important;}
 :root[data-theme="dark"] .lead-name{color:#f5f5f7!important;}
 /* Containers that hardcode a white background instead of var(--panel). The
@@ -462,7 +466,7 @@ html, body{ overflow-x: hidden; }
            an appointment was booked, so you could not look down the list and see who you
            were calling for which purpose. It is on the row now: a colour down the left
            edge, a badge by the name, and one tap to set it. */
-        .lead{--fta:#0f8f83;--hi:#a8277f;}
+        .lead,.wm-sec,.wm-split{--fta:#0f8f83;--hi:#a8277f;}
         .lead.p-fta{border-left:4px solid var(--fta);}
         .lead.p-hi{border-left:4px solid var(--hi);}
         .lead-tag.fta{background:rgba(15,143,131,.13);color:var(--fta);}
@@ -473,6 +477,17 @@ html, body{ overflow-x: hidden; }
         .pbtn:hover{border-color:var(--gold-deep);}
         .pbtn.fta{border-color:var(--fta);color:var(--fta);background:rgba(15,143,131,.08);}
         .pbtn.hi{border-color:var(--hi);color:var(--hi);background:rgba(168,39,127,.07);}
+        .wm-sec{margin:16px 0 8px;padding:9px 12px;border-radius:10px;border:1px solid var(--line);
+                border-left:4px solid var(--line2);background:var(--panel2);}
+        .wm-sec:first-child{margin-top:2px;}
+        .wm-sec.fta{border-left-color:var(--fta);background:rgba(15,143,131,.06);}
+        .wm-sec.hi{border-left-color:var(--hi);background:rgba(168,39,127,.05);}
+        .wm-sec-t{font-weight:900;font-size:13.5px;color:var(--ink);letter-spacing:.01em;}
+        .wm-sec.fta .wm-sec-t{color:var(--fta);} .wm-sec.hi .wm-sec-t{color:var(--hi);}
+        .wm-sec-n{display:inline-block;font-size:11.5px;font-weight:900;padding:1px 7px;border-radius:999px;
+                  background:rgba(0,0,0,.06);margin-left:4px;vertical-align:middle;}
+        .wm-sec-s{font-size:11.5px;color:var(--muted);font-weight:600;margin-top:2px;}
+        .wm-chip-sep{margin-left:6px;border-style:dashed;}
         .wm-split{font-size:12px;font-weight:700;margin:2px 2px 8px;display:flex;gap:10px;flex-wrap:wrap;}
         .wm-split .sp-fta{color:var(--fta);} .wm-split .sp-hi{color:var(--hi);}
         .wm-split .sp-un{color:var(--muted);}
@@ -497,6 +512,7 @@ html, body{ overflow-x: hidden; }
             <button type="button" class="wm-chip" data-f="fta" onclick="wmSetFilter('fta')">🤝 FTA</button>
             <button type="button" class="wm-chip" data-f="hi" onclick="wmSetFilter('hi')">🧑‍💼 HI</button>
             <button type="button" class="wm-chip" data-f="untagged" onclick="wmSetFilter('untagged')">◻ Untagged</button>
+            <button type="button" class="wm-chip wm-chip-sep on" id="wmGroupBtn" onclick="wmToggleGroup()">⌗ Two lists</button>
           </div>
         </div>
         <div class="wm-split" id="wmSplit" style="order:4"></div>
@@ -794,6 +810,16 @@ html, body{ overflow-x: hidden; }
   function addImported(list,srcName){if(!list||!list.length){setImpNote('No contacts found in '+(srcName||'that file')+'. Check it has names/phones/emails.',true);return;}var seen={};warmMarket.forEach(function(x){seen[((x.name||'').trim().toLowerCase()+'|'+impDigits(x.phone))]=1;});var added=0,i=0;list.forEach(function(l){var nm=(l.name||'').trim(),ph=(l.phone||'').trim();if(!nm&&!ph)return;var key=nm.toLowerCase()+'|'+impDigits(ph);if(seen[key])return;seen[key]=1;warmMarket.unshift({id:'wm'+Date.now()+Math.floor(Math.random()*1e6)+(i++),name:nm,phone:ph,email:(l.email||'').trim(),howKnow:(l.notes||'').trim(),notes:'',contacted:false,outcome:'',date:ptToday(),done:false,imported:true});added++;});if(added){renderWarm();wmSave(true);}var skipped=list.length-added;setImpNote('✓ Imported '+added+' contact'+(added===1?'':'s')+(skipped>0?(' · skipped '+skipped+' duplicate/blank'):'')+'.',false);if(el('impPasteWrap'))el('impPasteWrap').style.display='none';if(el('impPasteBox'))el('impPasteBox').value='';}
   /* ===== working list: search · filter · hot→cold sort · compact rows w/ lazy-expand ===== */
   var WMFILTER='all', WMQ='', WMOPEN={};
+  /* Two lists or one. Remembered, because it is a working preference and re-choosing it
+     every morning would be the kind of small friction that stops people using the thing. */
+  var WMGROUP=(function(){try{return localStorage.getItem('tsfg_wmgroup')!=='0';}catch(e){return true;}})();
+  function wmToggleGroup(){
+    WMGROUP=!WMGROUP;
+    try{localStorage.setItem('tsfg_wmgroup',WMGROUP?'1':'0');}catch(e){}
+    var b=el('wmGroupBtn');
+    if(b){b.classList.toggle('on',WMGROUP);b.textContent=WMGROUP?'⌗ Two lists':'☰ One list';}
+    renderWarm();
+  }
   var WMEMO={fresh:'🟢',called:'📞',scheduled:'📅',followup:'🔁',won:'🏆',lost:'✖'};
   var WMRANK={scheduled:0,followup:1,fresh:2,called:3,won:5,lost:6};
   /* One reader for the purpose, because the field arrived with three spellings in the data
@@ -858,27 +884,57 @@ html, body{ overflow-x: hidden; }
     });
     list.sort(function(a,b){var ra=(WMRANK[statusOf(a)]!=null?WMRANK[statusOf(a)]:4),rb=(WMRANK[statusOf(b)]!=null?WMRANK[statusOf(b)]:4);if(ra!==rb)return ra-rb;if(ra===0){var aa=a.apptDate||'~',bb=b.apptDate||'~';if(aa!==bb)return aa<bb?-1:1;}return String(a.name||'').toLowerCase().localeCompare(String(b.name||'').toLowerCase());});
     if(el('wmListCount'))el('wmListCount').textContent=n?((WMFILTER==='all'&&!q)?(n+' in your list · sorted by who to work next'):(list.length+' of '+n+' shown')):'';
+    /* The button is markup, the preference is storage — keep them in step on every paint
+       so a remembered "one list" choice is not shown as "two lists" until it is clicked. */
+    var gb=el('wmGroupBtn');
+    if(gb){gb.classList.toggle('on',WMGROUP);gb.textContent=WMGROUP?'⌗ Two lists':'☰ One list';
+           gb.title=WMGROUP?'Showing FTA and HI as separate lists — tap for one combined list':'Showing one combined list — tap to split into FTA and HI';}
     if(el('wmSplit')){
       var nf=0,nh=0;warmMarket.forEach(function(c){var p=purposeOf(c);if(p==='fta')nf++;else if(p==='hi')nh++;});
       el('wmSplit').innerHTML = n ? ('<span class="sp-fta">🤝 '+nf+' FTA</span><span class="sp-hi">🧑‍💼 '+nh+' HI</span><span class="sp-un">◻ '+(n-nf-nh)+' untagged</span>') : '';
     }
     L.innerHTML='';
     if(n&&!list.length){L.innerHTML='<div class="wm-empty">No leads match — clear the search or filter.</div>';return;}
-    list.forEach(function(c){
-      var s=statusOf(c);var op=!!WMOPEN[c.id];
-      var row=document.createElement('div');row.className='lead'+(op?' open':'')+(pp?(' p-'+pp):'');
-      var pp=purposeOf(c);
-      var purpBtn='<button class="pbtn'+(pp?' '+pp:'')+'" title="'+(pp?('Calling for a '+PURPFULL[pp]+' — tap to change'):'Tap to set: FTA (field training appointment) or HI (hiring interview)')+'" onclick="event.stopPropagation();wmCyclePurpose(\''+c.id+'\')">'+(pp?PURPLBL[pp]:'–')+'</button>';
-      var tags=(pp?('<span class="lead-tag '+pp+'">'+PURPLBL[pp]+'</span>'):'')+(c.locked?'<span class="lead-tag lock">🔒</span>':'')+((c.pooled&&!c.locked)?'<span class="lead-tag pool">shared</span>':'')+(c.outcome==='win'?'<span class="lead-tag won">WON</span>':'');
-      var phone=c.phone?('<a class="lead-call" href="tel:'+escH(c.phone)+'" onclick="event.stopPropagation()" title="Call">☎</a>'):'';
-      row.innerHTML='<div class="lead-row"><span class="lead-dot s-'+s+'">'+(WMEMO[s]||'🟢')+'</span>'+
-        '<div class="lead-main"><div class="lead-name">'+(escH(c.name)||'<span style="color:#9a9aa1">(no name)</span>')+tags+'</div><div class="lead-sub">'+escH(leadSub(c))+'</div></div>'+
-        purpBtn+phone+'<button class="lead-del" title="Remove lead" onclick="event.stopPropagation();wmQuickDel(\''+c.id+'\')">✕</button><span class="lead-chev">›</span></div>'+
-        '<div class="lead-detail" style="display:'+(op?'block':'none')+'"></div>';
-      row.querySelector('.lead-row').addEventListener('click',(function(cc,rr){return function(){wmToggle(cc,rr);};})(c,row));
-      if(op)buildDetail(c,row);
-      L.appendChild(row);
+
+    /* TWO CALLING LISTS, NOT ONE MIXED ONE. A field training appointment and a hiring
+       interview are different conversations with different openers, so the people you are
+       calling for each are shown as their own list with its own running count. Untagged sits
+       underneath as the pile still to sort. Switching to a single purpose chip, or searching,
+       means the question has already been narrowed — so one flat list is shown instead. */
+    var grouped = WMGROUP && ['fta','hi','untagged'].indexOf(WMFILTER)<0;
+    if(!grouped){ list.forEach(function(c){ L.appendChild(leadRow(c)); }); return; }
+
+    var buckets={fta:[],hi:[],'':[]};
+    list.forEach(function(c){ buckets[purposeOf(c)].push(c); });
+    [['fta','🤝','Field Training Appointments','Who you are calling to sit with a client'],
+     ['hi','🧑‍💼','Hiring Interviews','Who you are calling about joining the team'],
+     ['','◻','Not sorted yet','Tap the pill on a row to put someone in a list']
+    ].forEach(function(g){
+      var key=g[0], items=buckets[key];
+      if(!items.length) return;
+      var h=document.createElement('div');
+      h.className='wm-sec'+(key?(' '+key):' un');
+      h.innerHTML='<div class="wm-sec-t">'+g[1]+' '+g[2]+' <span class="wm-sec-n">'+items.length+'</span></div>'+
+                  '<div class="wm-sec-s">'+g[3]+'</div>';
+      L.appendChild(h);
+      items.forEach(function(c){ L.appendChild(leadRow(c)); });
     });
+  }
+  /* One row, built once, used by both the flat list and the grouped lists. */
+  function leadRow(c){
+    var s=statusOf(c);var op=!!WMOPEN[c.id];
+    var pp=purposeOf(c);
+    var row=document.createElement('div');row.className='lead'+(op?' open':'')+(pp?(' p-'+pp):'');
+    var purpBtn='<button class="pbtn'+(pp?' '+pp:'')+'" title="'+(pp?('Calling for a '+PURPFULL[pp]+' — tap to change'):'Tap to set: FTA (field training appointment) or HI (hiring interview)')+'" onclick="event.stopPropagation();wmCyclePurpose(\''+c.id+'\')">'+(pp?PURPLBL[pp]:'–')+'</button>';
+    var tags=(pp?('<span class="lead-tag '+pp+'">'+PURPLBL[pp]+'</span>'):'')+(c.locked?'<span class="lead-tag lock">🔒</span>':'')+((c.pooled&&!c.locked)?'<span class="lead-tag pool">shared</span>':'')+(c.outcome==='win'?'<span class="lead-tag won">WON</span>':'');
+    var phone=c.phone?('<a class="lead-call" href="tel:'+escH(c.phone)+'" onclick="event.stopPropagation()" title="Call">☎</a>'):'';
+    row.innerHTML='<div class="lead-row"><span class="lead-dot s-'+s+'">'+(WMEMO[s]||'🟢')+'</span>'+
+      '<div class="lead-main"><div class="lead-name">'+(escH(c.name)||'<span style="color:#9a9aa1">(no name)</span>')+tags+'</div><div class="lead-sub">'+escH(leadSub(c))+'</div></div>'+
+      purpBtn+phone+'<button class="lead-del" title="Remove lead" onclick="event.stopPropagation();wmQuickDel(\''+c.id+'\')">✕</button><span class="lead-chev">›</span></div>'+
+      '<div class="lead-detail" style="display:'+(op?'block':'none')+'"></div>';
+    row.querySelector('.lead-row').addEventListener('click',(function(cc,rr){return function(){wmToggle(cc,rr);};})(c,row));
+    if(op)buildDetail(c,row);
+    return row;
   }
   function wmToggle(c,row){var det=row.querySelector('.lead-detail');if(WMOPEN[c.id]){delete WMOPEN[c.id];det.style.display='none';row.classList.remove('open');}else{WMOPEN[c.id]=1;buildDetail(c,row);det.style.display='block';row.classList.add('open');}}
   function buildDetail(c,row){
