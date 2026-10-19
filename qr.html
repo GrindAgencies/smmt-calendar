@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Scan to install The Standard</title>
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#0b0f1a">
+<style>
+  :root{ --bg:#0b0f1a; --ink:#f2f5fa; --muted:#8d98aa; --gold:#e3b341; --line:#242c3c; }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    background:var(--bg); color:var(--ink); min-height:100%;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    display:flex; align-items:center; justify-content:center;
+    padding:max(24px,env(safe-area-inset-top)) 22px calc(28px + env(safe-area-inset-bottom));
+  }
+  .card{text-align:center;max-width:640px;width:100%}
+
+  .brand{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:26px}
+  .brand img{width:46px;height:46px;border-radius:12px}
+  .brand .t{font-weight:800;font-size:16.5px;letter-spacing:-.01em;text-align:left;line-height:1.15}
+  .brand .s{font-size:12px;color:var(--muted);font-weight:600;text-align:left}
+
+  h1{font-size:clamp(26px,5.4vw,40px);font-weight:800;letter-spacing:-.025em;
+     margin:0 0 10px;line-height:1.1;text-wrap:balance}
+  .lede{color:var(--muted);font-size:clamp(14px,2.4vw,17px);margin:0 0 28px;line-height:1.5}
+
+  /* The quiet zone is baked into the PNG, but the white plate matters too: a dark page
+     behind a QR is the most common reason a scan fails. */
+  .plate{display:inline-block;background:#fff;padding:18px;border-radius:20px;line-height:0;
+         box-shadow:0 18px 50px rgba(0,0,0,.45)}
+  .plate img{width:min(62vw,360px);height:auto;display:block}
+
+  .url{margin:24px 0 0;font-size:clamp(15px,3vw,20px);font-weight:800;letter-spacing:-.01em}
+  .url a{color:var(--gold);text-decoration:none}
+  .hint{color:var(--muted);font-size:13.5px;margin:10px 0 0;line-height:1.5}
+
+  .safari{margin:26px auto 0;max-width:430px;border:1px solid var(--line);border-radius:14px;
+          padding:13px 15px;font-size:13px;color:var(--muted);line-height:1.5}
+  .safari b{color:var(--ink)}
+
+  @media print{
+    body{background:#fff;color:#000;display:block;padding:40px}
+    .plate{box-shadow:none;padding:0}
+    .brand .s,.hint,.safari{color:#444}
+    .url a{color:#000}
+    .plate img{width:460px}
+  }
+</style>
+</head>
+<body>
+  <div class="card">
+
+    <div class="brand">
+      <img src="apple-touch-icon.png" alt="" onerror="this.style.display='none'">
+      <div>
+        <div class="t">The Standard</div>
+        <div class="s">Financial Group</div>
+      </div>
+    </div>
+
+    <h1>Scan to put The Standard on your phone</h1>
+    <p class="lede">Point your camera at the code. Takes about twenty seconds.</p>
+
+    <div class="plate">
+      <img src="install-qr.png" alt="QR code linking to tsfg.app/install.html">
+    </div>
+
+    <p class="url">or go to <a href="install.html">tsfg.app/install.html</a></p>
+    <p class="hint">You'll need the agent code your upline gave you.</p>
+
+    <div class="safari">
+      <b>On an iPhone:</b> if you opened this from a text message, tap the <b>•••</b> or
+      <b>compass</b> icon and choose <b>Open in Safari</b> first — iPhone only offers
+      "Add to Home Screen" from Safari.
+    </div>
+
+  </div>
+</body>
+</html>
