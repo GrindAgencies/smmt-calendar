@@ -231,6 +231,13 @@ function setProfSub(s){PROFSUB=s;var a=$('psub_profile'),b=$('psub_emblems');if(
 
 // ---- profile form ----
 function paintProfile(p){
+  /* loadProfile() fires two requests that race: the profile itself, and the emblems, whose
+     callback also paints the profile. When emblems win, this used to run before renderShell()
+     had created #profBody and the whole paint threw on a null — which is why real phones kept
+     reporting it after the first guard went in: that guard covered the TAB SWITCH, and this is
+     the other caller. Build the shell rather than bailing, so the profile still paints.
+     PROFILE_P defaults to {}, so renderShell() is always safe to call. */
+  if(!$('profBody')){ renderShell(); if(!$('profBody')) return; }
   var full=((p.first_name||'')+' '+(p.last_name||'')).trim()||NAME;
   var av=p.photo?('<img src="'+esc(p.photo)+'" alt="">'):esc(initials(full));
   var actBadge='';
