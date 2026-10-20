@@ -1169,6 +1169,30 @@ function pinShow(code, first, last, dispFirst, dispLast, proceed, creating, err)
   setTimeout(function(){var f=document.getElementById('pin1'); if(f)f.focus();},80);
 }
 
+/* ROUND TWO, task 1. Someone who opened a tool while signed out is bounced here with the
+   destination attached. Without this they sign in and land on the full platform instead of
+   where they were going, which is the "cannot get out of The Hub after login" report.
+
+   ONLY an in-app page is ever honoured. The value must look exactly like `name.html` with an
+   optional simple query and nothing else: no scheme, no host, no leading slash, no "..", so a
+   crafted link such as ?next=https://evil.example cannot turn our own sign-in into an open
+   redirect that lands a signed-in agent on somebody else's site. */
+function nextAfterLogin(){
+  try{
+    var n = new URLSearchParams(location.search).get('next') || '';
+    if(!n) return '';
+    if(n.indexOf('//') >= 0 || n.indexOf(':') >= 0 || n.indexOf('..') >= 0) return '';
+    if(!/^[A-Za-z0-9_-]+\.html(\?[A-Za-z0-9_=&%.\-]*)?$/.test(n)) return '';
+    if(/^index\.html/i.test(n)) return '';        /* never bounce back to ourselves */
+    return n;
+  }catch(e){ return ''; }
+}
+function goAfterLogin(){
+  var nx = nextAfterLogin();
+  if(nx){ location.href = nx; return true; }
+  return false;
+}
+
 function doLogin(){
   var first=$('gFirst').value.trim(),last=$('gLast').value.trim(),code=($('gCode').value||'').trim().toUpperCase();
   var msg=$('gMsg');msg.className='gmsg';
@@ -1200,6 +1224,8 @@ function doLogin(){
         CODE=code;NAME=fullName;
         try{localStorage.setItem('tsfg_code',CODE);localStorage.setItem('tsfg_name',NAME);}catch(e){}
         try{if(window.__pushReattach)window.__pushReattach();}catch(e){}  // link this device's push token to the code
+        /* Finish the journey they actually started, if there was one. */
+        if(goAfterLogin()) return;
         showApp();
       });
     } else if(res&&res.notfound){
