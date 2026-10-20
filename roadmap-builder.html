@@ -115,8 +115,11 @@ function enter(){
   /* Typing 0000 or 2026 used to be the whole gate, and it handed out the platform-wide master
      token. The builder now needs a real Operations session — the same PIN sign-in as every other
      Operations page. */
+  /* The Operations token moved from per-tab sessionStorage to localStorage on 2026-10-19 so
+     that one sign-in covers every tab. This page does not load ops-session.js, so it has to
+     look in both: localStorage first, then the old place for any tab still holding one. */
   var t='';
-  try{ t=sessionStorage.getItem('tsfg_ops_token')||''; }catch(e){}
+  try{ t=localStorage.getItem('tsfg_ops_token')||sessionStorage.getItem('tsfg_ops_token')||''; }catch(e){}
   if(!t){
     $('gmsg').textContent='Sign in on the Operations Dashboard first, then reopen the builder.';
     return;

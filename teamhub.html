@@ -386,8 +386,12 @@ var OPSMODE=false,OPSTOKEN='',OPSDMS=[];
 (function(){try{
   var q=new URLSearchParams(location.search);
   if(q.get('ops')!=='1')return;
+  /* The Operations token moved from per-tab sessionStorage to localStorage on 2026-10-19.
+     localStorage is shared across the whole origin, so when this page is the oversight iframe
+     inside ops.html it simply reads the same value directly - no reaching into the parent.
+     The parent's sessionStorage is still consulted last, for a tab that has not migrated. */
   var t='';
-  try{ t=sessionStorage.getItem('tsfg_ops_token')||''; }catch(e){}
+  try{ t=localStorage.getItem('tsfg_ops_token')||sessionStorage.getItem('tsfg_ops_token')||''; }catch(e){}
   if(!t){ try{ t=(window.parent&&window.parent!==window&&window.parent.sessionStorage.getItem('tsfg_ops_token'))||''; }catch(e){} }
   if(!t){ OPSMODE=false; OPSTOKEN=''; return; }
   OPSMODE=true; OPSTOKEN=t;
