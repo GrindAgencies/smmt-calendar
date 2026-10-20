@@ -7,110 +7,292 @@
 <title>The Standard — App</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<meta name="theme-color" content="#0b0f1a">
+<meta name="theme-color" content="#000000">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="The Standard">
 <style>
-  :root{ --bg:#0b0f1a; --panel:rgba(255,255,255,.045); --panel-b:rgba(255,255,255,.09);
-    --ink:#f5f6fa; --ink2:#aab0c0; --gold:#c99a2e; --gold2:#e4be6e; --accent:#5b6cff;
-    --font:'Inter',-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',system-ui,sans-serif; }
-  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-  /* The dark has to live on <html>, not just <body>. Painting it on body alone left
-     the page's own background showing through wherever body did not reach — behind
-     the status bar, past the home indicator, and on the iOS rubber-band overscroll —
-     so the black stopped short of the edges. color-scheme keeps the browser's own
-     chrome dark to match. */
-  html{background:var(--bg); color-scheme:dark;}
-  html,body{margin:0;min-height:100%;}
-  body{ font-family:var(--font); color:var(--ink);
-    background:
-      radial-gradient(1100px 600px at 50% -10%, rgba(201,154,46,.10), transparent 60%),
-      radial-gradient(900px 700px at 100% 110%, rgba(91,108,255,.10), transparent 55%),
-      var(--bg);
-    background-attachment:fixed;
+  :root{
+    --bg:#000000; --tile:#121212; --tile-b:#242424; --tile-hi:#1b1b1b;
+    --ink:#f7f7f8; --ink2:#9a9a9f;
+    --gold:#e8c777; --gold2:#c9a24a; --gold-dim:#8d7433;
+    --bar:#0a0a0a;
+    /* The wordmark wants a classical serif. Didot ships with iOS, Bodoni with macOS,
+       and Georgia is everywhere — no webfont, so nothing blocks the first paint. */
+    --serif:'Didot','Bodoni MT','Playfair Display',Georgia,'Times New Roman',serif;
+    --sans:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',system-ui,sans-serif;
+    --tabh:62px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  /* The black has to live on <html>, not just <body>: on body alone the page showed
+     through behind the status bar, past the home indicator and on the iOS overscroll. */
+  html{background:var(--bg);color-scheme:dark}
+  html,body{margin:0;min-height:100%}
+  body{
+    font-family:var(--sans); color:var(--ink); background:var(--bg);
     min-height:100vh; min-height:100dvh;
-    padding:calc(env(safe-area-inset-top) + 22px) 20px calc(env(safe-area-inset-bottom) + 26px);
-    -webkit-font-smoothing:antialiased; }
-  header{ display:flex; align-items:center; gap:15px; margin:10px 2px 28px; }
-  .mark{ width:72px;height:72px;border-radius:20px;border:1.5px solid var(--gold);
-    display:flex;align-items:center;justify-content:center;color:var(--gold2);
-    font-weight:800;font-size:17px;letter-spacing:.5px;background:rgba(201,154,46,.06); }
-  .brand{line-height:1.05;}
-  .brand b{display:block;font-size:21px;font-weight:800;letter-spacing:.2px;}
-  .brand span{font-size:13px;color:var(--ink2);}
-  h1{font-size:15px;font-weight:600;color:var(--ink2);margin:0 2px 14px;}
-  .grid{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
-  .tile{ appearance:none;-webkit-appearance:none;text-align:left;cursor:pointer;
-    border:1px solid var(--panel-b); background:var(--panel); color:inherit;
-    border-radius:20px; padding:18px 16px 16px; min-height:132px;
-    display:flex; flex-direction:column; justify-content:space-between; gap:10px;
-    transition:transform .12s ease, border-color .12s ease, background .12s ease; }
-  .tile:active{ transform:scale(.97); border-color:var(--gold); background:rgba(201,154,46,.07); }
-  .tile .ic{ font-size:30px; line-height:1; }
-  .tile .tl{ font-size:16.5px; font-weight:750; letter-spacing:.1px; }
-  .tile .sb{ font-size:12px; color:var(--ink2); margin-top:2px; }
-  .full{ display:block; text-align:center; margin:26px auto 0; padding:13px;
-    color:var(--ink2); font-size:13.5px; text-decoration:none; border-radius:14px;
-    border:1px solid var(--panel-b); background:var(--panel); }
-  .full:active{ border-color:var(--gold); }
-  .badge{ display:inline-block;min-width:8px;height:8px;border-radius:50%;background:var(--accent);
-    margin-left:6px;vertical-align:middle; }
+    padding:calc(env(safe-area-inset-top) + 14px) 16px
+            calc(env(safe-area-inset-bottom) + var(--tabh) + 30px);
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:560px;margin:0 auto}
+
+  /* ---------- masthead ---------- */
+  .mast{text-align:center;padding:8px 0 4px}
+  .mast img{width:74px;height:74px;object-fit:contain;display:block;margin:0 auto 10px}
+  .mast .name{
+    font-family:var(--serif); font-size:clamp(23px,6.4vw,30px); letter-spacing:.14em;
+    color:var(--gold); line-height:1; margin:0; font-weight:400;
+    text-transform:uppercase;
+  }
+  .mast .sub{
+    display:flex;align-items:center;justify-content:center;gap:11px;
+    margin:9px auto 0; max-width:290px;
+    font-size:10.5px; letter-spacing:.34em; color:var(--gold-dim); font-weight:600;
+    text-transform:uppercase;
+  }
+  .mast .sub::before,.mast .sub::after{
+    content:"";flex:1;height:1px;
+    background:linear-gradient(90deg,transparent,var(--gold-dim),transparent);
+  }
+
+  /* ---------- hero ---------- */
+  /* A photograph can be dropped in without touching anything else: put hero.jpg in the
+     repo and it is used automatically; until then this gradient stands in for it. */
+  .hero{
+    position:relative; margin:16px 0 20px; border-radius:18px; overflow:hidden;
+    aspect-ratio:16/10; min-height:168px;
+    background:
+      radial-gradient(120% 90% at 50% 8%, rgba(232,199,119,.16), transparent 62%),
+      radial-gradient(90% 70% at 18% 92%, rgba(201,162,74,.13), transparent 60%),
+      linear-gradient(176deg,#17130c 0%,#0b0a07 46%,#000 100%);
+    display:flex; align-items:flex-end; justify-content:center;
+    border:1px solid #1c1a15;
+  }
+  .hero .img{position:absolute;inset:0;background-size:cover;background-position:center;opacity:0}
+  .hero .scrim{position:absolute;inset:0;
+    background:linear-gradient(180deg,transparent 38%,rgba(0,0,0,.72) 100%)}
+  .hero .tag{position:relative;text-align:center;padding:0 16px 20px;width:100%}
+  .hero .t1{font-size:clamp(16px,4.4vw,20px);letter-spacing:.2em;font-weight:700;
+            color:#fff;text-transform:uppercase;line-height:1.2}
+  .hero .t2{font-size:clamp(11px,3vw,13px);letter-spacing:.42em;color:var(--gold);
+            text-transform:uppercase;margin-top:7px;font-weight:600}
+
+  /* ---------- tiles ---------- */
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+  .tile{
+    appearance:none;font-family:inherit;cursor:pointer;text-align:center;
+    background:var(--tile); border:1px solid var(--tile-b); border-radius:15px;
+    padding:20px 10px 16px; color:var(--ink);
+    display:flex; flex-direction:column; align-items:center; gap:11px;
+    transition:border-color .14s, background .14s, transform .08s;
+  }
+  .tile:active{transform:scale(.975);background:var(--tile-hi)}
+  .tile:hover{border-color:var(--gold-dim)}
+  .tile:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+  .tile svg{width:33px;height:33px;stroke:var(--gold);fill:none;stroke-width:1.6;
+            stroke-linecap:round;stroke-linejoin:round}
+  .tile .lbl{font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;
+             color:#e9e9ec;line-height:1.25}
+  .tile .sb{font-size:10.5px;color:var(--ink2);letter-spacing:.02em;font-weight:500;
+            margin-top:-5px;text-transform:none}
+
+  /* ---------- bottom bar ---------- */
+  .tabs{
+    position:fixed;left:0;right:0;bottom:0;z-index:40;
+    background:var(--bar); border-top:1px solid #1b1b1b;
+    padding-bottom:env(safe-area-inset-bottom);
+    display:grid; grid-template-columns:repeat(4,1fr);
+  }
+  .tab{
+    appearance:none;background:none;border:0;font-family:inherit;cursor:pointer;
+    height:var(--tabh); display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:4px; color:#6e6e73; position:relative;
+  }
+  .tab svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.8;
+           stroke-linecap:round;stroke-linejoin:round}
+  .tab span{font-size:10px;letter-spacing:.03em;font-weight:600}
+  .tab.on{color:var(--gold)}
+  .tab:focus-visible{outline:2px solid var(--gold);outline-offset:-3px}
+  .tab .dot{position:absolute;top:11px;right:50%;margin-right:-16px;width:7px;height:7px;
+            border-radius:50%;background:#ff3b30;display:none}
+  .tab .dot.on{display:block}
+
+  .full{display:block;text-align:center;margin:16px auto 0;padding:13px;
+        color:var(--ink2);font-size:12.5px;text-decoration:none;border-radius:13px;
+        border:1px solid var(--tile-b);background:var(--tile)}
+  .full:active{border-color:var(--gold-dim)}
+
+  /* notif.js and i18n.js inject their own floating furniture, which was built for the
+     other screens. Here the bottom bar IS the navigation, so: the duplicate bell is
+     hidden (the Alerts tab still clicks it programmatically — click() works on a hidden
+     element), and the Ask bubble and language pill are lifted clear of the bar. The Ask
+     bubble was sitting underneath it entirely. */
+  .ntf-btn{display:none!important}
+  #askFab{bottom:calc(env(safe-area-inset-bottom) + var(--tabh) + 16px)!important}
+
+  .tab .dot{min-width:17px;height:17px;border-radius:9px;top:8px;margin-right:-19px;
+            font-size:10px;font-weight:800;color:#fff;align-items:center;justify-content:center;
+            padding:0 4px;font-style:normal;line-height:1}
+  .tab .dot.on{display:flex}
+
+  @media (prefers-reduced-motion: reduce){ .tile{transition:none} }
 </style>
 </head>
 <body>
-  <header>
-    <div class="mark" style="border:none;background:none;padding:0;overflow:hidden"><img src="apple-touch-icon.png" alt="The Standard" style="width:72px;height:72px;border-radius:20px;object-fit:cover"></div>
-    <div class="brand"><b>The Standard</b><span>Financial Group</span></div>
-  </header>
-  <h1>Welcome — what do you need?</h1>
+<div class="wrap">
+
+  <div class="mast">
+    <img src="logo.png" alt="" onerror="this.style.display='none'">
+    <h1 class="name">The Standard</h1>
+    <div class="sub">Financial Group</div>
+  </div>
+
+  <div class="hero">
+    <div class="img" id="heroImg"></div>
+    <div class="scrim"></div>
+    <div class="tag">
+      <div class="t1">Build a Standard</div>
+      <div class="t2">Higher</div>
+    </div>
+  </div>
+
   <div class="grid">
-    <button class="tile" onclick="location.href='teamhub.html'">
-      <div class="ic">💬</div>
-      <div><div class="tl">Team Hub</div><div class="sb">Chat, channels &amp; recognition</div></div>
+    <button class="tile" onclick="go('newbusiness.html')">
+      <svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7M3 12h18"/></svg>
+      <span class="lbl">New Business</span><span class="sb">Log &amp; track policies</span>
     </button>
-    <button class="tile" onclick="location.href='newbusiness.html'">
-      <div class="ic">🧾</div>
-      <div><div class="tl">New Business</div><div class="sb">Log &amp; track your policies</div></div>
+
+    <button class="tile" onclick="go('calendar.html')">
+      <svg viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9.5h18M8 3v3M16 3v3"/></svg>
+      <span class="lbl">Scheduler</span><span class="sb">Book field training</span>
     </button>
-    <button class="tile" onclick="location.href='calendar.html'">
-      <div class="ic">📅</div>
-      <div><div class="tl">Scheduler</div><div class="sb">Book trainings &amp; appointments</div></div>
+
+    <button class="tile" onclick="go('resources.html')">
+      <svg viewBox="0 0 24 24"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H11v16H5.5A1.5 1.5 0 0 1 4 18.5z"/><path d="M20 5.5A1.5 1.5 0 0 0 18.5 4H13v16h5.5a1.5 1.5 0 0 0 1.5-1.5z"/></svg>
+      <span class="lbl">Training</span><span class="sb">Scripts, carriers, decks</span>
     </button>
-    <button class="tile" onclick="openNotifs()">
-      <div class="ic">🔔</div>
-      <div><div class="tl">Notifications</div><div class="sb">Your alerts &amp; mentions</div></div>
+
+    <button class="tile" onclick="go('summit.html?tab=road')">
+      <svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M6 4h12v5a6 6 0 0 1-12 0z"/><path d="M18 5h2.5a2.5 2.5 0 0 1-2.5 4M6 5H3.5A2.5 2.5 0 0 0 6 9"/></svg>
+      <span class="lbl">Road to EMD</span><span class="sb">Your 19 stages</span>
     </button>
-    <button class="tile" onclick="location.href='summit.html?tab=road'" style="grid-column:1/-1">
-      <div class="ic">🏔️</div>
-      <div><div class="tl">Road to EMD</div><div class="sb">Your 19 stages to Executive Marketing Director</div></div>
+
+    <button class="tile" onclick="go('team.html')">
+      <svg viewBox="0 0 24 24"><path d="M16 20v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 18.5V20"/><circle cx="10" cy="8" r="3.4"/><path d="M20 20v-1.5a3.5 3.5 0 0 0-2.6-3.4M15.5 4.8a3.4 3.4 0 0 1 0 6.4"/></svg>
+      <span class="lbl">My Team</span><span class="sb">Your downline</span>
     </button>
-    <button class="tile" onclick="location.href='checklist.html'" style="grid-column:1/-1">
-      <div class="ic">✅</div>
-      <div><div class="tl">90-Day Tracker</div><div class="sb">Your first 90 days &amp; daily non-negotiables</div></div>
+
+    <button class="tile" onclick="go('teamhub.html')">
+      <svg viewBox="0 0 24 24"><path d="M3.5 10.5 19 4.5a.9.9 0 0 1 1.2 1.1l-4.4 14.2a.9.9 0 0 1-1.6.2l-3.2-4.6-4.6-3.2a.9.9 0 0 1 .1-1.7z"/><path d="M11 15.4 20 5"/></svg>
+      <span class="lbl">Announcements</span><span class="sb">Team Hub &amp; channels</span>
     </button>
   </div>
-  <a class="full" href="index.html">Open the full platform →</a>
 
-  <script>
-    // If the app is launched and no one is signed in, go to the sign-in home.
-    try{ if(!localStorage.getItem('tsfg_code')) location.replace('index.html'); }catch(e){}
-    // Notifications tile opens the shared bell panel (injected by notif.js)
-    function openNotifs(){
-      var b=document.querySelector('.ntf-btn');
-      if(b){ b.click(); return; }
-      var n=0, t=setInterval(function(){
-        var x=document.querySelector('.ntf-btn');
-        if(x){ clearInterval(t); x.click(); }
-        else if(++n>25){ clearInterval(t); location.href='index.html'; }
-      },150);
+  <a class="full" href="index.html">Open the full platform →</a>
+</div>
+
+<nav class="tabs">
+  <button class="tab on" onclick="go('app.html')">
+    <svg viewBox="0 0 24 24"><path d="M3 9.6 12 3l9 6.6V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>
+    <span>Home</span>
+  </button>
+  <button class="tab" onclick="go('teamhub.html')">
+    <svg viewBox="0 0 24 24"><path d="M16 19v-1.3a3.2 3.2 0 0 0-3.2-3.2H7.2A3.2 3.2 0 0 0 4 17.7V19"/><circle cx="10" cy="8" r="3.1"/><path d="M20 19v-1.3a3.2 3.2 0 0 0-2.4-3.1M15.6 5a3.1 3.1 0 0 1 0 6"/></svg>
+    <span>Community</span>
+  </button>
+  <button class="tab" onclick="openNotifs()">
+    <svg viewBox="0 0 24 24"><path d="M18 8.5a6 6 0 1 0-12 0c0 6-2 7.5-2 7.5h16s-2-1.5-2-7.5M13.7 19.5a2 2 0 0 1-3.4 0"/></svg>
+    <span>Alerts</span><i class="dot" id="tabDot"></i>
+  </button>
+  <button class="tab" onclick="go('profile.html')">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg>
+    <span>Profile</span>
+  </button>
+</nav>
+
+<script>
+  /* Signed out? This launcher has nothing to show — send them to sign in. */
+  try{ if(!localStorage.getItem('tsfg_code')) location.replace('index.html'); }catch(e){}
+
+  function go(u){ location.href = u; }
+
+  /* Drop a hero.jpg (or .png) into the repo and it is used. No code change needed —
+     the gradient stays as the fallback if the file is not there. */
+  (function(){
+    var el = document.getElementById('heroImg');
+    ['hero.jpg','hero.png','hero.webp'].forEach(function(src){
+      var probe = new Image();
+      probe.onload = function(){
+        if (el.style.opacity === '1') return;     // first one that loads wins
+        el.style.backgroundImage = 'url("' + src + '")';
+        el.style.opacity = '1';
+      };
+      probe.src = src;
+    });
+  })();
+
+  /* The Alerts tab opens the shared bell panel that notif.js injects. That script is
+     deferred, so the button can be tapped before it exists — wait for it rather than
+     doing nothing, and give up to the full platform if it never arrives. */
+  function openNotifs(){
+    var b = document.querySelector('.ntf-btn');
+    if (b) { b.click(); return; }
+    var n = 0, t = setInterval(function(){
+      var x = document.querySelector('.ntf-btn');
+      if (x) { clearInterval(t); x.click(); }
+      else if (++n > 25) { clearInterval(t); location.href = 'index.html'; }
+    }, 150);
+  }
+
+  /* Mirror notif.js's unread count onto the Alerts tab. Read it from the bell's TEXT, not
+     from whether the badge is visible: the bell is display:none here, so offsetParent is
+     always null and a visibility test would report zero unread for ever. */
+  setInterval(function(){
+    var btn = document.querySelector('.ntf-btn');
+    var dot = document.getElementById('tabDot');
+    if (!dot) return;
+    var n = btn ? parseInt(String(btn.textContent || '').replace(/\D/g, ''), 10) : 0;
+    if (n > 0) { dot.textContent = n > 9 ? '9+' : String(n); dot.classList.add('on'); }
+    else { dot.textContent = ''; dot.classList.remove('on'); }
+  }, 1200);
+
+  /* Both floaters are injected by deferred scripts, and something in that CSS was
+     out-specifying a stylesheet rule with !important on the language pill — its inline
+     style read 14px while the computed value came out 76px, so a third rule was winning.
+     Rather than keep guessing at the cascade, set it here where the outcome is certain,
+     and re-apply a few times because the elements do not exist at first paint. */
+  (function liftFloaters(){
+    var base = 'calc(env(safe-area-inset-bottom) + 62px + ';
+    function lift(){
+      var f = document.getElementById('askFab');
+      var t = document.getElementById('i18nToggle');
+      /* Ask sits above the bar. */
+      if (f) f.style.setProperty('bottom', base + '16px)', 'important');
+      /* The language pill moves to the TOP right. Stacking it above Ask still left it
+         covering the "Open the full platform" link, and the top-right corner is free now
+         that the duplicate bell is hidden — so it goes where nothing else wants to be. */
+      if (t) {
+        t.style.setProperty('top', 'calc(env(safe-area-inset-top) + 10px)', 'important');
+        t.style.setProperty('bottom', 'auto', 'important');
+        t.style.setProperty('right', '14px', 'important');
+      }
+      return !!(f && t);
     }
-    // register the service worker directly too (belt + braces; notif.js also does it)
-    if('serviceWorker' in navigator){
-      window.addEventListener('load',function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); });
-    }
-  </script>
-  <script defer src="notif.js"></script>
+    var tries = 0;
+    var iv = setInterval(function(){ if (lift() || ++tries > 20) clearInterval(iv); }, 250);
+    lift();
+  })();
+
+  /* Belt and braces — notif.js registers this too, but a cold launch should not depend
+     on a deferred script to become installable. */
+  if ('serviceWorker' in navigator){
+    window.addEventListener('load', function(){
+      navigator.serviceWorker.register('sw.js').catch(function(){});
+    });
+  }
+</script>
+<script defer src="notif.js"></script>
 <script src="i18n.js"></script>
 </body>
 </html>
