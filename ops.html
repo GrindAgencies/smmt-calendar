@@ -850,7 +850,10 @@ function paintReport(){
     rptCard('Pending premium',rptMoney(t.pending_ap),'annualised')+
     rptCard('Issued premium',rptMoney(t.issued_ap),'annualised')+
     rptCard('Placement',rptPct(t.placement),'of business written, paid')+
-    rptCard('Families helped',String(t.families),'households, counted once')+
+    /* The dashboard's Families Helped counts a household once a policy is on the books at all.
+   This report counts only business that PAID, so the two are measuring different things and
+   must not share a bare label. */
+    rptCard('Families paid',String(t.families),'households with business paid out')+
     '</div>';
   h+='<div style="font-size:11.5px;color:var(--ink3);line-height:1.5;margin-bottom:22px">'+
      esc(r.notes.points)+'<br>'+esc(r.notes.pending)+' '+esc(r.notes.issued)+'</div>';
@@ -889,8 +892,14 @@ function paintReport(){
        '<b>All</b> — '+esc(r.notes.all_ratio)+'<br><b>Net</b> — '+esc(r.notes.net_ratio)+'</div>';
 
   /* --- period by period --- */
+  /* The periods CANNOT sum to the headline while any paid policy carries no date at all, and a
+     reader who adds the column up and finds it short is right to distrust the whole report. So
+     say it, in figures, right above the table. */
+  var sumIss=0,sumCnt=0; r.periods.forEach(function(x){ sumIss+=x.issued_points; sumCnt+=x.issued_count; });
+  var offPts=t.issued_points-sumIss, offCnt=t.issued_count-sumCnt;
   h+='<div style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin:0 0 9px">'+
        esc(r.period==='year'?'Year by year':(r.period==='quarter'?'Quarter by quarter':'Month by month'))+'</div>'+
+     (offPts>0?('<div style="font-size:12px;color:var(--ink2);margin:-3px 0 9px;line-height:1.5">This table comes to <b>'+rptMoney(sumIss)+'</b>, not the '+rptMoney(t.issued_points)+' above: '+offCnt+' paid '+(offCnt===1?'side':'sides')+' worth <b>'+rptMoney(offPts)+'</b> carry no date of any kind, so they belong to no '+esc(periodWord)+'. They are listed at the foot of this report.</div>'):'')+
      '<div class="tablewrap" style="overflow-x:auto;margin-bottom:22px"><table class="ptable" style="min-width:780px"><thead><tr>'+
      '<th>'+esc(periodWord.charAt(0).toUpperCase()+periodWord.slice(1))+'</th>'+
      '<th style="text-align:right">Pending points</th><th style="text-align:right">Issued points</th>'+
@@ -911,7 +920,8 @@ function paintReport(){
 
   /* --- what the report could not account for --- */
   var gapRows=[];
-  if(g.paid_no_date) gapRows.push([g.paid_no_date,'policies are marked Paid Out with no payout date, so they count in the totals above but cannot be placed in any '+periodWord+'. Fill the date in on the In Force tab and they will appear.']);
+  if(g.paid_no_date) gapRows.push([g.paid_no_date,'policies are marked Paid Out with no payout date on the record. Fill it in on the In Force tab \u2014 it is the only evidence of when the money actually landed.']);
+  if(g.paid_undatable) gapRows.push([g.paid_undatable,'of those have no first-draft date either, so there is nothing to date them by at all: they count in the totals above but appear in no '+periodWord+'.']);
   if(g.no_writer_rate) gapRows.push([g.no_writer_rate,'policies have no contract rate for the writing agent and no rate on their contract level, so no points could be worked out for them.']);
   if(g.split_no_partner_code) gapRows.push([g.split_no_partner_code,'split policies name no partner, so only the writer’s half is counted.']);
   if(g.split_no_partner_rate) gapRows.push([g.split_no_partner_rate,'split policies have a partner whose contract rate is unknown, so the partner’s half is not counted. A partner is never paid at the writer’s rate.']);
@@ -942,7 +952,7 @@ function rptCopy(btn){
   out.push('Pending premium\t'+t.pending_ap);
   out.push('Issued premium\t'+t.issued_ap);
   out.push('Placement\t'+t.placement+'%');
-  out.push('Families helped\t'+t.families);
+  out.push('Families paid (households)\t'+t.families);
   out.push('');
   out.push('BY BASESHOP');
   out.push(['Baseshop','Pending points','Issued points','Pending AP','Issued AP','Placement %','Families','All licensing %','Net licensing %'].join('\t'));
