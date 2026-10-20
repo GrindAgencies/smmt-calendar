@@ -557,31 +557,81 @@ function toggleMod(){if(MODTOKEN){MODTOKEN='';$('modBtn').textContent='🔒';toa
 function signOut(){try{if(window.tsfgSession)tsfgSession.clear();}catch(e){}try{localStorage.removeItem('tsfg_code');localStorage.removeItem('tsfg_name');}catch(e){}location.href='index.html';}
 
 /* rooms */
-function renderRooms(){
-  function cap(x){return (x||'').charAt(0).toUpperCase()+(x||'').slice(1);}
-  function chRow(c){var lbl=c.baseshop?({announcements:'Announcements',training:'Training',licensing:'Licensing',cft:'CFT Room',operations:'Operations'}[c.sub]||c.name):c.name;var u=(CHAN===c.id)?0:(UNREAD[c.id]||0);return '<div class="room'+(CHAN===c.id?' on':'')+(u?' unread':'')+'" onclick="openChan(\''+c.id+'\')"><div class="ri">'+(c.icon||'#')+'</div><div class="rn">'+esc(lbl)+'</div>'+(u?'<span class="unb">'+(u>99?'99+':u)+'</span>':'')+'</div>';}
-  var hier=CHANNELS.filter(function(c){return !c.baseshop;});
-  var groups={},order=[];
-  CHANNELS.forEach(function(c){if(c.baseshop){if(!groups[c.baseshop]){groups[c.baseshop]=[];order.push(c.baseshop);}groups[c.baseshop].push(c);}});
-  if(!EXP.__init){EXP.__init=true;if(ACC&&ACC.baseshop)EXP[ACC.baseshop]=true;else if(order.length)EXP[order[0]]=true;}
-  var chtml='<div class="bshdr">Company</div>'+hier.map(chRow).join('');
-  chtml+='<div class="bshdr">Baseshops</div>';
-  order.forEach(function(bs){var nm=(groups[bs][0].baseshopName)||bs.toUpperCase();var open=!!EXP[bs];
-    chtml+='<div class="room bsgroup" onclick="toggleBs(\''+bs+'\')"><div class="ri">\ud83c\udfe2</div><div class="rn">'+esc(nm)+'</div><span class="chev">'+(open?'\u25be':'\u25b8')+'</span></div>';
-    if(open)chtml+='<div class="subwrap">'+groups[bs].map(chRow).join('')+'</div>';
+/* ONE FLAT LIST — iMessage, not Discord.
+   This used to render a Company header, a Baseshops header, a collapsible group for each
+   baseshop, channels nested inside each, and a separate DM section below. Christopher,
+   20 Oct: "way more user friendly and less complex like imessage and not like discord. we
+   currently have a discord level setup."
+   Every room and every direct message is now one row in one list, most recent first, with
+   anything unread floated to the top — the two things that actually decide what somebody
+   opens next. The baseshop name rides on the row, so the hierarchy is still readable
+   without being a tree you have to navigate. */
+function convRows(){
+  var rows=[];
+  var SUB={chat:'Base Shop Chat',announcements:'Announcements',cft:'CFT · Dial Room',training:'Training',licensing:'Licensing'};
+  CHANNELS.forEach(function(c){
+    var label=c.baseshop ? ((c.baseshopName||c.baseshop)+' · '+(SUB[c.sub]||c.name)) : c.name;
+    rows.push({id:c.id,label:label,icon:(c.icon||'#'),dm:false,unread:(CHAN===c.id?0:(UNREAD[c.id]||0))});
   });
-  $('chanList').innerHTML=chtml;
-  var mem=Object.keys(MEMBERS).filter(function(cd){return cd!==CODE;}).sort(function(a,b){return (MEMBERS[a]||'').localeCompare(MEMBERS[b]||'');});
-  var active='';
-  if(CHAN.indexOf('dm:')===0){var oc=CHAN.slice(3).split('|').filter(function(c){return c!==CODE;})[0];if(oc!=='KYLE')active='<div class="room on"><div class="dmav">'+initials(MEMBERS[oc]||oc)+'</div><div class="rn">'+esc(MEMBERS[oc]||oc)+'</div></div>';}
-  var coachPin='<div class="room'+(CHAN===dmId('KYLE')?' on':'')+'" onclick="openChan(dmId(\'KYLE\'))" title="Coach — tough love, in your corner"><div class="dmav" style="background:linear-gradient(135deg,#c79a2e,#8a6d1f);color:#fff">📣</div><div class="rn">Coach</div><span class="chev">🎯</span></div>';
+  (THREADS||[]).forEach(function(t){
+    rows.push({id:t.channel,label:(t.other_name||t.other_code||'Direct message'),icon:'',dm:true,
+               other:t.other_code,unread:(CHAN===t.channel?0:(t.unread||0)),
+               preview:(t.last_body||''),at:(t.last_at||'')});
+  });
+  rows.forEach(function(r){
+    if(!r.at) r.at=previewAt(r.id);
+    if(!r.preview) r.preview=previewOf(r.id);
+  });
+  rows.sort(function(a,b){
+    if(!!a.unread !== !!b.unread) return a.unread?-1:1;
+    return String(b.at||'').localeCompare(String(a.at||''));
+  });
+  return rows;
+}
+function convRowHtml(r){
+  var av = r.dm ? '<div class="cv-av">'+esc(initials(MEMBERS[r.other]||r.label))+'</div>'
+                : '<div class="cv-av ch">'+(r.icon||'#')+'</div>';
+  var prev = r.preview ? esc(r.preview) : '<span class="cv-mute">No messages yet</span>';
+  var hay = (r.label+' '+(r.preview||'')).toLowerCase();
+  return '<div class="cv'+(CHAN===r.id?' on':'')+(r.unread?' unread':'')+'"'+
+    ' data-q="'+esc(hay)+'" data-unread="'+(r.unread?1:0)+'"'+
+    ' onclick="openChan(\''+r.id+'\')">'+av+
+    '<div class="cv-mid"><div class="cv-top"><span class="cv-name">'+esc(r.label)+'</span>'+
+    '<span class="cv-time">'+esc(whenOf(r.at))+'</span></div>'+
+    '<div class="cv-prev">'+prev+'</div></div>'+
+    (r.unread?'<span class="cv-badge">'+(r.unread>99?'99+':r.unread)+'</span>':'')+'</div>';
+}
+function renderRooms(){
   if(OPSMODE){
-    $('dmList').innerHTML='<div class="bshdr">All conversations ('+OPSDMS.length+')</div>'+coachPin+OPSDMS.filter(function(dm){return dm.parts.indexOf('KYLE')<0;}).map(function(dm){return '<div class="room'+(CHAN===dm.channel?' on':'')+'" onclick="openChan(\''+esc(dm.channel)+'\')" title="'+esc(dm.label)+'"><div class="dmav">'+esc(initials(dm.names[0]||'?'))+'</div><div class="rn" style="font-size:12.5px">'+esc(dm.label)+'</div><span class="chev">'+dm.count+'</span></div>';}).join('')+OPSDMS.filter(function(dm){return dm.parts.indexOf('KYLE')>=0;}).map(function(dm){return '<div class="room'+(CHAN===dm.channel?' on':'')+'" onclick="openChan(\''+esc(dm.channel)+'\')" title="'+esc(dm.label)+' (Kyle coach thread)"><div class="dmav" style="background:linear-gradient(135deg,#c79a2e,#8a6d1f);color:#fff">📣</div><div class="rn" style="font-size:12.5px">'+esc(dm.names.filter(function(n){return n!=='Coach';})[0]||'')+' · Kyle</div><span class="chev">'+dm.count+'</span></div>';}).join('');
+    $('chanList').innerHTML='';
+    $('dmList').innerHTML='<div class="bshdr">All conversations ('+OPSDMS.length+')</div>'+
+      OPSDMS.filter(function(dm){return dm.parts.indexOf('KYLE')<0;}).map(function(dm){
+        return '<div class="room'+(CHAN===dm.channel?' on':'')+'" onclick="openChan(\''+dm.channel+'\')">'+
+               '<div class="dmav">'+esc(initials(dm.title||''))+'</div><div class="rn">'+esc(dm.title||dm.channel)+'</div></div>';
+      }).join('');
     return;
   }
-  /* A thread already in the list does not need the stand-alone 'active' row above it. */
-  var inList=THREADS.some(function(t){return t.channel===CHAN;});
-  $('dmList').innerHTML=coachPin+threadList()+(inList?'':active)+dmPicker();
+  $('chanList').innerHTML = convRows().map(convRowHtml).join('') || '<div class="cv-empty">No conversations yet.</div>';
+  $('dmList').innerHTML = dmPicker();
+  applyConvFilter();
+}
+var CVFILTER='all', CVQ='';
+function setConvFilter(f){
+  CVFILTER=f;
+  Array.prototype.forEach.call(document.querySelectorAll('.cv-pill'),function(b){
+    b.classList.toggle('on', b.getAttribute('data-f')===f);
+  });
+  applyConvFilter();
+}
+function onConvSearch(v){ CVQ=String(v||'').trim().toLowerCase(); applyConvFilter(); }
+function applyConvFilter(){
+  var any=false;
+  Array.prototype.forEach.call(document.querySelectorAll('#chanList .cv'),function(el){
+    var okF=(CVFILTER!=='unread')||el.getAttribute('data-unread')==='1';
+    var okQ=!CVQ||(el.getAttribute('data-q')||'').indexOf(CVQ)>=0;
+    var show=okF&&okQ; el.style.display=show?'':'none'; if(show)any=true;
+  });
+  var n=document.getElementById('cvNone'); if(n) n.style.display=any?'none':'block';
 }
 /* One flat list of 86 names was unusable, and grouping on the raw baseshop field
    was worse: it produced LORENZ, COX, ZAVALA and UNASSIGNED sitting beside the
@@ -754,11 +804,37 @@ var UNREAD={}, NEWLINE=0;
 function readMap(){try{return JSON.parse(localStorage.getItem('tsfg_hub_read')||'{}')||{};}catch(e){return {};}}
 function saveRead(m){try{localStorage.setItem('tsfg_hub_read',JSON.stringify(m));}catch(e){}}
 function markRead(ch,id){if(!ch||!id)return;var m=readMap();if((m[ch]||0)<id){m[ch]=id;saveRead(m);}}
+/* The conversation list shows the last thing said under each row, the way every messenger
+   does. hub-unread returns `last` as a message ID — useful for read tracking, useless as a
+   preview — so v6 of that function added `preview`, which is what this reads. Getting those
+   two confused is what made every row say "No messages yet". */
+var PREVIEW={};
+function previewOf(id){
+  var l=PREVIEW[id]; if(!l) return '';
+  var body=String(l.body||'').replace(/\s+/g,' ').trim();
+  if(!body) return '';
+  /* "You: " when you spoke last, otherwise their first name. Bot names start with an emoji,
+     so strip anything before the first letter or digit before taking the first word. */
+  if(l.mine) return 'You: '+body;
+  var who=String(l.name||'').replace(/^[^A-Za-z0-9]+/,'').trim().split(' ')[0];
+  return (who ? who+': ' : '')+body;
+}
+function previewAt(id){ var l=PREVIEW[id]; return (l&&l.at)?l.at:''; }
+function whenOf(iso){
+  if(!iso) return '';
+  var d=new Date(iso); if(isNaN(d)) return '';
+  var now=new Date();
+  if(d.toDateString()===now.toDateString())
+    return d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+  var y=new Date(now); y.setDate(y.getDate()-1);
+  if(d.toDateString()===y.toDateString()) return 'Yesterday';
+  return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+}
 function loadUnread(){
   fetch(UNREADAPI,{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({code:CODE,read:readMap()})})
     .then(function(r){return r.json();})
-    .then(function(r){ if(r&&r.ok){ UNREAD=r.counts||{}; renderRooms(); paintTitle(r.total||0); } })
+    .then(function(r){ if(r&&r.ok){ UNREAD=r.counts||{}; PREVIEW=r.preview||{}; renderRooms(); paintTitle(r.total||0); } })
     .catch(function(){});
 }
 /* Unread count in the tab title, the way every other chat app does it. */
@@ -833,7 +909,9 @@ function renderMsgs(scroll){
       var sv=SEEN[m.id];
       seen='<div class="seenby" title="'+esc(sv.names.join(', '))+'">Seen by '+sv.count+'</div>';
     }
-    return nl+sep+'<div class="msg'+(cont?' cont':'')+(m.kind==='recognition'?' recog':'')+(m.kind==='ai'?' ai':'')+'" data-id="'+m.id+'">'+av+'<div class="mbody">'+head+inner+rx+seen+'</div>'+acts+'</div>';
+    /* Marked so the phone layout can put your own messages on the right. Purely additive:
+       no desktop rule reads .msg.me, so the wide layout is untouched. */
+    return nl+sep+'<div class="msg'+(cont?' cont':'')+((m.author_code===CODE)?' me':'')+(m.kind==='recognition'?' recog':'')+(m.kind==='ai'?' ai':'')+'" data-id="'+m.id+'">'+av+'<div class="mbody">'+head+inner+rx+seen+'</div>'+acts+'</div>';
   }).join('');
   /* An empty channel used to render nothing at all — you'd open Leadership and
      get a blank screen with no explanation. */
@@ -1131,5 +1209,219 @@ document.addEventListener('dragleave',function(e){if(cur&&!cur.contains(e.relate
 document.addEventListener('drop',function(e){var m=zf(e.target);hi(cur,false);cur=null;if(!m)return;e.preventDefault();var fs=e.dataTransfer&&e.dataTransfer.files;if(!fs||!fs.length)return;try{var dt=new DataTransfer();for(var k=0;k<fs.length;k++)dt.items.add(fs[k]);m.i.files=dt.files;}catch(_){}m.i.dispatchEvent(new Event('change',{bubbles:true}));},false);})();
 </script>
 <script src="i18n.js"></script>
+
+<style>
+/* ===========================================================================
+   THE PHONE EXPERIENCE — one list, then one conversation.
+   Driven by body.phone rather than a media query: it can be inspected at any
+   window size, and it has to reach the app's 248px navigation rail, which a
+   width query alone could not switch off cleanly.
+   =========================================================================== */
+body.phone{ --cvgold:#c99a2e; --cvgold-br:#e8c777; }
+
+body.phone .side{ transform:translateX(-100%) !important; }
+body.phone .hub{ grid-template-columns:1fr !important; display:block !important; }
+body.phone .chan-toggle{ display:none !important; }
+/* The app-wide "Menu" button from notif.js. On a phone the bottom tabs are the way out of
+   this screen, and next to the back chevron a second navigation control is just confusing. */
+body.phone .tsfg-menu{ display:none !important; }
+body.phone #modBtn,
+body.phone #botCfgBtn,
+body.phone .chips,
+body.phone .pinbar,
+body.phone .rsec,
+body.phone .hsearch,
+body.phone #dmList{ display:none !important; }
+
+/* ---------- screen 1: the conversation list ---------- */
+body.phone .rooms{
+  position:fixed !important; inset:0 !important; width:100% !important; max-width:none !important;
+  transform:none !important; z-index:70 !important; box-shadow:none !important;
+  display:flex !important; flex-direction:column !important;
+  background:var(--bg) !important; padding:0 !important; overflow:hidden !important;
+  padding-top:env(safe-area-inset-top) !important;
+}
+body.phone.chat-open .rooms{ transform:translateX(-100%) !important; }
+body.phone:not(.chat-open) .top{ display:none !important; }
+body.phone:not(.chat-open) .msgpane{ display:none !important; }
+
+body.phone .cv-head{ display:flex; align-items:center; justify-content:space-between; padding:12px 16px 2px; }
+body.phone .cv-head h1{ font-size:29px; font-weight:800; letter-spacing:-.02em; margin:0; color:var(--ink); }
+body.phone .cv-new{ width:38px; height:38px; border:0; background:none; color:var(--cvgold); font-size:20px; cursor:pointer; }
+body.phone .cv-search{ position:relative; margin:10px 16px 10px; }
+body.phone .cv-search input{
+  width:100%; box-sizing:border-box; font-family:inherit; font-size:15px;
+  padding:11px 14px 11px 38px; border-radius:12px;
+  border:1px solid var(--line); background:var(--panel2); color:var(--ink);
+}
+body.phone .cv-search .mg{ position:absolute; left:13px; top:50%; transform:translateY(-50%); color:var(--ink3); font-size:14px; }
+body.phone .cv-pills{ display:flex; gap:8px; padding:0 16px 10px; }
+body.phone .cv-pill{
+  font-family:inherit; font-size:13.5px; font-weight:700; padding:8px 18px;
+  border-radius:999px; border:0; background:var(--panel2); color:var(--ink2); cursor:pointer;
+}
+body.phone .cv-pill.on{ background:var(--cvgold); color:#17120a; }
+
+body.phone #chanList{
+  flex:1 1 auto; overflow-y:auto; -webkit-overflow-scrolling:touch;
+  padding:0 0 calc(62px + env(safe-area-inset-bottom));
+}
+body.phone .cv{ display:flex; align-items:center; gap:11px; padding:11px 14px; cursor:pointer; }
+body.phone .cv:active{ background:var(--panel2); }
+body.phone .cv + .cv{ box-shadow:inset 0 1px 0 var(--line); }
+body.phone .cv-av{
+  flex:0 0 auto; width:46px; height:46px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-weight:800; font-size:16px; background:var(--panel2); color:var(--ink2);
+}
+body.phone .cv-av.ch{ background:linear-gradient(145deg,var(--cvgold-br),var(--cvgold)); color:#17120a; font-size:20px; }
+body.phone .cv-mid{ flex:1 1 auto; min-width:0; }
+body.phone .cv-top{ display:flex; align-items:baseline; gap:6px; }
+body.phone .cv-name{ flex:1 1 auto; min-width:0; font-weight:700; font-size:15.5px; color:var(--ink);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+body.phone .cv-time{ flex:0 0 auto; font-size:12px; color:var(--ink3); font-variant-numeric:tabular-nums; }
+body.phone .cv-prev{ font-size:14px; color:var(--ink2); margin-top:2px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+body.phone .cv-mute{ color:var(--ink3); font-style:italic; }
+body.phone .cv.unread .cv-name,
+body.phone .cv.unread .cv-prev{ color:var(--ink); font-weight:700; }
+body.phone .cv-badge{
+  flex:0 0 auto; min-width:22px; height:22px; border-radius:11px; padding:0 6px;
+  background:var(--cvgold); color:#17120a; font-size:12px; font-weight:800;
+  display:flex; align-items:center; justify-content:center;
+}
+body.phone .cv-empty,
+body.phone #cvNone{ padding:40px 20px; text-align:center; color:var(--ink3); font-size:14px; }
+
+/* ---------- bottom bar ---------- */
+body.phone .cv-tabs{
+  position:fixed; left:0; right:0; bottom:0; z-index:80;
+  background:var(--panel); border-top:1px solid var(--line);
+  display:grid; grid-template-columns:repeat(3,1fr);
+  padding-bottom:env(safe-area-inset-bottom);
+}
+body.phone.chat-open .cv-tabs{ display:none; }
+body:not(.phone) .cv-tabs{ display:none; }
+body.phone .cv-tab{
+  height:60px; border:0; background:none; font-family:inherit; cursor:pointer;
+  color:var(--ink3); font-size:10.5px; font-weight:600;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
+}
+body.phone .cv-tab.on{ color:var(--cvgold); }
+body.phone .cv-tab i{ font-style:normal; font-size:19px; line-height:1; }
+
+/* ---------- screen 2: the conversation ---------- */
+body.phone.chat-open .top{
+  display:flex !important; left:0 !important; right:0 !important;
+}
+body.phone.chat-open .msgpane{
+  display:flex !important; flex-direction:column !important;
+  position:fixed !important; inset:0 !important; z-index:65 !important;
+  padding-top:calc(56px + env(safe-area-inset-top)) !important;
+  background:var(--bg) !important;
+}
+/* The back chevron belongs to the phone layout only. It has to be hidden by DEFAULT, not
+   merely under body.phone: the button is in the markup at every width, so without this it
+   showed up in the desktop top bar beside the channel toggle. */
+.cv-back{ display:none; }
+body.phone .cv-back{ display:none; }
+body.phone.chat-open .cv-back{
+  display:flex; align-items:center; justify-content:center; flex:0 0 auto;
+  width:36px; height:36px; border:0; background:none;
+  color:var(--cvgold); font-size:26px; line-height:1; cursor:pointer;
+}
+body.phone.chat-open .ttl{ display:none; }
+
+/* BUBBLES. The message row is .msg (flex: avatar + .mbody), the text is .mtext, and the
+   name/time line is .mhead — an earlier draft of this styled .mrow, which does not exist on
+   this page at all, so none of it applied. Only the wrapper classes that are really there
+   are used below. */
+body.phone .mlist{ padding:14px 10px 8px !important; gap:2px !important; }
+body.phone .msg{ padding:2px 4px !important; }
+body.phone .msg .mav{ display:none !important; }
+body.phone .msg .mtext{
+  background:var(--panel2); border:1px solid var(--line);
+  border-radius:19px; padding:8px 13px; display:inline-block;
+  max-width:84%; font-size:15px; line-height:1.42;
+}
+body.phone .msg .mhead{ font-size:11.5px; padding-left:4px; }
+/* Yours: gold, on the right, and with no name above it — you know who you are. */
+body.phone .msg.me{ flex-direction:row-reverse !important; }
+body.phone .msg.me .mbody{ display:flex; flex-direction:column; align-items:flex-end; }
+body.phone .msg.me .mtext{ background:var(--cvgold); border-color:var(--cvgold); color:#17120a; }
+body.phone .msg.me .mhead{ display:none !important; }
+body.phone .msg.me .seenby,
+body.phone .msg.me .rx{ text-align:right; }
+/* A run of messages from the same person only needs the name once. */
+body.phone .msg.cont .mhead{ display:none; }
+
+/* composer */
+body.phone .composer{ padding:8px 12px calc(10px + env(safe-area-inset-bottom)) !important; }
+body.phone .composer textarea{ border-radius:21px !important; padding:11px 15px !important; font-size:16px !important; }
+</style>
+<script>
+(function(){
+  /* One screen at a time on a phone: the list, or the conversation. Everything else on this
+     page keeps working exactly as it did — this only decides which half you are looking at. */
+  function isPhone(){ return window.innerWidth <= 980; }
+
+  function syncPhone(){
+    document.body.classList.toggle('phone', isPhone());
+    if(!isPhone()) document.body.classList.remove('chat-open');
+  }
+
+  function buildChrome(){
+    var rooms=document.querySelector('.rooms');
+    if(!rooms || document.getElementById('cvHead')) return;
+
+    var head=document.createElement('div');
+    head.id='cvHead';
+    head.innerHTML =
+      '<div class="cv-head"><h1>Messages</h1></div>'+
+      '<div class="cv-search"><span class="mg">⌕</span>'+
+        '<input type="search" placeholder="Search messages" oninput="onConvSearch(this.value)"></div>'+
+      '<div class="cv-pills">'+
+        '<button class="cv-pill on" data-f="all" onclick="setConvFilter(\'all\')">All</button>'+
+        '<button class="cv-pill" data-f="unread" onclick="setConvFilter(\'unread\')">Unread</button>'+
+      '</div>';
+    rooms.insertBefore(head, rooms.firstChild);
+
+    var none=document.createElement('div');
+    none.id='cvNone'; none.style.display='none'; none.textContent='Nothing matches that.';
+    rooms.appendChild(none);
+
+    if(!document.querySelector('.cv-tabs')){
+      var tabs=document.createElement('nav');
+      tabs.className='cv-tabs';
+      tabs.innerHTML =
+        '<button class="cv-tab" onclick="location.href=\'app.html\'"><i>⌂</i>Home</button>'+
+        '<button class="cv-tab on"><i>●</i>Messages</button>'+
+        '<button class="cv-tab" onclick="location.href=\'profile.html\'"><i>○</i>Profile</button>';
+      document.body.appendChild(tabs);
+    }
+
+    var top=document.querySelector('.top');
+    if(top && !top.querySelector('.cv-back')){
+      var b=document.createElement('button');
+      b.type='button'; b.className='cv-back'; b.innerHTML='‹'; b.title='Back to messages';
+      b.onclick=function(){ document.body.classList.remove('chat-open'); };
+      top.insertBefore(b, top.firstChild);
+    }
+  }
+
+  /* Wrap openChan rather than editing it, so loading, read-state and presence are untouched. */
+  function hookOpen(){
+    if(window.__cvHooked || typeof window.openChan!=='function') return;
+    var orig=window.openChan;
+    window.openChan=function(){ orig.apply(this,arguments); if(isPhone()) document.body.classList.add('chat-open'); };
+    window.__cvHooked=true;
+  }
+
+  function init(){ syncPhone(); buildChrome(); hookOpen(); }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', init); else init();
+  setTimeout(init,500); setTimeout(init,1500);
+  window.addEventListener('resize', syncPhone);
+})();
+</script>
 </body>
 </html>
