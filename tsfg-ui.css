@@ -77,6 +77,21 @@
 
 /* ============================ page furniture ============================ */
 .tsfg-wrap{ max-width:520px; margin:0 auto; padding:0 16px calc(28px + env(safe-area-inset-bottom)); }
+
+/* ===================== ARRIVING AT A DESTINATION =====================
+   The home screen names where it is going as it leaves; this is the other half of that
+   same movement - the destination settles in rather than hard-cutting, so the two read as
+   ONE transition instead of a title card followed by a jump.
+   Deliberately CSS only, on the element that already exists: no timer, no script, nothing
+   to get stuck if a page errors, and it costs nothing when the page is opened directly or
+   from a bookmark. It runs once on load and never again, so changing a filter, moving
+   between dates, submitting a form or coming back from a detail view does NOT replay it -
+   which is exactly what the brief asks for and what a JS-driven version tends to get wrong.
+   The header is excluded so the Back control is interactive from the first frame. */
+@media (prefers-reduced-motion: no-preference){
+  .tsfg-wrap{ animation:tsfg-arrive .26s cubic-bezier(.2,.7,.3,1) both; }
+  @keyframes tsfg-arrive{ from{ opacity:0; transform:translateY(6px); } to{ opacity:1; transform:none; } }
+}
 .tsfg-wide{ max-width:1100px; }
 
 .tsfg-top{
