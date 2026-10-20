@@ -19,6 +19,92 @@
   html,body{margin:0;padding:0;min-height:100%}
   body{ -webkit-tap-highlight-color:transparent; }
 
+  /* ======================== DEPTH, NOT DECORATION ========================
+     Christopher: the homepage "feels bland and flat". On a near-black ground a drop
+     shadow is invisible - there is nothing darker to cast it onto - so depth has to
+     come from SURFACE and EDGE instead: a tonal wash behind everything, cards a step
+     lighter than the page, a warm hairline catching the top edge like light falling
+     on it, and a shadow underneath to seat it. Low contrast on purpose: it should
+     read as a lit room, not a pattern. */
+  body::before{
+    content:''; position:fixed; inset:0; z-index:-2; pointer-events:none;
+    background:
+      radial-gradient(120% 70% at 50% -8%,  rgba(214,175,98,.11) 0%, rgba(214,175,98,0) 58%),
+      radial-gradient(100% 55% at 50% 104%, rgba(214,175,98,.05) 0%, rgba(214,175,98,0) 60%),
+      var(--tsfg-bg, #090909);
+  }
+  /* A very fine grain stops the gradient banding on OLED phones. */
+  body::after{
+    content:''; position:fixed; inset:0; z-index:-1; pointer-events:none; opacity:.025;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/></filter><rect width='120' height='120' filter='url(%23n)'/></svg>");
+  }
+
+  .tsfg-tile{
+    position:relative; overflow:hidden;
+    background:linear-gradient(180deg, var(--tsfg-raise-2, #242424) 0%, var(--tsfg-raise, #191919) 100%);
+    box-shadow:0 1px 0 rgba(255,255,255,.04) inset, 0 6px 18px -8px rgba(0,0,0,.85);
+    transition:transform .14s cubic-bezier(.2,.7,.3,1), box-shadow .14s ease, border-color .14s ease;
+  }
+  /* The lit top edge. One pixel, and it is what makes a flat rectangle read as an object. */
+  .tsfg-tile::before{
+    content:''; position:absolute; inset:0 0 auto; height:1px; pointer-events:none;
+    background:linear-gradient(90deg, transparent, rgba(214,175,98,.42), transparent);
+  }
+  .tsfg-tile:active{
+    transform:scale(.975);
+    box-shadow:0 1px 0 rgba(255,255,255,.03) inset, 0 2px 8px -6px rgba(0,0,0,.9);
+    border-color:var(--tsfg-gold);
+  }
+  .hl-slide{ box-shadow:0 10px 26px -14px rgba(0,0,0,.9); }
+
+  /* ===================== BRANDED DESTINATION OPENING =====================
+     Tapping a tool names where it is going while the page is already loading. It is one
+     navigation, not a splash screen: the route is set immediately and the overlay simply
+     covers the gap. Capped well under half a second, and skipped outright for anyone who
+     has asked for less motion. */
+  .nav-go{
+    position:fixed; inset:0; z-index:200; display:none;
+    align-items:center; justify-content:center; background:var(--tsfg-bg, #090909);
+    opacity:0; transition:opacity .16s ease;
+  }
+  .nav-go.on{ display:flex; opacity:1; }
+  .nav-go .ttl{
+    font-size:clamp(23px,7vw,30px); font-weight:800; letter-spacing:-.03em; color:var(--tsfg-gold);
+    transform:translateY(7px) scale(.985); opacity:0;
+    animation:navrise .34s cubic-bezier(.2,.7,.3,1) forwards;
+  }
+  .nav-go .rule{
+    position:absolute; left:50%; bottom:calc(50% - 30px); width:0; height:1px;
+    background:linear-gradient(90deg, transparent, var(--tsfg-gold), transparent);
+    transform:translateX(-50%); animation:navrule .40s cubic-bezier(.2,.7,.3,1) forwards;
+  }
+  @keyframes navrise{ to{ transform:none; opacity:1; } }
+  @keyframes navrule{ to{ width:132px; } }
+  @media (prefers-reduced-motion: reduce){
+    .nav-go, .nav-go .ttl, .nav-go .rule{ animation:none !important; transition:none !important; }
+    .nav-go .ttl{ opacity:1; transform:none; }
+    .tsfg-tile{ transition:none; }
+  }
+
+  /* ===================== MANAGE HIGHLIGHTS (Elijah only) ===================== */
+  .mg-ov{ position:fixed; inset:0; z-index:150; background:rgba(0,0,0,.74); display:none;
+    align-items:flex-end; justify-content:center; -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px); }
+  .mg-ov.on{ display:flex; }
+  .mg-c{ width:100%; max-width:520px; max-height:88dvh; overflow-y:auto;
+    background:var(--tsfg-raise); border:1px solid var(--tsfg-line);
+    border-radius:var(--tsfg-r) var(--tsfg-r) 0 0;
+    padding:16px 15px calc(env(safe-area-inset-bottom) + 18px); }
+  .mg-row{ display:flex; gap:11px; align-items:center; padding:9px 0; border-bottom:1px solid var(--tsfg-line); }
+  .mg-row:last-child{ border-bottom:0; }
+  .mg-row img{ width:66px; height:40px; object-fit:cover; border-radius:8px; flex:0 0 auto; background:var(--tsfg-raise-2); }
+  .mg-row .t{ flex:1 1 auto; min-width:0; font-size:13px; line-height:1.35; }
+  .mg-row .t b{ display:block; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .mg-row .t span{ color:var(--tsfg-ink-3); font-size:11.5px; }
+  .mg-b{ border:1px solid var(--tsfg-line); background:var(--tsfg-raise-2); color:var(--tsfg-ink);
+    border-radius:9px; width:32px; height:32px; font-size:15px; cursor:pointer; flex:0 0 auto; }
+  .mg-b:disabled{ opacity:.3; }
+  .mg-b.danger{ color:var(--tsfg-bad, #ff6b6b); }
+
   /* ===================== THE TEAM HIGHLIGHTS WHEEL =====================
      Christopher: "create a team wheel of highlights through uploaded images."
      A scroll-snap rail rather than a JS carousel: one element per image, it
@@ -98,9 +184,9 @@
 
   <!-- ======================= team highlights ======================= -->
   <section class="hl" aria-label="Team highlights">
-    <button class="hl-up" onclick="pickImages()">
+    <button class="hl-up" onclick="openManage()" aria-label="Manage team highlights">
       <svg viewBox="0 0 24 24"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5"/><path d="M4 16v2.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V16"/></svg>
-      Upload images
+      Manage
     </button>
     <div class="hl-rail" id="rail">
       <div class="hl-none" id="hlNone">
@@ -111,6 +197,7 @@
     </div>
     <div class="hl-dots" id="dots"></div>
     <input type="file" id="fileIn" accept="image/*" multiple hidden>
+    <input type="file" id="fileSwap" accept="image/*" hidden>
   </section>
 
   <!-- ========================== your tools ========================= -->
@@ -163,6 +250,24 @@
   </button>
 </nav>
 
+<!-- Manage highlights. Only ever opened by the one account the server lets edit; every
+     button in here is refused server-side as well, so the sheet is convenience, not security. -->
+<div class="mg-ov" id="mgOv" onclick="if(event.target===this)closeManage()">
+  <div class="mg-c">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+      <h3 style="margin:0;font-size:17px;font-weight:800;letter-spacing:-.02em;flex:1">Team highlights</h3>
+      <button class="mg-b" onclick="closeManage()" aria-label="Close">&times;</button>
+    </div>
+    <div id="mgList"></div>
+    <button class="tsfg-btn" style="margin-top:14px" onclick="pickImages()">+&nbsp; Add photos</button>
+    <p class="tsfg-muted" style="font-size:11.5px;line-height:1.5;margin:10px 2px 0" id="mgNote"></p>
+  </div>
+</div>
+
+<!-- The branded opening. Inserted once and reused; it never traps focus because it is
+     removed the moment the next page takes over. -->
+<div class="nav-go" id="navGo" aria-hidden="true"><div class="rule"></div><div class="ttl" id="navTtl"></div></div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -171,12 +276,38 @@
   /* Signed out? This launcher has nothing to show — send them to sign in. */
   try{ if(!localStorage.getItem('tsfg_code')) location.replace('index.html'); }catch(e){}
 
-  function go(u){ location.href = u; }
+  /* Tapping a tool names where it is going while the route is ALREADY being followed - the
+     navigation starts first and the overlay covers the gap, so nothing is delayed waiting for
+     an animation. Repeated taps are swallowed. Reduced motion skips it entirely. */
+  var NAVING = false;
+  var TOOL_TITLES = {
+    'teamhub.html':'The Hub', 'leaderboard.html':'Leaderboard', 'scheduler.html':'Scheduler',
+    'newbiz.html':'New Business', 'resources.html':'Resource Library',
+    'summit.html?tab=road':'Road to EMD', 'profile.html':'Profile', 'index.html':'The Standard'
+  };
+  function go(u){
+    if (NAVING) return;
+    NAVING = true;
+    var title = TOOL_TITLES[u] || '';
+    var reduce = false;
+    try{ reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){}
+    if (!title || reduce){ location.href = u; return; }
+    var ov = document.getElementById('navGo'), tt = document.getElementById('navTtl');
+    if (ov && tt){ tt.textContent = title; ov.classList.add('on'); }
+    /* Short, and never the thing holding the page up: the browser is already fetching. */
+    setTimeout(function(){ location.href = u; }, 260);
+  }
+  /* Coming back via the back button can restore this page from cache with the overlay still
+     showing. Clear it on show, or Home looks frozen behind its own title. */
+  window.addEventListener('pageshow', function(){
+    NAVING = false;
+    var ov = document.getElementById('navGo'); if (ov) ov.classList.remove('on');
+  });
   function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
   function toast(m){ var t=document.getElementById('toast'); t.textContent=m; t.classList.add('on'); clearTimeout(t._x); t._x=setTimeout(function(){t.classList.remove('on');},2600); }
 
   /* ======================= team highlights ======================= */
-  var HL = [], CANPOST = false;
+  var HL = [], CANEDIT = false, MAXHL = 12;
 
   function hlApi(body){
     return fetch(HL_API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body||{})})
@@ -189,27 +320,101 @@
       var sub = document.getElementById('hlNoneSub');
       if(!r || !r.ok){ if(sub) sub.textContent = 'Could not load highlights.'; return; }
       HL = r.highlights || [];
-      CANPOST = !!r.can_post;
-      document.body.classList.toggle('can-post', CANPOST);
-      if (sub) sub.textContent = CANPOST
-        ? 'Add photos of your team — everyone in your baseshop will see them here.'
-        : 'Your leadership will add photos of the team here.';
+      CANEDIT = !!r.can_edit;
+      MAXHL = Number(r.max) || 12;
+      document.body.classList.toggle('can-post', CANEDIT);
+      if (sub) sub.textContent = CANEDIT
+        ? 'Add photos of the team — everyone will see them here.'
+        : 'Elijah adds photos of the team here.';
       paintHighlights();
+      if (document.getElementById('mgOv').classList.contains('on')) paintManage();
     });
   }
 
   function paintHighlights(){
     var rail = document.getElementById('rail');
-    if (!HL.length){ paintDots(); return; }   /* keep the empty frame as-is */
-    rail.innerHTML = HL.map(function(h){
-      return '<div class="hl-slide">'+
-        (CANPOST ? '<button class="rm" title="Remove this highlight" onclick="removeHighlight(event,\''+h.id+'\')">&times;</button>' : '')+
-        '<img src="'+esc(h.url)+'" alt="'+esc(h.caption||'Team highlight')+'" loading="lazy">'+
+    if (!HL.length){
+      /* Rebuild the empty frame rather than returning early. Returning early only held while
+         the rail had never been painted - once it had, removing the LAST photo left a blank
+         strip where the empty state should be, and the tools below jumped up to meet it. */
+      rail.innerHTML =
+        '<div class="hl-none" id="hlNone">'+
+          '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10.5" r="1.5"/><path d="m21 15-4.5-4.5L7 20"/></svg>'+
+          '<b>Team highlights</b>'+
+          '<span id="hlNoneSub">'+(CANEDIT
+            ? 'Add photos of the team \u2014 everyone will see them here.'
+            : 'Elijah adds photos of the team here.')+'</span>'+
+        '</div>';
+      paintDots(); return;
+    }
+    rail.innerHTML = HL.map(function(h,i){
+      return '<div class="hl-slide" role="group" aria-label="Highlight '+(i+1)+' of '+HL.length+'">'+
+        (CANEDIT ? '<button class="rm" title="Remove this highlight" onclick="removeHighlight(event,\''+h.id+'\')">&times;</button>' : '')+
+        '<img src="'+esc(h.url)+'" alt="'+esc(h.caption||('Team highlight '+(i+1)))+'" loading="lazy">'+
         '<div class="cap">'+esc(h.caption || 'Team highlights')+'</div>'+
       '</div>';
     }).join('');
     paintDots();
   }
+
+  /* ---------------------- manage (the editor's sheet) ---------------------- */
+  var SWAPID = null;
+  function openManage(){
+    if (!CANEDIT){ toast('Team highlights are managed by Elijah Cox.'); return; }
+    document.getElementById('mgOv').classList.add('on');
+    paintManage();
+  }
+  function closeManage(){ document.getElementById('mgOv').classList.remove('on'); }
+
+  function paintManage(){
+    var host = document.getElementById('mgList');
+    var note = document.getElementById('mgNote');
+    if (!HL.length){
+      host.innerHTML = '<p class="tsfg-muted" style="font-size:13px;margin:6px 2px 0">No highlights yet. Add a few photos of the team and they appear on everyone\u2019s home screen.</p>';
+    } else {
+      host.innerHTML = HL.map(function(h,i){
+        return '<div class="mg-row">'+
+          '<img src="'+esc(h.url)+'" alt="">'+
+          '<div class="t"><b>'+esc(h.caption || ('Highlight '+(i+1)))+'</b>'+
+            '<span>'+(i+1)+' of '+HL.length+(h.by?(' \u00b7 '+esc(h.by)):'')+'</span></div>'+
+          '<button class="mg-b" onclick="moveHighlight('+i+',-1)" '+(i===0?'disabled':'')+' aria-label="Move up">&uarr;</button>'+
+          '<button class="mg-b" onclick="moveHighlight('+i+',1)" '+(i===HL.length-1?'disabled':'')+' aria-label="Move down">&darr;</button>'+
+          '<button class="mg-b" onclick="swapHighlight(\''+h.id+'\')" aria-label="Replace photo">&#8634;</button>'+
+          '<button class="mg-b danger" onclick="removeHighlight(event,\''+h.id+'\')" aria-label="Remove">&times;</button>'+
+        '</div>';
+      }).join('');
+    }
+    if (note) note.textContent = HL.length + ' of ' + MAXHL + ' \u00b7 changes save as you make them.';
+  }
+
+  /* Reordering writes immediately rather than collecting a draft: there is one list, the
+     arrows show what happened, and a half-applied order is impossible because the server is
+     sent the whole arrangement at once. */
+  function moveHighlight(i, dir){
+    var j = i + dir;
+    if (j < 0 || j >= HL.length) return;
+    var t = HL[i]; HL[i] = HL[j]; HL[j] = t;
+    paintManage(); paintHighlights();
+    hlApi({action:'reorder', ids: HL.map(function(h){ return h.id; })}).then(function(r){
+      if (!r || !r.ok){ toast((r && r.error) || 'Could not save that order'); loadHighlights(); }
+    });
+  }
+
+  function swapHighlight(id){ SWAPID = id; document.getElementById('fileSwap').click(); }
+
+  document.getElementById('fileSwap').addEventListener('change', function(){
+    var f = (this.files || [])[0]; this.value=''; 
+    if (!f || !SWAPID) return;
+    var id = SWAPID; SWAPID = null;
+    toast('Replacing\u2026');
+    shrink(f)
+      .then(function(url){ return hlApi({action:'replace', id:id, url:url}); })
+      .then(function(r){
+        if (r && r.ok){ toast('Photo replaced'); loadHighlights(); }
+        else toast((r && r.error) || 'Could not replace that photo');
+      })
+      .catch(function(){ toast('Could not read that file'); });
+  });
 
   function paintDots(){
     var d = document.getElementById('dots');
