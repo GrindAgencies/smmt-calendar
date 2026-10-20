@@ -875,21 +875,26 @@ function paintReport(){
           '<td style="text-align:right">'+rptPct(b.placement)+'</td>'+
           '<td style="text-align:right">'+b.families+'</td>'+
           '<td style="text-align:right">'+rptPct(lic.all_ratio||0)+'<span style="color:var(--ink3);font-size:11px"> ('+(lic.licensed||0)+'/'+(lic.roster||0)+')</span></td>'+
-          '<td style="text-align:right">'+rptPct(lic.net_ratio||0)+'<span style="color:var(--ink3);font-size:11px"> ('+(lic.licensed_here||0)+'/'+(lic.here||0)+')</span></td></tr>';
+          '<td style="text-align:right">'+rptPct(lic.net_ratio||0)+'<span style="color:var(--ink3);font-size:11px"> ('+(lic.net_licensed||0)+'/'+(lic.roster||0)+')</span></td></tr>';
       }).join(''):'<tr><td colspan="9" class="empty">No business on the books yet.</td></tr>')+
      '</tbody></table></div>';
 
   /* --- licensing, with the formula on its face --- */
   h+='<div style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin:0 0 9px">Licensing across the team</div>'+
      '<div style="display:flex;gap:11px;flex-wrap:wrap;margin-bottom:9px">'+
-       rptCard('All licensing ratio',rptPct(L.all_ratio),L.licensed+' licensed ÷ '+L.roster+' ever brought in')+
-       rptCard('Net licensing ratio',rptPct(L.net_ratio),L.licensed_here+' licensed ÷ '+L.here+' still here','var(--gold)')+
-       rptCard('On the roster',String(L.here),L.left+' have since left')+
+       rptCard('All licensing ratio',rptPct(L.all_ratio),L.licensed+' licensed \u00f7 '+L.roster+' ever brought in')+
+       rptCard('Net licensing ratio',rptPct(L.net_ratio),L.net_licensed+' net licensed \u00f7 '+L.roster+' ever brought in','var(--gold)')+
+       rptCard('Licensed on the roster',rptPct(L.licensed_here_ratio),L.licensed_here+' of the '+L.here+' still here')+
+       rptCard('Have since left',String(L.left),'of '+L.roster+' ever brought in')+
        rptCard('Working on it',String(L.working),'exam booked, taken or retaking')+
        rptCard('Not started',String(L.not_started),'no licensing step recorded')+
      '</div>'+
      '<div style="font-size:11.5px;color:var(--ink3);line-height:1.5;margin-bottom:22px">'+
-       '<b>All</b> — '+esc(r.notes.all_ratio)+'<br><b>Net</b> — '+esc(r.notes.net_ratio)+'</div>';
+       '<b>All licensing</b> \u2014 '+esc(r.notes.all_ratio)+
+       '<br><b>Net licensing</b> \u2014 a NET licence is <b>licensed AND '+rptMoney(L.net_min)+'+ in commission actually paid out</b>. '+
+       'Same denominator as the All ratio, so the two read as one funnel: of '+L.roster+' people ever brought in, '+
+       L.licensed+' got licensed and '+L.net_licensed+' went on to earn.'+
+       '<br><b>Licensed on the roster</b> \u2014 '+esc(r.notes.licensed_here_ratio)+'</div>';
 
   /* --- period by period --- */
   /* The periods CANNOT sum to the headline while any paid policy carries no date at all, and a
@@ -960,8 +965,9 @@ function rptCopy(btn){
     out.push([rptBase(b.baseshop),b.pending_points,b.issued_points,b.pending_ap,b.issued_ap,b.placement,b.families,l.all_ratio||0,l.net_ratio||0].join('\t'));});
   out.push('');
   out.push('LICENSING');
-  out.push('All licensing ratio\t'+L.all_ratio+'%\t'+L.licensed+' of '+L.roster+' ever brought in');
-  out.push('Net licensing ratio\t'+L.net_ratio+'%\t'+L.licensed_here+' of '+L.here+' still here');
+  out.push('All licensing ratio\t'+L.all_ratio+'%\t'+L.licensed+' licensed of '+L.roster+' ever brought in');
+  out.push('Net licensing ratio\t'+L.net_ratio+'%\t'+L.net_licensed+' licensed AND $'+L.net_min+'+ commission paid, of '+L.roster);
+  out.push('Licensed on roster\t'+L.licensed_here_ratio+'%\t'+L.licensed_here+' of '+L.here+' still here');
   out.push('Working on it\t'+L.working);
   out.push('Not started\t'+L.not_started);
   out.push('');
