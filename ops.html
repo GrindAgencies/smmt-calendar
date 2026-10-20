@@ -940,6 +940,58 @@ function paintReport(){
     h+='<div style="font-size:12.5px;color:var(--ink3);margin-bottom:10px">Every policy on the books is dated and priced — nothing was left out of this report.</div>';
   }
 
+  /* --- records that need fixing, by name ---------------------------------------
+     The block above counts faults. This one names them. "41 policies are missing a
+     payout date" has been true for weeks precisely because nobody could tell which 41.
+     Severity 1 is money or headcount that is wrong right now; 2 and 3 are records that
+     cannot be dated or priced. Fixing a row here changes the figures above. */
+  var q=r.data_quality;
+  if(q && q.total){
+    var LBL={
+      payout_before_submission:'Paid before it was submitted',
+      split_partner_off_roster:'Split partner not on the roster',
+      split_no_partner:'Split with no partner recorded',
+      upline_missing:'Upline does not exist',
+      paid_no_payout_date:'Paid, but no payout date',
+      payout_date_but_not_paid:'Has a payout date but is not marked Paid',
+      split_no_partner_rate:'Split partner has no contract rate',
+      zero_premium:'No premium recorded',
+      no_submitted_date:'No submitted date'
+    };
+    var SEVC={1:'#d7263d',2:'var(--gold)',3:'var(--ink3)'};
+    h+='<div style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin:22px 0 9px">Records that need fixing</div>';
+    h+='<div style="font-size:12.5px;color:var(--ink2);line-height:1.55;margin:-3px 0 11px">'+
+       '<b>'+q.total+'</b> record'+(q.total===1?'':'s')+' the ledger cannot state correctly'+
+       (q.blocking?(', of which <b style="color:'+SEVC[1]+'">'+q.blocking+'</b> affect money or headcount right now'):'')+
+       '. '+esc(r.notes.data_quality||'')+'</div>';
+
+    h+='<div class="tablewrap" style="overflow-x:auto;margin-bottom:12px"><table class="ptable" style="min-width:560px"><thead><tr>'+
+       '<th>Problem</th><th style="text-align:right">Records</th><th style="text-align:right">Premium involved</th></tr></thead><tbody>'+
+       (q.by_issue||[]).map(function(b){
+         return '<tr><td><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:'+(SEVC[b.severity]||'var(--ink3)')+';margin-right:7px;vertical-align:middle"></span>'+
+           esc(LBL[b.issue]||b.issue)+'</td>'+
+           '<td style="text-align:right;font-weight:700">'+b.rows+'</td>'+
+           '<td style="text-align:right">'+(b.premium?rptMoney(b.premium):nbDash())+'</td></tr>';
+       }).join('')+'</tbody></table></div>';
+
+    /* The severity-1 rows get listed individually, because each one is a specific thing
+       somebody has to go and correct. The rest stay as counts above so the report does not
+       turn into a hundred-row worklist. */
+    var sev1=(q.items||[]).filter(function(x){return Number(x.severity)===1;});
+    if(sev1.length){
+      h+='<div class="tablewrap" style="overflow-x:auto;margin-bottom:22px"><table class="ptable" style="min-width:820px"><thead><tr>'+
+         '<th>Problem</th><th>Record</th><th>Who</th><th>What is wrong</th></tr></thead><tbody>'+
+         sev1.map(function(x){
+           return '<tr>'+
+             '<td style="white-space:nowrap"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:'+SEVC[1]+';margin-right:7px;vertical-align:middle"></span>'+esc(LBL[x.issue]||x.issue)+'</td>'+
+             '<td style="white-space:nowrap">'+esc(x.kind==='agent'?x.ref:('#'+x.ref))+
+               (Number(x.money)?'<div style="font-size:11px;color:var(--ink3)">'+rptMoney(x.money)+'</div>':'')+'</td>'+
+             '<td>'+esc(x.who||'')+(x.subject?'<div style="font-size:11px;color:var(--ink3)">'+esc(x.subject)+'</div>':'')+'</td>'+
+             '<td style="font-size:12px;color:var(--ink2);line-height:1.5">'+esc(x.detail||'')+'</td></tr>';
+         }).join('')+'</tbody></table></div>';
+    }
+  }
+
   h+='</div>';
   host.innerHTML=h;
 }
@@ -975,6 +1027,20 @@ function rptCopy(btn){
   out.push(['Period','Pending points','Issued points','Pending AP','Issued AP','Policies paid','Placement %','Families'].join('\t'));
   r.periods.forEach(function(x){
     out.push([x.label,x.pending_points,x.issued_points,x.pending_ap,x.issued_ap,x.issued_count,x.placement,x.families].join('\t'));});
+  var q=r.data_quality;
+  if(q && q.total){
+    out.push('');
+    out.push('RECORDS THAT NEED FIXING ('+q.total+' total, '+(q.blocking||0)+' affecting money or headcount now)');
+    out.push(['Problem','Records','Premium involved'].join('\t'));
+    (q.by_issue||[]).forEach(function(b){ out.push([b.issue,b.rows,b.premium||0].join('\t')); });
+    var s1=(q.items||[]).filter(function(x){return Number(x.severity)===1;});
+    if(s1.length){
+      out.push('');
+      out.push('THE ONES AFFECTING MONEY OR HEADCOUNT RIGHT NOW');
+      out.push(['Problem','Record','Who','Subject','Premium','What is wrong'].join('\t'));
+      s1.forEach(function(x){ out.push([x.issue,x.ref,x.who||'',x.subject||'',x.money||0,(x.detail||'').replace(/\s+/g,' ')].join('\t')); });
+    }
+  }
   nbClip(out.join('\n'),btn,'✓');
   toast('Report copied — paste it into Sheets or an email');
 }
