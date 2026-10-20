@@ -55,6 +55,52 @@
   .ic svg{width:14px;height:14px;stroke:var(--gold);fill:none;stroke-width:2;
     stroke-linecap:round;stroke-linejoin:round}
 
+  /* AN IPHONE CANNOT BE INSTALLED BY SCRIPT, so the only lever left is making the manual
+     gesture obvious. A loop of the actual thing beats four sentences describing it. */
+  .demo{display:none;background:var(--panel);border:1px solid var(--line);border-radius:17px;
+        padding:18px;margin-bottom:18px}
+  .demo h3{margin:0 0 14px;font-size:13.5px;font-weight:800;color:var(--ink);text-align:center}
+  .phone{width:188px;height:330px;margin:0 auto;border-radius:26px;border:2px solid #39415a;
+         background:#05070d;position:relative;overflow:hidden}
+  .scr{position:absolute;inset:0;padding:10px 9px}
+  .fakebar{position:absolute;left:9px;right:9px;bottom:9px;height:34px;border-radius:9px;
+           background:#1a2133;display:flex;align-items:center;justify-content:space-between;padding:0 11px}
+  .fakebar .u{font-size:9px;color:#8d98aa;font-weight:700}
+  .shareIc{width:17px;height:17px;stroke:var(--gold);fill:none;stroke-width:2.2;
+           stroke-linecap:round;stroke-linejoin:round}
+  .tapdot{position:absolute;width:30px;height:30px;border-radius:50%;background:rgba(227,179,65,.45);
+          border:2px solid var(--gold);opacity:0;pointer-events:none}
+  .sheet{position:absolute;left:0;right:0;bottom:0;height:0;background:#161d2e;
+         border-radius:16px 16px 0 0;border-top:1px solid #2b3550;overflow:hidden}
+  .srow{display:flex;align-items:center;gap:8px;padding:9px 12px;font-size:10.5px;color:#aab4c4;
+        border-bottom:1px solid #212a40}
+  .srow.hot{background:rgba(227,179,65,.16);color:#fff;font-weight:800}
+  .srow .pl{margin-left:auto;color:var(--gold);font-weight:900}
+  .homeGrid{position:absolute;inset:0;padding:22px 20px;opacity:0;display:grid;
+            grid-template-columns:repeat(4,1fr);gap:13px;align-content:start}
+  .homeGrid i{display:block;width:100%;aspect-ratio:1;border-radius:10px;background:#222a3d}
+  .homeGrid i.ours{background:linear-gradient(145deg,#e3b341,#b8891f);
+                   box-shadow:0 0 0 3px rgba(227,179,65,.3)}
+  .caption{text-align:center;font-size:12.5px;color:var(--muted);margin:13px 0 0;min-height:17px;font-weight:600}
+
+  @keyframes tapShare{0%,14%{opacity:0;transform:scale(.5)}18%,26%{opacity:1;transform:scale(1)}32%,100%{opacity:0}}
+  @keyframes riseSheet{0%,28%{height:0}38%,74%{height:186px}82%,100%{height:0}}
+  @keyframes hotGlow{0%,46%{background:rgba(227,179,65,.16)}52%,62%{background:rgba(227,179,65,.5)}70%,100%{background:rgba(227,179,65,.16)}}
+  @keyframes tapAdd{0%,50%{opacity:0;transform:scale(.5)}56%,64%{opacity:1;transform:scale(1)}70%,100%{opacity:0}}
+  @keyframes showHome{0%,80%{opacity:0}88%,97%{opacity:1}100%{opacity:0}}
+  @keyframes popIcon{0%,84%{transform:scale(.4);opacity:0}91%,97%{transform:scale(1);opacity:1}100%{opacity:0}}
+  .demo.run .tapdot.t1{animation:tapShare 7s infinite}
+  .demo.run .sheet{animation:riseSheet 7s infinite}
+  .demo.run .srow.hot{animation:hotGlow 7s infinite}
+  .demo.run .tapdot.t2{animation:tapAdd 7s infinite}
+  .demo.run .homeGrid{animation:showHome 7s infinite}
+  .demo.run .homeGrid i.ours{animation:popIcon 7s infinite}
+  @media (prefers-reduced-motion: reduce){
+    .demo.run .tapdot,.demo.run .sheet,.demo.run .srow.hot,
+    .demo.run .homeGrid,.demo.run .homeGrid i.ours{animation:none}
+    .demo.run .sheet{height:186px}
+  }
+
   .tabs{display:flex;gap:7px;margin-bottom:16px}
   .tab{flex:1;font-family:inherit;font-size:13.5px;font-weight:700;padding:11px 8px;cursor:pointer;
     border-radius:11px;border:1px solid var(--line);background:var(--panel);color:var(--muted)}
@@ -105,6 +151,29 @@
   <div id="autoWrap" style="display:none">
     <button class="open" id="autoBtn" onclick="doInstall()">⬇  Install now — one tap</button>
     <p class="autoNote" id="autoNote">Your phone can install it directly. No steps needed.</p>
+  </div>
+
+  <div class="demo" id="demo">
+    <h3>This is the whole thing</h3>
+    <div class="phone">
+      <div class="scr">
+        <div class="homeGrid"><i></i><i></i><i></i><i></i><i></i><i class="ours"></i><i></i><i></i></div>
+      </div>
+      <div class="fakebar">
+        <span class="u">tsfg.app</span>
+        <svg class="shareIc" viewBox="0 0 24 24"><path d="M12 15V3M12 3 8 7M12 3l4 4"/><path d="M4 13v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6"/></svg>
+      </div>
+      <div class="tapdot t1" style="right:12px;bottom:11px"></div>
+      <div class="sheet">
+        <div class="srow">Copy</div>
+        <div class="srow">Add to Reading List</div>
+        <div class="srow">Add Bookmark</div>
+        <div class="srow hot">Add to Home Screen <span class="pl">+</span></div>
+        <div class="srow">Markup</div>
+      </div>
+      <div class="tapdot t2" style="left:50%;margin-left:-15px;bottom:118px"></div>
+    </div>
+    <p class="caption">Share → Add to Home Screen → Add. That's it.</p>
   </div>
 
   <div class="tabs" id="tabs">
@@ -193,6 +262,13 @@
   }
 
   pick(isIOS ? 'ios' : isAndroid ? 'android' : 'desktop');
+
+  /* Only iPhone users get the animation: everyone else has a real install button. */
+  if(isIOS && !standalone){
+    var dm=document.getElementById('demo');
+    dm.style.display='block';
+    dm.classList.add('run');
+  }
 
   /* ONE-TAP INSTALL, WHERE THE PLATFORM ALLOWS IT.
      Chrome (Android and desktop) fires beforeinstallprompt when a site is installable. Hold
