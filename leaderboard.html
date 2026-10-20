@@ -97,21 +97,49 @@
   /* ========================= custom range ========================== */
   .sheet{
     position:fixed; inset:0; z-index:90; background:rgba(0,0,0,.72);
-    display:none; align-items:center; justify-content:center; padding:18px;
+    display:none; align-items:center; justify-content:center;
+    /* the safe area matters here: on a notched phone a centred sheet can sit under the
+       status bar, and with the keyboard open Apply must still be reachable */
+    padding:calc(env(safe-area-inset-top) + 18px) 18px calc(env(safe-area-inset-bottom) + 18px);
+    overflow-y:auto; -webkit-overflow-scrolling:touch;
     -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px);
   }
   .sheet.on{ display:flex; }
   .sheet-c{
-    width:100%; max-width:360px; background:var(--tsfg-raise);
+    width:100%; max-width:360px; margin:auto; background:var(--tsfg-raise);
     border:1px solid var(--tsfg-gold); border-radius:var(--tsfg-r); padding:17px;
+    max-height:calc(100dvh - 72px); overflow-y:auto;
   }
   .sheet-c h3{ font-size:17px; font-weight:800; margin:0 0 14px; letter-spacing:-.02em; }
+  /* WHY THE DATE BAR WAS CUT OFF. A grid item's default min-width is `auto`, which means it
+     refuses to shrink below the intrinsic width of its content - and a native <input type=date>
+     reports a wide intrinsic size (it has to fit mm/dd/yyyy plus the picker icon). Two of those
+     plus the gap and the sheet's padding simply did not fit a narrow phone, so the second field
+     and its icon pushed outside the rounded container. The fix is min-width:0 on the items, so
+     the 1fr columns can actually do their job, plus a genuine stack below 400px instead of
+     squeezing two fields into a space that cannot hold them. Nothing is hidden with overflow. */
   .dcol{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:6px; }
+  .dcol > div{ min-width:0; }
   .dcol label{ display:block; font-size:11.5px; color:var(--tsfg-ink-2); font-weight:600; margin-bottom:5px; }
   .dcol input{
-    width:100%; box-sizing:border-box; padding:11px 10px; font-size:14px;
+    width:100%; min-width:0; max-width:100%; box-sizing:border-box; padding:11px 10px; font-size:14px;
     background:var(--tsfg-raise-2); color:var(--tsfg-ink);
     border:1px solid var(--tsfg-line); border-radius:var(--tsfg-r-sm); font-family:inherit;
+  }
+  @media (max-width:400px){ .dcol{ grid-template-columns:1fr; } }
+
+  /* Custom dates is a SECONDARY control: the primary period row stays three choices. */
+  .rangerow{ display:flex; align-items:center; gap:9px; flex-wrap:wrap; margin:2px 0 14px; }
+  .rangebtn{
+    display:inline-flex; align-items:center; gap:6px; padding:7px 13px; cursor:pointer;
+    background:var(--tsfg-raise); border:1px solid var(--tsfg-line); border-radius:var(--tsfg-r-pill);
+    color:var(--tsfg-ink-2); font-family:inherit; font-size:12px; font-weight:700;
+  }
+  .rangebtn.on{ border-color:var(--tsfg-gold); color:var(--tsfg-gold); }
+  .rangenow{ font-size:12px; color:var(--tsfg-gold); font-weight:700; }
+  .rangeclear{
+    background:none; border:0; color:var(--tsfg-ink-2); font-family:inherit;
+    font-size:12px; font-weight:700; cursor:pointer; text-decoration:underline;
   }
   .sample{
     display:inline-block; padding:4px 11px; border-radius:var(--tsfg-r-pill);
@@ -134,19 +162,30 @@
     <div style="font-size:26px;margin-top:6px">&#127942;</div>
   </div>
 
-  <!-- period -->
-  <div class="tsfg-seg" id="segPeriod">
-    <button data-p="week"   onclick="setPeriod('week')">This week</button>
-    <button data-p="month"  onclick="setPeriod('month')" class="on">This month</button>
-    <button data-p="year"   onclick="setPeriod('year')">This year</button>
-    <button data-p="custom" onclick="openRange()">Custom</button>
+  <!-- Three rows, three choices each, each row one dimension and named for a screen reader.
+       Custom dates is deliberately NOT a fourth segment squeezed in here - it is the secondary
+       control below, so the primary row stays three evenly sized targets. -->
+  <div class="tsfg-seg" id="segPeriod" role="group" aria-label="Period">
+    <button data-p="week"  onclick="setPeriod('week')">Week</button>
+    <button data-p="month" onclick="setPeriod('month')" class="on">Month</button>
+    <button data-p="all"   onclick="setPeriod('all')">All time</button>
   </div>
 
-  <!-- metric -->
-  <div class="tsfg-seg" id="segMetric">
+  <div class="tsfg-seg" id="segMetric" role="group" aria-label="Metric">
     <button data-m="recruiter"  onclick="setMetric('recruiter')">Directs</button>
     <button data-m="premium"    onclick="setMetric('premium')" class="on">Production</button>
     <button data-m="points_paid" onclick="setMetric('points_paid')">Paid</button>
+  </div>
+
+  <div class="tsfg-seg" id="segScope" role="group" aria-label="Scope">
+    <button data-s="personal"  onclick="setScope('personal')">Personal</button>
+    <button data-s="baseshop"  id="scopeShop" style="display:none" onclick="setScope('baseshop')">Base shop</button>
+    <button data-s="hierarchy" onclick="setScope('hierarchy')" class="on">Hierarchy</button>
+  </div>
+
+  <div class="rangerow">
+    <button class="rangebtn" id="rangeBtn" onclick="openRange()" aria-label="Choose custom dates">&#128197; Custom dates</button>
+    <span class="rangenow" id="rangeNow"></span>
   </div>
 
   <div id="body"><div class="tsfg-spin">Loading the board…</div></div>
@@ -161,9 +200,8 @@
       <div><label>End date</label><input type="date" id="rTo"></div>
     </div>
     <p class="tsfg-muted" style="font-size:12px;margin:8px 0 14px;line-height:1.45" id="rNote">
-      <b style="color:var(--tsfg-warn)">Not day-exact yet.</b> The board is built server-side from
-      a fixed week / month / year, so a custom range currently shows the year to date. Picking
-      dates here is wired and ready — the server change to honour them is small.
+      Both days are included. Figures are counted on the business date — production by the day it
+      was written, Paid by the day the money landed.
     </p>
     <div class="tsfg-btnrow">
       <button class="tsfg-btn quiet" onclick="closeRange()">Cancel</button>
@@ -212,43 +250,82 @@ var METRICS = {
   points_paid: { label:'Paid',       sub:'Commission paid out',   money:true }
 };
 
-var PERIOD='month', METRIC='premium', RANGE=null, AVATARS={};
+var PERIOD='month', METRIC='premium', SCOPE='hierarchy', RANGE=null, AVATARS={}, SHOPOK=false, MYSHOP='', SEQ=0;
+var SHOPCHK='https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/nb-baseshop';
+try{
+  PERIOD = sessionStorage.getItem('tsfg_lb_period') || 'month';
+  METRIC = sessionStorage.getItem('tsfg_lb_metric') || 'premium';
+  SCOPE  = sessionStorage.getItem('tsfg_lb_scope')  || 'hierarchy';
+  var _r = sessionStorage.getItem('tsfg_lb_range'); if(_r) RANGE = JSON.parse(_r);
+}catch(e){}
 
 function money(n){ return '$'+Math.round(Number(n)||0).toLocaleString('en-US'); }
 function fmt(v){ return METRICS[METRIC].money ? money(v) : String(Math.round(Number(v)||0)); }
 
+/* Choosing a preset clears any custom range - leaving Week lit while a custom range is
+   actually in force is exactly the misleading state the brief calls out. */
 function setPeriod(p){
   PERIOD=p; RANGE=null;
-  [].forEach.call(document.querySelectorAll('#segPeriod button'),function(b){
-    b.classList.toggle('on', b.getAttribute('data-p')===p);
-  });
-  load();
+  try{ sessionStorage.setItem('tsfg_lb_period',p); sessionStorage.removeItem('tsfg_lb_range'); }catch(e){}
+  syncSegs(); load();
 }
 function setMetric(m){
-  METRIC=m;
-  [].forEach.call(document.querySelectorAll('#segMetric button'),function(b){
-    b.classList.toggle('on', b.getAttribute('data-m')===m);
-  });
+  METRIC=m; try{ sessionStorage.setItem('tsfg_lb_metric',m); }catch(e){}
+  syncSegs();
   render();                      /* every metric is already in the one reply */
 }
+function setScope(sc){
+  if(sc==='baseshop' && !SHOPOK) return;
+  SCOPE=sc; try{ sessionStorage.setItem('tsfg_lb_scope',sc); }catch(e){}
+  syncSegs(); load();            /* a different cohort is a different question for the server */
+}
+/* One place that decides what is lit, so the three rows and the custom pill can never
+   disagree about what is actually in force. */
+function syncSegs(){
+  [].forEach.call(document.querySelectorAll('#segPeriod button'),function(b){
+    b.classList.toggle('on', !RANGE && b.getAttribute('data-p')===PERIOD);
+  });
+  [].forEach.call(document.querySelectorAll('#segMetric button'),function(b){
+    b.classList.toggle('on', b.getAttribute('data-m')===METRIC);
+  });
+  [].forEach.call(document.querySelectorAll('#segScope button'),function(b){
+    b.classList.toggle('on', b.getAttribute('data-s')===SCOPE);
+  });
+  var btn=document.getElementById('rangeBtn'), now=document.getElementById('rangeNow');
+  if(btn) btn.classList.toggle('on', !!RANGE);
+  if(now) now.innerHTML = RANGE
+    ? (esc(prettyRange(RANGE))+' <button class="rangeclear" onclick="setPeriod(PERIOD)">clear</button>')
+    : '';
+}
+function prettyDay(d){
+  var MN=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return MN[parseInt(d.slice(5,7),10)-1]+' '+parseInt(d.slice(8,10),10)+', '+d.slice(0,4);
+}
+function prettyRange(r){ return r.from===r.to ? prettyDay(r.from) : (prettyDay(r.from)+' – '+prettyDay(r.to)); }
 
 /* ------------------------------- custom range ------------------------------ */
 function openRange(){
   var t=new Date(), f=new Date(); f.setDate(1);
-  document.getElementById('rFrom').value = RANGE? RANGE.from : f.toISOString().slice(0,10);
-  document.getElementById('rTo').value   = RANGE? RANGE.to   : t.toISOString().slice(0,10);
+  function ymd(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+  /* Opening starts from the range already in force, so reopening to nudge one day does not
+     throw the other away. */
+  document.getElementById('rFrom').value = RANGE? RANGE.from : ymd(f);
+  document.getElementById('rTo').value   = RANGE? RANGE.to   : ymd(t);
+  var note=document.getElementById('rNote');
+  if(note) note.innerHTML='Both days are included. Figures are counted on the business date — production by the day it was written, Paid by the day the money landed.';
   document.getElementById('rangeSheet').classList.add('on');
 }
 function closeRange(){ document.getElementById('rangeSheet').classList.remove('on'); }
+/* Edits are a draft until Apply; Cancel simply closes and the previously applied period
+   still stands, because nothing outside this function is touched until Apply runs. */
 function applyRange(){
   var f=document.getElementById('rFrom').value, t=document.getElementById('rTo').value;
-  if(!f||!t){ alert('Pick both dates.'); return; }
-  if(f>t){ var s=f; f=t; t=s; }
+  var note=document.getElementById('rNote');
+  if(!f||!t){ if(note){ note.innerHTML='<b style="color:var(--tsfg-warn)">Pick both dates</b> — a range needs a start and an end.'; } return; }
+  if(f>t){ var x=f; f=t; t=x; }          /* end before start is a slip, not an error - swap it */
   RANGE={from:f,to:t};
-  [].forEach.call(document.querySelectorAll('#segPeriod button'),function(b){
-    b.classList.toggle('on', b.getAttribute('data-p')==='custom');
-  });
-  closeRange(); load();
+  try{ sessionStorage.setItem('tsfg_lb_range', JSON.stringify(RANGE)); }catch(e){}
+  closeRange(); syncSegs(); load();
 }
 
 /* --------------------------------- loading -------------------------------- */
@@ -259,11 +336,16 @@ function load(){
   /* leaderboard-api takes week / month / year. A custom range is computed here from the
      same board by asking for the widest period that contains it and filtering — see
      render(). Scope is 'hierarchy' so an agent sees the whole company board they compete on. */
-  var p = RANGE ? 'year' : PERIOD;
-  fetch(LB,{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({action:'board',code:CODE,scope:'hierarchy',period:p})})
+  /* leaderboard-api v24 honours a day-exact range, so a custom period is now sent as what it
+     is instead of being widened to the year and apologised for. All three dimensions go to the
+     server; none of them is applied by hiding rows here. */
+  var mine = ++SEQ;
+  var body = {action:'board', code:CODE, scope:SCOPE, period:(RANGE?'custom':PERIOD)};
+  if(RANGE){ body.from=RANGE.from; body.to=RANGE.to; }
+  fetch(LB,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
     .then(function(r){ return r.json(); })
     .then(function(r){
+      if(mine!==SEQ) return;                 /* a newer selection is already in flight */
       if(!r||!r.ok){
         document.getElementById('body').innerHTML='<div class="tsfg-empty"><b>Could not load the board</b><span>'+esc((r&&r.error)||'Try again in a moment.')+'</span></div>';
         return;
@@ -271,8 +353,24 @@ function load(){
       DATA=r; loadAvatars(); render();
     })
     .catch(function(){
+      if(mine!==SEQ) return;
       document.getElementById('body').innerHTML='<div class="tsfg-empty"><b>Could not reach the server</b><span>Check your connection and try again.</span></div>';
     });
+}
+
+/* Base shop is offered only to the people who lead one - the same can_see_baseshop() rule the
+   New Business tab uses, asked once through nb-baseshop's cheap check action so the two screens
+   cannot disagree about who qualifies. */
+function bootScope(){
+  fetch(SHOPCHK,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'check'})})
+    .then(function(r){ return r.json(); })
+    .then(function(r){
+      if(!r||!r.ok) return;
+      MYSHOP=r.baseshop||''; SHOPOK=!!r.allowed;
+      if(SHOPOK){ document.getElementById('scopeShop').style.display=''; }
+      else if(SCOPE==='baseshop'){ SCOPE='hierarchy'; syncSegs(); load(); }
+    }).catch(function(){});
 }
 
 /* Faces make a leaderboard feel like a team rather than a spreadsheet. They come from the
@@ -292,27 +390,76 @@ function face(code,name,cls){
 }
 
 /* --------------------------------- render --------------------------------- */
+/* What the board is actually showing, said in words, so a reader never has to guess which of
+   the nine combinations produced the number in front of them. */
+function periodWords(){
+  if(RANGE) return prettyRange(RANGE);
+  return PERIOD==='week' ? 'this week' : (PERIOD==='all' ? 'all time' : 'this month');
+}
+function scopeWords(){
+  if(SCOPE==='baseshop')  return MYSHOP ? (MYSHOP+' base shop') : 'your base shop';
+  if(SCOPE==='personal')  return 'you';
+  return 'the whole organisation';
+}
+
 function render(){
   if(!DATA) return;
   var M = METRICS[METRIC];
   var board = (DATA.boards||{})[METRIC] || {};
-  var rows  = (board.top||[]).slice();
+  var host = document.getElementById('body');
+  var sub = esc(M.sub)+' · '+esc(periodWords());
 
-  /* A custom range is honoured by asking for the year and saying so, rather than
-     pretending the server filtered to the exact days. Being straight about what the
-     number covers matters more than the control looking clever. */
-  var note = RANGE
-    ? '<p class="tsfg-muted" style="font-size:12px;margin:-6px 0 12px">Showing the year to date. A day-exact custom range needs a server change — ask and it is a small one.</p>'
-    : '';
+  /* PERSONAL IS NOT A RANKING. The server answers that scope with your own figure plus where it
+     places you, which is the honest thing to show: a one-person podium would imply you had won
+     a competition that was never run. */
+  if(SCOPE==='personal'){
+    var v = Number(board.value)||0;
+    var lead = board.leader;
+    var h = '<div class="tsfg-card" style="padding:18px 16px;text-align:center">'+
+      '<div class="tsfg-muted" style="font-size:12px;font-weight:700">'+esc(M.label)+' · '+esc(periodWords())+'</div>'+
+      '<div style="font-size:40px;font-weight:800;letter-spacing:-.03em;margin:6px 0 2px">'+fmt(v)+'</div>'+
+      '<div class="tsfg-muted" style="font-size:12.5px">'+esc(M.sub)+'</div></div>';
+    h += '<div class="yours" style="margin-top:12px">'+
+      '<span class="ic">&#128200;</span>'+
+      '<div><div class="k">In '+esc(DATA.base||'your base shop')+'</div><div class="v">'+
+        (board.rank_base?('#'+board.rank_base+'<span style="font-size:12px;font-weight:600;color:var(--tsfg-ink-2)"> of '+board.of_base+'</span>'):'—')+'</div></div>'+
+      '<div class="sep"></div>'+
+      '<div><div class="k">Company-wide</div><div class="v">'+
+        (board.rank_company?('#'+board.rank_company+'<span style="font-size:12px;font-weight:600;color:var(--tsfg-ink-2)"> of '+board.of_company+'</span>'):'—')+'</div></div>'+
+    '</div>';
+    if(lead && lead.name){
+      h += '<p class="tsfg-muted" style="font-size:12.5px;margin:12px 2px 0">Leading '+esc(periodWords())+
+           ': <b style="color:var(--tsfg-gold)">'+esc(lead.name)+'</b> with '+fmt(lead.value)+'.</p>';
+    }
+    host.innerHTML = h;
+    return;
+  }
+
+  var rows  = (board.top||[]).slice();
+  var note  = '';
 
   if(!rows.length){
-    document.getElementById('body').innerHTML = note+
+    host.innerHTML = note+
       '<div class="tsfg-empty"><div class="ic"><svg viewBox="0 0 24 24"><path d="M7 4h10v5a5 5 0 0 1-10 0V4Z"/></svg></div>'+
       '<b>Nothing on the board yet</b><span>'+esc(M.sub)+' will appear here as the team logs it.</span></div>';
     return;
   }
 
+  /* A podium needs three real people. With one or two, an empty plinth invents a competitor
+     who does not exist - so below three the board drops straight to the ranking list. */
+  var scored = Number(board.scored)||0;
   var top3 = rows.slice(0,3);
+  var realTop3 = top3.filter(function(x){ return x && (Number(x.value)||0) > 0; }).length;
+  if(realTop3 < 3){
+    var html0 = note;
+    if(scored===0){
+      html0 += '<p class="tsfg-muted" style="font-size:12.5px;margin:0 0 12px">Nobody has scored '+esc(M.sub.toLowerCase())+' '+esc(periodWords())+' yet.</p>';
+    }
+    html0 += buildList(rows, board, M, sub);
+    host.innerHTML = html0;
+    return;
+  }
+
   var order = [top3[1], top3[0], top3[2]];           /* 2nd · 1st · 3rd */
 
   var html = note + '<div class="pod">' + order.map(function(p,i){
@@ -328,8 +475,18 @@ function render(){
     '</div>';
   }).join('') + '</div>';
 
-  html += '<h2 class="tsfg-h" style="margin-bottom:2px">Team rankings</h2>'+
-          '<p class="tsfg-muted" style="font-size:12.5px;margin:0 0 11px">'+esc(M.sub)+'</p>';
+  html += buildList(rows, board, M, sub);
+  document.getElementById('body').innerHTML = html;
+}
+
+/* The ranking table and your own standing. Shared by the podium path and the fewer-than-three
+   path so the two can never drift apart. The heading follows the chosen scope rather than
+   always saying "Team rankings", which was wrong on two of the three scopes. */
+function buildList(rows, board, M, sub){
+  var heading = (SCOPE==='baseshop') ? (MYSHOP ? (MYSHOP+' rankings') : 'Base shop rankings')
+                                     : 'Company rankings';
+  var html = '<h2 class="tsfg-h" style="margin-bottom:2px">'+esc(heading)+'</h2>'+
+             '<p class="tsfg-muted" style="font-size:12.5px;margin:0 0 11px">'+sub+'</p>';
 
   html += '<div class="tsfg-card" style="padding:9px 2px">'+
     '<div class="rank-head"><span>#</span><span style="grid-column:2/3">Team member</span><span>'+esc(M.label)+'</span></div>';
@@ -351,23 +508,29 @@ function render(){
     '</div>';
   }).join('') + '</div>';
 
-  /* Your rank, and how far the next place is — the one number that turns a table into a goal. */
+  /* Your rank, and how far the next place is — the one number that turns a table into a goal.
+     "You are top" is only claimed when somebody was actually behind you; topping a board of
+     one is not a win and must not be dressed as one. */
   var me = board.me || {rank:0,value:0};
+  var scored = Number(board.scored)||0;
   if(me.rank){
     var ahead = rows.filter(function(r){ return (r.rank||0) === me.rank-1; })[0];
     var gap = ahead ? Math.max(0, (Number(ahead.value)||0) - (Number(me.value)||0)) : 0;
+    var topHonest = (!ahead && scored > 1);
     html += '<div class="yours">'+
       '<span class="ic">&#128200;</span>'+
-      '<div><div class="k">Your rank</div><div class="v">#'+me.rank+'</div></div>'+
+      '<div><div class="k">Your rank</div><div class="v">#'+me.rank+
+        '<span style="font-size:12px;font-weight:600;color:var(--tsfg-ink-2)"> of '+(Number(board.total)||rows.length)+'</span></div></div>'+
       '<div class="sep"></div>'+
-      '<div><div class="k">'+(ahead?'Next rank':'You are top')+'</div>'+
-      '<div class="v">'+(ahead? (fmt(gap)+' away') : '&#127881;')+'</div></div>'+
+      '<div><div class="k">'+(ahead?'Next rank':(topHonest?'You are top':'Your total'))+'</div>'+
+      '<div class="v">'+(ahead ? (fmt(gap)+' away') : (topHonest ? '&#127881;' : fmt(me.value)))+'</div></div>'+
     '</div>';
   }
-
-  document.getElementById('body').innerHTML = html;
+  return html;
 }
 
+syncSegs();
+bootScope();
 load();
 </script>
 <script defer src="notif.js"></script>
