@@ -275,6 +275,16 @@ th.lockedcol{background:rgba(201,154,46,.14)!important;box-shadow:inset 0 -2px 0
 .fg label .cpy{float:right}
 .dhd h3 .cpy,.dhd .sub .cpy{opacity:.3}
 .dhd h3 .cpy:hover,.dhd .sub .cpy:hover{opacity:1}
+
+/* Printing is how a report gets published here, so the page chrome steps out of the way
+   and only the report itself goes on the paper. */
+@media print{
+  .top,.tglrow,.tabhint,#statGrid,#opsTiles,#accessBanner,#verifyBanner,#reqBanner,.rpt-noprint{display:none!important}
+  .wrap{padding:0!important;max-width:none!important}
+  #reportsHost{display:block!important}
+  .ptable{font-size:10.5px}
+  body{background:#fff!important;color:#000!important}
+}
 </style>
 <script src="ops-session.js"></script>
 </head>
@@ -325,6 +335,7 @@ th.lockedcol{background:rgba(201,154,46,.14)!important;box-shadow:inset 0 -2px 0
         <button class="tgl" id="tg_bookings" onclick="setTab('bookings')">📅 Bookings</button>
         <button class="tgl" id="tg_fieldtraining" onclick="setTab('fieldtraining')">🎓 Field Training</button>
         <button class="tgl" id="tg_teamhub" onclick="setTab('teamhub')">💬 Team Hub</button>
+        <button class="tgl" id="tg_reports" onclick="setTab('reports')">📊 Reports</button>
       </div>
       <button class="addbtn hide" id="addBtn" onclick="openAddMenu()">＋ Add</button>
       <input class="searchbar" id="search" placeholder="Search…" oninput="onSearch()">
@@ -336,6 +347,7 @@ th.lockedcol{background:rgba(201,154,46,.14)!important;box-shadow:inset 0 -2px 0
     <div id="inforceHost" class="hide"></div>
     <div id="fieldtrainingHost" class="hide"></div>
     <div id="teamhubHost" class="hide"></div>
+    <div id="reportsHost" class="hide"></div>
     <div id="opsTiles"></div>
   </div>
 </div>
@@ -723,13 +735,233 @@ function otToggle(code,cid,checked){var b={token:opsTok(),action:'set',code:code
 function otJumpGo(code){var sel=$('otJump');if(!sel||!sel.value)return;var opt=sel.options[sel.selectedIndex];var name=(opt?opt.text:'').replace(/^\s*\d+\.\s*/,'').replace(/ — auto from \$$/,'');otReset(code,sel.value,name);}
 function otReset(code,levelId,name){if(!confirm('Set “'+name+'” as this broker’s current spot?\n\nEverything up to and including it is marked done; everything after is cleared.'))return;
   fetch(OPSTRK,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:opsTok(),action:'reset_to',code:code,level_id:levelId})}).then(function(r){return r.json();}).then(function(d){if(d&&d.ok){toast('Reset to '+name+' ✓');loadAgentTracker(code,true);}else toast('Could not reset');}).catch(function(){toast('Network error');});}
-function setTab(t){TAB=t;['licensing','newbiz','faststart','bookings','appointed','inforce','gfi','fieldtraining','teamhub'].forEach(function(x){var b=$('tg_'+x);if(b)b.classList.toggle('on',x===t);});
+function setTab(t){TAB=t;['licensing','newbiz','faststart','bookings','appointed','inforce','gfi','fieldtraining','teamhub','reports'].forEach(function(x){var b=$('tg_'+x);if(b)b.classList.toggle('on',x===t);});
   var isB=(t==='bookings'),isNB=(t==='newbiz'||t==='gfi'),isIF=(t==='inforce'),isTH=(t==='teamhub'),isFT=(t==='fieldtraining');
+  var isRP=(t==='reports');
   var tw=$('tableWrap'),bh=$('bookingsHost'),nh=$('newbizHost'),ifh=$('inforceHost'),thh=$('teamhubHost'),fth=$('fieldtrainingHost'),sb=$('search'),ab=$('addBtn');
-  if(tw)tw.classList.toggle('hide',isB||isNB||isIF||isTH||isFT);if(bh)bh.classList.toggle('hide',!isB);if(nh)nh.classList.toggle('hide',!isNB);if(ifh)ifh.classList.toggle('hide',!isIF);if(thh)thh.classList.toggle('hide',!isTH);if(fth)fth.classList.toggle('hide',!isFT);
-  if(sb){sb.style.display=isTH?'none':'';sb.placeholder=isB?'Search bookings — name, type, agent…':(isNB?(t==='gfi'?'Search tickets — client, ticket #, category, status…':'Search records — client, agent, status…'):(isIF?'Search in-force — client, agent, carrier…':(isFT?'Search agents — name, baseshop, trainer…':'Search…')));}
-  if(ab)ab.classList.toggle('hide',isB||isIF||isTH||isFT||(t==='newbiz')||!canEdit());
-  if(isB)renderBookings();else if(isIF){IFARCH=false;renderInforce();}else if(isTH)renderTeamhub();else if(isFT)renderFieldtraining();else if(isNB){NBARCH=false;renderNewbiz();}else renderTab();}
+  var rph=$('reportsHost');
+  if(tw)tw.classList.toggle('hide',isB||isNB||isIF||isTH||isFT||isRP);
+  if(rph)rph.classList.toggle('hide',!isRP);if(bh)bh.classList.toggle('hide',!isB);if(nh)nh.classList.toggle('hide',!isNB);if(ifh)ifh.classList.toggle('hide',!isIF);if(thh)thh.classList.toggle('hide',!isTH);if(fth)fth.classList.toggle('hide',!isFT);
+  if(sb){sb.style.display=(isTH||isRP)?'none':'';sb.placeholder=isB?'Search bookings — name, type, agent…':(isNB?(t==='gfi'?'Search tickets — client, ticket #, category, status…':'Search records — client, agent, status…'):(isIF?'Search in-force — client, agent, carrier…':(isFT?'Search agents — name, baseshop, trainer…':'Search…')));}
+  if(ab)ab.classList.toggle('hide',isB||isIF||isTH||isFT||isRP||(t==='newbiz')||!canEdit());
+  if(isB)renderBookings();else if(isIF){IFARCH=false;renderInforce();}else if(isTH)renderTeamhub();else if(isFT)renderFieldtraining();else if(isRP)renderReports();else if(isNB){NBARCH=false;renderNewbiz();}else renderTab();}
+/* ===== REPORTS ======================================================================
+   Christopher: "create just a generate report button and have it pull current and all
+   metrics... it doesnt need ot be tracked but when she clicks generate a report it
+   should populate for her to publish reports"
+
+   So nothing here runs on its own and nothing is stored. The tab opens with one button.
+   Pressing it asks ops-metrics for everything at once and lays the answer out ready to
+   be copied into an email or printed as-is.
+
+   Every number is computed fresh from the ledger at the moment of the click, so a report
+   is always a true picture of right now rather than a cached figure of uncertain age. */
+var RPT=null, RPTPERIOD='month', RPTBUSY=false;
+var METRICS_URL="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/ops-metrics";
+
+function renderReports(){
+  var host=$('reportsHost'); if(!host) return;
+  if(RPT){ paintReport(); return; }
+  host.innerHTML=
+    '<div style="max-width:640px;margin:34px auto;text-align:center">'+
+      '<div style="font-size:40px;line-height:1">📊</div>'+
+      '<h2 style="margin:10px 0 6px;font-size:21px;letter-spacing:-.02em">Production &amp; Licensing Report</h2>'+
+      '<p style="color:var(--ink3);font-size:13.5px;line-height:1.55;margin:0 0 20px">'+
+        'Pending and issued points for every baseshop, placement and licensing ratios, '+
+        'and the whole history broken down by period. Nothing is stored — it is read '+
+        'fresh from the ledger each time you press the button.</p>'+
+      rptPeriodPicker()+
+      '<button class="dbtn" style="margin-top:18px;padding:13px 26px;font-size:15px;font-weight:800" onclick="runReport()">Generate report</button>'+
+    '</div>';
+}
+function rptPeriodPicker(){
+  return '<div style="display:inline-flex;gap:0;border:1px solid var(--line2);border-radius:11px;overflow:hidden">'+
+    [['month','Monthly'],['quarter','Quarterly'],['year','Annual']].map(function(o){
+      var on=(RPTPERIOD===o[0]);
+      return '<button onclick="setRptPeriod(\''+o[0]+'\')" style="padding:9px 18px;border:0;cursor:pointer;font:inherit;font-size:13px;font-weight:700;'+
+        (on?'background:var(--gold);color:#17120a':'background:var(--panel);color:var(--ink2)')+'">'+o[1]+'</button>';
+    }).join('')+'</div>';
+}
+function setRptPeriod(p){ RPTPERIOD=p; if(RPT){ runReport(); } else { renderReports(); } }
+
+function runReport(){
+  if(RPTBUSY) return;
+  RPTBUSY=true;
+  var host=$('reportsHost');
+  host.innerHTML='<div class="spin">Reading the ledger…</div>';
+  var b={period:RPTPERIOD,limit:60};
+  if(OPS&&OPS.role==='ops'&&opsTok())b.token=opsTok();
+  fetch(METRICS_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)})
+    .then(function(r){return r.json();})
+    .then(function(r){
+      RPTBUSY=false;
+      if(!r||!r.ok){ host.innerHTML='<div class="empty">'+esc((r&&r.error)||'Could not build the report.')+'</div>'+
+        '<div style="text-align:center;margin-top:14px"><button class="dbtn ghost" onclick="RPT=null;renderReports()">Back</button></div>'; return; }
+      RPT=r;
+      /* Drawing is kept out of the network catch below. Without this a mistake in the
+         report's own layout is reported to Operations as "network error", which sends
+         them to check their wifi over a bug that is entirely ours. */
+      try { paintReport(); }
+      catch(e){ host.innerHTML='<div class="empty">The report came back, but could not be drawn.<br><span style="font-size:12px">'+esc(e&&e.message||'')+'</span></div>'+
+        '<div style="text-align:center;margin-top:14px"><button class="dbtn ghost" onclick="RPT=null;renderReports()">Back</button></div>'; }
+    })
+    .catch(function(){ RPTBUSY=false; host.innerHTML='<div class="empty">Could not reach the server — check your connection and try again.</div>'+
+      '<div style="text-align:center;margin-top:14px"><button class="dbtn ghost" onclick="RPT=null;renderReports()">Back</button></div>'; });
+}
+
+/* The engine files a side under the em dash when the agent code on the policy matches
+   nobody on the roster. On a report that has to be published, "—" is a puzzle; say it. */
+function rptBase(b){ return (!b||b==='\u2014') ? 'Not on the roster' : b; }
+function rptMoney(n){ return '$'+Math.round(Number(n)||0).toLocaleString('en-US'); }
+function rptPct(n){ return (Number(n)||0).toFixed(1)+'%'; }
+function rptCard(label,value,sub,accent){
+  return '<div style="flex:1 1 150px;min-width:150px;border:1px solid var(--line);border-radius:14px;padding:13px 15px;background:var(--panel)">'+
+    '<div style="font-size:10.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--ink3)">'+esc(label)+'</div>'+
+    '<div style="font-size:23px;font-weight:800;letter-spacing:-.02em;margin:5px 0 2px'+(accent?(';color:'+accent):'')+'">'+value+'</div>'+
+    '<div style="font-size:11.5px;color:var(--ink3);line-height:1.4">'+esc(sub||'')+'</div></div>';
+}
+
+function paintReport(){
+  var r=RPT, host=$('reportsHost'); if(!r||!host) return;
+  var t=r.totals, L=r.licensing, g=r.gaps||{};
+  var when=new Date(r.generated_at||Date.now());
+  var periodWord=(r.period==='year'?'year':(r.period==='quarter'?'quarter':'month'));
+
+  var h='<div id="rptDoc">';
+
+  /* --- heading --- */
+  h+='<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-bottom:16px">'+
+     '<div><h2 style="margin:0;font-size:20px;letter-spacing:-.02em">Production &amp; Licensing Report</h2>'+
+     '<div style="font-size:12.5px;color:var(--ink3);margin-top:3px">'+
+       esc(when.toLocaleString('en-US',{dateStyle:'full',timeStyle:'short'}))+
+       (r.scoped?' · your baseshops only':' · all baseshops')+'</div></div>'+
+     '<div class="rpt-noprint" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'+
+       rptPeriodPicker()+
+       '<button class="dbtn ghost" style="padding:8px 14px;font-size:12.5px" onclick="runReport()">↻ Refresh</button>'+
+       '<button class="dbtn ghost" style="padding:8px 14px;font-size:12.5px" onclick="rptCopy(this)">⧉ Copy</button>'+
+       '<button class="dbtn ghost" style="padding:8px 14px;font-size:12.5px" onclick="window.print()">⎙ Print / PDF</button>'+
+     '</div></div>';
+
+  /* --- the headline, right now --- */
+  h+='<div style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin:0 0 9px">Where the business stands today</div>';
+  h+='<div style="display:flex;gap:11px;flex-wrap:wrap;margin-bottom:9px">'+
+    rptCard('Pending points',rptMoney(t.pending_points),t.pending_count+' sides working')+
+    rptCard('Issued points',rptMoney(t.issued_points),t.issued_count+' sides paid out','var(--green,#1a9c52)')+
+    rptCard('Pending premium',rptMoney(t.pending_ap),'annualised')+
+    rptCard('Issued premium',rptMoney(t.issued_ap),'annualised')+
+    rptCard('Placement',rptPct(t.placement),'of business written, paid')+
+    rptCard('Families helped',String(t.families),'households, counted once')+
+    '</div>';
+  h+='<div style="font-size:11.5px;color:var(--ink3);line-height:1.5;margin-bottom:22px">'+
+     esc(r.notes.points)+'<br>'+esc(r.notes.pending)+' '+esc(r.notes.issued)+'</div>';
+
+  /* --- per base --- */
+  h+='<div style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin:0 0 9px">By baseshop</div>'+
+     '<div class="tablewrap" style="overflow-x:auto;margin-bottom:22px"><table class="ptable" style="min-width:860px"><thead><tr>'+
+     '<th>Baseshop</th><th style="text-align:right">Pending points</th><th style="text-align:right">Issued points</th>'+
+     '<th style="text-align:right">Pending AP</th><th style="text-align:right">Issued AP</th>'+
+     '<th style="text-align:right">Placement</th><th style="text-align:right">Families</th>'+
+     '<th style="text-align:right">All licensing</th><th style="text-align:right">Net licensing</th></tr></thead><tbody>'+
+     (r.by_base.length?r.by_base.map(function(b){
+        var lic=b.licensing||{};
+        return '<tr><td style="font-weight:700">'+esc(rptBase(b.baseshop))+'</td>'+
+          '<td style="text-align:right">'+rptMoney(b.pending_points)+'</td>'+
+          '<td style="text-align:right;font-weight:700;color:var(--green,#1a9c52)">'+rptMoney(b.issued_points)+'</td>'+
+          '<td style="text-align:right">'+rptMoney(b.pending_ap)+'</td>'+
+          '<td style="text-align:right">'+rptMoney(b.issued_ap)+'</td>'+
+          '<td style="text-align:right">'+rptPct(b.placement)+'</td>'+
+          '<td style="text-align:right">'+b.families+'</td>'+
+          '<td style="text-align:right">'+rptPct(lic.all_ratio||0)+'<span style="color:var(--ink3);font-size:11px"> ('+(lic.licensed||0)+'/'+(lic.roster||0)+')</span></td>'+
+          '<td style="text-align:right">'+rptPct(lic.net_ratio||0)+'<span style="color:var(--ink3);font-size:11px"> ('+(lic.licensed_here||0)+'/'+(lic.here||0)+')</span></td></tr>';
+      }).join(''):'<tr><td colspan="9" class="empty">No business on the books yet.</td></tr>')+
+     '</tbody></table></div>';
+
+  /* --- licensing, with the formula on its face --- */
+  h+='<div style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin:0 0 9px">Licensing across the team</div>'+
+     '<div style="display:flex;gap:11px;flex-wrap:wrap;margin-bottom:9px">'+
+       rptCard('All licensing ratio',rptPct(L.all_ratio),L.licensed+' licensed ÷ '+L.roster+' ever brought in')+
+       rptCard('Net licensing ratio',rptPct(L.net_ratio),L.licensed_here+' licensed ÷ '+L.here+' still here','var(--gold)')+
+       rptCard('On the roster',String(L.here),L.left+' have since left')+
+       rptCard('Working on it',String(L.working),'exam booked, taken or retaking')+
+       rptCard('Not started',String(L.not_started),'no licensing step recorded')+
+     '</div>'+
+     '<div style="font-size:11.5px;color:var(--ink3);line-height:1.5;margin-bottom:22px">'+
+       '<b>All</b> — '+esc(r.notes.all_ratio)+'<br><b>Net</b> — '+esc(r.notes.net_ratio)+'</div>';
+
+  /* --- period by period --- */
+  h+='<div style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin:0 0 9px">'+
+       esc(r.period==='year'?'Year by year':(r.period==='quarter'?'Quarter by quarter':'Month by month'))+'</div>'+
+     '<div class="tablewrap" style="overflow-x:auto;margin-bottom:22px"><table class="ptable" style="min-width:780px"><thead><tr>'+
+     '<th>'+esc(periodWord.charAt(0).toUpperCase()+periodWord.slice(1))+'</th>'+
+     '<th style="text-align:right">Pending points</th><th style="text-align:right">Issued points</th>'+
+     '<th style="text-align:right">Pending AP</th><th style="text-align:right">Issued AP</th>'+
+     '<th style="text-align:right">Policies paid</th><th style="text-align:right">Placement</th>'+
+     '<th style="text-align:right">Families</th></tr></thead><tbody>'+
+     (r.periods.length?r.periods.map(function(x){
+        return '<tr><td style="font-weight:700;white-space:nowrap">'+esc(x.label)+'</td>'+
+          '<td style="text-align:right">'+rptMoney(x.pending_points)+'</td>'+
+          '<td style="text-align:right;font-weight:700;color:var(--green,#1a9c52)">'+rptMoney(x.issued_points)+'</td>'+
+          '<td style="text-align:right">'+rptMoney(x.pending_ap)+'</td>'+
+          '<td style="text-align:right">'+rptMoney(x.issued_ap)+'</td>'+
+          '<td style="text-align:right">'+x.issued_count+'</td>'+
+          '<td style="text-align:right">'+rptPct(x.placement)+'</td>'+
+          '<td style="text-align:right">'+x.families+'</td></tr>';
+      }).join(''):'<tr><td colspan="8" class="empty">Nothing datable yet.</td></tr>')+
+     '</tbody></table></div>';
+
+  /* --- what the report could not account for --- */
+  var gapRows=[];
+  if(g.paid_no_date) gapRows.push([g.paid_no_date,'policies are marked Paid Out with no payout date, so they count in the totals above but cannot be placed in any '+periodWord+'. Fill the date in on the In Force tab and they will appear.']);
+  if(g.no_writer_rate) gapRows.push([g.no_writer_rate,'policies have no contract rate for the writing agent and no rate on their contract level, so no points could be worked out for them.']);
+  if(g.split_no_partner_code) gapRows.push([g.split_no_partner_code,'split policies name no partner, so only the writer’s half is counted.']);
+  if(g.split_no_partner_rate) gapRows.push([g.split_no_partner_rate,'split policies have a partner whose contract rate is unknown, so the partner’s half is not counted. A partner is never paid at the writer’s rate.']);
+  if(gapRows.length){
+    h+='<div style="border:1px solid var(--line);border-left:3px solid var(--gold);border-radius:0 12px 12px 0;padding:13px 16px;background:var(--panel2);margin-bottom:10px">'+
+       '<div style="font-weight:800;font-size:13px;margin-bottom:7px">What this report could not account for</div>'+
+       '<ul style="margin:0;padding-left:19px;font-size:12.5px;line-height:1.65;color:var(--ink2)">'+
+       gapRows.map(function(x){return '<li><b>'+x[0]+'</b> '+esc(x[1])+'</li>';}).join('')+
+       '</ul></div>';
+  } else {
+    h+='<div style="font-size:12.5px;color:var(--ink3);margin-bottom:10px">Every policy on the books is dated and priced — nothing was left out of this report.</div>';
+  }
+
+  h+='</div>';
+  host.innerHTML=h;
+}
+
+/* Tab-separated, so it pastes into Sheets or an email as a real table. */
+function rptCopy(btn){
+  var r=RPT; if(!r){ toast('Generate the report first'); return; }
+  var L=r.licensing,t=r.totals,out=[];
+  out.push('PRODUCTION & LICENSING REPORT');
+  out.push(new Date(r.generated_at).toLocaleString('en-US')+(r.scoped?'  (your baseshops)':'  (all baseshops)'));
+  out.push('');
+  out.push('WHERE THE BUSINESS STANDS TODAY');
+  out.push('Pending points\t'+t.pending_points+'\t('+t.pending_count+' sides working)');
+  out.push('Issued points\t'+t.issued_points+'\t('+t.issued_count+' sides paid out)');
+  out.push('Pending premium\t'+t.pending_ap);
+  out.push('Issued premium\t'+t.issued_ap);
+  out.push('Placement\t'+t.placement+'%');
+  out.push('Families helped\t'+t.families);
+  out.push('');
+  out.push('BY BASESHOP');
+  out.push(['Baseshop','Pending points','Issued points','Pending AP','Issued AP','Placement %','Families','All licensing %','Net licensing %'].join('\t'));
+  r.by_base.forEach(function(b){var l=b.licensing||{};
+    out.push([rptBase(b.baseshop),b.pending_points,b.issued_points,b.pending_ap,b.issued_ap,b.placement,b.families,l.all_ratio||0,l.net_ratio||0].join('\t'));});
+  out.push('');
+  out.push('LICENSING');
+  out.push('All licensing ratio\t'+L.all_ratio+'%\t'+L.licensed+' of '+L.roster+' ever brought in');
+  out.push('Net licensing ratio\t'+L.net_ratio+'%\t'+L.licensed_here+' of '+L.here+' still here');
+  out.push('Working on it\t'+L.working);
+  out.push('Not started\t'+L.not_started);
+  out.push('');
+  out.push((r.period==='year'?'YEAR BY YEAR':(r.period==='quarter'?'QUARTER BY QUARTER':'MONTH BY MONTH')));
+  out.push(['Period','Pending points','Issued points','Pending AP','Issued AP','Policies paid','Placement %','Families'].join('\t'));
+  r.periods.forEach(function(x){
+    out.push([x.label,x.pending_points,x.issued_points,x.pending_ap,x.issued_ap,x.issued_count,x.placement,x.families].join('\t'));});
+  nbClip(out.join('\n'),btn,'✓');
+  toast('Report copied — paste it into Sheets or an email');
+}
 function renderTeamhub(){var host=$('teamhubHost');if(!host)return;if(host.getAttribute('data-loaded'))return;host.setAttribute('data-loaded','1');
   var src='teamhub.html?ops=1&code='+encodeURIComponent(OPS?OPS.code:'OPS')+'&name='+encodeURIComponent(OPS?OPS.name:'Operations');
   host.innerHTML='<div style="font-size:12.5px;color:var(--ink3,#8e8e93);margin:0 0 8px">🛡️ Operations oversight — full access to every channel &amp; direct message, and all recognition/AI bot activity. You post as <b>'+esc((OPS&&OPS.name)||'Operations')+'</b>.</div><iframe src="'+esc(src)+'" style="width:100%;height:calc(100vh - 150px);min-height:560px;border:1px solid var(--line);border-radius:15px;background:var(--panel)" title="Team Hub" allow="clipboard-write"></iframe>';}
