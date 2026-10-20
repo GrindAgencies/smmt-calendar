@@ -18,10 +18,10 @@
   /* ============================ the podium ============================
      Second, first, third — first raised and crowned, the way the mockup has it.
      Built as a 3-column grid so the middle column can simply be taller. */
-  .pod{ display:grid; grid-template-columns:1fr 1.14fr 1fr; gap:9px; align-items:end; margin:6px 0 4px; }
+  .pod{ display:grid; grid-template-columns:1fr 1.12fr 1fr; gap:7px; align-items:end; margin:6px 0 4px; }
   .pod-s{
     position:relative; background:var(--tsfg-raise); border:1px solid var(--tsfg-line);
-    border-radius:var(--tsfg-r); padding:14px 8px 11px; text-align:center;
+    border-radius:var(--tsfg-r); padding:14px 6px 11px; text-align:center;
     /* A grid item will not shrink below its content unless told to, so a long name
        pushed the third card past the right edge of the phone. */
     min-width:0;
@@ -40,11 +40,19 @@
     object-fit:cover; background:var(--tsfg-raise-2); border:2px solid var(--tsfg-line);
   }
   .pod-s.first .av{ width:68px; height:68px; border-color:var(--tsfg-gold); }
-  .pod-s .nm{ font-size:12.5px; font-weight:700; margin-bottom:7px; min-width:0;
-    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  /* A name is the whole point of a podium, so it WRAPS rather than truncating —
+     "Christopher Lorenz" was reading as "Christophe…". Two lines are reserved whether
+     the name needs them or not, so the three cards keep their shoulders level. */
+  .pod-s .nm{
+    font-size:12px; font-weight:700; margin-bottom:7px; min-width:0;
+    line-height:1.25; min-height:2.5em;
+    display:flex; align-items:center; justify-content:center;
+    overflow-wrap:anywhere; hyphens:auto;
+  }
   .pod-s .vl{
     display:block; border:1px solid var(--tsfg-line); border-radius:var(--tsfg-r-sm);
-    padding:6px 4px; font-size:13px; font-weight:800; font-variant-numeric:tabular-nums;
+    padding:6px 3px; font-size:12.5px; font-weight:800; font-variant-numeric:tabular-nums;
+    white-space:nowrap;
   }
   .pod-s.first .vl{ border-color:var(--tsfg-gold); color:var(--tsfg-gold); }
 
@@ -65,7 +73,8 @@
     background:var(--tsfg-raise-2); display:flex; align-items:center; justify-content:center;
     font-size:11px; font-weight:800; color:var(--tsfg-ink-2);
   }
-  .rank-row .nm{ font-size:14px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .rank-row .nm{ font-size:14px; font-weight:600; min-width:0; line-height:1.3;
+    overflow-wrap:anywhere; }
   .rank-row .vl{ font-size:14px; font-weight:700; font-variant-numeric:tabular-nums; }
   /* You, highlighted — the row a person looks for first. */
   .rank-row.me{
