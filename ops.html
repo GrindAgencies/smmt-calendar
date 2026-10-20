@@ -1282,9 +1282,10 @@ function addTicketSave(){var data={};NBCOLS.forEach(function(col){var el=$('at_'
 /* ---- In Force policies ---- */
 var IF_URL="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/ops-inforce";
 var IFP=[],IFSORT={k:'date',dir:-1},IFTOTAL=0,IFEDIT=false;var IFPAIDAP=0,IFPAIDN=0,IFARCH=false,IFARCHCOUNT=0;
+var IFMISS=0,IFONLYMISS=false;
 function ifApi(){var b={archived:IFARCH};if(OPS&&OPS.role==='ops'&&opsTok())b.token=opsTok();if(OPS)b.by_code=OPS.code;return fetch(IF_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();});}
 function renderInforce(){var host=$('inforceHost');if(!host)return;host.innerHTML='<div class="spin">Loading in-force policies…</div>';
-  ifApi().then(function(r){if(!r||!r.ok){host.innerHTML='<div class="empty">Could not load in-force policies.</div>';return;}IFP=r.policies||[];IFTOTAL=r.total_ap||0;IFPAIDAP=r.paid_ap||0;IFPAIDN=r.paid_count||0;IFEDIT=!!r.can_edit;IFARCHCOUNT=r.archived_count||0;paintInforce();}).catch(function(){host.innerHTML='<div class="empty">Could not load in-force policies.</div>';});}
+  ifApi().then(function(r){if(!r||!r.ok){host.innerHTML='<div class="empty">Could not load in-force policies.</div>';return;}IFP=r.policies||[];IFTOTAL=r.total_ap||0;IFPAIDAP=r.paid_ap||0;IFPAIDN=r.paid_count||0;IFEDIT=!!r.can_edit;IFARCHCOUNT=r.archived_count||0;IFMISS=r.missing_paid_date||0;paintInforce();}).catch(function(){host.innerHTML='<div class="empty">Could not load in-force policies.</div>';});}
 function ifSetPaid(id,val){var b={action:'set_paid_date',id:id,paid_out_date:(val||'')};if(OPS&&OPS.role==='ops'&&opsTok())b.token=opsTok();if(OPS)b.by_code=OPS.code;
   fetch(IF_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();}).then(function(r){if(!r||!r.ok){toast((r&&r.error)||'Could not save date');return;}var p=IFP.filter(function(x){return String(x.id)===String(id);})[0];if(p){p.paid_out_date=r.paid_out_date||'';p.date=r.paid_out_date||'';}toast('Paid Out date saved ✓');paintInforce();}).catch(function(){toast('Network error');});}
 /* Filing a closed-out policy away. It keeps its status and stays in every total — production,
@@ -1304,7 +1305,11 @@ function ifArchive(id,on){
    }).catch(function(){toast('Network error');});
 }
 function ifToggleArch(){IFARCH=!IFARCH;renderInforce();}
-function ifFiltered(){var q=($('search').value||'').trim().toLowerCase();var a=IFP.slice();if(BSSCOPE)a=a.filter(function(p){return BSSCOPE.indexOf(p.baseshop)>=0;});if(q)a=a.filter(function(p){return (p.client+' '+p.agent+' '+p.carrier+' '+p.product+' '+(p.baseshop||'')).toLowerCase().indexOf(q)>=0;});
+/* The report tells Operations to fill these in here. Without a way to SEE which rows are
+   missing a date that means reading 85 lines looking for a blank, so the tab offers the
+   filter the instruction implies. */
+function ifToggleMissing(){IFONLYMISS=!IFONLYMISS;paintInforce();}
+function ifFiltered(){var q=($('search').value||'').trim().toLowerCase();var a=IFP.slice();if(IFONLYMISS)a=a.filter(function(p){return !p.paid_out_date;});if(BSSCOPE)a=a.filter(function(p){return BSSCOPE.indexOf(p.baseshop)>=0;});if(q)a=a.filter(function(p){return (p.client+' '+p.agent+' '+p.carrier+' '+p.product+' '+(p.baseshop||'')).toLowerCase().indexOf(q)>=0;});
   var k=IFSORT.k,d=IFSORT.dir;a.sort(function(x,y){var xv=x[k],yv=y[k];if(typeof xv==='number'&&typeof yv==='number')return (xv-yv)*d;xv=String(xv||'').toLowerCase();yv=String(yv||'').toLowerCase();return xv<yv?-d:xv>yv?d:0;});return a;}
 function ifSort(k){if(IFSORT.k===k)IFSORT.dir=-IFSORT.dir;else{IFSORT.k=k;IFSORT.dir=1;}paintInforce();}
 function paintInforce(){var host=$('inforceHost');if(!host)return;var rows=ifFiltered();
@@ -1317,10 +1322,13 @@ function paintInforce(){var host=$('inforceHost');if(!host)return;var rows=ifFil
         :'<button class="dbtn ghost" style="padding:5px 11px;font-size:12px" onclick="ifArchive(\''+p.id+'\',true)" title="Closed out — file it away. It still counts in every total.">\ud83d\uddc4 Archive</button>')+'</td>'):'')
     +'</tr>';}).join(''):'<tr><td colspan="'+ncols+'" class="empty">'+(IFARCH?'Nothing archived yet.':'No in-force policies yet.')+'</td></tr>';
   var archBtn=IFEDIT?('<button class="dbtn ghost" style="padding:6px 12px;font-size:12.5px'+(IFARCH?';border-color:var(--gold);color:var(--gold)':'')+'" onclick="ifToggleArch()" title="Closed-out policies, filed away. They still count in production and cashflow.">\ud83d\uddc4 '+(IFARCH?'Viewing archive — back to active':'Archived ('+IFARCHCOUNT+')')+'</button>'):'';
+  /* Say it on the tab, not only in the report: a policy on the books with no record of when
+     the money landed cannot be counted into any month. */
+  var missBtn=(IFMISS&&!IFARCH)?('<button class="dbtn ghost" style="padding:6px 12px;font-size:12.5px'+(IFONLYMISS?';border-color:var(--gold);color:var(--gold);font-weight:800':'')+'" onclick="ifToggleMissing()" title="These count in every total but belong to no month until a payout date is entered">'+(IFONLYMISS?('\u2715 Showing the '+IFMISS+' missing a date'):('\u26a0 '+IFMISS+' missing a Paid Out date'))+'</button>'):'';
   var headline=IFARCH
     ? ('<b style="color:var(--gold)">'+rows.length+'</b> archived '+(rows.length===1?'policy':'policies')+' · <b>'+money(IFTOTAL)+'</b> annual premium · still counted in production and cashflow — archiving only clears the working board')
     : ('<b style="color:var(--green)">'+rows.length+'</b> in-force '+(rows.length===1?'policy':'policies')+' on the books · <b>'+money(IFTOTAL)+'</b> total annual premium · <b>'+IFPAIDN+' paid out</b> ('+money(IFPAIDAP)+') — commissions confirmed received · click a client to open their profile &amp; add commission tickets');
-  host.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin:0 0 10px;flex-wrap:wrap"><div style="font-size:12.5px;color:var(--ink3,#8e8e93)">'+headline+'</div>'+archBtn+'</div><div class="tablewrap" style="overflow-x:auto"><table class="ptable" style="min-width:1050px"><thead><tr>'+head+(IFEDIT?'<th></th>':'')+'</tr></thead><tbody>'+body+'</tbody></table></div>';}
+  host.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin:0 0 10px;flex-wrap:wrap"><div style="font-size:12.5px;color:var(--ink3,#8e8e93)">'+headline+'</div><div style="display:flex;gap:8px;flex-wrap:wrap">'+missBtn+archBtn+'</div></div><div class="tablewrap" style="overflow-x:auto"><table class="ptable" style="min-width:1050px"><thead><tr>'+head+(IFEDIT?'<th></th>':'')+'</tr></thead><tbody>'+body+'</tbody></table></div>';}
 /* clickable client name -> Client Profile (works from any policy tab) */
 function clientLink(name){var n=(name||'').trim();if(!n)return '<span style="font-weight:700">—</span>';return '<button class="namebtn" onclick="openClient(\''+esc(n).replace(/'/g,"\\'")+'\')" title="Open client profile">'+esc(n)+'</button>';}
 /* ===== Field Training tracker — live from calendar bookings ===== */
