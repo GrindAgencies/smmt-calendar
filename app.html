@@ -11,227 +11,281 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="The Standard">
+<link rel="stylesheet" href="tsfg-ui.css">
 <style>
-  :root{
-    --bg:#000000; --tile:#121212; --tile-b:#242424; --tile-hi:#1b1b1b;
-    --ink:#f7f7f8; --ink2:#9a9a9f;
-    --gold:#e8c777; --gold2:#c9a24a; --gold-dim:#8d7433;
-    --bar:#0a0a0a;
-    /* The wordmark wants a classical serif. Didot ships with iOS, Bodoni with macOS,
-       and Georgia is everywhere — no webfont, so nothing blocks the first paint. */
-    --serif:'Didot','Bodoni MT','Playfair Display',Georgia,'Times New Roman',serif;
-    --sans:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',system-ui,sans-serif;
-    --tabh:62px;
-  }
-  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-  /* The black has to live on <html>, not just <body>: on body alone the page showed
-     through behind the status bar, past the home indicator and on the iOS overscroll. */
-  html{background:var(--bg);color-scheme:dark}
-  html,body{margin:0;min-height:100%}
-  body{
-    font-family:var(--sans); color:var(--ink); background:var(--bg);
-    min-height:100vh; min-height:100dvh;
-    padding:calc(env(safe-area-inset-top) + 14px) 16px
-            calc(env(safe-area-inset-bottom) + var(--tabh) + 30px);
-    -webkit-font-smoothing:antialiased;
-  }
-  .wrap{max-width:560px;margin:0 auto}
+  /* The home screen. Everything general lives in tsfg-ui.css; what is here is only what
+     this one screen has that no other screen does — the highlights wheel. */
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;min-height:100%}
+  body{ -webkit-tap-highlight-color:transparent; }
 
-  /* ---------- masthead ---------- */
-  .mast{text-align:center;padding:8px 0 4px}
-  .mast img{width:74px;height:74px;object-fit:contain;display:block;margin:0 auto 10px}
-  .mast .name{
-    font-family:var(--serif); font-size:clamp(23px,6.4vw,30px); letter-spacing:.14em;
-    color:var(--gold); line-height:1; margin:0; font-weight:400;
-    text-transform:uppercase;
+  /* ===================== THE TEAM HIGHLIGHTS WHEEL =====================
+     Christopher: "create a team wheel of highlights through uploaded images."
+     A scroll-snap rail rather than a JS carousel: one element per image, it
+     flicks with the thumb the way a phone gallery does, it still works if the
+     script fails, and it costs no timer. The dots follow the scroll. */
+  .hl{ position:relative; margin:4px 0 6px; }
+  .hl-rail{
+    display:flex; gap:10px; overflow-x:auto; scroll-snap-type:x mandatory;
+    -webkit-overflow-scrolling:touch; scrollbar-width:none; border-radius:var(--tsfg-r);
   }
-  .mast .sub{
-    display:flex;align-items:center;justify-content:center;gap:11px;
-    margin:9px auto 0; max-width:290px;
-    font-size:10.5px; letter-spacing:.34em; color:var(--gold-dim); font-weight:600;
-    text-transform:uppercase;
+  .hl-rail::-webkit-scrollbar{ display:none; }
+  .hl-slide{
+    position:relative; flex:0 0 100%; scroll-snap-align:center;
+    aspect-ratio:16/10; border-radius:var(--tsfg-r); overflow:hidden;
+    border:1px solid var(--tsfg-gold-dim); background:var(--tsfg-raise);
   }
-  .mast .sub::before,.mast .sub::after{
-    content:"";flex:1;height:1px;
-    background:linear-gradient(90deg,transparent,var(--gold-dim),transparent);
+  .hl-slide img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .hl-slide .cap{
+    position:absolute; left:0; right:0; bottom:0; padding:30px 14px 13px;
+    background:linear-gradient(transparent, rgba(0,0,0,.82));
+    font-size:15px; font-weight:800; letter-spacing:-.01em;
   }
-
-  /* ---------- hero ---------- */
-  /* A photograph can be dropped in without touching anything else: put hero.jpg in the
-     repo and it is used automatically; until then this gradient stands in for it. */
-  .hero{
-    position:relative; margin:16px 0 20px; border-radius:18px; overflow:hidden;
-    aspect-ratio:16/10; min-height:168px;
-    background:
-      radial-gradient(120% 90% at 50% 8%, rgba(232,199,119,.16), transparent 62%),
-      radial-gradient(90% 70% at 18% 92%, rgba(201,162,74,.13), transparent 60%),
-      linear-gradient(176deg,#17130c 0%,#0b0a07 46%,#000 100%);
-    display:flex; align-items:flex-end; justify-content:center;
-    border:1px solid #1c1a15;
+  .hl-slide .rm{
+    position:absolute; top:9px; left:9px; width:30px; height:30px; border-radius:50%;
+    border:0; background:rgba(0,0,0,.62); color:#fff; font-size:17px; cursor:pointer;
+    display:none; align-items:center; justify-content:center; line-height:1;
   }
-  .hero .img{position:absolute;inset:0;background-size:cover;background-position:center;opacity:0}
-  .hero .scrim{position:absolute;inset:0;
-    background:linear-gradient(180deg,transparent 38%,rgba(0,0,0,.72) 100%)}
-  .hero .tag{position:relative;text-align:center;padding:0 16px 20px;width:100%}
-  .hero .t1{font-size:clamp(16px,4.4vw,20px);letter-spacing:.2em;font-weight:700;
-            color:#fff;text-transform:uppercase;line-height:1.2}
-  .hero .t2{font-size:clamp(11px,3vw,13px);letter-spacing:.42em;color:var(--gold);
-            text-transform:uppercase;margin-top:7px;font-weight:600}
+  body.can-post .hl-slide .rm{ display:flex; }
 
-  /* ---------- tiles ---------- */
-  .grid{display:grid;grid-template-columns:1fr 1fr;gap:11px}
-  .tile{
-    appearance:none;font-family:inherit;cursor:pointer;text-align:center;
-    background:var(--tile); border:1px solid var(--tile-b); border-radius:15px;
-    padding:20px 10px 16px; color:var(--ink);
-    display:flex; flex-direction:column; align-items:center; gap:11px;
-    transition:border-color .14s, background .14s, transform .08s;
+  .hl-up{
+    position:absolute; top:10px; right:10px; z-index:3;
+    display:none; align-items:center; gap:7px;
+    padding:8px 13px; border-radius:var(--tsfg-r-pill);
+    background:rgba(0,0,0,.66); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px);
+    border:1px solid rgba(255,255,255,.16); color:#fff;
+    font-family:inherit; font-size:12.5px; font-weight:700; cursor:pointer;
   }
-  .tile:active{transform:scale(.975);background:var(--tile-hi)}
-  .tile:hover{border-color:var(--gold-dim)}
-  .tile:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
-  .tile svg{width:33px;height:33px;stroke:var(--gold);fill:none;stroke-width:1.6;
-            stroke-linecap:round;stroke-linejoin:round}
-  .tile .lbl{font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;
-             color:#e9e9ec;line-height:1.25}
-  .tile .sb{font-size:10.5px;color:var(--ink2);letter-spacing:.02em;font-weight:500;
-            margin-top:-5px;text-transform:none}
+  body.can-post .hl-up{ display:flex; }
+  .hl-up svg{ width:15px; height:15px; stroke:currentColor; fill:none; stroke-width:1.8; }
 
-  /* ---------- bottom bar ---------- */
-  .tabs{
-    position:fixed;left:0;right:0;bottom:0;z-index:40;
-    background:var(--bar); border-top:1px solid #1b1b1b;
-    padding-bottom:env(safe-area-inset-bottom);
-    display:grid; grid-template-columns:repeat(4,1fr);
+  .hl-dots{ display:flex; gap:6px; justify-content:center; margin-top:9px; min-height:6px; }
+  .hl-dots i{ width:6px; height:6px; border-radius:50%; background:var(--tsfg-line); transition:background .18s; }
+  .hl-dots i.on{ background:var(--tsfg-gold); }
+
+  /* The empty state sits in the same frame so the page does not jump once images load. */
+  .hl-none{
+    flex:0 0 100%; aspect-ratio:16/10; border-radius:var(--tsfg-r);
+    border:1px dashed var(--tsfg-line);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:9px;
+    color:var(--tsfg-ink-2); text-align:center; padding:20px;
   }
-  .tab{
-    appearance:none;background:none;border:0;font-family:inherit;cursor:pointer;
-    height:var(--tabh); display:flex;flex-direction:column;align-items:center;
-    justify-content:center;gap:4px; color:#6e6e73; position:relative;
+  .hl-none svg{ width:30px; height:30px; stroke:var(--tsfg-ink-3); fill:none; stroke-width:1.4; }
+  .hl-none b{ color:var(--tsfg-ink); font-size:14.5px; }
+  .hl-none span{ font-size:12.5px; max-width:250px; line-height:1.45; }
+
+  .toast{
+    position:fixed; left:50%; transform:translateX(-50%); bottom:calc(76px + env(safe-area-inset-bottom));
+    background:#1d1d1f; color:#fff; border:1px solid var(--tsfg-line);
+    padding:11px 17px; border-radius:var(--tsfg-r-pill); font-size:13.5px; font-weight:600;
+    opacity:0; pointer-events:none; transition:opacity .2s; z-index:200; max-width:88vw; text-align:center;
   }
-  .tab svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.8;
-           stroke-linecap:round;stroke-linejoin:round}
-  .tab span{font-size:10px;letter-spacing:.03em;font-weight:600}
-  .tab.on{color:var(--gold)}
-  .tab:focus-visible{outline:2px solid var(--gold);outline-offset:-3px}
-  .tab .dot{position:absolute;top:11px;right:50%;margin-right:-16px;width:7px;height:7px;
-            border-radius:50%;background:#ff3b30;display:none}
-  .tab .dot.on{display:block}
+  .toast.on{ opacity:1; }
 
-  .full{display:block;text-align:center;margin:16px auto 0;padding:13px;
-        color:var(--ink2);font-size:12.5px;text-decoration:none;border-radius:13px;
-        border:1px solid var(--tile-b);background:var(--tile)}
-  .full:active{border-color:var(--gold-dim)}
-
-  /* notif.js and i18n.js inject their own floating furniture, which was built for the
-     other screens. Here the bottom bar IS the navigation, so: the duplicate bell is
-     hidden (the Alerts tab still clicks it programmatically — click() works on a hidden
-     element), and the Ask bubble and language pill are lifted clear of the bar. The Ask
-     bubble was sitting underneath it entirely. */
-  .ntf-btn{display:none!important}
-  #askFab{bottom:calc(env(safe-area-inset-bottom) + var(--tabh) + 16px)!important}
-
-  .tab .dot{min-width:17px;height:17px;border-radius:9px;top:8px;margin-right:-19px;
-            font-size:10px;font-weight:800;color:#fff;align-items:center;justify-content:center;
-            padding:0 4px;font-style:normal;line-height:1}
-  .tab .dot.on{display:flex}
-
-  @media (prefers-reduced-motion: reduce){ .tile{transition:none} }
+  /* notif.js injects its own bell; this screen has the Alerts tab instead. */
+  .ntf-btn{ display:none !important; }
 </style>
 </head>
-<body>
-<div class="wrap">
+<body class="tsfg tsfg-haspad">
 
-  <div class="mast">
-    <img src="logo.png" alt="" onerror="this.style.display='none'">
-    <h1 class="name">The Standard</h1>
+<div class="tsfg-wrap">
+
+  <header class="tsfg-brand">
+    <img src="apple-touch-icon.png" alt="" onerror="this.style.display='none'">
+    <h1>THE STANDARD</h1>
     <div class="sub">Financial Group</div>
-  </div>
+  </header>
 
-  <div class="hero">
-    <div class="img" id="heroImg"></div>
-    <div class="scrim"></div>
-    <div class="tag">
-      <div class="t1">Build a Standard</div>
-      <div class="t2">Higher</div>
+  <!-- ======================= team highlights ======================= -->
+  <section class="hl" aria-label="Team highlights">
+    <button class="hl-up" onclick="pickImages()">
+      <svg viewBox="0 0 24 24"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5"/><path d="M4 16v2.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V16"/></svg>
+      Upload images
+    </button>
+    <div class="hl-rail" id="rail">
+      <div class="hl-none" id="hlNone">
+        <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10.5" r="1.5"/><path d="m21 15-4.5-4.5L7 20"/></svg>
+        <b>Team highlights</b>
+        <span id="hlNoneSub">Loading…</span>
+      </div>
     </div>
+    <div class="hl-dots" id="dots"></div>
+    <input type="file" id="fileIn" accept="image/*" multiple hidden>
+  </section>
+
+  <!-- ========================== your tools ========================= -->
+  <h2 class="tsfg-h">Your tools</h2>
+  <div class="tsfg-tiles">
+    <button class="tsfg-tile" onclick="go('teamhub.html')">
+      <svg viewBox="0 0 24 24"><path d="M8.5 15.5H6a2 2 0 0 1-2-2v-6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1"/><path d="M10 19.5h8a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-8a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2Z"/></svg>
+      Team Chat<span class="badge" id="chatDot" style="display:none"></span>
+    </button>
+    <button class="tsfg-tile" onclick="go('leaderboard.html')">
+      <svg viewBox="0 0 24 24"><path d="M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/><path d="M12 14v3m-3 3h6"/></svg>
+      Leaderboard
+    </button>
+    <button class="tsfg-tile" onclick="go('calendar.html')">
+      <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4m8-4v4"/></svg>
+      Scheduler
+    </button>
+    <button class="tsfg-tile" onclick="go('newbusiness.html')">
+      <svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><path d="M12 11v5m-2.5-2.5h5"/></svg>
+      New Business
+    </button>
+    <button class="tsfg-tile" onclick="go('summit.html?tab=road')">
+      <svg viewBox="0 0 24 24"><path d="M4 20 12 4l8 16"/><path d="m8 13 4-2 4 2"/></svg>
+      Road to EMD
+    </button>
+    <button class="tsfg-tile" onclick="go('resources.html')">
+      <svg viewBox="0 0 24 24"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H11v16H5.5A1.5 1.5 0 0 1 4 18.5Z"/><path d="M20 5.5A1.5 1.5 0 0 0 18.5 4H13v16h5.5a1.5 1.5 0 0 0 1.5-1.5Z"/></svg>
+      Resource Library
+    </button>
   </div>
 
-  <div class="grid">
-    <button class="tile" onclick="go('newbusiness.html')">
-      <svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7M3 12h18"/></svg>
-      <span class="lbl">New Business</span><span class="sb">Log &amp; track policies</span>
-    </button>
-
-    <button class="tile" onclick="go('calendar.html')">
-      <svg viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9.5h18M8 3v3M16 3v3"/></svg>
-      <span class="lbl">Scheduler</span><span class="sb">Book field training</span>
-    </button>
-
-    <button class="tile" onclick="go('resources.html')">
-      <svg viewBox="0 0 24 24"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H11v16H5.5A1.5 1.5 0 0 1 4 18.5z"/><path d="M20 5.5A1.5 1.5 0 0 0 18.5 4H13v16h5.5a1.5 1.5 0 0 0 1.5-1.5z"/></svg>
-      <span class="lbl">Training</span><span class="sb">Scripts, carriers, decks</span>
-    </button>
-
-    <button class="tile" onclick="go('summit.html?tab=road')">
-      <svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M6 4h12v5a6 6 0 0 1-12 0z"/><path d="M18 5h2.5a2.5 2.5 0 0 1-2.5 4M6 5H3.5A2.5 2.5 0 0 0 6 9"/></svg>
-      <span class="lbl">Road to EMD</span><span class="sb">Your 19 stages</span>
-    </button>
-
-    <button class="tile" onclick="go('team.html')">
-      <svg viewBox="0 0 24 24"><path d="M16 20v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 18.5V20"/><circle cx="10" cy="8" r="3.4"/><path d="M20 20v-1.5a3.5 3.5 0 0 0-2.6-3.4M15.5 4.8a3.4 3.4 0 0 1 0 6.4"/></svg>
-      <span class="lbl">My Team</span><span class="sb">Your downline</span>
-    </button>
-
-    <button class="tile" onclick="go('teamhub.html')">
-      <svg viewBox="0 0 24 24"><path d="M3.5 10.5 19 4.5a.9.9 0 0 1 1.2 1.1l-4.4 14.2a.9.9 0 0 1-1.6.2l-3.2-4.6-4.6-3.2a.9.9 0 0 1 .1-1.7z"/><path d="M11 15.4 20 5"/></svg>
-      <span class="lbl">Announcements</span><span class="sb">Team Hub &amp; channels</span>
-    </button>
-  </div>
-
-  <a class="full" href="index.html">Open the full platform →</a>
+  <p class="tsfg-center" style="margin:22px 0 0">
+    <a href="index.html" style="color:var(--tsfg-ink-3);font-size:12.5px;text-decoration:none">Open the full platform →</a>
+  </p>
 </div>
 
-<nav class="tabs">
-  <button class="tab on" onclick="go('app.html')">
-    <svg viewBox="0 0 24 24"><path d="M3 9.6 12 3l9 6.6V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>
-    <span>Home</span>
+<nav class="tsfg-tabs" style="--tsfg-tabn:4">
+  <button class="tsfg-tab on">
+    <svg viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v9a2 2 0 0 1-2 2h-4v-6H9v6H5a2 2 0 0 1-2-2Z"/></svg>Home
   </button>
-  <button class="tab" onclick="go('teamhub.html')">
-    <svg viewBox="0 0 24 24"><path d="M16 19v-1.3a3.2 3.2 0 0 0-3.2-3.2H7.2A3.2 3.2 0 0 0 4 17.7V19"/><circle cx="10" cy="8" r="3.1"/><path d="M20 19v-1.3a3.2 3.2 0 0 0-2.4-3.1M15.6 5a3.1 3.1 0 0 1 0 6"/></svg>
-    <span>Community</span>
+  <button class="tsfg-tab" onclick="go('teamhub.html')">
+    <svg viewBox="0 0 24 24"><path d="M20 15a2 2 0 0 1-2 2H8l-4 4V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2Z"/></svg>Chat
   </button>
-  <button class="tab" onclick="openNotifs()">
-    <svg viewBox="0 0 24 24"><path d="M18 8.5a6 6 0 1 0-12 0c0 6-2 7.5-2 7.5h16s-2-1.5-2-7.5M13.7 19.5a2 2 0 0 1-3.4 0"/></svg>
-    <span>Alerts</span><i class="dot" id="tabDot"></i>
+  <button class="tsfg-tab" onclick="openNotifs()" style="position:relative">
+    <svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 1 0-12 0c0 7-2 8-2 8h16s-2-1-2-8"/><path d="M13.7 20a1.9 1.9 0 0 1-3.4 0"/></svg>Alerts
+    <span class="badge" id="tabDot" style="display:none;position:absolute;top:6px;right:22px;min-width:17px;height:17px;padding:0 4px;border-radius:999px;background:var(--tsfg-gold);color:#17120a;font-size:10px;font-weight:800;align-items:center;justify-content:center"></span>
   </button>
-  <button class="tab" onclick="go('profile.html')">
-    <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg>
-    <span>Profile</span>
+  <button class="tsfg-tab" onclick="go('profile.html')">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Profile
   </button>
 </nav>
 
+<div class="toast" id="toast"></div>
+
 <script>
+  var HL_API = 'https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/highlights';
+
   /* Signed out? This launcher has nothing to show — send them to sign in. */
   try{ if(!localStorage.getItem('tsfg_code')) location.replace('index.html'); }catch(e){}
 
   function go(u){ location.href = u; }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  function toast(m){ var t=document.getElementById('toast'); t.textContent=m; t.classList.add('on'); clearTimeout(t._x); t._x=setTimeout(function(){t.classList.remove('on');},2600); }
 
-  /* Drop a hero.jpg (or .png) into the repo and it is used. No code change needed —
-     the gradient stays as the fallback if the file is not there. */
-  (function(){
-    var el = document.getElementById('heroImg');
-    ['hero.jpg','hero.png','hero.webp'].forEach(function(src){
-      var probe = new Image();
-      probe.onload = function(){
-        if (el.style.opacity === '1') return;     // first one that loads wins
-        el.style.backgroundImage = 'url("' + src + '")';
-        el.style.opacity = '1';
-      };
-      probe.src = src;
+  /* ======================= team highlights ======================= */
+  var HL = [], CANPOST = false;
+
+  function hlApi(body){
+    return fetch(HL_API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body||{})})
+      .then(function(r){ return r.json(); })
+      .catch(function(){ return {ok:false, error:'Network error'}; });
+  }
+
+  function loadHighlights(){
+    hlApi({action:'list'}).then(function(r){
+      var sub = document.getElementById('hlNoneSub');
+      if(!r || !r.ok){ if(sub) sub.textContent = 'Could not load highlights.'; return; }
+      HL = r.highlights || [];
+      CANPOST = !!r.can_post;
+      document.body.classList.toggle('can-post', CANPOST);
+      if (sub) sub.textContent = CANPOST
+        ? 'Add photos of your team — everyone in your baseshop will see them here.'
+        : 'Your leadership will add photos of the team here.';
+      paintHighlights();
     });
-  })();
+  }
 
+  function paintHighlights(){
+    var rail = document.getElementById('rail');
+    if (!HL.length){ paintDots(); return; }   /* keep the empty frame as-is */
+    rail.innerHTML = HL.map(function(h){
+      return '<div class="hl-slide">'+
+        (CANPOST ? '<button class="rm" title="Remove this highlight" onclick="removeHighlight(event,\''+h.id+'\')">&times;</button>' : '')+
+        '<img src="'+esc(h.url)+'" alt="'+esc(h.caption||'Team highlight')+'" loading="lazy">'+
+        '<div class="cap">'+esc(h.caption || 'Team highlights')+'</div>'+
+      '</div>';
+    }).join('');
+    paintDots();
+  }
+
+  function paintDots(){
+    var d = document.getElementById('dots');
+    if (HL.length < 2){ d.innerHTML=''; return; }
+    d.innerHTML = HL.map(function(_,i){ return '<i'+(i===0?' class="on"':'')+'></i>'; }).join('');
+  }
+
+  /* The dots follow the rail rather than driving it, so a thumb-flick and the dots agree. */
+  document.getElementById('rail').addEventListener('scroll', function(){
+    var dots = document.getElementById('dots').children;
+    if (!dots.length) return;
+    var i = Math.round(this.scrollLeft / Math.max(1, this.clientWidth));
+    for (var k=0;k<dots.length;k++) dots[k].classList.toggle('on', k===i);
+  }, {passive:true});
+
+  function pickImages(){ document.getElementById('fileIn').click(); }
+
+  /* A phone photo is 3–8 MB and 4000px wide. Sending that would make the wheel crawl, so it
+     is resized in the browser first — the same approach profile photos already use. 1400px
+     is plenty for a full-bleed card on any phone. */
+  function shrink(file){
+    return new Promise(function(resolve,reject){
+      var fr = new FileReader();
+      fr.onerror = function(){ reject(new Error('Could not read that file')); };
+      fr.onload = function(){
+        var img = new Image();
+        img.onerror = function(){ reject(new Error('That file is not an image')); };
+        img.onload = function(){
+          var MAX = 1400, w = img.width, h = img.height;
+          if (w > MAX){ h = Math.round(h * MAX / w); w = MAX; }
+          var c = document.createElement('canvas');
+          c.width = w; c.height = h;
+          c.getContext('2d').drawImage(img, 0, 0, w, h);
+          var q = 0.72, out = c.toDataURL('image/jpeg', q);
+          /* Step the quality down until it is comfortably under the server's limit. */
+          while (out.length > 850000 && q > 0.4){ q -= 0.08; out = c.toDataURL('image/jpeg', q); }
+          resolve(out);
+        };
+        img.src = fr.result;
+      };
+      fr.readAsDataURL(file);
+    });
+  }
+
+  document.getElementById('fileIn').addEventListener('change', function(){
+    var files = Array.prototype.slice.call(this.files || []);
+    this.value = '';
+    if (!files.length) return;
+    toast(files.length === 1 ? 'Adding your photo…' : 'Adding '+files.length+' photos…');
+
+    /* One at a time: a phone uploading six large images at once stalls, and a failure
+       halfway through should still leave the earlier ones saved. */
+    var done = 0, failed = 0, lastErr = '';
+    files.reduce(function(chain, f){
+      return chain.then(function(){
+        return shrink(f)
+          .then(function(url){ return hlApi({action:'add', url:url}); })
+          .then(function(r){ if (r && r.ok) done++; else { failed++; if (r && r.error) lastErr = r.error; } })
+          .catch(function(){ failed++; });
+      });
+    }, Promise.resolve()).then(function(){
+      if (done) toast(done === 1 ? 'Photo added' : done+' photos added');
+      else toast(lastErr || 'Could not add that photo');
+      loadHighlights();
+    });
+  });
+
+  function removeHighlight(ev, id){
+    ev.stopPropagation();
+    hlApi({action:'remove', id:id}).then(function(r){
+      if (r && r.ok){ toast('Removed'); loadHighlights(); }
+      else toast((r && r.error) || 'Could not remove that');
+    });
+  }
+
+  /* ============================ alerts ============================ */
   /* The Alerts tab opens the shared bell panel that notif.js injects. That script is
      deferred, so the button can be tapped before it exists — wait for it rather than
      doing nothing, and give up to the full platform if it never arrives. */
@@ -253,29 +307,23 @@
     var dot = document.getElementById('tabDot');
     if (!dot) return;
     var n = btn ? parseInt(String(btn.textContent || '').replace(/\D/g, ''), 10) : 0;
-    if (n > 0) { dot.textContent = n > 9 ? '9+' : String(n); dot.classList.add('on'); }
-    else { dot.textContent = ''; dot.classList.remove('on'); }
+    if (n > 0) { dot.textContent = n > 9 ? '9+' : String(n); dot.style.display='flex'; }
+    else { dot.textContent = ''; dot.style.display='none'; }
   }, 1200);
 
-  /* Both floaters are injected by deferred scripts, and something in that CSS was
-     out-specifying a stylesheet rule with !important on the language pill — its inline
-     style read 14px while the computed value came out 76px, so a third rule was winning.
-     Rather than keep guessing at the cascade, set it here where the outcome is certain,
-     and re-apply a few times because the elements do not exist at first paint. */
+  /* Both floaters are injected by deferred scripts and land bottom-right, on top of the tab
+     bar. Set their position here where the outcome is certain, and re-apply a few times
+     because they do not exist at first paint. */
   (function liftFloaters(){
-    var base = 'calc(env(safe-area-inset-bottom) + 62px + ';
     function lift(){
       var f = document.getElementById('askFab');
       var t = document.getElementById('i18nToggle');
-      /* Ask sits above the bar. */
-      if (f) f.style.setProperty('bottom', base + '16px)', 'important');
-      /* The language pill moves to the TOP right. Stacking it above Ask still left it
-         covering the "Open the full platform" link, and the top-right corner is free now
-         that the duplicate bell is hidden — so it goes where nothing else wants to be. */
+      if (f) f.style.setProperty('bottom', 'calc(env(safe-area-inset-bottom) + 72px)', 'important');
       if (t) {
         t.style.setProperty('top', 'calc(env(safe-area-inset-top) + 10px)', 'important');
         t.style.setProperty('bottom', 'auto', 'important');
-        t.style.setProperty('right', '14px', 'important');
+        t.style.setProperty('left', '14px', 'important');
+        t.style.setProperty('right', 'auto', 'important');
       }
       return !!(f && t);
     }
@@ -291,6 +339,8 @@
       navigator.serviceWorker.register('sw.js').catch(function(){});
     });
   }
+
+  loadHighlights();
 </script>
 <script defer src="notif.js"></script>
 <script src="i18n.js"></script>

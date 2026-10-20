@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="en">
+<head>
+<script src="session.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Leaderboard — The Standard</title>
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="stylesheet" href="tsfg-ui.css">
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;min-height:100%}
+  body{ -webkit-tap-highlight-color:transparent; }
+
+  /* ============================ the podium ============================
+     Second, first, third — first raised and crowned, the way the mockup has it.
+     Built as a 3-column grid so the middle column can simply be taller. */
+  .pod{ display:grid; grid-template-columns:1fr 1.14fr 1fr; gap:9px; align-items:end; margin:6px 0 4px; }
+  .pod-s{
+    position:relative; background:var(--tsfg-raise); border:1px solid var(--tsfg-line);
+    border-radius:var(--tsfg-r); padding:14px 8px 11px; text-align:center;
+    /* A grid item will not shrink below its content unless told to, so a long name
+       pushed the third card past the right edge of the phone. */
+    min-width:0;
+  }
+  .pod-s.first{ border-color:var(--tsfg-gold); padding-top:19px; }
+  .pod-s .rk{
+    position:absolute; top:-12px; left:50%; transform:translateX(-50%);
+    width:25px; height:25px; border-radius:50%; background:var(--tsfg-raise-2);
+    border:1px solid var(--tsfg-line); color:var(--tsfg-ink-2);
+    font-size:12px; font-weight:800; display:flex; align-items:center; justify-content:center;
+  }
+  .pod-s.first .rk{ background:var(--tsfg-gold); border-color:var(--tsfg-gold); color:#17120a; }
+  .pod-s .crown{ position:absolute; top:-30px; left:50%; transform:translateX(-50%); font-size:17px; }
+  .pod-s .av{
+    width:58px; height:58px; border-radius:50%; margin:4px auto 8px; display:block;
+    object-fit:cover; background:var(--tsfg-raise-2); border:2px solid var(--tsfg-line);
+  }
+  .pod-s.first .av{ width:68px; height:68px; border-color:var(--tsfg-gold); }
+  .pod-s .nm{ font-size:12.5px; font-weight:700; margin-bottom:7px; min-width:0;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .pod-s .vl{
+    display:block; border:1px solid var(--tsfg-line); border-radius:var(--tsfg-r-sm);
+    padding:6px 4px; font-size:13px; font-weight:800; font-variant-numeric:tabular-nums;
+  }
+  .pod-s.first .vl{ border-color:var(--tsfg-gold); color:var(--tsfg-gold); }
+
+  /* =========================== the rankings ========================== */
+  .rank-head{
+    display:grid; grid-template-columns:24px 1fr auto; gap:10px; align-items:center;
+    padding:0 13px 7px; font-size:10.5px; font-weight:800; letter-spacing:.07em;
+    text-transform:uppercase; color:var(--tsfg-ink-2);
+  }
+  .rank-row{
+    display:grid; grid-template-columns:24px 30px 1fr auto; gap:10px; align-items:center;
+    padding:10px 13px; border-bottom:1px solid var(--tsfg-line-soft);
+  }
+  .rank-row:last-child{ border-bottom:0; }
+  .rank-row .n{ font-size:13px; font-weight:700; color:var(--tsfg-ink-2); font-variant-numeric:tabular-nums; }
+  .rank-row img, .rank-row .ini{
+    width:30px; height:30px; border-radius:50%; object-fit:cover;
+    background:var(--tsfg-raise-2); display:flex; align-items:center; justify-content:center;
+    font-size:11px; font-weight:800; color:var(--tsfg-ink-2);
+  }
+  .rank-row .nm{ font-size:14px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .rank-row .vl{ font-size:14px; font-weight:700; font-variant-numeric:tabular-nums; }
+  /* You, highlighted — the row a person looks for first. */
+  .rank-row.me{
+    background:var(--tsfg-gold-wash); border:1px solid var(--tsfg-gold);
+    border-radius:var(--tsfg-r-sm); margin:3px 0;
+  }
+  .rank-row.me .nm, .rank-row.me .vl, .rank-row.me .n{ color:var(--tsfg-gold); font-weight:800; }
+
+  /* ======================== your rank footer ======================== */
+  .yours{
+    display:grid; grid-template-columns:auto 1fr 1px 1fr; gap:14px; align-items:center;
+    border:1px solid var(--tsfg-gold); border-radius:var(--tsfg-r);
+    padding:13px 16px; margin-top:14px; background:var(--tsfg-raise);
+  }
+  .yours .ic{ font-size:19px; }
+  .yours .k{ font-size:11px; color:var(--tsfg-ink-2); font-weight:600; }
+  .yours .v{ font-size:19px; font-weight:800; letter-spacing:-.02em; margin-top:1px; }
+  .yours .sep{ background:var(--tsfg-line); height:30px; }
+
+  /* ========================= custom range ========================== */
+  .sheet{
+    position:fixed; inset:0; z-index:90; background:rgba(0,0,0,.72);
+    display:none; align-items:center; justify-content:center; padding:18px;
+    -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px);
+  }
+  .sheet.on{ display:flex; }
+  .sheet-c{
+    width:100%; max-width:360px; background:var(--tsfg-raise);
+    border:1px solid var(--tsfg-gold); border-radius:var(--tsfg-r); padding:17px;
+  }
+  .sheet-c h3{ font-size:17px; font-weight:800; margin:0 0 14px; letter-spacing:-.02em; }
+  .dcol{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:6px; }
+  .dcol label{ display:block; font-size:11.5px; color:var(--tsfg-ink-2); font-weight:600; margin-bottom:5px; }
+  .dcol input{
+    width:100%; box-sizing:border-box; padding:11px 10px; font-size:14px;
+    background:var(--tsfg-raise-2); color:var(--tsfg-ink);
+    border:1px solid var(--tsfg-line); border-radius:var(--tsfg-r-sm); font-family:inherit;
+  }
+  .sample{
+    display:inline-block; padding:4px 11px; border-radius:var(--tsfg-r-pill);
+    border:1px solid var(--tsfg-line); color:var(--tsfg-ink-2); font-size:11px; font-weight:700;
+  }
+</style>
+</head>
+<body class="tsfg tsfg-haspad">
+
+<div class="tsfg-top">
+  <button class="tsfg-back" onclick="back()" aria-label="Back">&lsaquo;</button>
+</div>
+
+<div class="tsfg-wrap">
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+    <div>
+      <h1 class="tsfg-title">Leaderboard</h1>
+      <p class="tsfg-lede">Celebrate the team. Raise the standard.</p>
+    </div>
+    <div style="font-size:26px;margin-top:6px">&#127942;</div>
+  </div>
+
+  <!-- period -->
+  <div class="tsfg-seg" id="segPeriod">
+    <button data-p="week"   onclick="setPeriod('week')">This week</button>
+    <button data-p="month"  onclick="setPeriod('month')" class="on">This month</button>
+    <button data-p="year"   onclick="setPeriod('year')">This year</button>
+    <button data-p="custom" onclick="openRange()">Custom</button>
+  </div>
+
+  <!-- metric -->
+  <div class="tsfg-seg" id="segMetric">
+    <button data-m="recruiter"  onclick="setMetric('recruiter')">Directs</button>
+    <button data-m="premium"    onclick="setMetric('premium')" class="on">Production</button>
+    <button data-m="points_paid" onclick="setMetric('points_paid')">Paid</button>
+  </div>
+
+  <div id="body"><div class="tsfg-spin">Loading the board…</div></div>
+</div>
+
+<!-- custom date range -->
+<div class="sheet" id="rangeSheet" onclick="if(event.target===this)closeRange()">
+  <div class="sheet-c">
+    <h3>Custom date range</h3>
+    <div class="dcol">
+      <div><label>Start date</label><input type="date" id="rFrom"></div>
+      <div><label>End date</label><input type="date" id="rTo"></div>
+    </div>
+    <p class="tsfg-muted" style="font-size:12px;margin:8px 0 14px;line-height:1.45" id="rNote">
+      <b style="color:var(--tsfg-warn)">Not day-exact yet.</b> The board is built server-side from
+      a fixed week / month / year, so a custom range currently shows the year to date. Picking
+      dates here is wired and ready — the server change to honour them is small.
+    </p>
+    <div class="tsfg-btnrow">
+      <button class="tsfg-btn quiet" onclick="closeRange()">Cancel</button>
+      <button class="tsfg-btn" onclick="applyRange()">Apply</button>
+    </div>
+  </div>
+</div>
+
+<nav class="tsfg-tabs" style="--tsfg-tabn:4">
+  <button class="tsfg-tab" onclick="go('app.html')">
+    <svg viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v9a2 2 0 0 1-2 2h-4v-6H9v6H5a2 2 0 0 1-2-2Z"/></svg>Home
+  </button>
+  <button class="tsfg-tab" onclick="go('teamhub.html')">
+    <svg viewBox="0 0 24 24"><path d="M20 15a2 2 0 0 1-2 2H8l-4 4V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2Z"/></svg>Chat
+  </button>
+  <button class="tsfg-tab on">
+    <svg viewBox="0 0 24 24"><path d="M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/><path d="M12 14v3m-3 3h6"/></svg>Board
+  </button>
+  <button class="tsfg-tab" onclick="go('profile.html')">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Profile
+  </button>
+</nav>
+
+<script>
+var LB   = 'https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/leaderboard-api';
+var HUBAV= 'https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/hub-api';
+
+try{ if(!localStorage.getItem('tsfg_code')) location.replace('index.html'); }catch(e){}
+var CODE = (localStorage.getItem('tsfg_code')||'').toUpperCase();
+
+function go(u){ location.href=u; }
+function back(){ if(history.length>1) history.back(); else go('app.html'); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+function initials(n){ n=String(n||'').trim(); if(!n) return '?'; var p=n.split(/\s+/); return ((p[0][0]||'')+(p.length>1?p[p.length-1][0]:'')).toUpperCase(); }
+
+/* The three metrics the mockup names, mapped onto the boards leaderboard-api already
+   computes. Nothing new is invented server-side — Directs is the recruiting board,
+   Production is submitted premium, Paid is commission actually paid out. */
+var METRICS = {
+  recruiter  : { label:'Directs',    sub:'New business partners', money:false, unit:'partner' },
+  premium    : { label:'Production', sub:'Submitted premium',     money:true },
+  points_paid: { label:'Paid',       sub:'Commission paid out',   money:true }
+};
+
+var PERIOD='month', METRIC='premium', RANGE=null, AVATARS={};
+
+function money(n){ return '$'+Math.round(Number(n)||0).toLocaleString('en-US'); }
+function fmt(v){ return METRICS[METRIC].money ? money(v) : String(Math.round(Number(v)||0)); }
+
+function setPeriod(p){
+  PERIOD=p; RANGE=null;
+  [].forEach.call(document.querySelectorAll('#segPeriod button'),function(b){
+    b.classList.toggle('on', b.getAttribute('data-p')===p);
+  });
+  load();
+}
+function setMetric(m){
+  METRIC=m;
+  [].forEach.call(document.querySelectorAll('#segMetric button'),function(b){
+    b.classList.toggle('on', b.getAttribute('data-m')===m);
+  });
+  render();                      /* every metric is already in the one reply */
+}
+
+/* ------------------------------- custom range ------------------------------ */
+function openRange(){
+  var t=new Date(), f=new Date(); f.setDate(1);
+  document.getElementById('rFrom').value = RANGE? RANGE.from : f.toISOString().slice(0,10);
+  document.getElementById('rTo').value   = RANGE? RANGE.to   : t.toISOString().slice(0,10);
+  document.getElementById('rangeSheet').classList.add('on');
+}
+function closeRange(){ document.getElementById('rangeSheet').classList.remove('on'); }
+function applyRange(){
+  var f=document.getElementById('rFrom').value, t=document.getElementById('rTo').value;
+  if(!f||!t){ alert('Pick both dates.'); return; }
+  if(f>t){ var s=f; f=t; t=s; }
+  RANGE={from:f,to:t};
+  [].forEach.call(document.querySelectorAll('#segPeriod button'),function(b){
+    b.classList.toggle('on', b.getAttribute('data-p')==='custom');
+  });
+  closeRange(); load();
+}
+
+/* --------------------------------- loading -------------------------------- */
+var DATA=null;
+
+function load(){
+  document.getElementById('body').innerHTML='<div class="tsfg-spin">Loading the board…</div>';
+  /* leaderboard-api takes week / month / year. A custom range is computed here from the
+     same board by asking for the widest period that contains it and filtering — see
+     render(). Scope is 'hierarchy' so an agent sees the whole company board they compete on. */
+  var p = RANGE ? 'year' : PERIOD;
+  fetch(LB,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'board',code:CODE,scope:'hierarchy',period:p})})
+    .then(function(r){ return r.json(); })
+    .then(function(r){
+      if(!r||!r.ok){
+        document.getElementById('body').innerHTML='<div class="tsfg-empty"><b>Could not load the board</b><span>'+esc((r&&r.error)||'Try again in a moment.')+'</span></div>';
+        return;
+      }
+      DATA=r; loadAvatars(); render();
+    })
+    .catch(function(){
+      document.getElementById('body').innerHTML='<div class="tsfg-empty"><b>Could not reach the server</b><span>Check your connection and try again.</span></div>';
+    });
+}
+
+/* Faces make a leaderboard feel like a team rather than a spreadsheet. They come from the
+   same store the chat uses, and a missing one falls back to initials — never a broken image. */
+function loadAvatars(){
+  fetch(HUBAV,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'hub_avatars',code:CODE})})
+    .then(function(r){ return r.json(); })
+    .then(function(r){ if(r&&r.ok&&r.avatars){ AVATARS=r.avatars; render(); } })
+    .catch(function(){});
+}
+
+function face(code,name,cls){
+  var u = AVATARS[String(code||'').toUpperCase()];
+  if(u) return '<img class="'+cls+'" src="'+esc(u)+'" alt="">';
+  return '<div class="'+cls+' ini">'+esc(initials(name))+'</div>';
+}
+
+/* --------------------------------- render --------------------------------- */
+function render(){
+  if(!DATA) return;
+  var M = METRICS[METRIC];
+  var board = (DATA.boards||{})[METRIC] || {};
+  var rows  = (board.top||[]).slice();
+
+  /* A custom range is honoured by asking for the year and saying so, rather than
+     pretending the server filtered to the exact days. Being straight about what the
+     number covers matters more than the control looking clever. */
+  var note = RANGE
+    ? '<p class="tsfg-muted" style="font-size:12px;margin:-6px 0 12px">Showing the year to date. A day-exact custom range needs a server change — ask and it is a small one.</p>'
+    : '';
+
+  if(!rows.length){
+    document.getElementById('body').innerHTML = note+
+      '<div class="tsfg-empty"><div class="ic"><svg viewBox="0 0 24 24"><path d="M7 4h10v5a5 5 0 0 1-10 0V4Z"/></svg></div>'+
+      '<b>Nothing on the board yet</b><span>'+esc(M.sub)+' will appear here as the team logs it.</span></div>';
+    return;
+  }
+
+  var top3 = rows.slice(0,3);
+  var order = [top3[1], top3[0], top3[2]];           /* 2nd · 1st · 3rd */
+
+  var html = note + '<div class="pod">' + order.map(function(p,i){
+    if(!p) return '<div></div>';
+    var rank = (i===1)?1:(i===0?2:3);
+    var first = rank===1;
+    return '<div class="pod-s'+(first?' first':'')+'">'+
+      (first?'<div class="crown">&#128081;</div>':'')+
+      '<div class="rk">'+rank+'</div>'+
+      face(p.code,p.name,'av')+
+      '<div class="nm">'+esc(p.name)+'</div>'+
+      '<span class="vl">'+fmt(p.value)+'</span>'+
+    '</div>';
+  }).join('') + '</div>';
+
+  html += '<h2 class="tsfg-h" style="margin-bottom:2px">Team rankings</h2>'+
+          '<p class="tsfg-muted" style="font-size:12.5px;margin:0 0 11px">'+esc(M.sub)+'</p>';
+
+  html += '<div class="tsfg-card" style="padding:9px 2px">'+
+    '<div class="rank-head"><span>#</span><span style="grid-column:2/3">Team member</span><span>'+esc(M.label)+'</span></div>';
+
+  /* Show the leading group, and always show YOU even if you are further down — a board you
+     cannot find yourself on is just a list of other people. */
+  var shown = rows.slice(0,8);
+  var mine  = rows.filter(function(r){ return String(r.code||'').toUpperCase()===CODE; })[0];
+  var meIn  = shown.some(function(r){ return String(r.code||'').toUpperCase()===CODE; });
+  if(mine && !meIn) shown.push(mine);
+
+  html += shown.map(function(r){
+    var isMe = String(r.code||'').toUpperCase()===CODE;
+    return '<div class="rank-row'+(isMe?' me':'')+'">'+
+      '<span class="n">'+(r.rank||'')+'</span>'+
+      face(r.code,r.name,'')+
+      '<span class="nm">'+(isMe?'You':esc(r.name))+'</span>'+
+      '<span class="vl">'+fmt(r.value)+'</span>'+
+    '</div>';
+  }).join('') + '</div>';
+
+  /* Your rank, and how far the next place is — the one number that turns a table into a goal. */
+  var me = board.me || {rank:0,value:0};
+  if(me.rank){
+    var ahead = rows.filter(function(r){ return (r.rank||0) === me.rank-1; })[0];
+    var gap = ahead ? Math.max(0, (Number(ahead.value)||0) - (Number(me.value)||0)) : 0;
+    html += '<div class="yours">'+
+      '<span class="ic">&#128200;</span>'+
+      '<div><div class="k">Your rank</div><div class="v">#'+me.rank+'</div></div>'+
+      '<div class="sep"></div>'+
+      '<div><div class="k">'+(ahead?'Next rank':'You are top')+'</div>'+
+      '<div class="v">'+(ahead? (fmt(gap)+' away') : '&#127881;')+'</div></div>'+
+    '</div>';
+  }
+
+  document.getElementById('body').innerHTML = html;
+}
+
+load();
+</script>
+<script defer src="notif.js"></script>
+<script src="i18n.js"></script>
+</body>
+</html>

@@ -1,0 +1,310 @@
+/* ===========================================================================
+   tsfg-ui.css — one visual language for The Standard, on every screen.
+
+   Christopher: "please create these dashboards on the entire app interface...
+   this is how we can be more simple and concise on all platforms. translate
+   from the apps to the main page."
+
+   The point of a shared sheet rather than six prettier pages: the mockups all
+   speak the same vocabulary — a gold-on-near-black ground, a hairline card, a
+   segmented control, a tile, a stat, a stepper — so that vocabulary is defined
+   ONCE here and every page spends it. A screen built next month inherits the
+   look without anyone remembering to copy it.
+
+   Nothing here is page-specific, and nothing here is destructive: it defines
+   new classes (tsfg-*) rather than restyling bare elements, so it can be added
+   to an existing page without disturbing what is already drawn.
+   =========================================================================== */
+
+:root{
+  /* --- ground ------------------------------------------------------------ */
+  --tsfg-bg:        #000000;   /* the app ground; the mockups are true black  */
+  --tsfg-raise:     #121212;   /* a card or tile sitting on it                */
+  --tsfg-raise-2:   #1b1b1b;   /* a field inside a card, or a pressed tile    */
+  --tsfg-line:      #242424;   /* hairline border                             */
+  --tsfg-line-soft: #1d1d1d;
+
+  /* --- ink --------------------------------------------------------------- */
+  --tsfg-ink:   #f7f7f8;
+  --tsfg-ink-2: #9a9a9f;       /* secondary copy, labels                      */
+  --tsfg-ink-3: #6d6d73;       /* placeholder, the quietest thing on screen   */
+
+  /* --- gold: the one accent, spent sparingly ----------------------------- */
+  --tsfg-gold:     #e8c777;
+  --tsfg-gold-2:   #c9a24a;    /* the deeper end, for gradients and fills     */
+  --tsfg-gold-dim: #8d7433;    /* a gold that has stepped back                */
+  --tsfg-gold-wash:rgba(232,199,119,.12);
+
+  /* --- meaning, kept separate from the accent ---------------------------- */
+  --tsfg-good: #46c07a;
+  --tsfg-warn: #e0a83a;
+  --tsfg-bad:  #e2685c;
+  --tsfg-info: #5aa9e6;
+
+  /* --- type -------------------------------------------------------------- */
+  --tsfg-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, system-ui, sans-serif;
+  --tsfg-serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+
+  /* --- geometry ---------------------------------------------------------- */
+  --tsfg-r:    14px;           /* the house radius                            */
+  --tsfg-r-sm: 10px;
+  --tsfg-r-pill: 999px;
+  --tsfg-gap:  12px;
+}
+
+/* A page that opts in gets the ground and the type. */
+.tsfg{
+  background: var(--tsfg-bg);
+  color: var(--tsfg-ink);
+  font-family: var(--tsfg-sans);
+  -webkit-font-smoothing: antialiased;
+  color-scheme: dark;
+}
+
+/* ============================ the wordmark ============================== */
+.tsfg-brand{ text-align:center; padding:18px 16px 12px; }
+.tsfg-brand img{ width:62px; height:62px; object-fit:contain; display:block; margin:0 auto 8px; }
+.tsfg-brand h1{
+  font-family: var(--tsfg-serif);
+  font-size: clamp(21px, 5.6vw, 27px);
+  letter-spacing:.14em; color:var(--tsfg-gold);
+  margin:0; font-weight:400; line-height:1;
+}
+.tsfg-brand .sub{
+  font-size:9.5px; letter-spacing:.34em; color:var(--tsfg-gold-dim);
+  font-weight:600; margin-top:7px; text-transform:uppercase;
+}
+
+/* ============================ page furniture ============================ */
+.tsfg-wrap{ max-width:520px; margin:0 auto; padding:0 16px calc(28px + env(safe-area-inset-bottom)); }
+.tsfg-wide{ max-width:1100px; }
+
+.tsfg-top{
+  display:flex; align-items:center; gap:10px;
+  padding:calc(10px + env(safe-area-inset-top)) 16px 10px;
+  position:sticky; top:0; z-index:40;
+  background:linear-gradient(var(--tsfg-bg) 70%, transparent);
+}
+.tsfg-back{
+  width:34px; height:34px; flex:0 0 auto; border:0; background:none;
+  color:var(--tsfg-gold); font-size:26px; line-height:1; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+}
+.tsfg-top h2{ font-size:17px; font-weight:800; letter-spacing:-.02em; margin:0; flex:1 1 auto; }
+
+/* A big page title, the way the mockups open a screen. */
+.tsfg-title{ font-size:clamp(27px,7.4vw,34px); font-weight:800; letter-spacing:-.03em; margin:4px 0 2px; }
+.tsfg-lede{ color:var(--tsfg-ink-2); font-size:13.5px; margin:0 0 16px; line-height:1.45; }
+
+.tsfg-h{ font-size:19px; font-weight:800; letter-spacing:-.02em; margin:22px 0 11px; }
+.tsfg-label{
+  font-size:10.5px; font-weight:800; letter-spacing:.09em; text-transform:uppercase;
+  color:var(--tsfg-ink-2); margin:0 0 8px;
+}
+
+/* ============================== surfaces ================================ */
+.tsfg-card{
+  background:var(--tsfg-raise); border:1px solid var(--tsfg-line);
+  border-radius:var(--tsfg-r); padding:14px 15px;
+}
+.tsfg-card + .tsfg-card{ margin-top:10px; }
+.tsfg-card.gold{ border-color:var(--tsfg-gold-dim); }
+
+/* A row of label → value, which most of these screens are made of. */
+.tsfg-row{
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  padding:11px 0; border-bottom:1px solid var(--tsfg-line-soft);
+}
+.tsfg-row:last-child{ border-bottom:0; }
+.tsfg-row .k{ color:var(--tsfg-ink-2); font-size:13.5px; }
+.tsfg-row .v{ font-weight:700; font-size:14px; text-align:right; }
+.tsfg-row .v.good{ color:var(--tsfg-good); }
+
+/* ============================== the tiles =============================== */
+/* The 2-up grid of tools on the home screen. */
+.tsfg-tiles{ display:grid; grid-template-columns:1fr 1fr; gap:var(--tsfg-gap); }
+.tsfg-tile{
+  position:relative; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:10px;
+  min-height:106px; padding:18px 12px;
+  background:var(--tsfg-raise); border:1px solid var(--tsfg-gold-dim);
+  border-radius:var(--tsfg-r); cursor:pointer; color:var(--tsfg-ink);
+  font-family:inherit; font-size:13.5px; font-weight:700; letter-spacing:-.01em;
+  text-align:center; text-decoration:none;
+  transition:background .14s ease, transform .14s ease, border-color .14s ease;
+}
+.tsfg-tile:active{ background:var(--tsfg-raise-2); transform:scale(.978); }
+.tsfg-tile svg{ width:28px; height:28px; stroke:var(--tsfg-gold); fill:none; stroke-width:1.6; }
+.tsfg-tile .badge{
+  position:absolute; top:9px; right:10px; min-width:19px; height:19px; padding:0 5px;
+  border-radius:var(--tsfg-r-pill); background:var(--tsfg-gold); color:#17120a;
+  font-size:11px; font-weight:800; display:flex; align-items:center; justify-content:center;
+}
+
+/* ========================= segmented controls =========================== */
+/* The This week / This month / All time and Directs / Production / Paid rows. */
+.tsfg-seg{
+  display:flex; gap:0; background:var(--tsfg-raise); border:1px solid var(--tsfg-line);
+  border-radius:var(--tsfg-r-sm); overflow:hidden; margin-bottom:9px;
+}
+.tsfg-seg button{
+  flex:1 1 0; min-width:0; padding:9px 6px; border:0; background:none; cursor:pointer;
+  font-family:inherit; font-size:12.5px; font-weight:700; color:var(--tsfg-ink-2);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  transition:background .12s ease, color .12s ease;
+}
+.tsfg-seg button.on{ background:var(--tsfg-gold); color:#17120a; }
+
+/* Standalone pills, where a segmented control would be too heavy. */
+.tsfg-pills{ display:flex; gap:8px; flex-wrap:wrap; }
+.tsfg-pill{
+  padding:7px 15px; border-radius:var(--tsfg-r-pill); border:1px solid var(--tsfg-line);
+  background:var(--tsfg-raise); color:var(--tsfg-ink-2);
+  font-family:inherit; font-size:12.5px; font-weight:700; cursor:pointer;
+}
+.tsfg-pill.on{ background:var(--tsfg-gold); border-color:var(--tsfg-gold); color:#17120a; }
+
+/* ============================== buttons ================================= */
+.tsfg-btn{
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  width:100%; padding:14px 18px; border-radius:var(--tsfg-r-sm); border:1px solid transparent;
+  background:linear-gradient(180deg, var(--tsfg-gold), var(--tsfg-gold-2));
+  color:#17120a; font-family:inherit; font-size:15px; font-weight:800; cursor:pointer;
+}
+.tsfg-btn:active{ filter:brightness(.94); }
+.tsfg-btn.ghost{
+  background:none; border-color:var(--tsfg-gold-dim); color:var(--tsfg-gold);
+}
+.tsfg-btn.quiet{ background:none; border-color:var(--tsfg-line); color:var(--tsfg-ink-2); }
+.tsfg-btn[disabled]{ opacity:.5; cursor:default; }
+.tsfg-btn.sm{ padding:10px 14px; font-size:13.5px; }
+.tsfg-btnrow{ display:flex; gap:10px; }
+.tsfg-btnrow .tsfg-btn{ flex:1 1 0; }
+
+/* =============================== fields ================================= */
+.tsfg-field{ margin-bottom:13px; }
+.tsfg-field > label{
+  display:block; font-size:12.5px; font-weight:700; color:var(--tsfg-ink); margin:0 0 6px;
+}
+.tsfg-field > label .req{ color:var(--tsfg-bad); }
+.tsfg-field > label .opt{ color:var(--tsfg-ink-2); font-weight:600; }
+.tsfg-input, .tsfg-field input, .tsfg-field select, .tsfg-field textarea{
+  width:100%; box-sizing:border-box; padding:13px 14px;
+  background:var(--tsfg-raise-2); color:var(--tsfg-ink);
+  border:1px solid var(--tsfg-line); border-radius:var(--tsfg-r-sm);
+  font-family:inherit; font-size:16px;              /* 16px: iOS zooms below it */
+}
+.tsfg-field input::placeholder, .tsfg-field textarea::placeholder{ color:var(--tsfg-ink-3); }
+.tsfg-field input:focus, .tsfg-field select:focus, .tsfg-field textarea:focus{
+  outline:none; border-color:var(--tsfg-gold-dim);
+  box-shadow:0 0 0 3px var(--tsfg-gold-wash);
+}
+/* Validation, as the mockup shows it: the field says what is wrong, in place. */
+.tsfg-field.bad input, .tsfg-field.bad select{ border-color:var(--tsfg-bad); }
+.tsfg-field .err{ display:none; color:var(--tsfg-bad); font-size:12px; margin-top:5px; }
+.tsfg-field.bad .err{ display:block; }
+.tsfg-field .hint{ color:var(--tsfg-ink-2); font-size:12px; margin-top:5px; }
+
+.tsfg-banner{
+  display:flex; align-items:flex-start; gap:10px;
+  background:rgba(226,104,92,.14); border:1px solid rgba(226,104,92,.4);
+  color:#f3bdb6; border-radius:var(--tsfg-r-sm); padding:11px 13px;
+  font-size:13px; line-height:1.4; margin-bottom:14px;
+}
+
+/* =============================== stepper ================================ */
+/* Client → Policy → Review. */
+.tsfg-steps{ display:flex; align-items:center; margin:14px 0 20px; }
+.tsfg-step{ display:flex; flex-direction:column; align-items:center; gap:6px; flex:0 0 auto; }
+.tsfg-step .dot{
+  width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+  border:1.5px solid var(--tsfg-line); color:var(--tsfg-ink-2);
+  font-size:13px; font-weight:800; background:var(--tsfg-bg);
+}
+.tsfg-step.on .dot{ background:var(--tsfg-gold); border-color:var(--tsfg-gold); color:#17120a; }
+.tsfg-step.done .dot{ background:var(--tsfg-gold); border-color:var(--tsfg-gold); color:#17120a; }
+.tsfg-step .lbl{ font-size:11.5px; font-weight:700; color:var(--tsfg-ink-2); }
+.tsfg-step.on .lbl{ color:var(--tsfg-gold); }
+.tsfg-steps .bar{ flex:1 1 auto; height:1.5px; background:var(--tsfg-line); margin:0 2px 18px; }
+.tsfg-steps .bar.done{ background:var(--tsfg-gold); }
+
+/* ================================ stats ================================= */
+.tsfg-stats{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.tsfg-stat{
+  background:var(--tsfg-raise); border:1px solid var(--tsfg-line);
+  border-radius:var(--tsfg-r); padding:13px 14px;
+}
+.tsfg-stat .k{ font-size:11.5px; color:var(--tsfg-ink-2); font-weight:600; }
+.tsfg-stat .v{ font-size:22px; font-weight:800; letter-spacing:-.02em; margin-top:3px; }
+.tsfg-stat .v.gold{ color:var(--tsfg-gold); }
+
+/* ============================== empty state ============================= */
+.tsfg-empty{ text-align:center; padding:40px 20px; color:var(--tsfg-ink-2); }
+.tsfg-empty .ic{
+  width:74px; height:74px; border-radius:50%; background:var(--tsfg-raise);
+  display:flex; align-items:center; justify-content:center; margin:0 auto 14px;
+}
+.tsfg-empty .ic svg{ width:30px; height:30px; stroke:var(--tsfg-ink-2); fill:none; stroke-width:1.5; }
+.tsfg-empty b{ display:block; color:var(--tsfg-ink); font-size:16px; margin-bottom:5px; }
+.tsfg-empty span{ font-size:13.5px; }
+
+/* ============================ bottom tab bar ============================ */
+.tsfg-tabs{
+  position:fixed; left:0; right:0; bottom:0; z-index:60;
+  background:rgba(10,10,10,.94); -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px);
+  border-top:1px solid var(--tsfg-line);
+  display:grid; grid-template-columns:repeat(var(--tsfg-tabn,3),1fr);
+  padding-bottom:env(safe-area-inset-bottom);
+}
+.tsfg-tab{
+  height:58px; border:0; background:none; cursor:pointer; font-family:inherit;
+  color:var(--tsfg-ink-3); font-size:10px; font-weight:700;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
+  text-decoration:none;
+}
+.tsfg-tab svg{ width:21px; height:21px; stroke:currentColor; fill:none; stroke-width:1.7; }
+.tsfg-tab.on{ color:var(--tsfg-gold); }
+.tsfg-haspad{ padding-bottom:calc(58px + env(safe-area-inset-bottom)); }
+
+/* ============================== utilities =============================== */
+.tsfg-scroll-x{ overflow-x:auto; -webkit-overflow-scrolling:touch; }
+.tsfg-scroll-x::-webkit-scrollbar{ display:none; }
+.tsfg-mono{ font-variant-numeric:tabular-nums; }
+.tsfg-muted{ color:var(--tsfg-ink-2); }
+.tsfg-gold{ color:var(--tsfg-gold); }
+.tsfg-center{ text-align:center; }
+.tsfg-spin{ padding:36px; text-align:center; color:var(--tsfg-ink-2); font-size:13.5px; }
+
+/* Wider screens: the mockups are phone-first, so the desktop simply gets more
+   room and more columns rather than a different design. */
+@media (min-width:720px){
+  .tsfg-tiles{ grid-template-columns:repeat(3,1fr); }
+  .tsfg-stats{ grid-template-columns:repeat(4,1fr); }
+  .tsfg-tabs{ display:none; }
+  .tsfg-haspad{ padding-bottom:28px; }
+}
+
+@media (prefers-reduced-motion:reduce){
+  .tsfg-tile, .tsfg-btn, .tsfg-seg button{ transition:none; }
+}
+
+/* ===================== the language toggle, tamed =====================
+   i18n.js injects its EN/ES switch into the first <header> on the page, with its own
+   styling. Dropped into this design it arrived as a full-width blue segmented control
+   sitting under the wordmark. It is a real feature — a good part of the team reads
+   Spanish — so it is restyled to belong here rather than hidden. */
+.tsfg-lang.hdr{
+  display:inline-flex !important; gap:0; width:auto !important; margin:10px auto 0 !important;
+  border:1px solid var(--tsfg-line); border-radius:var(--tsfg-r-pill); overflow:hidden;
+  background:var(--tsfg-raise) !important;
+}
+.tsfg-lang.hdr button{
+  padding:5px 13px !important; border:0 !important; background:none !important;
+  color:var(--tsfg-ink-2) !important; font-family:inherit !important;
+  font-size:11px !important; font-weight:800 !important; letter-spacing:.06em;
+  cursor:pointer; border-radius:0 !important; min-width:0 !important;
+}
+.tsfg-lang.hdr button.on,
+.tsfg-lang.hdr button[aria-pressed="true"]{
+  background:var(--tsfg-gold) !important; color:#17120a !important;
+}
