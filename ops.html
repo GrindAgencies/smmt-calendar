@@ -258,6 +258,13 @@ input.cellin.stin{font-weight:800}
 .stcode{font-size:11px;font-weight:800;color:var(--ink3,#8e8e93);width:26px}
 .strow2 select{padding:5px 8px;border-radius:8px;border:1px solid var(--line2);background:var(--panel);font-size:12.5px}
 .stlegend{display:inline-flex;align-items:center;gap:13px;flex-wrap:wrap;font-size:11.5px;color:var(--ink3,#8e8e93)}
+
+/* A locked column has to LOOK locked, or the reassurance is worthless. The header carries
+   the padlock and a faint gold wash; the cells underneath simply have no input in them. */
+.nblock{border:0;background:none;cursor:pointer;font-size:12px;line-height:1;padding:0 0 0 6px;opacity:.35;filter:grayscale(1)}
+.nblock:hover{opacity:.85;filter:none}
+.nblock.on{opacity:1;filter:none}
+th.lockedcol{background:rgba(201,154,46,.14)!important;box-shadow:inset 0 -2px 0 var(--gold)}
 </style>
 <script src="ops-session.js"></script>
 </head>
@@ -729,7 +736,7 @@ function nbDash(){return '<span style="color:var(--line2)">—</span>';}
 function nbOpts(col){return Array.isArray(col.options)?col.options:[];}
 function nbOptColor(col,val){var o=nbOpts(col).filter(function(x){return x.value===val;})[0];return o?o.color:'#8e8e93';}
 function nbOptIndex(col,val){var a=nbOpts(col);for(var i=0;i<a.length;i++){if(a[i].value===val)return i;}return -1;}
-function renderNewbiz(){NBBOARD=(TAB==='gfi')?'gfi':'newbiz';NBLIVE=(TAB==='newbiz');var host=$('newbizHost');if(!host)return;host.innerHTML='<div class="spin">Loading…</div>';
+function renderNewbiz(){NBBOARD=(TAB==='gfi')?'gfi':'newbiz';NBLIVE=(TAB==='newbiz');nbLoadLocks();var host=$('newbizHost');if(!host)return;host.innerHTML='<div class="spin">Loading…</div>';
   if(!STCFG.categories.length)loadStateColors(function(){if(TAB==='newbiz'||TAB==='gfi')paintNewbiz();});
   nbApi({action:'nb_list',archived:NBARCH}).then(function(r){if(!r||!r.ok){host.innerHTML='<div class="empty">Could not load.</div>';return;}NBT=r.tickets||[];NBCOLS=r.columns||[];NBEDIT=!!r.can_edit;NBARCHCOUNT=r.archived_count||0;NBIFCOUNT=r.inforce_count||0;
     if(NBSORT.k!=='__notes'&&!NBCOLS.some(function(c){return c.key===NBSORT.k;}))NBSORT.k=(NBCOLS[0]&&NBCOLS[0].key)||'client_name';
@@ -867,7 +874,38 @@ function saveStateColors(){
      if(TAB==='newbiz'||TAB==='gfi')paintNewbiz();
    }).catch(function(){toast('Network error');});
 }
-function nbCell(t,col){var v=nbVal(t,col.key);var ed=NBEDIT&&!col.ro;var firstKey=NBCOLS[0]&&NBCOLS[0].key;
+/* ===== COLUMN LOCKS =================================================================
+   Christopher: "put in an unlock lock feature per column so that data cant get
+   accidentally changed when editing. allow operations staff to lock and hold columns
+   while she is importing."
+
+   The board edits inline and saves on change, which is what makes it fast and also what
+   makes it dangerous during an import: a stray click, a mis-aimed paste or an arrow key
+   on the wrong row writes straight to a live policy. A locked column simply stops being
+   an input -- it renders as plain text, so there is nothing there to type into.
+
+   Locks are per person and per board, held in this browser. They are a guard on the hand,
+   not a permission: they protect Operations from a slip while they work, and they survive
+   a reload, so a lock set before an import is still on afterwards. */
+var NBLOCK={};
+function nbLockKey(){return 'tsfg_nblock_'+(NBBOARD||'newbiz');}
+function nbLoadLocks(){try{NBLOCK=JSON.parse(localStorage.getItem(nbLockKey())||'{}')||{};}catch(e){NBLOCK={};}}
+function nbSaveLocks(){try{localStorage.setItem(nbLockKey(),JSON.stringify(NBLOCK));}catch(e){}}
+function nbLocked(k){return !!NBLOCK[k];}
+function nbLockCount(){var n=0;for(var k in NBLOCK)if(NBLOCK[k])n++;return n;}
+function nbToggleLock(k,ev){
+  if(ev&&ev.stopPropagation)ev.stopPropagation();          /* never also sort the column */
+  var col=NBCOLS.filter(function(c){return c.key===k;})[0];
+  if(NBLOCK[k])delete NBLOCK[k];else NBLOCK[k]=1;
+  nbSaveLocks();paintNewbiz();
+  toast((NBLOCK[k]?'🔒 ':'🔓 ')+((col&&col.label)||k)+(NBLOCK[k]?' locked — it cannot be edited':' unlocked'));
+}
+function nbLockAll(on){
+  NBCOLS.forEach(function(c){if(c.ro)return;if(on)NBLOCK[c.key]=1;else delete NBLOCK[c.key];});
+  nbSaveLocks();paintNewbiz();
+  toast(on?'🔒 Every column locked — safe to import':'🔓 All columns unlocked');
+}
+function nbCell(t,col){var v=nbVal(t,col.key);var ed=NBEDIT&&!col.ro&&!nbLocked(col.key);var firstKey=NBCOLS[0]&&NBCOLS[0].key;
   if(col.type==='select')return ed?nbSelectCell(t,col):nbSelectPill(col,v);
   if(col.key==='client'&&NBLIVE&&v)return '<button class="namebtn" onclick="openClient(\''+esc(String(v)).replace(/'/g,"\\'")+'\')" title="Open client profile">'+esc(v)+'</button><a onclick="openTicket(\''+t.id+'\')" title="Open policy ticket" style="cursor:pointer;color:var(--ink3);margin-left:7px;font-size:12px;text-decoration:none">📄</a>';
   if(col.key===firstKey)return '<a onclick="openTicket(\''+t.id+'\')" style="cursor:pointer;font-weight:800;color:var(--gold);text-decoration:none">'+(esc(v)||'—')+'</a>';
@@ -932,7 +970,12 @@ function nbCopyAll(btn){
   toast('Copied '+rows.length+' record'+(rows.length===1?'':'s')+' — paste into a spreadsheet');
 }
 function paintNewbiz(){var host=$('newbizHost');if(!host)return;var rows=nbFiltered();
-  var head='<th style="width:34px" title="Copy a record">⧉</th>'+NBCOLS.map(function(col){var ar=(NBSORT.k===col.key)?('<span class="sarrow on">'+(NBSORT.dir>0?'▲':'▼')+'</span>'):'<span class="sarrow">↕</span>';var hc=col.headerColor?('background:'+col.headerColor+'22;'):'';return '<th style="'+hc+(col.type==='money'?'text-align:right':'')+'"><span class="thlbl" onclick="nbSortBy(\''+col.key+'\')">'+esc(col.label)+ar+'</span></th>';}).join('');
+  var head='<th style="width:34px" title="Copy a record">⧉</th>'+NBCOLS.map(function(col){var ar=(NBSORT.k===col.key)?('<span class="sarrow on">'+(NBSORT.dir>0?'▲':'▼')+'</span>'):'<span class="sarrow">↕</span>';var hc=col.headerColor?('background:'+col.headerColor+'22;'):'';
+    /* The padlock sits in the header because that is where the column is, and it must not
+       also sort when clicked -- nbToggleLock swallows the event. Read-only columns are
+       derived and already uneditable, so they are not offered a lock. */
+    var lk=(NBEDIT&&!col.ro)?('<button class="nblock'+(nbLocked(col.key)?' on':'')+'" title="'+(nbLocked(col.key)?'Locked — click to allow edits':'Lock this column so it cannot be edited')+'" onclick="nbToggleLock(\''+col.key+'\',event)">'+(nbLocked(col.key)?'🔒':'🔓')+'</button>'):'';
+    return '<th class="'+(nbLocked(col.key)?'lockedcol':'')+'" style="'+hc+(col.type==='money'?'text-align:right':'')+'"><span class="thlbl" onclick="nbSortBy(\''+col.key+'\')">'+esc(col.label)+ar+'</span>'+lk+'</th>';}).join('');
   head+='<th><span class="thlbl" onclick="nbSortBy(\'__notes\')">Notes'+(NBSORT.k==='__notes'?('<span class="sarrow on">'+(NBSORT.dir>0?'▲':'▼')+'</span>'):'<span class="sarrow">↕</span>')+'</span></th>';
   var body=rows.length?rows.map(function(t){var rc=(t.data&&t.data._color)||'';return '<tr'+(rc?(' style="background:'+rc+'22"'):'')+'>'+
       '<td style="white-space:nowrap;padding-right:0"><button class="nbcopy" title="Copy this record" onclick="nbCopyRow(\''+t.id+'\',this)">⧉</button></td>'+
@@ -941,11 +984,15 @@ function paintNewbiz(){var host=$('newbizHost');if(!host)return;var rows=nbFilte
   var liveArchBtn='<button class="dbtn ghost" style="padding:6px 12px;font-size:12.5px'+(NBARCH?';border-color:var(--gold);color:var(--gold)':'')+'" onclick="nbToggleArch()" title="Cancelled, Declined &amp; Incomplete — closed for good, kept for records. A policy that goes IN FORCE is not archived; it moves to the In Force tab.">🗄 '+(NBARCH?'Viewing archive — back to active':'Archived ('+NBARCHCOUNT+')')+'</button>';
   var ifBtn=NBLIVE?('<button class="dbtn ghost" style="padding:6px 12px;font-size:12.5px" onclick="setTab(\'inforce\')" title="On the books — still tracked, just not pending">🟢 In Force ('+NBIFCOUNT+')</button>'):'';
   var copyAllBtn='<button class="dbtn ghost" style="padding:6px 12px;font-size:12.5px" onclick="nbCopyAll(this)" title="Copy every record shown, tab-separated — pastes into Sheets or Excel as columns">⧉ Copy all</button>';
-  var toolbar=NBLIVE?('<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span style="font-size:12px;color:var(--green);font-weight:800">🔄 Live · two-way synced with agents</span>'+ifBtn+liveArchBtn+copyAllBtn+(NBEDIT?'<button class="dbtn ghost" style="padding:6px 12px;font-size:12.5px" onclick="openNbCols()">⚙ Reorder columns</button>':'')+'</div>'):(NBEDIT?('<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="dbtn ghost" style="padding:6px 12px;font-size:12.5px" onclick="openSheetImport()" title="Bring your existing Google Sheet onto this board">📥 Import from Google Sheets</button><button class="dbtn ghost" style="padding:6px 12px;font-size:12.5px'+(NBARCH?';border-color:var(--gold);color:var(--gold)':'')+'" onclick="nbToggleArch()">🗄 '+(NBARCH?'Viewing archive — back to active':'Archived ('+NBARCHCOUNT+')')+'</button><button class="dbtn ghost" style="padding:6px 12px;font-size:12.5px" onclick="openNbCols()">⚙ Edit columns</button></div>'):'');
+  /* One control for the whole board, because the moment you actually want this is the moment
+     before a big import -- not column by column. */
+  var nlk=nbLockCount();
+  var lockBtn=NBEDIT?('<button class="dbtn ghost" style="padding:6px 12px;font-size:12.5px'+(nlk?';border-color:var(--gold);color:var(--gold);font-weight:800':'')+'" onclick="nbLockAll('+(nlk?'false':'true')+')" title="'+(nlk?'Unlock every column':'Lock every column so nothing can be changed by accident — use this while importing')+'">'+(nlk?('🔒 '+nlk+' locked — unlock all'):'🔓 Lock columns')+'</button>'):'';
+  var toolbar=NBLIVE?('<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span style="font-size:12px;color:var(--green);font-weight:800">🔄 Live · two-way synced with agents</span>'+ifBtn+liveArchBtn+copyAllBtn+lockBtn+(NBEDIT?'<button class="dbtn ghost" style="padding:6px 12px;font-size:12.5px" onclick="openNbCols()">⚙ Reorder columns</button>':'')+'</div>'):(NBEDIT?('<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="dbtn ghost" style="padding:6px 12px;font-size:12.5px" onclick="openSheetImport()" title="Bring your existing Google Sheet onto this board">📥 Import from Google Sheets</button><button class="dbtn ghost" style="padding:6px 12px;font-size:12.5px'+(NBARCH?';border-color:var(--gold);color:var(--gold)':'')+'" onclick="nbToggleArch()">🗄 '+(NBARCH?'Viewing archive — back to active':'Archived ('+NBARCHCOUNT+')')+'</button><button class="dbtn ghost" style="padding:6px 12px;font-size:12.5px" onclick="openNbCols()">⚙ Edit columns</button>'+lockBtn+'</div>'):'');
   host.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin:0 0 10px;flex-wrap:wrap"><div style="font-size:12.5px;color:var(--ink3,#8e8e93)">'+rows.length+' '+(NBARCH?'archived ':'')+(rows.length===1?noun:nouns)+stateLegend(rows)+' · click the first cell to open '+(NBLIVE?'notes &amp; history':(NBBOARD==='gfi'?'the ticket &amp; update history':'notes'))+(NBEDIT&&!NBARCH?(NBLIVE?' · every field edits inline &amp; syncs to the agent side (Writing Agent &amp; Baseshop are derived)':' · cells edit inline'):'')+'</div>'+toolbar+'</div>'+
     '<div class="tablewrap" style="overflow-x:auto"><table class="ptable" style="min-width:1200px"><thead><tr>'+head+'</tr></thead><tbody>'+body+'</tbody></table></div>';}
 function nbSet(id,field,val){nbApi({action:'nb_update',id:id,field:field,value:val}).then(function(r){if(!r||!r.ok){toast((r&&r.error)||'Save failed');return;}var t=NBT.filter(function(x){return x.id===id;})[0];if(t){t.data=t.data||{};t.data[field]=val;}if(r.moved){NBT=NBT.filter(function(x){return x.id!==id;});closeDrawer();if(r.moved==='inforce'){NBIFCOUNT++;toast('🟢 In force — still tracked, now on the In Force tab');}else{NBARCHCOUNT++;toast('🗄 Closed — moved to Archived');}paintNewbiz();return;}paintNewbiz();if(field!=='_color')toast('Saved ✓');});}
-function nbDrawerField(id,col,v){var ed=NBEDIT&&!col.ro;
+function nbDrawerField(id,col,v){var ed=NBEDIT&&!col.ro&&!nbLocked(col.key);
   if(col.type==='select'){if(!ed)return '<div class="fg"><label>'+esc(col.label)+'</label><div style="padding:4px 0">'+nbSelectPill(col,v)+'</div></div>';var c=nbOptColor(col,v);return '<div class="fg"><label>'+esc(col.label)+'</label><select style="font-weight:700'+(v?(';color:'+c):'')+'" onchange="nbSet(\''+id+'\',\''+col.key+'\',this.value)"><option value=""></option>'+nbOpts(col).map(function(o,i){return '<option value="'+esc(o.value)+'"'+(o.value===v?' selected':'')+' style="color:'+esc(o.color)+'">'+esc((i+1)+'. '+o.value)+'</option>';}).join('')+'</select></div>';}
   return '<div class="fg"><label>'+esc(col.label)+'</label>'+(ed?'<input value="'+esc(v)+'" onchange="nbSet(\''+id+'\',\''+col.key+'\',this.value)">':'<div style="padding:6px 0;font-size:14px">'+((col.type==='money'?esc(nbFmtMoney(v)):esc(v))||'—')+'</div>')+'</div>';}
 function openTicket(id){var t=NBT.filter(function(x){return x.id===id;})[0];if(!t)return;NBCUR=id;
