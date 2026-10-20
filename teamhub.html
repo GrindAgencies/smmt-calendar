@@ -297,6 +297,10 @@ html, body{ overflow-x: hidden; }
 </div></div>
 <aside class="side" id="side"></aside>
 <header class="top">
+  <!-- The Hub had no way back to the tools screen at all, which is what Elijah reported.
+       Hidden in Ops oversight mode (teamhub.html?ops=1) because there it is an iframe
+       inside the Ops dashboard and "Home" would navigate the panel, not the page. -->
+  <button class="tic" id="hubHome" onclick="location.href='app.html'" aria-label="Home" title="Home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10 9-7 9 7v9a2 2 0 0 1-2 2h-4v-6H9v6H5a2 2 0 0 1-2-2Z"/></svg></button>
   <button class="tic chan-toggle" onclick="toggleRooms()" title="Show / hide channels"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg><span class="ct-lbl">Channels</span></button>
   <div class="ttl">Team Hub</div><div style="flex:1"></div>
   <button class="tic" data-drop="avIn" onclick="document.getElementById('avIn').click()" title="Set your photo">📷</button>
@@ -395,6 +399,7 @@ var OPSMODE=false,OPSTOKEN='',OPSDMS=[];
   if(!t){ try{ t=(window.parent&&window.parent!==window&&window.parent.sessionStorage.getItem('tsfg_ops_token'))||''; }catch(e){} }
   if(!t){ OPSMODE=false; OPSTOKEN=''; return; }
   OPSMODE=true; OPSTOKEN=t;
+  var hh=document.getElementById('hubHome'); if(hh) hh.style.display='none';
 }catch(e){}})();
 function hops(b){b=b||{};b.token=OPSTOKEN;return fetch(HUBOPS,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();}).catch(function(){return{ok:false};});}
 var ACC={mod:false,role:'agent',licensed:false},MODTOKEN='';

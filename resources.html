@@ -200,6 +200,10 @@ html, body{ overflow-x: hidden; }
   <div class="tsfg-foot"><a class="side-link" href="#" onclick="tsfgSignOut();return false;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg><span class="lbl">Sign out</span></a></div>
 </aside>
 <header class="tsfg-top">
+  <!-- Direct route to the main tools screen. The hamburger beside it opens the section
+       menu; the brief is explicit that getting Home must not require opening a menu
+       and picking Home out of it. -->
+  <button class="tsfg-ic" onclick="location.href='app.html'" aria-label="Home" title="Home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10 9-7 9 7v9a2 2 0 0 1-2 2h-4v-6H9v6H5a2 2 0 0 1-2-2Z"/></svg></button>
   <button class="tsfg-ic" onclick="tsfgToggle()" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
   <div class="tsfg-title">Resources</div>
 </header>

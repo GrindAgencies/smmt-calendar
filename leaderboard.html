@@ -195,7 +195,11 @@ try{ if(!localStorage.getItem('tsfg_code')) location.replace('index.html'); }cat
 var CODE = (localStorage.getItem('tsfg_code')||'').toUpperCase();
 
 function go(u){ location.href=u; }
-function back(){ if(history.length>1) history.back(); else go('app.html'); }
+/* Back always returns to the main tools screen. It used to be history.back(), which
+   lands wherever you happened to come FROM — the sign-in page after a login redirect,
+   an external site, or nothing at all on a cold open from a shared link. A top-level
+   tool has exactly one parent and it is Home. */
+function back(){ go('app.html'); }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
 function initials(n){ n=String(n||'').trim(); if(!n) return '?'; var p=n.split(/\s+/); return ((p[0][0]||'')+(p.length>1?p[p.length-1][0]:'')).toUpperCase(); }
 

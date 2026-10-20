@@ -232,7 +232,14 @@ var CODE = (localStorage.getItem('tsfg_code')||'').toUpperCase();
 var NAME = localStorage.getItem('tsfg_name')||'';
 
 function go(u){ location.href=u; }
-function back(){ if(history.length>1) history.back(); else go('app.html'); }
+/* Back always returns to the main tools screen (see leaderboard.html). The one
+   exception is the brief's nested rule: an open editor closes first, so Back never
+   throws away a half-written event. */
+function back(){
+  var s=document.getElementById('evSheet');
+  if(s && s.classList.contains('on')){ closeNew(); return; }
+  go('app.html');
+}
 function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
 function toast(m){ var t=document.getElementById('toast'); t.textContent=m; t.classList.add('on'); clearTimeout(t._x); t._x=setTimeout(function(){t.classList.remove('on');},2600); }
 

@@ -319,7 +319,14 @@ try{ if(!localStorage.getItem('tsfg_code')) location.replace('index.html'); }cat
 var CODE=(localStorage.getItem('tsfg_code')||'').toUpperCase();
 
 function go(u){ location.href=u; }
-function back(){ if(history.length>1) history.back(); else go('app.html'); }
+/* Back always returns to the main tools screen (see leaderboard.html). The open
+   application wizard closes first, so Back never silently discards a part-filled
+   application the way a blind history.back() would. */
+function back(){
+  var w=$('wiz');
+  if(w && w.classList.contains('on')){ closeWiz(); return; }
+  go('app.html');
+}
 function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
 function $(i){ return document.getElementById(i); }
 function toast(m){ var t=$('toast'); t.textContent=m; t.classList.add('on'); clearTimeout(t._x); t._x=setTimeout(function(){t.classList.remove('on');},3000); }
