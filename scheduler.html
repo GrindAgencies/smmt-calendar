@@ -1,0 +1,563 @@
+<!doctype html>
+<html lang="en">
+<head>
+<script src="session.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Scheduler — The Standard</title>
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="stylesheet" href="tsfg-ui.css">
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;min-height:100%}
+  body{ -webkit-tap-highlight-color:transparent; }
+
+  /* ---------------------------- the week strip ---------------------------- */
+  .wk{ display:grid; grid-template-columns:repeat(7,1fr); gap:2px; margin:10px 0 6px; }
+  .wk button{
+    border:0; background:none; cursor:pointer; font-family:inherit;
+    display:flex; flex-direction:column; align-items:center; gap:5px; padding:4px 0;
+  }
+  .wk .dn{ font-size:11px; font-weight:700; color:var(--tsfg-ink-2); }
+  .wk .dd{
+    width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    font-size:15px; font-weight:700; color:var(--tsfg-ink);
+  }
+  .wk button.on .dd{ background:var(--tsfg-gold); color:#17120a; }
+  .wk button.today .dd{ box-shadow:inset 0 0 0 1.5px var(--tsfg-gold-dim); }
+  .wk button.has::after{ content:''; width:4px; height:4px; border-radius:50%; background:var(--tsfg-gold); }
+  .wk button:not(.has)::after{ content:''; width:4px; height:4px; }
+
+  .legend{ display:flex; gap:14px; align-items:center; font-size:11.5px; color:var(--tsfg-ink-2); margin:2px 0 14px; }
+  .legend i{ width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:5px; vertical-align:middle; }
+
+  /* ------------------------------ the day ------------------------------- */
+  .dayhead{ display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin:0 0 10px; }
+  .dayhead h3{ font-size:17px; font-weight:800; letter-spacing:-.02em; margin:0; }
+  .dayhead .meta{ font-size:12px; color:var(--tsfg-ink-2); }
+
+  /* The timeline: an hour column and an events column, so an event can sit at its hour. */
+  .tl{ position:relative; display:grid; grid-template-columns:52px 1fr; }
+  .tl .hr{ height:56px; font-size:11px; color:var(--tsfg-ink-3); padding-top:1px; }
+  .tl .slot{ height:56px; border-top:1px solid var(--tsfg-line-soft); position:relative; }
+  .ev{
+    position:absolute; left:4px; right:2px; border-radius:9px; padding:7px 10px; overflow:hidden;
+    border-left:3px solid var(--tsfg-gold); background:rgba(232,199,119,.13);
+    cursor:pointer;
+  }
+  .ev.team{ border-left-color:var(--tsfg-info); background:rgba(90,169,230,.13); }
+  .ev.off{ border-left-color:var(--tsfg-ink-3); background:rgba(154,154,159,.1); opacity:.6; }
+  .ev .t{ font-size:13px; font-weight:700; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .ev .s{ font-size:11.5px; color:var(--tsfg-ink-2); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+  /* The "now" line — the one thing that tells you where you are in the day. */
+  .now{ position:absolute; left:40px; right:0; height:0; z-index:4; pointer-events:none; }
+  .now .ln{ height:1.5px; background:var(--tsfg-gold); }
+  .now .bd{ position:absolute; left:10px; top:-4px; width:9px; height:9px; border-radius:50%; background:var(--tsfg-gold); }
+  .now .lb{ position:absolute; left:-40px; top:-8px; font-size:10.5px; font-weight:800; color:var(--tsfg-gold); }
+
+  /* -------------------------- agenda (list) view ------------------------- */
+  .ag{ border-left:3px solid var(--tsfg-gold); background:var(--tsfg-raise);
+       border-radius:0 var(--tsfg-r-sm) var(--tsfg-r-sm) 0; padding:11px 13px; margin-bottom:9px; cursor:pointer; }
+  .ag.team{ border-left-color:var(--tsfg-info); }
+  .ag.off{ border-left-color:var(--tsfg-ink-3); opacity:.65; }
+  .ag .t{ font-size:14.5px; font-weight:700; }
+  .ag .s{ font-size:12.5px; color:var(--tsfg-ink-2); margin-top:3px; }
+  .ag .dayhdr{ font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--tsfg-ink-2); }
+
+  /* ------------------------------- the FAB ------------------------------- */
+  .fab{
+    position:fixed; right:16px; bottom:calc(74px + env(safe-area-inset-bottom)); z-index:55;
+    width:56px; height:56px; border-radius:50%; border:0; cursor:pointer;
+    background:linear-gradient(180deg,var(--tsfg-gold),var(--tsfg-gold-2)); color:#17120a;
+    font-size:29px; line-height:1; display:flex; align-items:center; justify-content:center;
+    box-shadow:0 8px 22px rgba(0,0,0,.5);
+  }
+
+  /* ------------------------------ the sheet ------------------------------ */
+  .sheet{ position:fixed; inset:0; z-index:95; background:rgba(0,0,0,.6); display:none; }
+  .sheet.on{ display:block; }
+  .sheet-c{
+    position:absolute; left:0; right:0; bottom:0; max-height:94vh; overflow-y:auto;
+    background:var(--tsfg-bg); border-top:1px solid var(--tsfg-line);
+    border-radius:18px 18px 0 0; padding:0 16px calc(22px + env(safe-area-inset-bottom));
+  }
+  .sheet-top{
+    position:sticky; top:0; background:var(--tsfg-bg); z-index:2;
+    display:flex; align-items:center; gap:10px; padding:14px 0 12px;
+  }
+  .sheet-top h3{ flex:1 1 auto; font-size:16px; font-weight:800; margin:0; text-align:center; }
+  .sheet-top button{ border:0; background:none; color:var(--tsfg-gold); font-family:inherit;
+    font-size:15px; font-weight:700; cursor:pointer; padding:4px 2px; }
+  .sheet-top .x{ font-size:22px; }
+
+  .trow{ display:grid; grid-template-columns:62px 1fr 1fr; gap:9px; align-items:center; margin-bottom:10px; }
+  .trow > span{ font-size:13px; color:var(--tsfg-ink-2); }
+  .toggle{ display:flex; align-items:center; justify-content:space-between; padding:13px 0; }
+  .toggle label{ font-size:14.5px; }
+  .sw{ width:48px; height:28px; border-radius:999px; background:var(--tsfg-raise-2);
+       border:1px solid var(--tsfg-line); position:relative; cursor:pointer; flex:0 0 auto; }
+  .sw::after{ content:''; position:absolute; top:2px; left:2px; width:22px; height:22px; border-radius:50%;
+       background:#fff; transition:left .16s ease; }
+  .sw.on{ background:var(--tsfg-gold); border-color:var(--tsfg-gold); }
+  .sw.on::after{ left:23px; }
+
+  .toast{
+    position:fixed; left:50%; transform:translateX(-50%); bottom:calc(84px + env(safe-area-inset-bottom));
+    background:#1d1d1f; color:#fff; border:1px solid var(--tsfg-line);
+    padding:11px 17px; border-radius:999px; font-size:13.5px; font-weight:600;
+    opacity:0; pointer-events:none; transition:opacity .2s; z-index:200; max-width:88vw; text-align:center;
+  }
+  .toast.on{ opacity:1; }
+  .ntf-btn{ display:none !important; }
+</style>
+</head>
+<body class="tsfg tsfg-haspad">
+
+<div class="tsfg-top">
+  <button class="tsfg-back" onclick="back()" aria-label="Back">&lsaquo;</button>
+</div>
+
+<div class="tsfg-wrap">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+    <h1 class="tsfg-title">Scheduler</h1>
+    <button onclick="jumpToday()" class="tsfg-pill" style="margin-top:6px">Today</button>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:9px;margin:6px 0 2px">
+    <button class="tsfg-pill" onclick="shiftWeek(-1)" aria-label="Previous week">&lsaquo;</button>
+    <div id="monthLbl" style="flex:1 1 auto;font-size:15px;font-weight:800;letter-spacing:-.01em"></div>
+    <button class="tsfg-pill" onclick="shiftWeek(1)" aria-label="Next week">&rsaquo;</button>
+  </div>
+
+  <div class="tsfg-seg" id="segView">
+    <button data-v="day"    class="on" onclick="setView('day')">Day</button>
+    <button data-v="week"   onclick="setView('week')">Week</button>
+    <button data-v="agenda" onclick="setView('agenda')">Schedule</button>
+  </div>
+
+  <div class="wk" id="wk"></div>
+  <div class="legend">
+    <span><i style="background:var(--tsfg-gold)"></i>My calendar</span>
+    <span><i style="background:var(--tsfg-info)"></i>Booked with me</span>
+  </div>
+
+  <div id="body"><div class="tsfg-spin">Loading your schedule…</div></div>
+</div>
+
+<button class="fab" onclick="openNew()" aria-label="New event">+</button>
+
+<!-- ============================ new event ============================ -->
+<div class="sheet" id="evSheet" onclick="if(event.target===this)closeNew()">
+  <div class="sheet-c">
+    <div class="sheet-top">
+      <button class="x" onclick="closeNew()" aria-label="Close">&times;</button>
+      <h3>New event</h3>
+      <button onclick="saveEvent()" id="saveBtn">Save</button>
+    </div>
+
+    <div class="tsfg-field">
+      <input id="e_title" placeholder="Add a title" style="font-size:19px;font-weight:700;padding:15px 14px">
+      <div class="err" id="e_title_err">Give the event a title.</div>
+    </div>
+
+    <div class="tsfg-card" style="padding:4px 14px">
+      <div class="toggle">
+        <label for="e_allday">All-day</label>
+        <div class="sw" id="e_allday" onclick="this.classList.toggle('on');syncAllDay()"></div>
+      </div>
+    </div>
+
+    <div class="tsfg-card" style="margin-top:10px">
+      <div class="trow">
+        <span>Start</span>
+        <input type="date" id="e_date" class="tsfg-input" style="padding:10px">
+        <input type="time" id="e_start" class="tsfg-input" style="padding:10px">
+      </div>
+      <div class="trow">
+        <span>End</span>
+        <div></div>
+        <input type="time" id="e_end" class="tsfg-input" style="padding:10px">
+      </div>
+      <div class="err" id="e_time_err" style="display:none;color:var(--tsfg-bad);font-size:12px">The end time has to be after the start.</div>
+      <p class="tsfg-muted" style="font-size:12px;margin:4px 0 2px" id="tzLbl"></p>
+    </div>
+
+    <div class="tsfg-field" style="margin-top:12px">
+      <label>Who is it with <span class="opt">(optional)</span></label>
+      <input id="e_with" placeholder="Client or teammate name">
+    </div>
+    <div class="tsfg-field">
+      <label>Notes <span class="opt">(optional)</span></label>
+      <textarea id="e_notes" rows="3" placeholder="Anything you want on the card"></textarea>
+    </div>
+
+    <button class="tsfg-btn" onclick="saveEvent()" style="margin-top:4px">Save event</button>
+    <p class="tsfg-muted tsfg-center" style="font-size:12px;margin:12px 0 0">
+      This goes on your own calendar. To book a trainer or a client, use the full Scheduler.
+    </p>
+    <p class="tsfg-center" style="margin:10px 0 0">
+      <a href="calendar.html" style="color:var(--tsfg-gold);font-size:13px;text-decoration:none">Open the full Scheduler →</a>
+    </p>
+  </div>
+</div>
+
+<nav class="tsfg-tabs" style="--tsfg-tabn:4">
+  <button class="tsfg-tab" onclick="go('app.html')">
+    <svg viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v9a2 2 0 0 1-2 2h-4v-6H9v6H5a2 2 0 0 1-2-2Z"/></svg>Home
+  </button>
+  <button class="tsfg-tab" onclick="go('teamhub.html')">
+    <svg viewBox="0 0 24 24"><path d="M20 15a2 2 0 0 1-2 2H8l-4 4V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2Z"/></svg>Chat
+  </button>
+  <button class="tsfg-tab on">
+    <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4m8-4v4"/></svg>Schedule
+  </button>
+  <button class="tsfg-tab" onclick="go('profile.html')">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Profile
+  </button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var AT  = 'https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/atlas-api';
+var SX  = 'https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/sched-ext';
+var TB  = 'https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/trainer-bookings';
+
+try{ if(!localStorage.getItem('tsfg_code')) location.replace('index.html'); }catch(e){}
+var CODE = (localStorage.getItem('tsfg_code')||'').toUpperCase();
+var NAME = localStorage.getItem('tsfg_name')||'';
+
+function go(u){ location.href=u; }
+function back(){ if(history.length>1) history.back(); else go('app.html'); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+function toast(m){ var t=document.getElementById('toast'); t.textContent=m; t.classList.add('on'); clearTimeout(t._x); t._x=setTimeout(function(){t.classList.remove('on');},2600); }
+
+var VIEW='day', SEL=new Date(), BOOK=[], ANCHOR=new Date();
+
+/* ---------------------------------------------------------------- dates ---
+   Everything is compared on a local YYYY-MM-DD key rather than by Date maths,
+   because starts_at is UTC and a 5pm Pacific booking is the NEXT day in UTC —
+   that is exactly how an event ends up on the wrong row. */
+function ymd(d){
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function parseStart(b){
+  if(b.starts_at) return new Date(b.starts_at);
+  if(b.date){
+    var t = (b.time||'').trim();
+    var m = t.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
+    var hh = m ? Number(m[1]) : 0, mm = m ? Number(m[2]) : 0;
+    if(m && m[3]){ var up=m[3].toUpperCase(); if(up==='PM'&&hh<12)hh+=12; if(up==='AM'&&hh===12)hh=0; }
+    var p = b.date.split('-');
+    return new Date(Number(p[0]), Number(p[1])-1, Number(p[2]), hh, mm);
+  }
+  return null;
+}
+var MON=['January','February','March','April','May','June','July','August','September','October','November','December'];
+var DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+function weekOf(d){
+  var s=new Date(d); s.setHours(0,0,0,0); s.setDate(s.getDate()-s.getDay());
+  return Array.from({length:7},function(_,i){ var x=new Date(s); x.setDate(s.getDate()+i); return x; });
+}
+function shiftWeek(n){ ANCHOR.setDate(ANCHOR.getDate()+n*7); SEL=new Date(ANCHOR); paint(); }
+function jumpToday(){ ANCHOR=new Date(); SEL=new Date(); paint(); }
+function setView(v){
+  VIEW=v;
+  [].forEach.call(document.querySelectorAll('#segView button'),function(b){ b.classList.toggle('on', b.getAttribute('data-v')===v); });
+  paint();
+}
+
+/* ------------------------------------------------------------- loading --- */
+/* A person's schedule is everything they are ON, from either side of the booking:
+   appointments where they are the AGENT (atlas_my) and appointments where they are the
+   TRAINER someone booked with (trainer-bookings). Reading only the agent side hid every
+   appointment booked WITH this person - including events created here, which staff_appt
+   files against the trainer with no agent_code at all. */
+function load(){
+  var mine = fetch(AT,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'atlas_my',code:CODE})})
+    .then(function(r){ return r.json(); })
+    .then(function(r){ return (r && r.bookings) || []; })
+    .catch(function(){ return null; });
+
+  var withMe = fetch(TB,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({trainer_code:CODE})})
+    .then(function(r){ return r.json(); })
+    .then(function(r){ return (r && r.bookings) || []; })
+    .catch(function(){ return []; });
+
+  Promise.all([mine, withMe]).then(function(res){
+    if(res[0] === null && !(res[1]||[]).length){
+      document.getElementById('body').innerHTML =
+        '<div class="tsfg-empty"><b>Could not reach the server</b><span>Check your connection and try again.</span></div>';
+      return;
+    }
+    var seen = {}, all = [];
+    (res[0]||[]).concat(res[1]||[]).forEach(function(b){
+      var k = String(b.id||'');
+      if(k && seen[k]) return;
+      if(k) seen[k] = 1;
+      all.push(b);
+    });
+    BOOK = all;
+    paint();
+  });
+}
+
+/* A booking is "mine" when I am the agent; "team" when someone booked it WITH me. */
+function kindOf(b){
+  var st=String(b.status||'').toLowerCase();
+  if(st==='canceled'||st==='cancelled'||st==='declined'||st==='no_show') return 'off';
+  var ag=String(b.agent_code||'').toUpperCase();
+  if(ag===CODE || !ag) return 'mine';   /* mine, or my own block with nobody else on it */
+  return 'team';
+}
+function labelOf(b){
+  return b.title || b.category || 'Appointment';
+}
+function subOf(b){
+  var who = (String(b.agent_code||'').toUpperCase()===CODE) ? b.trainer_name : b.agent_name;
+  var st  = String(b.status||'').toLowerCase();
+  var bits = [];
+  if(who) bits.push(who);
+  if(st==='canceled'||st==='cancelled') bits.push('Canceled');
+  return bits.join(' · ');
+}
+function hhmm(d){
+  var h=d.getHours(), m=d.getMinutes(), ap=h>=12?'PM':'AM';
+  h = h%12; if(!h) h=12;
+  return h+(m?(':'+String(m).padStart(2,'0')):'')+' '+ap;
+}
+
+function forDay(key){
+  return BOOK.map(function(b){ var s=parseStart(b); return s?{b:b,s:s}:null; })
+             .filter(function(x){ return x && ymd(x.s)===key; })
+             .sort(function(a,b){ return a.s-b.s; });
+}
+
+/* -------------------------------------------------------------- paint ---- */
+function paint(){
+  var days=weekOf(ANCHOR);
+  document.getElementById('monthLbl').textContent =
+    MON[days[0].getMonth()]+' '+days[0].getFullYear();
+
+  var todayKey=ymd(new Date());
+  document.getElementById('wk').innerHTML = days.map(function(d){
+    var k=ymd(d), has=forDay(k).length>0;
+    return '<button class="'+(k===ymd(SEL)?'on ':'')+(k===todayKey?'today ':'')+(has?'has':'')+
+      '" onclick="pick(\''+k+'\')"><span class="dn">'+DOW[d.getDay()]+'</span>'+
+      '<span class="dd">'+d.getDate()+'</span></button>';
+  }).join('');
+
+  if(VIEW==='day')    return paintDay();
+  if(VIEW==='week')   return paintWeek(days);
+  return paintAgenda();
+}
+
+function pick(k){
+  var p=k.split('-'); SEL=new Date(Number(p[0]),Number(p[1])-1,Number(p[2]));
+  if(VIEW==='week') VIEW='day', setView('day'); else paint();
+}
+
+function paintDay(){
+  var key=ymd(SEL), items=forDay(key);
+  var isToday = key===ymd(new Date());
+  var h = '<div class="dayhead"><h3>'+['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][SEL.getDay()]+', '+
+          MON[SEL.getMonth()]+' '+SEL.getDate()+'</h3>'+
+          '<span class="meta">'+(items.length?items.length+(items.length===1?' event':' events'):'Nothing booked')+'</span></div>';
+
+  if(!items.length){
+    h += '<div class="tsfg-empty"><div class="ic"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18"/></svg></div>'+
+         '<b>Nothing on this day</b><span>Tap + to put something in.</span></div>';
+    document.getElementById('body').innerHTML=h; return;
+  }
+
+  /* Show only the hours the day actually uses, with a little air either side —
+     a fixed 8am-5pm grid hides an early or late appointment. */
+  var hrs = items.map(function(x){ return x.s.getHours(); });
+  var from = Math.max(0, Math.min.apply(null,hrs)-1);
+  var to   = Math.min(23, Math.max.apply(null,hrs)+2);
+  if(isToday){ from=Math.min(from,new Date().getHours()); to=Math.max(to,new Date().getHours()+1); }
+
+  var rows='';
+  for(var hr=from; hr<=to; hr++){
+    var ap=hr>=12?'PM':'AM', h12=hr%12; if(!h12)h12=12;
+    rows += '<div class="hr">'+h12+' '+ap+'</div><div class="slot" data-h="'+hr+'"></div>';
+  }
+  h += '<div class="tl" id="tl">'+rows+'</div>';
+  document.getElementById('body').innerHTML=h;
+
+  /* Place each event against its hour row, sized by its duration. */
+  var tl=document.getElementById('tl');
+  items.forEach(function(x){
+    var slot=tl.querySelector('.slot[data-h="'+x.s.getHours()+'"]');
+    if(!slot) return;
+    var mins=Number(x.b.duration_minutes)||60;
+    var el=document.createElement('div');
+    el.className='ev '+kindOf(x.b);
+    el.style.top = (x.s.getMinutes()/60*56)+'px';
+    el.style.height = Math.max(34, mins/60*56 - 3)+'px';
+    el.onclick=function(){ showEvent(x.b); };
+    el.innerHTML='<div class="t">'+esc(labelOf(x.b))+'</div><div class="s">'+
+                 hhmm(x.s)+(subOf(x.b)?(' · '+esc(subOf(x.b))):'')+'</div>';
+    slot.appendChild(el);
+  });
+
+  if(isToday){
+    var n=new Date();
+    var slot=tl.querySelector('.slot[data-h="'+n.getHours()+'"]');
+    if(slot){
+      var line=document.createElement('div');
+      line.className='now';
+      line.style.top=(n.getMinutes()/60*56)+'px';
+      line.innerHTML='<div class="lb">'+hhmm(n)+'</div><div class="bd"></div><div class="ln"></div>';
+      slot.appendChild(line);
+    }
+  }
+}
+
+function paintWeek(days){
+  var h='';
+  days.forEach(function(d){
+    var items=forDay(ymd(d));
+    h += '<div style="margin-bottom:14px"><div class="ag dayhdr" style="border:0;background:none;padding:0 0 6px">'+
+         DOW[d.getDay()]+' '+MON[d.getMonth()].slice(0,3)+' '+d.getDate()+
+         (ymd(d)===ymd(new Date())?' · Today':'')+'</div>';
+    h += items.length ? items.map(function(x){
+      return '<div class="ag '+kindOf(x.b)+'" onclick="showEvent('+JSON.stringify(x.b.id)+')">'+
+        '<div class="t">'+esc(labelOf(x.b))+'</div>'+
+        '<div class="s">'+hhmm(x.s)+(subOf(x.b)?(' · '+esc(subOf(x.b))):'')+'</div></div>';
+    }).join('') : '<div class="tsfg-muted" style="font-size:12.5px;padding:2px 0 6px">—</div>';
+    h += '</div>';
+  });
+  document.getElementById('body').innerHTML=h;
+}
+
+function paintAgenda(){
+  var all = BOOK.map(function(b){ var s=parseStart(b); return s?{b:b,s:s}:null; })
+                .filter(Boolean)
+                .filter(function(x){ return x.s >= new Date(new Date().setHours(0,0,0,0)); })
+                .sort(function(a,b){ return a.s-b.s; });
+  if(!all.length){
+    document.getElementById('body').innerHTML =
+      '<div class="tsfg-empty"><div class="ic"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18"/></svg></div>'+
+      '<b>Nothing coming up</b><span>Your next appointments will show here.</span></div>';
+    return;
+  }
+  var h='', last='';
+  all.forEach(function(x){
+    var k=ymd(x.s);
+    if(k!==last){
+      last=k;
+      h += '<div class="ag dayhdr" style="border:0;background:none;padding:14px 0 6px">'+
+           DOW[x.s.getDay()]+' · '+MON[x.s.getMonth()].slice(0,3)+' '+x.s.getDate()+
+           (k===ymd(new Date())?' · Today':'')+'</div>';
+    }
+    h += '<div class="ag '+kindOf(x.b)+'" onclick="showEvent('+JSON.stringify(x.b.id)+')">'+
+      '<div class="t">'+esc(labelOf(x.b))+'</div>'+
+      '<div class="s">'+hhmm(x.s)+(subOf(x.b)?(' · '+esc(subOf(x.b))):'')+'</div></div>';
+  });
+  document.getElementById('body').innerHTML=h;
+}
+
+function showEvent(b){
+  if(typeof b==='string') b = BOOK.filter(function(x){ return String(x.id)===b; })[0];
+  if(!b) return;
+  var s=parseStart(b);
+  var bits=[labelOf(b), s?(DOW[s.getDay()]+' '+MON[s.getMonth()].slice(0,3)+' '+s.getDate()+' · '+hhmm(s)):''];
+  if(subOf(b)) bits.push(subOf(b));
+  if(b.notes) bits.push(b.notes);
+  toast(bits.filter(Boolean).join(' — '));
+}
+
+/* ------------------------------------------------------------ new event --- */
+function openNew(){
+  var d=new Date(SEL);
+  var n=new Date(); n.setMinutes(0,0,0); n.setHours(n.getHours()+1);
+  document.getElementById('e_date').value  = ymd(d);
+  document.getElementById('e_start').value = String(n.getHours()).padStart(2,'0')+':00';
+  document.getElementById('e_end').value   = String((n.getHours()+1)%24).padStart(2,'0')+':00';
+  document.getElementById('e_title').value = '';
+  document.getElementById('e_with').value  = '';
+  document.getElementById('e_notes').value = '';
+  document.getElementById('e_title').closest('.tsfg-field').classList.remove('bad');
+  document.getElementById('e_time_err').style.display='none';
+  try{
+    document.getElementById('tzLbl').textContent =
+      Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+  }catch(e){}
+  document.getElementById('evSheet').classList.add('on');
+}
+function closeNew(){ document.getElementById('evSheet').classList.remove('on'); }
+function syncAllDay(){
+  var on=document.getElementById('e_allday').classList.contains('on');
+  document.getElementById('e_start').disabled=on;
+  document.getElementById('e_end').disabled=on;
+}
+
+/* 24h "14:30" → the "2:30 PM" the booking API stores. */
+function to12(t){
+  var p=String(t||'').split(':'); if(p.length<2) return '';
+  var h=Number(p[0]), m=p[1], ap=h>=12?'PM':'AM';
+  h=h%12; if(!h)h=12;
+  return h+':'+m+' '+ap;
+}
+
+function saveEvent(){
+  var title=document.getElementById('e_title').value.trim();
+  var fld=document.getElementById('e_title').closest('.tsfg-field');
+  if(!title){ fld.classList.add('bad'); document.getElementById('e_title').focus(); return; }
+  fld.classList.remove('bad');
+
+  var allDay=document.getElementById('e_allday').classList.contains('on');
+  var date=document.getElementById('e_date').value;
+  var st=allDay?'09:00':document.getElementById('e_start').value;
+  var en=allDay?'17:00':document.getElementById('e_end').value;
+  if(!date){ toast('Pick a date.'); return; }
+  if(!allDay && en<=st){ document.getElementById('e_time_err').style.display='block'; return; }
+  document.getElementById('e_time_err').style.display='none';
+
+  var mins=(function(){
+    var a=st.split(':'), b=en.split(':');
+    return Math.max(15,(Number(b[0])*60+Number(b[1]))-(Number(a[0])*60+Number(a[1])));
+  })();
+
+  var btn=document.getElementById('saveBtn');
+  btn.disabled=true; btn.textContent='Saving…';
+
+  /* staff_appt is the same write the full Scheduler uses for a manual entry, so an event
+     made here is an ordinary booking — it shows up everywhere else without a special case. */
+  fetch(SX,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      action:'staff_appt', code:CODE,
+      trainer_name:NAME, trainer_code:CODE,
+      title:title, date:date, time:to12(st),
+      /* staff_appt refuses a booking with no client. A block on your OWN calendar has no
+         guest, so when none is named the event is booked against yourself - which is what
+         a personal time block actually is. */
+      client_name:(document.getElementById('e_with').value.trim() || NAME || 'Personal'),
+      client_email:'', client_phone:'',
+      duration_minutes:mins,
+      notes:document.getElementById('e_notes').value.trim()
+    })})
+    .then(function(r){ return r.json(); })
+    .then(function(r){
+      btn.disabled=false; btn.textContent='Save';
+      if(r && r.ok){ closeNew(); toast('Event saved'); load(); }
+      else toast((r && r.error) || 'Could not save that event');
+    })
+    .catch(function(){ btn.disabled=false; btn.textContent='Save'; toast('Network error — try again'); });
+}
+
+
+load();
+</script>
+<script defer src="notif.js"></script>
+<script src="i18n.js"></script>
+</body>
+</html>

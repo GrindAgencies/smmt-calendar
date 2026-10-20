@@ -308,3 +308,23 @@
 .tsfg-lang.hdr button[aria-pressed="true"]{
   background:var(--tsfg-gold) !important; color:#17120a !important;
 }
+
+/* ================= the injected floaters, placed for good =================
+   notif.js's Ask button and i18n.js's language pill are positioned inline by their own
+   scripts, and they re-apply it AFTER a page's own timer has given up — which is how the
+   Ask button ended up sitting on the tab bar and on top of the + button. A timer cannot
+   win that race; a stylesheet rule can, because !important here beats a plain inline
+   style no matter how many times it is rewritten.
+
+   Scoped to .tsfg-haspad, i.e. only the pages that actually have a bottom tab bar. */
+body.tsfg-haspad #askFab{
+  bottom: calc(env(safe-area-inset-bottom) + 132px) !important;
+  right: 16px !important;
+  z-index: 50 !important;
+}
+body.tsfg-haspad #i18nToggle{
+  top: calc(env(safe-area-inset-top) + 10px) !important;
+  bottom: auto !important;
+  left: 14px !important;
+  right: auto !important;
+}

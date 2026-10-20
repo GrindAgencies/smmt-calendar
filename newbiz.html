@@ -1,0 +1,602 @@
+<!doctype html>
+<html lang="en">
+<head>
+<script src="session.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>New Business — The Standard</title>
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="stylesheet" href="tsfg-ui.css">
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;min-height:100%}
+  body{ -webkit-tap-highlight-color:transparent; }
+
+  .srch{ position:relative; margin-bottom:10px; }
+  .srch input{
+    width:100%; box-sizing:border-box; padding:12px 14px 12px 40px; font-size:16px;
+    background:var(--tsfg-raise-2); color:var(--tsfg-ink);
+    border:1px solid var(--tsfg-line); border-radius:var(--tsfg-r-sm); font-family:inherit;
+  }
+  .srch .mg{ position:absolute; left:14px; top:50%; transform:translateY(-50%); color:var(--tsfg-ink-3); }
+
+  .app{
+    display:flex; align-items:center; gap:12px; padding:13px 14px;
+    background:var(--tsfg-raise); border:1px solid var(--tsfg-line);
+    border-radius:var(--tsfg-r); margin-bottom:9px; cursor:pointer;
+  }
+  .app .mid{ flex:1 1 auto; min-width:0; }
+  .app .nm{ font-size:14.5px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .app .sb{ font-size:12.5px; color:var(--tsfg-ink-2); margin-top:3px;
+            white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .app .rt{ text-align:right; flex:0 0 auto; }
+  .app .ap{ font-size:14px; font-weight:800; font-variant-numeric:tabular-nums; }
+  .chip{
+    display:inline-block; margin-top:4px; padding:2px 9px; border-radius:999px;
+    font-size:10.5px; font-weight:800; letter-spacing:.02em;
+  }
+  .chip.paid{ background:rgba(70,192,122,.16); color:var(--tsfg-good); }
+  .chip.pend{ background:rgba(224,168,58,.16); color:var(--tsfg-warn); }
+  .chip.dead{ background:rgba(154,154,159,.14); color:var(--tsfg-ink-2); }
+  .chip.draft{ background:rgba(90,169,230,.16); color:var(--tsfg-info); }
+
+  /* the wizard */
+  .wiz{ position:fixed; inset:0; z-index:95; background:var(--tsfg-bg); display:none; overflow-y:auto; }
+  .wiz.on{ display:block; }
+  .wiz-top{
+    position:sticky; top:0; z-index:3; background:var(--tsfg-bg);
+    display:flex; align-items:center; gap:10px;
+    padding:calc(12px + env(safe-area-inset-top)) 16px 12px; border-bottom:1px solid var(--tsfg-line-soft);
+  }
+  .wiz-top h3{ flex:1 1 auto; font-size:15.5px; font-weight:800; margin:0; text-align:center; }
+  .wiz-top button{ border:0; background:none; color:var(--tsfg-gold); font-family:inherit;
+    font-size:14px; font-weight:700; cursor:pointer; }
+  .wiz-top .x{ font-size:22px; }
+  .wiz-body{ padding:0 16px calc(96px + env(safe-area-inset-bottom)); max-width:520px; margin:0 auto; }
+  .wiz-foot{
+    position:fixed; left:0; right:0; bottom:0; z-index:4;
+    padding:12px 16px calc(12px + env(safe-area-inset-bottom));
+    background:linear-gradient(transparent, var(--tsfg-bg) 26%);
+    max-width:520px; margin:0 auto;
+  }
+  .derived{
+    background:var(--tsfg-raise-2); border:1px solid var(--tsfg-line);
+    border-radius:var(--tsfg-r-sm); padding:12px 14px; margin:-4px 0 13px;
+  }
+  .derived .k{ font-size:11.5px; color:var(--tsfg-ink-2); }
+  .derived .v{ font-size:21px; font-weight:800; letter-spacing:-.02em; margin:2px 0 1px; }
+  .derived .n{ font-size:11.5px; color:var(--tsfg-ink-3); }
+
+  .done-ic{
+    width:92px; height:92px; border-radius:50%; margin:26px auto 18px;
+    border:2px solid var(--tsfg-good); display:flex; align-items:center; justify-content:center;
+    color:var(--tsfg-good); font-size:44px; line-height:1;
+  }
+  .toast{
+    position:fixed; left:50%; transform:translateX(-50%); bottom:calc(84px + env(safe-area-inset-bottom));
+    background:#1d1d1f; color:#fff; border:1px solid var(--tsfg-line);
+    padding:11px 17px; border-radius:999px; font-size:13.5px; font-weight:600;
+    opacity:0; pointer-events:none; transition:opacity .2s; z-index:200; max-width:88vw; text-align:center;
+  }
+  .toast.on{ opacity:1; }
+  .ntf-btn{ display:none !important; }
+</style>
+</head>
+<body class="tsfg tsfg-haspad">
+
+<div class="tsfg-top">
+  <button class="tsfg-back" onclick="back()" aria-label="Back">&lsaquo;</button>
+  <h2>New Business</h2>
+</div>
+
+<div class="tsfg-wrap">
+
+  <div class="tsfg-seg" id="segBiz">
+    <button data-b="life"    class="on" onclick="setBiz('life')">Life Business</button>
+    <button data-b="annuity" onclick="setBiz('annuity')">Annuity Business</button>
+  </div>
+
+  <h3 class="tsfg-label" style="margin-top:16px" id="monthLbl">This month</h3>
+  <div class="tsfg-stats">
+    <div class="tsfg-stat"><div class="k">AP submitted</div><div class="v" id="sAp">$0</div></div>
+    <div class="tsfg-stat"><div class="k">Paid commission</div><div class="v gold" id="sComm">$0</div></div>
+  </div>
+
+  <button class="tsfg-btn" style="margin:14px 0 20px" onclick="openWiz()">+&nbsp; Add application</button>
+
+  <h3 class="tsfg-h" style="margin-top:0">Applications</h3>
+  <div class="srch">
+    <span class="mg">&#9906;</span>
+    <input id="q" placeholder="Search client or policy" oninput="paint()">
+  </div>
+  <div class="tsfg-pills" style="margin-bottom:14px">
+    <button class="tsfg-pill on" data-f="all"       onclick="setFilter('all')">All</button>
+    <button class="tsfg-pill"    data-f="pending"   onclick="setFilter('pending')">Pending</button>
+    <button class="tsfg-pill"    data-f="paid"      onclick="setFilter('paid')">In force</button>
+  </div>
+
+  <div id="list"><div class="tsfg-spin">Loading your applications…</div></div>
+</div>
+
+<!-- ======================== the application wizard ======================== -->
+<div class="wiz" id="wiz">
+  <div class="wiz-top">
+    <button class="x" onclick="closeWiz()" aria-label="Close">&times;</button>
+    <h3>New application</h3>
+    <button onclick="saveDraft()" id="draftBtn">Save draft</button>
+  </div>
+
+  <div class="wiz-body">
+    <div class="tsfg-center" style="margin:10px 0 2px">
+      <span class="tsfg-pill on" id="bizChip" style="pointer-events:none">Life Business</span>
+    </div>
+
+    <div class="tsfg-steps" id="steps">
+      <div class="tsfg-step on"><div class="dot">1</div><div class="lbl">Client</div></div>
+      <div class="bar"></div>
+      <div class="tsfg-step"><div class="dot">2</div><div class="lbl">Policy</div></div>
+      <div class="bar"></div>
+      <div class="tsfg-step"><div class="dot">3</div><div class="lbl">Review</div></div>
+    </div>
+
+    <div id="wizErr" class="tsfg-banner" style="display:none">
+      <span>!</span><span id="wizErrTxt">Complete the highlighted fields to continue.</span>
+    </div>
+
+    <!-- step 1 -->
+    <section id="st1">
+      <h2 class="tsfg-title" style="font-size:25px">Client details</h2>
+      <div class="tsfg-field" id="f_first_w">
+        <label>First name <span class="req">*</span></label>
+        <input id="f_first" placeholder="Enter first name" autocomplete="off">
+        <div class="err">Enter a first name.</div>
+      </div>
+      <div class="tsfg-field" id="f_last_w">
+        <label>Last name <span class="req">*</span></label>
+        <input id="f_last" placeholder="Enter last name" autocomplete="off">
+        <div class="err">Enter a last name.</div>
+      </div>
+      <div class="tsfg-field" id="f_state_w">
+        <label>State <span class="req">*</span></label>
+        <input id="f_state" placeholder="FL" maxlength="2" autocomplete="off" style="text-transform:uppercase">
+        <div class="err">Two-letter state, e.g. FL.</div>
+        <div class="hint">Which state's rules the policy is written under.</div>
+      </div>
+      <div class="tsfg-field">
+        <label>Email <span class="opt">(optional)</span></label>
+        <input id="f_email" type="email" placeholder="name@domain.com" autocomplete="off">
+      </div>
+      <div class="tsfg-field">
+        <label>Phone <span class="opt">(optional)</span></label>
+        <input id="f_phone" type="tel" placeholder="(555) 123-4567" autocomplete="off">
+      </div>
+      <p class="tsfg-muted" style="font-size:12px">* Required fields</p>
+    </section>
+
+    <!-- step 2 -->
+    <section id="st2" style="display:none">
+      <h2 class="tsfg-title" style="font-size:25px">Policy details</h2>
+      <div class="tsfg-field" id="f_carrier_w">
+        <label>Carrier <span class="req">*</span></label>
+        <input id="f_carrier" list="carriers" placeholder="Select a carrier" autocomplete="off">
+        <datalist id="carriers">
+          <option>American National</option><option>American Equity</option><option>Americo</option>
+          <option>Ethos</option><option>Foresters</option><option>Mutual of Omaha</option>
+          <option>National Life Group</option><option>North American</option><option>F&amp;G</option>
+          <option>Corebridge</option>
+        </datalist>
+        <div class="err">Choose a carrier.</div>
+      </div>
+      <div class="tsfg-field" id="f_product_w">
+        <label>Product <span class="req">*</span></label>
+        <select id="f_product">
+          <option value="">Select a product</option>
+          <option>Term Life</option><option>IUL</option><option>Whole Life</option>
+          <option>Final Expense</option><option>GUL</option>
+          <option>Annuity — FIA</option><option>Annuity — MYGA</option><option>Other</option>
+        </select>
+        <div class="err">Choose a product.</div>
+      </div>
+      <div class="tsfg-field" id="f_date_w">
+        <label>Application date <span class="req">*</span></label>
+        <input id="f_date" type="date">
+        <div class="err">Pick the date it was submitted.</div>
+        <div class="hint">The day it was <b>submitted</b> — not the day you are entering it. Production is reported by this date.</div>
+      </div>
+      <div class="tsfg-field">
+        <label>Premium frequency <span class="req">*</span></label>
+        <select id="f_freq" onchange="calcAP()">
+          <option value="12">Monthly</option>
+          <option value="4">Quarterly</option>
+          <option value="2">Semi-annual</option>
+          <option value="1">Annual</option>
+        </select>
+      </div>
+      <div class="tsfg-field" id="f_prem_w">
+        <label>Premium amount <span class="req">*</span></label>
+        <input id="f_prem" type="number" inputmode="decimal" placeholder="Enter amount" oninput="calcAP()">
+        <div class="err">Enter a premium greater than $0.</div>
+      </div>
+      <div class="derived">
+        <div class="k">Annualized premium</div>
+        <div class="v" id="apOut">$0.00</div>
+        <div class="n" id="apNote">Calculated from the premium &times; 12</div>
+      </div>
+      <div class="tsfg-field" id="f_cov_w">
+        <label>Coverage amount <span class="req">*</span></label>
+        <input id="f_cov" type="number" inputmode="decimal" placeholder="250000">
+        <div class="err">Enter the face amount.</div>
+      </div>
+      <div class="tsfg-field" id="f_polnum_w">
+        <label>Policy number <span class="req">*</span></label>
+        <input id="f_polnum" placeholder="Carrier's policy number" autocomplete="off">
+        <div class="err">Enter the carrier's policy number.</div>
+      </div>
+      <div class="tsfg-field">
+        <label>Your contract % <span class="opt">(from your level)</span></label>
+        <input id="f_contract" type="number" inputmode="decimal" placeholder="—" oninput="calcAP()">
+        <div class="hint" id="contractNote">Filled in from your contract level. Change it only if this policy is written at a different rate.</div>
+      </div>
+      <div class="tsfg-field">
+        <label>How did it come to you? <span class="opt">(optional)</span></label>
+        <input id="f_source" list="sources" placeholder="Warm market, referral, lead…" autocomplete="off">
+        <datalist id="sources">
+          <option>Warm market</option><option>Referral</option><option>Lead</option>
+          <option>Social media</option><option>Walk-in</option><option>Other</option>
+        </datalist>
+      </div>
+    </section>
+
+    <!-- step 3 -->
+    <section id="st3" style="display:none">
+      <h2 class="tsfg-title" style="font-size:25px">Review application</h2>
+      <p class="tsfg-lede">Check the details before you submit.</p>
+      <div class="tsfg-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <b style="font-size:15.5px">Client</b>
+          <button onclick="goStep(1)" style="border:0;background:none;color:var(--tsfg-gold);font:inherit;font-size:13.5px;font-weight:700;cursor:pointer">Edit</button>
+        </div>
+        <div id="revClient"></div>
+      </div>
+      <div class="tsfg-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <b style="font-size:15.5px">Policy</b>
+          <button onclick="goStep(2)" style="border:0;background:none;color:var(--tsfg-gold);font:inherit;font-size:13.5px;font-weight:700;cursor:pointer">Edit</button>
+        </div>
+        <div id="revPolicy"></div>
+      </div>
+      <p class="tsfg-muted tsfg-center" style="font-size:12.5px;margin-top:14px">
+        Submitting logs this on your tracker as <b>Pending underwriting</b>.
+      </p>
+    </section>
+
+    <!-- done -->
+    <section id="st4" style="display:none">
+      <div class="done-ic">&#10003;</div>
+      <h2 class="tsfg-title tsfg-center" style="font-size:26px">Application submitted</h2>
+      <p class="tsfg-lede tsfg-center">It is now on your tracker.</p>
+      <div class="tsfg-card" style="margin-top:6px">
+        <div id="doneCard"></div>
+      </div>
+      <button class="tsfg-btn" style="margin-top:16px" onclick="closeWiz()">View my applications</button>
+      <button class="tsfg-btn ghost" style="margin-top:10px" onclick="resetWiz();goStep(1)">Add another application</button>
+    </section>
+  </div>
+
+  <div class="wiz-foot" id="wizFoot">
+    <div class="tsfg-btnrow">
+      <button class="tsfg-btn quiet" id="backBtn" onclick="prevStep()" style="display:none">Back</button>
+      <button class="tsfg-btn" id="nextBtn" onclick="nextStep()">Continue</button>
+    </div>
+  </div>
+</div>
+
+<nav class="tsfg-tabs" style="--tsfg-tabn:4">
+  <button class="tsfg-tab" onclick="go('app.html')">
+    <svg viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v9a2 2 0 0 1-2 2h-4v-6H9v6H5a2 2 0 0 1-2-2Z"/></svg>Home
+  </button>
+  <button class="tsfg-tab" onclick="go('teamhub.html')">
+    <svg viewBox="0 0 24 24"><path d="M20 15a2 2 0 0 1-2 2H8l-4 4V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2Z"/></svg>Chat
+  </button>
+  <button class="tsfg-tab on">
+    <svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>Business
+  </button>
+  <button class="tsfg-tab" onclick="go('profile.html')">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Profile
+  </button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var NB = 'https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/newbiz-api';
+var TA = 'https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/tracker-api';
+
+try{ if(!localStorage.getItem('tsfg_code')) location.replace('index.html'); }catch(e){}
+var CODE=(localStorage.getItem('tsfg_code')||'').toUpperCase();
+
+function go(u){ location.href=u; }
+function back(){ if(history.length>1) history.back(); else go('app.html'); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+function $(i){ return document.getElementById(i); }
+function toast(m){ var t=$('toast'); t.textContent=m; t.classList.add('on'); clearTimeout(t._x); t._x=setTimeout(function(){t.classList.remove('on');},3000); }
+function money(n){ return '$'+Math.round(Number(n)||0).toLocaleString('en-US'); }
+function money2(n){ return '$'+(Number(n)||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+
+var BIZ='life', FILTER='all', ROWS=[], STEP=1, MYRATE=null;
+
+/* The statuses that mean each thing, kept in step with the rest of the platform:
+   in force is PAID OUT only, and dead is the closed set. */
+var DEAD=['declined','cancelled','canceled','incomplete','closed','lapsed'];
+function isPaid(s){ return String(s||'').toLowerCase()==='paid'; }
+function isDead(s){ return DEAD.indexOf(String(s||'').toLowerCase())>=0; }
+
+function setBiz(b){
+  BIZ=b;
+  [].forEach.call(document.querySelectorAll('#segBiz button'),function(x){ x.classList.toggle('on', x.getAttribute('data-b')===b); });
+  $('bizChip').textContent = b==='annuity' ? 'Annuity Business' : 'Life Business';
+  load();
+}
+function setFilter(f){
+  FILTER=f;
+  [].forEach.call(document.querySelectorAll('[data-f]'),function(x){ x.classList.toggle('on', x.getAttribute('data-f')===f); });
+  paint();
+}
+
+/* ------------------------------------------------------------- loading --- */
+function load(){
+  $('list').innerHTML='<div class="tsfg-spin">Loading your applications…</div>';
+  fetch(NB,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'newbiz_list',code:CODE,business_type:BIZ})})
+    .then(function(r){ return r.json(); })
+    .then(function(r){
+      ROWS = (r && (r.policies||r.rows||r.sales)) || [];
+      paint();
+    })
+    .catch(function(){ $('list').innerHTML='<div class="tsfg-empty"><b>Could not load</b><span>Check your connection and try again.</span></div>'; });
+}
+
+/* Your own contract rate, so the agent is not asked for a number the platform already
+   knows. It is still editable — some policies really are written at a different rate. */
+function loadMyRate(){
+  fetch(TA,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'load',code:CODE})})
+    .then(function(r){ return r.json(); })
+    .then(function(r){
+      var a = (r && (r.agent||r.me)) || {};
+      if(a.contract_pct){ MYRATE=Number(a.contract_pct); }
+      else if(a.contract_level){
+        var map={'associate':40,'senior associate':50,'md':60,'marketing director':60,'emd':85,'national vice president':85};
+        var v=map[String(a.contract_level).toLowerCase()];
+        if(v) MYRATE=v;
+      }
+      if(MYRATE!=null && !$('f_contract').value) $('f_contract').value=MYRATE;
+    })
+    .catch(function(){});
+}
+
+function thisMonth(){
+  var n=new Date(), k=n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0');
+  var ap=0, comm=0;
+  ROWS.forEach(function(p){
+    if(String(p.submitted_date||'').slice(0,7)===k) ap += Number(p.annual_premium)||0;
+    if(isPaid(p.status) && String(p.paid_out_date||'').slice(0,7)===k) comm += Number(p.expected_commission)||0;
+  });
+  $('sAp').textContent   = money(ap);
+  $('sComm').textContent = money(comm);
+
+  /* newbiz_list returns a LEADER's whole downline, not just their own policies, so for an
+     EMD this card was showing team production under a heading that reads personal. Say
+     whose numbers these are rather than quietly mixing them. */
+  var agents = {};
+  ROWS.forEach(function(p){ var c=String(p.agent_code||'').toUpperCase(); if(c) agents[c]=1; });
+  var n2 = Object.keys(agents).length;
+  $('monthLbl').textContent = (n2 > 1) ? 'This month · you and your team' : 'This month';
+}
+
+function paint(){
+  thisMonth();
+  var q=($('q').value||'').trim().toLowerCase();
+  var rows=ROWS.filter(function(p){
+    if(FILTER==='paid'    && !isPaid(p.status)) return false;
+    if(FILTER==='pending' && (isPaid(p.status)||isDead(p.status))) return false;
+    if(q){
+      var hay=((p.client_name||'')+' '+(p.policy_number||'')+' '+(p.carrier||'')+' '+(p.product||'')).toLowerCase();
+      if(hay.indexOf(q)<0) return false;
+    }
+    return true;
+  }).sort(function(a,b){ return String(b.submitted_date||'').localeCompare(String(a.submitted_date||'')); });
+
+  if(!rows.length){
+    $('list').innerHTML='<div class="tsfg-empty"><div class="ic">'+
+      '<svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z"/><path d="M14 3v5h5"/></svg></div>'+
+      '<b>'+(ROWS.length?'Nothing matches that':'No applications yet')+'</b>'+
+      '<span>'+(ROWS.length?'Try a different search or filter.':'Start an application to track new business.')+'</span></div>';
+    return;
+  }
+
+  $('list').innerHTML = rows.map(function(p){
+    var cls = isPaid(p.status)?'paid':(isDead(p.status)?'dead':'pend');
+    var lbl = isPaid(p.status)?'In force':(isDead(p.status)?'Closed':'Pending');
+    return '<div class="app">'+
+      '<div class="mid"><div class="nm">'+esc(p.client_name||'—')+'</div>'+
+      '<div class="sb">'+esc([p.carrier,p.product].filter(Boolean).join(' · ')||'—')+
+      (p.policy_number?(' · #'+esc(p.policy_number)):'')+
+      /* Whose policy it is, whenever it is not yours. */
+      ((String(p.agent_code||'').toUpperCase()!==CODE && p.agent_name)?(' · '+esc(p.agent_name)):'')+
+      '</div></div>'+
+      '<div class="rt"><div class="ap">'+money(p.annual_premium)+'</div>'+
+      '<span class="chip '+cls+'">'+lbl+'</span></div>'+
+    '</div>';
+  }).join('');
+}
+
+/* ================================ wizard ================================= */
+function openWiz(){ resetWiz(); goStep(1); $('wiz').classList.add('on'); loadMyRate(); }
+function closeWiz(){ $('wiz').classList.remove('on'); load(); }
+
+function resetWiz(){
+  ['f_first','f_last','f_state','f_email','f_phone','f_carrier','f_prem','f_cov','f_polnum','f_source'].forEach(function(i){ $(i).value=''; });
+  $('f_product').value=''; $('f_freq').value='12';
+  $('f_date').value = new Date().toISOString().slice(0,10);
+  $('f_contract').value = (MYRATE!=null?MYRATE:'');
+  document.querySelectorAll('.tsfg-field.bad').forEach(function(e){ e.classList.remove('bad'); });
+  $('wizErr').style.display='none';
+  calcAP();
+}
+
+function goStep(n){
+  STEP=n;
+  [1,2,3,4].forEach(function(i){ $('st'+i).style.display = (i===n?'':'none'); });
+  var st=document.querySelectorAll('#steps .tsfg-step'), bars=document.querySelectorAll('#steps .bar');
+  st.forEach(function(e,i){
+    e.classList.toggle('on',  i===n-1);
+    e.classList.toggle('done',i<n-1);
+    e.querySelector('.dot').innerHTML = (i<n-1) ? '&#10003;' : String(i+1);
+  });
+  bars.forEach(function(b,i){ b.classList.toggle('done', i<n-1); });
+  document.querySelector('#steps').style.display = (n===4?'none':'flex');
+  $('wizFoot').style.display = (n===4?'none':'');
+  $('backBtn').style.display = (n>1?'':'none');
+  $('nextBtn').textContent   = (n===3?'Submit application':'Continue');
+  $('wizErr').style.display='none';
+  if(n===3) fillReview();
+  window.scrollTo(0,0);
+  try{ $('wiz').scrollTop = 0; }catch(e){}
+}
+function prevStep(){ if(STEP>1) goStep(STEP-1); }
+
+function bad(id,on){ $(id+'_w').classList.toggle('bad', !!on); return !on; }
+
+function validate(step){
+  var ok=true;
+  if(step===1){
+    ok = bad('f_first', !$('f_first').value.trim()) && ok;
+    ok = bad('f_last',  !$('f_last').value.trim())  && ok;
+    ok = bad('f_state', !/^[A-Za-z]{2}$/.test($('f_state').value.trim())) && ok;
+  }
+  if(step===2){
+    ok = bad('f_carrier', !$('f_carrier').value.trim()) && ok;
+    ok = bad('f_product', !$('f_product').value)        && ok;
+    ok = bad('f_date',    !$('f_date').value)           && ok;
+    ok = bad('f_prem',    !(Number($('f_prem').value)>0)) && ok;
+    ok = bad('f_cov',     !(Number($('f_cov').value)>0))  && ok;
+    ok = bad('f_polnum',  !$('f_polnum').value.trim())  && ok;
+  }
+  $('wizErr').style.display = ok?'none':'flex';
+  if(!ok){
+    var first=document.querySelector('#st'+step+' .tsfg-field.bad input, #st'+step+' .tsfg-field.bad select');
+    if(first){ try{ first.scrollIntoView({block:'center'}); }catch(e){} first.focus(); }
+  }
+  return ok;
+}
+
+function nextStep(){
+  if(STEP<3){ if(!validate(STEP)) return; goStep(STEP+1); return; }
+  submitApp();
+}
+
+function annualized(){
+  var p=Number($('f_prem').value)||0, f=Number($('f_freq').value)||12;
+  return p*f;
+}
+function calcAP(){
+  var f=Number($('f_freq').value)||12;
+  $('apOut').textContent = money2(annualized());
+  var word = f===12?'monthly':(f===4?'quarterly':(f===2?'semi-annual':'annual'));
+  $('apNote').textContent = f===1 ? 'The annual premium as entered'
+                                  : ('Calculated from the '+word+' premium × '+f);
+}
+
+function fullName(){ return ($('f_first').value.trim()+' '+$('f_last').value.trim()).trim(); }
+
+function row(k,v){ return '<div class="tsfg-row"><span class="k">'+esc(k)+'</span><span class="v">'+esc(v||'—')+'</span></div>'; }
+
+function fillReview(){
+  $('revClient').innerHTML =
+    row('Name', fullName()) +
+    row('State', $('f_state').value.trim().toUpperCase()) +
+    ($('f_email').value.trim()?row('Email',$('f_email').value.trim()):'') +
+    ($('f_phone').value.trim()?row('Phone',$('f_phone').value.trim()):'');
+
+  var f=Number($('f_freq').value)||12;
+  var word = f===12?'Monthly':(f===4?'Quarterly':(f===2?'Semi-annual':'Annual'));
+  var rate = Number($('f_contract').value)||0;
+  $('revPolicy').innerHTML =
+    row('Carrier', $('f_carrier').value.trim()) +
+    row('Product', $('f_product').value) +
+    row('Application date', $('f_date').value) +
+    row('Premium frequency', word) +
+    row(word+' premium', money2(Number($('f_prem').value)||0)) +
+    row('Annualized premium', money2(annualized())) +
+    row('Coverage amount', money(Number($('f_cov').value)||0)) +
+    row('Policy number', $('f_polnum').value.trim()) +
+    (rate?row('Your contract %', rate+'%'):'') +
+    (rate?row('Expected commission', money(annualized()*rate/100)):'');
+}
+
+function payload(status){
+  return {
+    action:'newbiz_add', code:CODE,
+    client_name: fullName(),
+    phone: $('f_phone').value.trim(),
+    email: $('f_email').value.trim(),
+    state: $('f_state').value.trim().toUpperCase(),
+    source: $('f_source').value.trim(),
+    business_type: BIZ,
+    carrier: $('f_carrier').value.trim(),
+    product: $('f_product').value,
+    policy_number: $('f_polnum').value.trim(),
+    annual_premium: annualized(),
+    coverage: Number($('f_cov').value)||0,
+    contract_pct: Number($('f_contract').value)||null,
+    submitted_date: $('f_date').value,
+    date_written: $('f_date').value,
+    status: status
+  };
+}
+
+function send(body){
+  return fetch(NB,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+    .then(function(r){ return r.json(); })
+    .catch(function(){ return {ok:false,error:'Network error'}; });
+}
+
+function submitApp(){
+  var btn=$('nextBtn'); btn.disabled=true; btn.textContent='Submitting…';
+  send(payload('pending')).then(function(r){
+    btn.disabled=false; btn.textContent='Submit application';
+    if(!r || !r.ok){ $('wizErrTxt').textContent=(r&&r.error)||'Could not submit that application.'; $('wizErr').style.display='flex'; return; }
+    var f=Number($('f_freq').value)||12;
+    $('doneCard').innerHTML =
+      '<div style="font-size:18px;font-weight:800;margin-bottom:2px">'+esc(fullName())+'</div>'+
+      '<div class="tsfg-muted" style="font-size:12.5px;margin-bottom:8px">'+esc(BIZ==='annuity'?'Annuity Business':'Life Business')+'</div>'+
+      row('Status','Pending underwriting') +
+      row('Annualized premium', money2(annualized())) +
+      row('Coverage', money(Number($('f_cov').value)||0)) +
+      row('Application date', $('f_date').value);
+    goStep(4);
+  });
+}
+
+function saveDraft(){
+  if(!fullName()){ toast('Add a client name first'); return; }
+  var b=payload('incomplete');
+  $('draftBtn').disabled=true; $('draftBtn').textContent='Saving…';
+  send(b).then(function(r){
+    $('draftBtn').disabled=false; $('draftBtn').textContent='Save draft';
+    if(r&&r.ok){ toast('Draft saved'); closeWiz(); }
+    else toast((r&&r.error)||'Could not save the draft');
+  });
+}
+
+
+load();
+</script>
+<script defer src="notif.js"></script>
+<script src="i18n.js"></script>
+</body>
+</html>
