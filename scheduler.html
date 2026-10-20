@@ -186,9 +186,34 @@
       <p class="tsfg-muted" style="font-size:12px;margin:4px 0 2px" id="tzLbl"></p>
     </div>
 
-    <div class="tsfg-field" style="margin-top:12px">
-      <label>Who is it with <span class="opt">(optional)</span></label>
-      <input id="e_with" placeholder="Client or teammate name">
+    <!-- An event has up to three people in it. This used to be one optional box, and when it was
+         left blank the event was booked against the person making it - which is how a calendar
+         filled up with "Christopher Lorenz with Christopher Lorenz". Nothing defaults to you now. -->
+    <div class="tsfg-field" style="margin-top:14px">
+      <label>Who is being trained <span class="opt">(optional)</span></label>
+      <input id="e_tname" placeholder="The agent being trained">
+    </div>
+    <div class="tsfg-field">
+      <label>Their email <span class="opt">(optional)</span></label>
+      <input id="e_temail" type="email" inputmode="email" autocapitalize="off" placeholder="agent@email.com">
+    </div>
+
+    <div class="tsfg-field" style="margin-top:14px">
+      <label>Who you are meeting <span class="opt">(optional)</span></label>
+      <input id="e_with" placeholder="Client or prospect name">
+    </div>
+    <div class="tsfg-field">
+      <label>Their email <span class="opt">(optional)</span></label>
+      <input id="e_cemail" type="email" inputmode="email" autocapitalize="off" placeholder="client@email.com">
+    </div>
+    <div class="tsfg-field">
+      <label>Their phone <span class="opt">(optional)</span></label>
+      <input id="e_cphone" type="tel" inputmode="tel" placeholder="(555) 555-5555">
+    </div>
+
+    <div class="tsfg-field" style="margin-top:14px">
+      <label>Anyone else to copy in <span class="opt">(optional, comma separated)</span></label>
+      <input id="e_guests" placeholder="teammate@email.com">
     </div>
     <div class="tsfg-field">
       <label>Notes <span class="opt">(optional)</span></label>
@@ -197,7 +222,8 @@
 
     <button class="tsfg-btn" onclick="saveEvent()" style="margin-top:4px">Save event</button>
     <p class="tsfg-muted tsfg-center" style="font-size:12px;margin:12px 0 0">
-      This goes on your own calendar. To book a trainer or a client, use the full Scheduler.
+      This goes on your own calendar and <b>does not send invitations</b> &mdash; Calendly is what
+      emails people. To have the client and guests invited, book through the trainer&rsquo;s Calendly.
     </p>
     <p class="tsfg-center" style="margin:10px 0 0">
       <a href="calendar.html" style="color:var(--tsfg-gold);font-size:13px;text-decoration:none">Open the full Scheduler →</a>
@@ -489,9 +515,9 @@ function openNew(){
   document.getElementById('e_date').value  = ymd(d);
   document.getElementById('e_start').value = String(n.getHours()).padStart(2,'0')+':00';
   document.getElementById('e_end').value   = String((n.getHours()+1)%24).padStart(2,'0')+':00';
-  document.getElementById('e_title').value = '';
-  document.getElementById('e_with').value  = '';
-  document.getElementById('e_notes').value = '';
+  /* Every field, or yesterday's client is still sitting in the form when you open it today. */
+  ['e_title','e_with','e_notes','e_tname','e_temail','e_cemail','e_cphone','e_guests']
+    .forEach(function(i){ var e=document.getElementById(i); if(e) e.value=''; });
   document.getElementById('e_title').closest('.tsfg-field').classList.remove('bad');
   document.getElementById('e_time_err').style.display='none';
   try{
@@ -534,6 +560,13 @@ function saveEvent(){
     return Math.max(15,(Number(b[0])*60+Number(b[1]))-(Number(a[0])*60+Number(a[1])));
   })();
 
+  var V=function(i){ var e=document.getElementById(i); return e ? e.value.trim() : ''; };
+  var tname=V('e_tname'), temail=V('e_temail');
+  var cname=V('e_with'), cemail=V('e_cemail'), cphone=V('e_cphone'), guests=V('e_guests');
+  var badMail=function(x){ return x && x.indexOf('@')<1; };
+  if(badMail(temail)){ toast('That trainee email does not look right.'); return; }
+  if(badMail(cemail)){ toast('That client email does not look right.'); return; }
+
   var btn=document.getElementById('saveBtn');
   btn.disabled=true; btn.textContent='Saving…';
 
@@ -541,21 +574,32 @@ function saveEvent(){
      made here is an ordinary booking — it shows up everywhere else without a special case. */
   fetch(SX,{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({
-      action:'staff_appt', code:CODE,
+      /* Two shapes, because they are two different things. Name somebody and it is an
+         appointment WITH them (staff_appt). Name nobody and it is a block on your own
+         calendar (create_appt), which is the one case that legitimately has no guest -
+         it no longer gets faked by booking you against yourself. */
+      action:(tname||cname) ? 'staff_appt' : 'create_appt', code:CODE,
       trainer_name:NAME, trainer_code:CODE,
       title:title, date:date, time:to12(st),
-      /* staff_appt refuses a booking with no client. A block on your OWN calendar has no
-         guest, so when none is named the event is booked against yourself - which is what
-         a personal time block actually is. */
-      client_name:(document.getElementById('e_with').value.trim() || NAME || 'Personal'),
-      client_email:'', client_phone:'',
-      duration_minutes:mins,
+      /* Nobody is invented. A personal block genuinely has no guest, and sched-ext v10 accepts
+         that - it no longer demands a client, which is what forced this to send the booker's own
+         name and produce "Christopher Lorenz with Christopher Lorenz". */
+      trainee_name:tname, trainee_email:temail,
+      client_name:cname, client_email:cemail, client_phone:cphone,
+      guests:guests,
+      minutes:mins, duration_minutes:mins,
       notes:document.getElementById('e_notes').value.trim()
     })})
     .then(function(r){ return r.json(); })
     .then(function(r){
       btn.disabled=false; btn.textContent='Save';
-      if(r && r.ok){ closeNew(); toast('Event saved'); load(); }
+      if(r && r.ok){
+        closeNew();
+        /* Say which it was. A form that takes three addresses and sends nothing must not
+           imply it invited anyone. */
+        toast(r.local_only ? 'Saved to your calendar — no invites sent' : 'Event saved');
+        load();
+      }
       else toast((r && r.error) || 'Could not save that event');
     })
     .catch(function(){ btn.disabled=false; btn.textContent='Save'; toast('Network error — try again'); });

@@ -1414,8 +1414,20 @@ function cbConfirm(){
     '<div class="confrow"><div class="cl">Meeting</div><div class="cv">'+esc(CBTYPE.name)+'</div></div>'+
     '<div class="confrow"><div class="cl">When</div><div class="cv">'+esc(prettyDate(CBSLOT.date))+'</div></div>'+
     '<div class="confrow"><div class="cl">Time</div><div class="cv">'+esc(localSlot(CBSLOT.date,CBSLOT.time))+tzTag()+' · '+CBTYPE.duration+' min</div></div>'+
-    '<div style="margin-top:14px"><label style="'+_LST+'">Your email (Calendly sends the invite here)</label><input id="cb_email" value="'+esc(email)+'" placeholder="you@email.com" style="'+_IST+'"></div>'+
-    '<div style="margin-top:10px"><label style="'+_LST+'">Guests to copy in (optional, comma separated)</label><input id="cb_guests" placeholder="teammate@email.com" style="'+_IST+'"></div>'+
+    /* A training has THREE people in it. This form used to ask for one email under the label
+       "Your email" and send the signed-in agent's NAME alongside whatever was typed there - so
+       booking a client put that client's address under Christopher's name and the Zoom room
+       read as him meeting himself. Each person is now named and addressed separately. */
+    '<div style="margin-top:16px;font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3)">Who is being trained</div>'+
+    '<div style="margin-top:8px"><label style="'+_LST+'">Name</label><input id="cb_tname" value="'+esc(NAME||'')+'" placeholder="The agent being trained" style="'+_IST+'"></div>'+
+    '<div style="margin-top:10px"><label style="'+_LST+'">Email <span style="font-weight:600;color:var(--ink3)">(Calendly sends the invite here)</span></label><input id="cb_email" value="'+esc(email)+'" placeholder="agent@email.com" style="'+_IST+'"></div>'+
+
+    '<div style="margin-top:18px;font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3)">Who you are meeting <span style="font-weight:600;text-transform:none;letter-spacing:0">(optional)</span></div>'+
+    '<div style="margin-top:8px"><label style="'+_LST+'">Client name</label><input id="cb_cname" placeholder="The client or prospect" style="'+_IST+'"></div>'+
+    '<div style="margin-top:10px"><label style="'+_LST+'">Client email</label><input id="cb_cemail" placeholder="client@email.com" style="'+_IST+'"></div>'+
+    '<div style="margin-top:10px"><label style="'+_LST+'">Client phone</label><input id="cb_cphone" inputmode="tel" placeholder="(555) 555-5555" style="'+_IST+'"></div>'+
+
+    '<div style="margin-top:18px"><label style="'+_LST+'">Anyone else to copy in (comma separated)</label><input id="cb_guests" placeholder="teammate@email.com" style="'+_IST+'"></div>'+
     '<div style="margin-top:10px"><label style="'+_LST+'">Anything they should know (optional)</label><input id="cb_notes" placeholder="What you want to cover" style="'+_IST+'"></div>'+
     '<div class="err" id="cb_err" style="color:var(--red);font-size:12.5px;margin-top:9px"></div>'+
     '<div class="dact" style="margin-top:16px"><button class="go" id="cb_btn" onclick="cbBook()">Confirm booking</button></div>'+
@@ -1424,14 +1436,26 @@ function cbConfirm(){
 }
 function cbBook(){
   var btn=$('cb_btn'),err=$('cb_err');
-  var email=($('cb_email').value||'').trim(), guests=($('cb_guests').value||'').trim(), notes=($('cb_notes').value||'').trim();
+  var tname =($('cb_tname').value||'').trim();
+  var email =($('cb_email').value||'').trim();
+  var cname =($('cb_cname').value||'').trim();
+  var cemail=($('cb_cemail').value||'').trim();
+  var cphone=($('cb_cphone').value||'').trim();
+  var guests=($('cb_guests').value||'').trim(), notes=($('cb_notes').value||'').trim();
   if(email.indexOf('@')<1){err.textContent='Add an email address so Calendly can send the invite.';return;}
+  /* The name and the address have to describe the SAME person. Sending one person's name with
+     another's address is the bug this form had. */
+  if(!tname){err.textContent='Add the name that goes with '+email+'.';return;}
+  if(cemail && cemail.indexOf('@')<1){err.textContent='That client email does not look right.';return;}
   /* Reading CBTYPE.uri with nothing picked threw, and the throw happened AFTER the button
      was disabled — so Confirm sat on "Booking in Calendly…" for ever with no error and no
      booking. Seen live on the real site. Check before touching the button. */
   if(!CBTYPE||!CBSLOT){err.textContent='Pick a meeting type and a time first.';return;}
   btn.disabled=true;btn.textContent='Booking in Calendly…';err.textContent='';
-  cbApi({action:'book',trainer_code:CBSEL.code,by_code:CODE,name:NAME,email:email,guests:guests,notes:notes,
+  cbApi({action:'book',trainer_code:CBSEL.code,by_code:CODE,
+         trainee_name:tname,trainee_email:email,
+         client_name:cname,client_email:cemail,client_phone:cphone,
+         guests:guests,notes:notes,
          event_type:CBTYPE.uri,event_type_name:CBTYPE.name,duration:CBTYPE.duration,
          start_time:CBSLOT.start_time,timezone:(viewerTz()||'America/Los_Angeles')}).then(function(r){
     if(r&&r.taken){btn.disabled=false;btn.textContent='Confirm booking';err.textContent=r.error||'That time was just taken.';cbPickType(CBTYPES.indexOf(CBTYPE));return;}
