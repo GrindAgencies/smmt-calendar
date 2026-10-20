@@ -83,6 +83,10 @@
   }
   .toast.on{ opacity:1; }
   .ntf-btn{ display:none !important; }
+/* Four cards sit 2x2. On a very narrow phone, or when the reader has turned text up,
+   two money values cannot share a row without clipping - so they stack instead of shrinking. */
+@media (max-width:360px){ .tsfg-stats{ grid-template-columns:1fr; } }
+.tsfg-stat .v{ overflow-wrap:anywhere; }
 </style>
 </head>
 <body class="tsfg tsfg-haspad">
@@ -99,11 +103,27 @@
     <button data-b="annuity" onclick="setBiz('annuity')">Annuity Business</button>
   </div>
 
-  <h3 class="tsfg-label" style="margin-top:16px" id="monthLbl">This month</h3>
-  <div class="tsfg-stats">
-    <div class="tsfg-stat"><div class="k">AP submitted</div><div class="v" id="sAp">$0</div></div>
-    <div class="tsfg-stat"><div class="k">Paid commission</div><div class="v gold" id="sComm">$0</div></div>
+  <!-- Two separate dimensions, deliberately kept apart and each labelled for assistive
+       technology, so "This month" and "Personal" can never read as one setting. -->
+  <div class="tsfg-seg" id="segTime" role="group" aria-label="Period">
+    <button data-t="week"  onclick="setTime('week')">This week</button>
+    <button data-t="month" class="on" onclick="setTime('month')">This month</button>
+    <button data-t="year"  onclick="setTime('year')">This year</button>
   </div>
+  <div class="tsfg-seg" id="segScope" role="group" aria-label="Scope">
+    <button data-s="personal"  class="on" onclick="setScope('personal')">Personal</button>
+    <button data-s="baseshop"  id="scopeShop" style="display:none" onclick="setScope('baseshop')">Base shop</button>
+    <button data-s="hierarchy" onclick="setScope('hierarchy')">Hierarchy</button>
+  </div>
+
+  <h3 class="tsfg-label" style="margin-top:16px" id="monthLbl">This month &middot; your own business</h3>
+  <div class="tsfg-stats">
+    <div class="tsfg-stat"><div class="k">AP submitted</div><div class="v" id="sApSub">$0</div></div>
+    <div class="tsfg-stat"><div class="k">AP pending</div><div class="v" id="sApPend">$0</div></div>
+    <div class="tsfg-stat"><div class="k">AP paid</div><div class="v gold" id="sApPaid">$0</div></div>
+    <div class="tsfg-stat"><div class="k">Total coverage</div><div class="v" id="sCov">$0</div></div>
+  </div>
+  <p class="tsfg-muted" id="apNote" style="font-size:11.5px;line-height:1.5;margin:8px 0 0"></p>
 
   <button class="tsfg-btn" style="margin:14px 0 20px" onclick="openWiz()">+&nbsp; Add application</button>
 
@@ -333,7 +353,17 @@ function toast(m){ var t=$('toast'); t.textContent=m; t.classList.add('on'); cle
 function money(n){ return '$'+Math.round(Number(n)||0).toLocaleString('en-US'); }
 function money2(n){ return '$'+(Number(n)||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 
+var SHOP = 'https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/nb-baseshop';
+
 var BIZ='life', FILTER='all', ROWS=[], STEP=1, MYRATE=null;
+
+/* Time and scope are two independent dimensions. SEQ guards against a slow reply from an
+   earlier selection landing after a faster later one and repainting stale figures. */
+var TIME='month', SCOPE='personal', MYNAME='', MYSHOP='', SHOPOK=false, SEQ=0, LOADERR=false;
+try{
+  TIME  = sessionStorage.getItem('tsfg_nb_time')  || 'month';
+  SCOPE = sessionStorage.getItem('tsfg_nb_scope') || 'personal';
+}catch(e){}
 
 /* The statuses that mean each thing, kept in step with the rest of the platform:
    in force is PAID OUT only, and dead is the closed set. */
@@ -354,16 +384,83 @@ function setFilter(f){
 }
 
 /* ------------------------------------------------------------- loading --- */
+function setTime(t){
+  TIME=t; try{ sessionStorage.setItem('tsfg_nb_time',t); }catch(e){}
+  [].forEach.call(document.querySelectorAll('#segTime button'),function(b){ b.classList.toggle('on', b.getAttribute('data-t')===t); });
+  paint();                       /* the period is filtered in the browser - no refetch */
+}
+function setScope(sc){
+  if(sc==='baseshop' && !SHOPOK) return;     /* server refuses it too; this is only the courtesy */
+  SCOPE=sc; try{ sessionStorage.setItem('tsfg_nb_scope',sc); }catch(e){}
+  [].forEach.call(document.querySelectorAll('#segScope button'),function(b){ b.classList.toggle('on', b.getAttribute('data-s')===sc); });
+  load();                        /* a different scope is a genuinely different set of records */
+}
+function syncSegs(){
+  [].forEach.call(document.querySelectorAll('#segTime button'),function(b){ b.classList.toggle('on', b.getAttribute('data-t')===TIME); });
+  [].forEach.call(document.querySelectorAll('#segScope button'),function(b){ b.classList.toggle('on', b.getAttribute('data-s')===SCOPE); });
+}
+
+/* Each scope is a different question asked of the server, and the server decides what the
+   answer may contain:
+     personal   your own book - newbiz-api identifies you by session and credits YOUR share
+     hierarchy  your downline through the real org tree (nb_scope), via newbiz-api's leader path
+     baseshop   your whole shop - nb-baseshop, which refuses anyone who does not lead it
+   Scope is never applied by hiding rows that were already sent to the phone. */
 function load(){
-  $('list').innerHTML='<div class="tsfg-spin">Loading your applications…</div>';
-  fetch(NB,{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({action:'newbiz_list',code:CODE,business_type:BIZ})})
+  var mine = ++SEQ;
+  LOADERR=false;
+  $('list').innerHTML='<div class="tsfg-spin">Loading applications…</div>';
+
+  var url=NB, body={action:'newbiz_list',code:CODE,business_type:BIZ};
+  if(SCOPE==='baseshop'){ url=SHOP; body={business_type:BIZ}; }
+  else if(SCOPE==='hierarchy' && MYNAME){ body={action:'newbiz_list',leader:MYNAME,business_type:BIZ}; }
+
+  fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
     .then(function(r){ return r.json(); })
     .then(function(r){
-      ROWS = (r && (r.policies||r.rows||r.sales)) || [];
+      if(mine!==SEQ) return;                       /* a newer selection is already in flight */
+      if(!r || r.ok===false){
+        LOADERR=true; ROWS=[];
+        computeMetrics();
+        $('list').innerHTML='<div class="tsfg-empty"><b>Could not load</b><span>'+
+          esc((r&&r.error)||'Please try again.')+'</span></div>';
+        return;
+      }
+      ROWS = (r.policies||r.rows||r.sales) || [];
       paint();
     })
-    .catch(function(){ $('list').innerHTML='<div class="tsfg-empty"><b>Could not load</b><span>Check your connection and try again.</span></div>'; });
+    .catch(function(){
+      if(mine!==SEQ) return;
+      LOADERR=true; ROWS=[]; computeMetrics();
+      $('list').innerHTML='<div class="tsfg-empty"><b>Could not load</b><span>Check your connection and try again.</span></div>';
+    });
+}
+
+/* Two things have to be known before Hierarchy and Base shop can be offered honestly: the
+   caller's own NAME (newbiz-api resolves a leader book by name through the org tree) and
+   whether they lead their shop at all. Base shop stays hidden rather than visible-and-blocked
+   for the 189 people who do not - a control that refuses you is worse than one that is not there. */
+function bootScopes(){
+  fetch(TA,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'load',code:CODE})})
+    .then(function(r){ return r.json(); })
+    .then(function(r){
+      var a=(r && (r.agent||r.me))||{};
+      MYNAME=((a.first_name||'')+' '+(a.last_name||'')).trim();
+      if(SCOPE==='hierarchy' && MYNAME) load();     /* the name arrived after the first load */
+    }).catch(function(){});
+
+  fetch(SHOP,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'check'})})
+    .then(function(r){ return r.json(); })
+    .then(function(r){
+      if(!r || !r.ok) return;
+      MYSHOP = r.baseshop||'';
+      SHOPOK = !!r.allowed;
+      if(SHOPOK){ $('scopeShop').style.display=''; }
+      else if(SCOPE==='baseshop'){ SCOPE='personal'; syncSegs(); load(); }
+      if(ROWS.length||SCOPE==='baseshop') computeMetrics();
+    }).catch(function(){});
 }
 
 /* Your own contract rate, so the agent is not asked for a number the platform already
@@ -385,27 +482,76 @@ function loadMyRate(){
     .catch(function(){});
 }
 
-function thisMonth(){
-  var n=new Date(), k=n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0');
-  var ap=0, comm=0;
-  ROWS.forEach(function(p){
-    if(String(p.submitted_date||'').slice(0,7)===k) ap += Number(p.annual_premium)||0;
-    if(isPaid(p.status) && String(p.paid_out_date||'').slice(0,7)===k) comm += Number(p.expected_commission)||0;
-  });
-  $('sAp').textContent   = money(ap);
-  $('sComm').textContent = money(comm);
+/* ---------------------------------------------------------------- periods ----
+   Dates on a policy are plain calendar dates, so the period is a pair of YYYY-MM-DD
+   strings and comparison is a string compare - no timezone can shift a policy into the
+   wrong month that way. "Today" is read in Eastern time because that is the business
+   date basis the rest of the platform pays and reports on. The week runs Monday to
+   today, which is how production weeks are counted. */
+function ymd(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function easternToday(){
+  try{ return new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York'}).format(new Date()); }
+  catch(e){ return ymd(new Date()); }
+}
+function periodRange(t){
+  var today = easternToday();
+  if(t==='year')  return [today.slice(0,4)+'-01-01', today];
+  if(t==='month') return [today.slice(0,7)+'-01',    today];
+  var d = new Date(today+'T12:00:00');          /* midday: no DST edge can move the day */
+  var dow = (d.getDay()+6)%7;                   /* Monday = 0 */
+  d.setDate(d.getDate()-dow);
+  return [ymd(d), today];
+}
+function periodWord(){ return TIME==='week' ? 'This week' : (TIME==='year' ? 'This year' : 'This month'); }
+function scopeWord(){
+  if(SCOPE==='baseshop')  return MYSHOP ? (MYSHOP+' base shop') : 'your base shop';
+  if(SCOPE==='hierarchy') return 'you and your team';
+  return 'your own business';
+}
+function inRange(ds,a,b){ ds=String(ds||'').slice(0,10); return !!ds && ds>=a && ds<=b; }
 
-  /* newbiz_list returns a LEADER's whole downline, not just their own policies, so for an
-     EMD this card was showing team production under a heading that reads personal. Say
-     whose numbers these are rather than quietly mixing them. */
-  var agents = {};
-  ROWS.forEach(function(p){ var c=String(p.agent_code||'').toUpperCase(); if(c) agents[c]=1; });
-  var n2 = Object.keys(agents).length;
-  $('monthLbl').textContent = (n2 > 1) ? 'This month · you and your team' : 'This month';
+/* ------------------------------------------------------------- the four cards ----
+   AP submitted, AP pending and AP paid are NOT three slices of one pie and must never be
+   read as summing: submitted and pending are dated by the day the business was WRITTEN,
+   while paid is dated by the day the money actually LANDED - a policy written in June and
+   paid in August belongs to June's submitted and August's paid. A paid policy is also
+   still a submitted one. AP paid is annualized premium on policies that reached paid
+   status (Christopher, 2026-10-20) - it is NOT paid commission, which is a different and
+   much smaller number and used to be what this second card showed.
+   `my_ap` is the share already worked out by the server: your own share under Personal,
+   and the full premium counted once under Base shop or Hierarchy, so a split policy is
+   never counted twice in a team total. */
+function computeMetrics(){
+  var r=periodRange(TIME), a=r[0], b=r[1];
+  if(LOADERR){
+    ['sApSub','sApPend','sApPaid','sCov'].forEach(function(id){ $(id).textContent='—'; });
+    $('apNote').textContent='These figures could not be loaded. They are not zero — try again.';
+    return;
+  }
+  var apSub=0, apPend=0, apPaid=0, cov=0, nSub=0, nPaid=0;
+  ROWS.forEach(function(p){
+    var dead=isDead(p.status), paid=isPaid(p.status);
+    var ap = Number(p.my_ap!=null ? p.my_ap : p.annual_premium)||0;
+    if(!dead && inRange(p.submitted_date,a,b)){
+      apSub += ap; nSub++;
+      cov   += Number(p.coverage)||0;
+      if(!paid) apPend += ap;
+    }
+    if(paid && inRange(p.paid_out_date,a,b)){ apPaid += ap; nPaid++; }
+  });
+  $('sApSub').textContent  = money(apSub);
+  $('sApPend').textContent = money(apPend);
+  $('sApPaid').textContent = money(apPaid);
+  $('sCov').textContent    = money(cov);
+  $('monthLbl').textContent = periodWord()+' · '+scopeWord();
+  $('apNote').innerHTML =
+    'Submitted and pending are counted by the day the business was written; <b>AP paid</b> by the day the '
+    + 'money landed, so they are not three parts of one total. Coverage is on the '+nSub+' application'
+    + (nSub===1?'':'s')+' written '+periodWord().toLowerCase()+'.';
 }
 
 function paint(){
-  thisMonth();
+  computeMetrics();
   var q=($('q').value||'').trim().toLowerCase();
   var rows=ROWS.filter(function(p){
     if(FILTER==='paid'    && !isPaid(p.status)) return false;
@@ -601,6 +747,10 @@ function saveDraft(){
 }
 
 
+/* Restore the period and scope the user last chose before the first paint, so returning
+   from a tool or a reload does not quietly reset them to This month / Personal. */
+syncSegs();
+bootScopes();
 load();
 </script>
 <script defer src="notif.js"></script>
