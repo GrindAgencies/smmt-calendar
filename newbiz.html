@@ -83,13 +83,22 @@
   }
   .toast.on{ opacity:1; }
   .ntf-btn{ display:none !important; }
+/* The bottom bar is gone from this page (task 13), and the shared rule that placed the two
+   injected floaters was scoped to pages that still have one - so without this they would fall
+   back to whatever notif.js and i18n.js set inline. !important for the same reason the shared
+   rule uses it: both scripts re-apply an inline position after load, and a timer cannot win
+   that race while a stylesheet rule can. Lower than the tab-bar pages, because there is no
+   longer 58px of bar to clear. */
+#askFab{ bottom:calc(env(safe-area-inset-bottom) + 18px) !important; right:16px !important; z-index:50 !important; }
+#i18nToggle{ top:calc(env(safe-area-inset-top) + 10px) !important; bottom:auto !important; left:14px !important; right:auto !important; }
+
 /* Four cards sit 2x2. On a very narrow phone, or when the reader has turned text up,
    two money values cannot share a row without clipping - so they stack instead of shrinking. */
 @media (max-width:360px){ .tsfg-stats{ grid-template-columns:1fr; } }
 .tsfg-stat .v{ overflow-wrap:anywhere; }
 </style>
 </head>
-<body class="tsfg tsfg-haspad">
+<body class="tsfg">
 
 <div class="tsfg-top">
   <button class="tsfg-back" onclick="back()" aria-label="Back">&lsaquo;</button>
@@ -314,20 +323,12 @@
   </div>
 </div>
 
-<nav class="tsfg-tabs" style="--tsfg-tabn:4">
-  <button class="tsfg-tab" onclick="go('app.html')">
-    <svg viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v9a2 2 0 0 1-2 2h-4v-6H9v6H5a2 2 0 0 1-2-2Z"/></svg>Home
-  </button>
-  <button class="tsfg-tab" onclick="go('teamhub.html')">
-    <svg viewBox="0 0 24 24"><path d="M20 15a2 2 0 0 1-2 2H8l-4 4V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2Z"/></svg>The Hub
-  </button>
-  <button class="tsfg-tab on">
-    <svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>Business
-  </button>
-  <button class="tsfg-tab" onclick="go('profile.html')">
-    <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Profile
-  </button>
-</nav>
+<!-- The app-level bottom bar (Home / The Hub / Business / Profile) is deliberately gone.
+     Elijah reported it still showing here; the first brief had already retired these tabs.
+     Its reserved height goes with it - tsfg-haspad below - so the last application row and
+     the form buttons are reachable with no blank tab-bar spacer underneath. The device's own
+     bottom safe area is still honoured by .tsfg-wrap's padding, and the top back control is
+     untouched: that is how you leave this screen. No replacement tabs. -->
 
 <div class="toast" id="toast"></div>
 

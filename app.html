@@ -68,18 +68,39 @@
     opacity:0; transition:opacity .16s ease;
   }
   .nav-go.on{ display:flex; opacity:1; }
+  /* ROUND TWO, task 14: the entrance is now a deliberate ~3 seconds with a glisten, which
+     supersedes the first brief's 250-450ms. The budget is the WHOLE transition, not three
+     seconds added to it:
+        0 - 0.4s   the title rises in and the rule draws under it
+        0.4 - 2.5s it sits still and readable while ONE warm-gold sweep crosses the letters
+        2.5s       we hand over to the destination, whose own arrival finishes around 3s
+     The shimmer is a moving gradient clipped to the glyphs, so it lights the lettering
+     itself rather than putting a white bar over the top of it; the gold stays legible
+     throughout because the sweep only brightens, never washes out. */
   .nav-go .ttl{
-    font-size:clamp(23px,7vw,30px); font-weight:800; letter-spacing:-.03em; color:var(--tsfg-gold);
+    font-size:clamp(23px,7vw,30px); font-weight:800; letter-spacing:-.03em;
+    color:var(--tsfg-gold);
     transform:translateY(7px) scale(.985); opacity:0;
-    animation:navrise .34s cubic-bezier(.2,.7,.3,1) forwards;
+    animation:navrise .40s cubic-bezier(.2,.7,.3,1) forwards;
+  }
+  .nav-go .ttl::after{
+    content:attr(data-t); position:absolute; left:0; right:0; top:0; bottom:0;
+    display:flex; align-items:center; justify-content:center; pointer-events:none;
+    background:linear-gradient(100deg,
+      rgba(255,240,205,0) 38%, rgba(255,243,214,.95) 50%, rgba(255,240,205,0) 62%);
+    background-size:260% 100%; background-position:160% 0;
+    -webkit-background-clip:text; background-clip:text;
+    -webkit-text-fill-color:transparent; color:transparent;
+    animation:navsheen 1.5s cubic-bezier(.4,0,.2,1) .55s 1 forwards;
   }
   .nav-go .rule{
-    position:absolute; left:50%; bottom:calc(50% - 30px); width:0; height:1px;
+    position:absolute; left:50%; bottom:calc(50% - 32px); width:0; height:1px;
     background:linear-gradient(90deg, transparent, var(--tsfg-gold), transparent);
-    transform:translateX(-50%); animation:navrule .40s cubic-bezier(.2,.7,.3,1) forwards;
+    transform:translateX(-50%); animation:navrule .45s cubic-bezier(.2,.7,.3,1) forwards;
   }
   @keyframes navrise{ to{ transform:none; opacity:1; } }
-  @keyframes navrule{ to{ width:132px; } }
+  @keyframes navrule{ to{ width:150px; } }
+  @keyframes navsheen{ from{ background-position:160% 0; } to{ background-position:-60% 0; } }
   @media (prefers-reduced-motion: reduce){
     .nav-go, .nav-go .ttl, .nav-go .rule{ animation:none !important; transition:none !important; }
     .nav-go .ttl{ opacity:1; transform:none; }
@@ -266,7 +287,7 @@
 
 <!-- The branded opening. Inserted once and reused; it never traps focus because it is
      removed the moment the next page takes over. -->
-<div class="nav-go" id="navGo" aria-hidden="true"><div class="rule"></div><div class="ttl" id="navTtl"></div></div>
+<div class="nav-go" id="navGo" aria-hidden="true"><div class="rule"></div><div class="ttl" id="navTtl" data-t=""></div></div>
 
 <div class="toast" id="toast"></div>
 
@@ -285,17 +306,35 @@
     'newbiz.html':'New Business', 'resources.html':'Resource Library',
     'summit.html?tab=road':'Road to EMD', 'profile.html':'Profile', 'index.html':'The Standard'
   };
+  /* Round two, task 14: a deliberate ~3s entrance. HOLD_MS is how long the title is shown
+     before handing over; the destination's own arrival animation carries it to about three
+     seconds total, so this is the whole budget rather than three seconds bolted on. */
+  var HOLD_MS = 2700;   /* 2.70s here + the destination's 0.26s arrival = 2.96s, i.e. the ~3s asked for */
   function go(u){
-    if (NAVING) return;
+    if (NAVING) return;                      /* repeated taps cannot stack routes or overlays */
     NAVING = true;
     var title = TOOL_TITLES[u] || '';
     var reduce = false;
     try{ reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){}
     if (!title || reduce){ location.href = u; return; }
+
+    /* The navigation is NOT what the three seconds are spent waiting for. The destination is
+       fetched immediately, in parallel, so by the time the title finishes the page is usually
+       already in the browser's cache and appears at once. Without this the animation would be
+       three seconds of nothing followed by a load. */
+    try{
+      var pre = document.createElement('link');
+      pre.rel = 'prefetch'; pre.href = u; pre.as = 'document';
+      document.head.appendChild(pre);
+    }catch(e){}
+
     var ov = document.getElementById('navGo'), tt = document.getElementById('navTtl');
-    if (ov && tt){ tt.textContent = title; ov.classList.add('on'); }
-    /* Short, and never the thing holding the page up: the browser is already fetching. */
-    setTimeout(function(){ location.href = u; }, 260);
+    if (ov && tt){
+      tt.textContent = title;
+      tt.setAttribute('data-t', title);      /* the glisten layer reads the same text */
+      ov.classList.add('on');
+    }
+    setTimeout(function(){ location.href = u; }, HOLD_MS);
   }
   /* Coming back via the back button can restore this page from cache with the overlay still
      showing. Clear it on show, or Home looks frozen behind its own title. */
