@@ -564,6 +564,105 @@ function toggleMod(){if(MODTOKEN){MODTOKEN='';$('modBtn').textContent='🔒';toa
    login redirect or a cold open from a notification there is nothing useful behind us. */
 function hubGoHome(){ location.href = 'app.html'; }
 
+/* ===================== ROUND TWO tasks 3 & 4: the row menu =====================
+   Press and hold a chat, as in Messages. A long press is a gesture and gestures are invisible
+   to assistive technology, so every row also carries a real (visually hidden) button that
+   opens the same menu. A normal tap still opens the conversation, and a press that turns into
+   a scroll is not a long press - that distinction is the whole difficulty here. */
+var CVMENU_FOR = '';
+function rowLabelOf(ch){
+  var el = document.querySelector('#chanList .cv[data-ch="'+(window.CSS&&CSS.escape?CSS.escape(ch):ch)+'"]');
+  var n = el && el.querySelector('.cv-name');
+  return n ? n.textContent : 'this chat';
+}
+function openRowMenu(ch){
+  CVMENU_FOR = ch;
+  var pinned = !!PINNED[ch];
+  var ov = document.getElementById('cvMenu');
+  if(!ov){
+    ov = document.createElement('div');
+    ov.id='cvMenu'; ov.className='cvm-ov';
+    ov.addEventListener('click', function(e){ if(e.target===ov) closeRowMenu(); });
+    document.body.appendChild(ov);
+  }
+  ov.innerHTML =
+    '<div class="cvm" role="dialog" aria-label="Chat options">'+
+      '<h4>'+esc(rowLabelOf(ch))+'</h4>'+
+      '<button onclick="togglePin()"><i>'+(pinned?'\u2715':'\u25C6')+'</i>'+(pinned?'Unpin chat':'Pin chat')+'</button>'+
+      '<div class="sep"></div>'+
+      '<button onclick="hideRow()"><i>\u2298</i>Hide chat</button>'+
+      /* The brief is explicit that a "Delete" which quietly means "hide from me" is the wrong
+         thing to ship. Say exactly what it does, in the menu, before it is tapped. */
+      '<div class="note">This hides the chat from your list. New messages will bring it back. '+
+      'Membership and everyone else\u2019s view are unchanged.</div>'+
+      '<div class="sep"></div>'+
+      '<button onclick="closeRowMenu()"><i>\u2190</i>Cancel</button>'+
+    '</div>';
+  ov.classList.add('on');
+}
+function closeRowMenu(){ var ov=document.getElementById('cvMenu'); if(ov) ov.classList.remove('on'); CVMENU_FOR=''; }
+
+function togglePin(){
+  var ch = CVMENU_FOR; if(!ch) return;
+  var was = !!PINNED[ch];
+  if(was) delete PINNED[ch]; else PINNED[ch]=1;    /* optimistic: the list reorders at once */
+  closeRowMenu(); renderRooms();
+  prefsApi({action: was?'unpin':'pin', channel: ch}).then(function(r){
+    if(!r || !r.ok){
+      /* Put it back rather than leaving a pin that only exists on this phone. */
+      if(was) PINNED[ch]=1; else delete PINNED[ch];
+      renderRooms();
+      toast((r&&r.error)||'Could not save that');
+    }
+  });
+}
+function hideRow(){
+  var ch = CVMENU_FOR; if(!ch) return;
+  HIDDEN[ch]=1;
+  closeRowMenu(); renderRooms();
+  prefsApi({action:'hide', channel: ch}).then(function(r){
+    if(!r || !r.ok){ delete HIDDEN[ch]; renderRooms(); toast((r&&r.error)||'Could not hide that chat'); }
+    else toast('Hidden from your list');
+  });
+}
+
+/* Long press, without hijacking a scroll or a tap. Movement beyond a few pixels cancels it,
+   and once the menu opens the row's own click is suppressed so the conversation does not
+   open behind the sheet. */
+(function(){
+  var t=null, sx=0, sy=0, fired=false;
+  function rowOf(e){ var el=e.target; while(el && el!==document.body){ if(el.classList && el.classList.contains('cv')) return el; el=el.parentNode; } return null; }
+  function start(e){
+    var row=rowOf(e); if(!row) return;
+    var p=(e.touches&&e.touches[0])||e; sx=p.clientX; sy=p.clientY; fired=false;
+    clearTimeout(t);
+    t=setTimeout(function(){
+      fired=true;
+      try{ if(navigator.vibrate) navigator.vibrate(8); }catch(_){}
+      openRowMenu(row.getAttribute('data-ch'));
+    }, 480);
+  }
+  function move(e){
+    if(!t) return;
+    var p=(e.touches&&e.touches[0])||e;
+    if(Math.abs(p.clientX-sx)>8 || Math.abs(p.clientY-sy)>8){ clearTimeout(t); t=null; }
+  }
+  function end(){ clearTimeout(t); t=null; }
+  document.addEventListener('touchstart', start, {passive:true});
+  document.addEventListener('touchmove',  move,  {passive:true});
+  document.addEventListener('touchend',   end,   {passive:true});
+  document.addEventListener('touchcancel',end,   {passive:true});
+  /* Right-click is the desktop equivalent of the same intent. */
+  document.addEventListener('contextmenu', function(e){
+    var row=rowOf(e); if(!row) return;
+    e.preventDefault(); openRowMenu(row.getAttribute('data-ch'));
+  });
+  /* Swallow the click that a long press would otherwise deliver to the row underneath. */
+  document.addEventListener('click', function(e){
+    if(fired){ fired=false; e.stopPropagation(); e.preventDefault(); }
+  }, true);
+})();
+
 function signOut(){try{if(window.tsfgSession)tsfgSession.clear();}catch(e){}try{localStorage.removeItem('tsfg_code');localStorage.removeItem('tsfg_name');}catch(e){}location.href='index.html';}
 
 /* rooms */
@@ -592,7 +691,13 @@ function convRows(){
     if(!r.at) r.at=previewAt(r.id);
     if(!r.preview) r.preview=previewOf(r.id);
   });
+  /* Task 4: a conversation this person has hidden is simply not in their list. Nobody
+     else's view changes, and the row is still here the moment the server resurfaces it. */
+  rows = rows.filter(function(r){ return !HIDDEN[r.id]; });
+  /* Task 3: pinned first, and ONLY once - a pinned chat must not also appear below. */
   rows.sort(function(a,b){
+    var pa=!!PINNED[a.id], pb=!!PINNED[b.id];
+    if(pa!==pb) return pa?-1:1;
     if(!!a.unread !== !!b.unread) return a.unread?-1:1;
     return String(b.at||'').localeCompare(String(a.at||''));
   });
@@ -603,13 +708,21 @@ function convRowHtml(r){
                 : '<div class="cv-av ch">'+(r.icon||'#')+'</div>';
   var prev = r.preview ? esc(r.preview) : '<span class="cv-mute">No messages yet</span>';
   var hay = (r.label+' '+(r.preview||'')).toLowerCase();
+  var pinned = !!PINNED[r.id];
   return '<div class="cv'+(CHAN===r.id?' on':'')+(r.unread?' unread':'')+'"'+
     ' data-q="'+esc(hay)+'" data-unread="'+(r.unread?1:0)+'"'+
+    ' data-kind="'+(r.dm?'dm':'group')+'" data-ch="'+esc(r.id)+'"'+
+    ' data-pin="'+(pinned?1:0)+'"'+
     ' onclick="openChan(\''+r.id+'\')">'+av+
     '<div class="cv-mid"><div class="cv-top"><span class="cv-name">'+esc(r.label)+'</span>'+
+    (pinned?'<span class="cv-pinmark" aria-label="Pinned">\u25C6</span>':'')+
     '<span class="cv-time">'+esc(whenOf(r.at))+'</span></div>'+
     '<div class="cv-prev">'+prev+'</div></div>'+
-    (r.unread?'<span class="cv-badge">'+(r.unread>99?'99+':r.unread)+'</span>':'')+'</div>';
+    (r.unread?'<span class="cv-badge">'+(r.unread>99?'99+':r.unread)+'</span>':'')+
+    /* The gesture is a long press, but a gesture alone is unreachable for assistive
+       technology, so the same menu has a real button behind it. */
+    '<button class="sr-only cv-more" onclick="event.stopPropagation();openRowMenu(\''+r.id+'\')">More options for '+esc(r.label)+'</button>'+
+    '</div>';
 }
 function renderRooms(){
   if(OPSMODE){
@@ -625,23 +738,72 @@ function renderRooms(){
   $('dmList').innerHTML = dmPicker();
   applyConvFilter();
 }
-var CVFILTER='all', CVQ='';
+/* Round two tasks 2-4. The filter is remembered between visits; Group chats is the opening
+   view on a first visit, which is where the team's actual conversations are. */
+var CVFILTER='group', CVQ='';
+try{ CVFILTER = localStorage.getItem('tsfg_hub_filter') || 'group'; }catch(e){}
+
+/* Per-person pins and hides. These belong to the signed-in user and never move anybody
+   else's list; the server owns the rules and this is only its answer. */
+var PINNED = {}, HIDDEN = {}, PREFS_READY = false;
+var HUBPREFS = 'https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/hub-prefs';
+function prefsApi(b){
+  return fetch(HUBPREFS,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b||{})})
+    .then(function(r){ return r.json(); }).catch(function(){ return {ok:false}; });
+}
+function loadPrefs(cb){
+  prefsApi({action:'list'}).then(function(r){
+    PINNED={}; HIDDEN={};
+    if(r && r.ok){
+      (r.pinned||[]).forEach(function(c){ PINNED[c]=1; });
+      (r.hidden||[]).forEach(function(c){ HIDDEN[c]=1; });
+      /* Anything the server says has moved on is simply not in `hidden` any more - it told
+         us so in `resurfaced` and cleared its own row, so there is nothing to do here but
+         let it reappear. */
+    }
+    PREFS_READY = true;
+    if(cb) cb();
+  });
+}
 function setConvFilter(f){
   CVFILTER=f;
+  try{ localStorage.setItem('tsfg_hub_filter', f); }catch(e){}
   Array.prototype.forEach.call(document.querySelectorAll('.cv-pill'),function(b){
-    b.classList.toggle('on', b.getAttribute('data-f')===f);
+    var on = b.getAttribute('data-f')===f;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-selected', on ? 'true' : 'false');
   });
   applyConvFilter();
 }
 function onConvSearch(v){ CVQ=String(v||'').trim().toLowerCase(); applyConvFilter(); }
+/* Task 2. Four mutually exclusive views, decided from the conversation's real type and this
+   person's own unread state - never from guessing at its name. A pinned DM therefore stays out
+   of Group chats, and a read chat stays out of Unread however it is pinned. The search box
+   applies WITHIN the chosen view. */
+function convFilterOk(el){
+  var kind = el.getAttribute('data-kind');            /* 'dm' | 'group' */
+  var unread = el.getAttribute('data-unread')==='1';
+  if(CVFILTER==='group')  return kind==='group';
+  if(CVFILTER==='dm')     return kind==='dm';
+  if(CVFILTER==='unread') return unread;              /* across both kinds */
+  return true;                                        /* all */
+}
 function applyConvFilter(){
   var any=false;
   Array.prototype.forEach.call(document.querySelectorAll('#chanList .cv'),function(el){
-    var okF=(CVFILTER!=='unread')||el.getAttribute('data-unread')==='1';
     var okQ=!CVQ||(el.getAttribute('data-q')||'').indexOf(CVQ)>=0;
-    var show=okF&&okQ; el.style.display=show?'':'none'; if(show)any=true;
+    var show=convFilterOk(el)&&okQ; el.style.display=show?'':'none'; if(show)any=true;
   });
-  var n=document.getElementById('cvNone'); if(n) n.style.display=any?'none':'block';
+  var n=document.getElementById('cvNone');
+  if(n){
+    n.style.display=any?'none':'block';
+    /* An empty category and a failed request are different things and must not read the same. */
+    n.textContent = CVQ ? 'Nothing matches that.'
+      : (CVFILTER==='group' ? 'No group chats yet.'
+      : CVFILTER==='dm' ? 'No direct messages yet.'
+      : CVFILTER==='unread' ? 'Nothing unread \u2014 you are all caught up.'
+      : 'No conversations yet.');
+  }
 }
 /* One flat list of 86 names was unusable, and grouping on the raw baseshop field
    was worse: it produced LORENZ, COX, ZAVALA and UNASSIGNED sitting beside the
@@ -1294,7 +1456,43 @@ body.phone .cv-search input{
   border:1px solid var(--line); background:var(--panel2); color:var(--ink);
 }
 body.phone .cv-search .mg{ position:absolute; left:13px; top:50%; transform:translateY(-50%); color:var(--ink3); font-size:14px; }
-body.phone .cv-pills{ display:flex; gap:8px; padding:0 16px 10px; }
+/* ROUND TWO task 2: four filters, not two. They must all stay reachable and readable on a
+   narrow phone, so the row scrolls sideways rather than shrinking the labels or the targets. */
+body.phone .cv-pills{
+  display:flex; gap:8px; padding:0 16px 10px;
+  overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none;
+}
+body.phone .cv-pills::-webkit-scrollbar{ display:none; }
+body.phone .cv-pill{ flex:0 0 auto; }
+
+/* Task 3: a pinned row says so without stealing the layout. */
+body.phone .cv-pinmark{ color:var(--cvgold); font-size:11px; margin-left:5px; flex:0 0 auto; }
+body.phone .cv-sec{
+  padding:6px 16px 4px; font-size:11px; font-weight:800; letter-spacing:.08em;
+  text-transform:uppercase; color:var(--ink3);
+}
+
+/* The long-press menu. A sheet, not a browser dialog: this is a phone. */
+.cvm-ov{ position:fixed; inset:0; z-index:950; background:rgba(0,0,0,.6);
+  display:none; align-items:flex-end; justify-content:center; }
+.cvm-ov.on{ display:flex; }
+.cvm{ width:100%; max-width:460px; background:var(--panel); border:1px solid var(--line);
+  border-radius:16px 16px 0 0; padding:10px 10px calc(env(safe-area-inset-bottom) + 14px); }
+.cvm h4{ margin:6px 10px 10px; font-size:13px; color:var(--ink2); font-weight:700;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.cvm button{ display:flex; align-items:center; gap:11px; width:100%; text-align:left;
+  padding:14px 12px; border:0; background:none; font-family:inherit; font-size:15.5px;
+  color:var(--ink); cursor:pointer; border-radius:11px; }
+.cvm button:active{ background:var(--panel2); }
+.cvm button i{ font-style:normal; width:20px; text-align:center; }
+.cvm .sep{ height:1px; background:var(--line); margin:5px 10px; }
+.cvm .note{ font-size:12px; color:var(--ink3); line-height:1.45; padding:2px 12px 8px; }
+/* The long press has a real button behind it for screen readers and keyboards. Off-screen
+   rather than display:none, because display:none removes it from the accessibility tree too. */
+.cv-more{ position:absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden;
+  clip:rect(0 0 0 0); clip-path:inset(50%); white-space:nowrap; border:0; background:none; color:inherit; }
+.cv-more:focus{ position:static; width:auto; height:auto; margin:0; clip:auto; clip-path:none;
+  padding:4px 8px; border:1px solid var(--cvgold); border-radius:8px; font-size:11px; }
 body.phone .cv-pill{
   font-family:inherit; font-size:13.5px; font-weight:700; padding:8px 18px;
   border-radius:999px; border:0; background:var(--panel2); color:var(--ink2); cursor:pointer;
@@ -1427,9 +1625,11 @@ body.phone .composer textarea{ border-radius:21px !important; padding:11px 15px 
       '</div>'+
       '<div class="cv-search"><span class="mg">⌕</span>'+
         '<input type="search" placeholder="Search the hub" oninput="onConvSearch(this.value)"></div>'+
-      '<div class="cv-pills">'+
-        '<button class="cv-pill on" data-f="all" onclick="setConvFilter(\'all\')">All</button>'+
-        '<button class="cv-pill" data-f="unread" onclick="setConvFilter(\'unread\')">Unread</button>'+
+      '<div class="cv-pills" role="tablist" aria-label="Filter conversations">'+
+        '<button class="cv-pill" data-f="group"  role="tab" onclick="setConvFilter(\'group\')">Group chats</button>'+
+        '<button class="cv-pill" data-f="unread" role="tab" onclick="setConvFilter(\'unread\')">Unread</button>'+
+        '<button class="cv-pill" data-f="dm"     role="tab" onclick="setConvFilter(\'dm\')">DMs</button>'+
+        '<button class="cv-pill" data-f="all"    role="tab" onclick="setConvFilter(\'all\')">All</button>'+
       '</div>';
     rooms.insertBefore(head, rooms.firstChild);
 
@@ -1464,7 +1664,13 @@ body.phone .composer textarea{ border-radius:21px !important; padding:11px 15px 
     window.__cvHooked=true;
   }
 
-  function init(){ syncPhone(); buildChrome(); hookOpen(); }
+  function init(){
+    syncPhone(); buildChrome(); hookOpen();
+    /* Light up the remembered filter, and fetch this person's pins and hides. The list is
+       re-rendered once they arrive so a pinned chat does not jump after the fact. */
+    try{ setConvFilter(CVFILTER); }catch(e){}
+    if(!PREFS_READY) loadPrefs(function(){ try{ renderRooms(); }catch(e){} });
+  }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', init); else init();
   setTimeout(init,500); setTimeout(init,1500);
   window.addEventListener('resize', syncPhone);
