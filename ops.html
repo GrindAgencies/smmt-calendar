@@ -265,6 +265,16 @@ input.cellin.stin{font-weight:800}
 .nblock:hover{opacity:.85;filter:none}
 .nblock.on{opacity:1;filter:none}
 th.lockedcol{background:rgba(201,154,46,.14)!important;box-shadow:inset 0 -2px 0 var(--gold)}
+
+/* Quiet until you want it: a copy button sits at about a third opacity and comes up on
+   hover or focus, so a card full of them still reads as a card and not as a toolbar. */
+.cpy{border:0;background:none;cursor:pointer;font-size:11.5px;line-height:1;padding:0 4px;
+     margin-left:5px;opacity:.32;color:var(--ink3,#8e8e93);vertical-align:middle;font-family:inherit}
+.cpy:hover,.cpy:focus-visible{opacity:1;color:var(--gold,#c99a2e)}
+.cpy:focus-visible{outline:2px solid var(--gold,#c99a2e);outline-offset:2px;border-radius:4px}
+.fg label .cpy{float:right}
+.dhd h3 .cpy,.dhd .sub .cpy{opacity:.3}
+.dhd h3 .cpy:hover,.dhd .sub .cpy:hover{opacity:1}
 </style>
 <script src="ops-session.js"></script>
 </head>
@@ -1516,18 +1526,18 @@ function openClient(name){
 function paintClient(){
   var name=CLIENT.name;var pols=CLIENT.policies;var tk=CLIENT.tasks||{open:[],overdue:[],completed:[]};
   var totAp=pols.reduce(function(t,p){return t+(Number(p.data&&p.data.ap)||0);},0);
-  var h='<div class="dhd"><div><h3>🧾 '+esc(name)+'</h3><div class="sub">Client profile · '+pols.length+' polic'+(pols.length===1?'y':'ies')+' · '+money(totAp)+' AP</div></div><button class="x" onclick="closeDrawer()">✕</button></div><div class="dbody">';
+  var h='<div class="dhd"><div><h3>🧾 '+esc(name)+cpIf(name,'Copy the client name')+'</h3><div class="sub">Client profile · '+pols.length+' polic'+(pols.length===1?'y':'ies')+' · '+money(totAp)+' AP</div></div><button class="x" onclick="closeDrawer()">✕</button></div><div class="dbody">';
   // contact — reliable server lookup first, then any phone/email carried on the loaded policies
   var cPh=(CLIENT.contact&&CLIENT.contact.phone)||'',cEm=(CLIENT.contact&&CLIENT.contact.email)||'';
   for(var ci=0;ci<pols.length;ci++){var cd=pols[ci].data||{};if(!cPh&&cd.phone)cPh=String(cd.phone).trim();if(!cEm&&cd.email)cEm=String(cd.email).trim();}
   var chip='display:inline-flex;align-items:center;gap:7px;padding:8px 13px;border-radius:11px;border:1px solid var(--line2);background:var(--panel2);color:var(--ink);font-weight:700;font-size:13px;text-decoration:none';
   h+='<div class="dsec"><h4>📇 Contact</h4><div style="display:flex;gap:9px;flex-wrap:wrap">'
-    +(cPh?('<a href="tel:'+esc(cPh.replace(/[^0-9+]/g,""))+'" style="'+chip+'">📞 '+esc(cPh)+'</a>'):'')
-    +(cEm?('<a href="mailto:'+esc(cEm)+'" style="'+chip+'">✉️ '+esc(cEm)+'</a>'):'')
+    +(cPh?('<a href="tel:'+esc(cPh.replace(/[^0-9+]/g,""))+'" style="'+chip+'">📞 '+esc(cPh)+'</a>'+cpIf(cPh,'Copy the phone number')):'')
+    +(cEm?('<a href="mailto:'+esc(cEm)+'" style="'+chip+'">✉️ '+esc(cEm)+'</a>'+cpIf(cEm,'Copy the email address')):'')
     +((!cPh&&!cEm)?'<span class="sub">No phone or email on file yet.</span>':'')
     +'</div></div>';
   // policies
-  h+='<div class="dsec"><h4>📄 Policies</h4>'+(pols.length?pols.map(function(t){var d=t.data||{};return '<div class="polrow"><div class="pt">'+esc(d.carrier||'—')+(d.product?(' · '+esc(d.product)):'')+' · '+money(d.ap)+'</div><div class="pm"><span>'+esc(d.agent||'')+'</span>'+(d.state?('<span>'+stateCellHtml(d.state)+'</span>'):'')+'<span>'+esc(d.status||'')+'</span><span>#'+esc(d.policy_num||'—')+'</span></div></div>';}).join(''):'<div class="sub">No policies on record for this name.</div>')+'</div>';
+  h+='<div class="dsec"><h4>📄 Policies</h4>'+(pols.length?pols.map(function(t){var d=t.data||{};return '<div class="polrow"><div class="pt">'+esc(d.carrier||'—')+(d.product?(' · '+esc(d.product)):'')+' · '+money(d.ap)+'</div><div class="pm"><span>'+esc(d.agent||'')+'</span>'+(d.state?('<span>'+stateCellHtml(d.state)+'</span>'):'')+'<span>'+esc(d.status||'')+'</span><span>#'+esc(d.policy_num||'—')+cpIf(d.policy_num,'Copy the policy number')+'</span></div></div>';}).join(''):'<div class="sub">No policies on record for this name.</div>')+'</div>';
   // tasks / commission tickets
   var overdue=tk.overdue||[],open=tk.open||[],done=tk.completed||[];
   h+='<div class="dsec"><h4>✅ Tasks &amp; Commission Tickets <span style="color:var(--ink3);font-weight:700;text-transform:none;letter-spacing:0">· '+(overdue.length)+' overdue · '+(open.length)+' open · '+(done.length)+' done</span></h4>';
@@ -1560,21 +1570,62 @@ function addClientTask(){
   if(owner)b.owner_code=owner;
   taskCall(b).then(function(r){if(r&&r.ok){toast('Ticket added ✓');openClient(CLIENT.name);}else toast((r&&r.error)||'Could not add');});
 }
+/* ===== COPY BUTTONS ================================================================
+   Christopher: "ALL baseball cards, (client and agent data profiles) please add a copy
+   button next to all frequently coppied data. so our operations can quick copy everything"
+
+   Operations spends its day moving the same half-dozen values between this platform, a
+   carrier portal and a spreadsheet: a phone number, an email, a GFI code, a licence
+   number, a policy number. Selecting text inside an input is fiddly and, on a card full
+   of editable fields, risky -- a drag that misses becomes an edit.
+
+   So every one of those values gets a button. Two ways to use it, because the cards hold
+   both kinds of value:
+     data-copy="<text>"     -- a fixed value rendered on the card
+     data-copy-src="<id>"   -- an input or select; copies what it holds RIGHT NOW, so an
+                               Operations correction is copied rather than the stale value
+   One delegated listener serves every card, including cards added later.
+   nbClip already handles the clipboard and its fallback, so this does not reinvent it. */
+function cpBtn(opts){
+  var o=opts||{};
+  var a=o.src?(' data-copy-src="'+esc(o.src)+'"'):(' data-copy="'+esc(o.text==null?'':o.text)+'"');
+  return '<button type="button" class="cpy"'+a+' title="'+esc(o.title||'Copy')+'" aria-label="'+esc(o.title||'Copy')+'">⧉</button>';
+}
+/* Nothing to copy is worse than no button: an empty field offers none. */
+function cpIf(val,title){ return (val==null||String(val).trim()==='')?'':cpBtn({text:String(val).trim(),title:title}); }
+
+document.addEventListener('click',function(e){
+  var b=e.target&&e.target.closest?e.target.closest('.cpy'):null;
+  if(!b)return;
+  e.preventDefault(); e.stopPropagation();
+  var txt=b.getAttribute('data-copy');
+  if(txt==null){
+    var el=document.getElementById(b.getAttribute('data-copy-src')||'');
+    txt=el?(el.value!=null?el.value:el.textContent):'';
+  }
+  txt=String(txt||'').trim();
+  if(!txt){ toast('Nothing to copy there yet'); return; }
+  nbClip(txt,b,'\u2713');
+  toast('Copied: '+(txt.length>42?txt.slice(0,42)+'\u2026':txt));
+},true);
+
 function fld(id,label,val,ro,opts,dl){
   var input=opts?('<select id="'+id+'"'+(ro?' disabled':'')+'>'+opts.map(function(o){return '<option'+(o===val?' selected':'')+'>'+esc(o)+'</option>';}).join('')+'</select>'):('<input id="'+id+'" value="'+esc(val||'')+'"'+(ro?' readonly':'')+(dl?' list="'+dl+'"':'')+'>');
-  return '<div class="fg"><label>'+esc(label)+'</label>'+input+'</div>';
+  /* Reads the field live rather than the value it was drawn with, so a correction typed
+     a second ago is what lands on the clipboard. */
+  return '<div class="fg"><label>'+esc(label)+cpBtn({src:id,title:'Copy '+label})+'</label>'+input+'</div>';
 }
 function paintAgent(r){
   var a=r.agent;var ro=!canEdit();
-  var h='<div class="dhd"><div><h3>'+esc(a.name)+'</h3><div class="sub">'+esc(a.code)+' · '+esc(a.contract_level)+' · '+esc(a.baseshop||'')+'</div></div><button class="x" onclick="closeDrawer()">✕</button></div><div class="dbody">';
-  h+='<div class="dsec"><h4>👤 Contact</h4><div class="frow">'+fld('e_first','First name',a.first_name||a.name.split(' ')[0],ro)+fld('e_last','Last name',a.last_name||a.name.split(' ').slice(1).join(' '),ro)+'</div><div class="frow">'+fld('e_phone','Phone',r.phone,ro)+fld('e_email','Email',r.email,ro)+'</div><div class="frow"><div class="fg"><label>Sign-in code (login) '+(canEdit()?'<span style="color:var(--ink3);font-weight:600;text-transform:none">· fix if wrong</span>':'')+'</label><div style="display:flex;gap:8px"><input value="'+esc(a.code)+'" readonly style="font-family:ui-monospace,Menlo,monospace;font-weight:800;letter-spacing:.05em">'+(canEdit()?'<button class="dbtn ghost" style="padding:8px 12px;white-space:nowrap" onclick="changeCode(\''+esc(a.code)+'\',\''+esc((a.name||"").replace(/\x27/g,""))+'\')">Change…</button>':'')+'</div></div>'+fld('e_recruit','Direct recruiter — GFI code',r.direct_to||'',!canEdit())+'</div><div class="fg"><label>Recruiter on file</label><input value="'+esc((r.direct_to_name||'—')+(r.direct_to?(' · '+r.direct_to):''))+'" readonly></div><div class="fg"><label>Contract level (promotion tracking)</label>'+(canEdit()?('<select onchange="setContract(\''+esc(a.code)+'\',this.value)" style="font-weight:700">'+CONTRACT_LEVELS.map(function(l){return '<option'+(a.contract_level===l?' selected':'')+'>'+esc(l)+'</option>';}).join('')+((CONTRACT_LEVELS.indexOf(a.contract_level)<0&&a.contract_level)?('<option selected>'+esc(a.contract_level)+'</option>'):'')+'</select>'):('<input value="'+esc(a.contract_level||'—')+'" readonly>'))+'</div></div>';
+  var h='<div class="dhd"><div><h3>'+esc(a.name)+cpIf(a.name,'Copy the name')+'</h3><div class="sub">'+esc(a.code)+cpIf(a.code,'Copy the GFI code')+' · '+esc(a.contract_level)+' · '+esc(a.baseshop||'')+'</div></div><button class="x" onclick="closeDrawer()">✕</button></div><div class="dbody">';
+  h+='<div class="dsec"><h4>👤 Contact</h4><div class="frow">'+fld('e_first','First name',a.first_name||a.name.split(' ')[0],ro)+fld('e_last','Last name',a.last_name||a.name.split(' ').slice(1).join(' '),ro)+'</div><div class="frow">'+fld('e_phone','Phone',r.phone,ro)+fld('e_email','Email',r.email,ro)+'</div><div class="frow"><div class="fg"><label>Sign-in code (login) '+(canEdit()?'<span style="color:var(--ink3);font-weight:600;text-transform:none">· fix if wrong</span>':'')+cpBtn({src:'e_signin_code',title:'Copy the sign-in code'})+'</label><div style="display:flex;gap:8px"><input id="e_signin_code" value="'+esc(a.code)+'" readonly style="font-family:ui-monospace,Menlo,monospace;font-weight:800;letter-spacing:.05em">'+(canEdit()?'<button class="dbtn ghost" style="padding:8px 12px;white-space:nowrap" onclick="changeCode(\''+esc(a.code)+'\',\''+esc((a.name||"").replace(/\x27/g,""))+'\')">Change…</button>':'')+'</div></div>'+fld('e_recruit','Direct recruiter — GFI code',r.direct_to||'',!canEdit())+'</div><div class="fg"><label>Recruiter on file</label><input value="'+esc((r.direct_to_name||'—')+(r.direct_to?(' · '+r.direct_to):''))+'" readonly></div><div class="fg"><label>Contract level (promotion tracking)</label>'+(canEdit()?('<select onchange="setContract(\''+esc(a.code)+'\',this.value)" style="font-weight:700">'+CONTRACT_LEVELS.map(function(l){return '<option'+(a.contract_level===l?' selected':'')+'>'+esc(l)+'</option>';}).join('')+((CONTRACT_LEVELS.indexOf(a.contract_level)<0&&a.contract_level)?('<option selected>'+esc(a.contract_level)+'</option>'):'')+'</select>'):('<input value="'+esc(a.contract_level||'—')+'" readonly>'))+'</div></div>';
   h+='<div class="dsec"><h4>🎫 Licensing</h4><div class="frow">'+fld('e_base','Baseshop',a.baseshop,ro)+fld('e_state','State of record',a.state,ro,null,'dl_state')+'</div><div class="frow">'+fld('e_ica','ICA date',a.ica_date,ro)+fld('e_ltype','License type',a.license_type,ro,null,'dl_license_type')+'</div><div class="frow">'+fld('e_lnum','License #',a.license_number,ro)+fld('e_lstat','Progress / status',a.license_status,ro,LICSTATUS)+'</div></div>';
   var m=a.ms||{};var pct=Math.max(0,Math.min(100,a.pct||0));
   h+='<div class="dsec"><h4>🚀 Fast Start</h4><div style="font-size:13px;color:var(--ink2);display:flex;gap:16px;flex-wrap:wrap"><span>Pathway: <b>'+esc(a.pathway||'—')+'</b></span><span>Onboarding: <b>'+pct+'%</b></span><span>Steps: <b>'+(a.steps_done||0)+'</b></span></div><div style="margin-top:10px;display:flex;gap:14px;font-size:12.5px;font-weight:700"><span>'+(m.licensed?'✅':'⬜')+' Licensed</span><span>'+(m.first_sale?'✅':'⬜')+' First sale</span><span>'+(m.first_recruit?'✅':'⬜')+' First recruit</span></div>'
     +fastStartChecklist(a)+'</div>';
   h+=miscSection(a);
   var pols=r.policies||[];
-  h+='<div class="dsec"><h4>💰 New Business ('+pols.length+')</h4>'+(pols.length?pols.map(function(p){return '<div class="polrow"><div class="pt">'+esc(p.client_name||'—')+' · '+money(p.annual_premium)+'</div><div class="pm"><span>'+esc(((p.carrier||'')+(p.product?(' · '+p.product):''))||'—')+'</span><span>'+esc(p.status||'')+'</span><span>'+esc(p.submitted_date||'')+'</span></div></div>';}).join(''):'<div class="sub">No policies submitted yet.</div>')+'</div>';
+  h+='<div class="dsec"><h4>💰 New Business ('+pols.length+')</h4>'+(pols.length?pols.map(function(p){return '<div class="polrow"><div class="pt">'+esc(p.client_name||'—')+cpIf(p.client_name,'Copy the client name')+' · '+money(p.annual_premium)+'</div><div class="pm"><span>'+esc(((p.carrier||'')+(p.product?(' · '+p.product):''))||'—')+'</span><span>'+esc(p.status||'')+'</span><span>'+esc(p.submitted_date||'')+'</span></div></div>';}).join(''):'<div class="sub">No policies submitted yet.</div>')+'</div>';
   h+='<div class="dsec"><h4>✅ Tasks <span style="color:var(--ink3);font-weight:700;text-transform:none;letter-spacing:0">· agent-facing · open · overdue · completed</span></h4><div id="agTasks"><div class="sub">Loading…</div></div>'
     +((canEdit()||OPS)?('<div style="margin-top:12px;border-top:1px dashed var(--line2);padding-top:12px"><div class="fg"><label>Assign a task to '+esc((a.first_name||a.name||'this agent'))+'</label><input id="at_title" placeholder="e.g. Complete field training · call 5 leads"></div><div class="frow"><div class="fg"><label>Type</label><input id="at_cat" list="dl_taskcats" placeholder="e.g. Training, Activity"></div><div class="fg"><label>Priority</label><select id="at_pri"><option value="medium">Medium</option><option value="high">High</option><option value="urgent">Urgent</option><option value="low">Low</option></select></div><div class="fg"><label>Due</label><input id="at_due" type="date"></div></div><datalist id="dl_taskcats"><option>Training</option><option>Activity</option><option>Licensing</option><option>Follow-up</option><option>Onboarding</option></datalist><button class="dbtn" onclick="addAgentTask(\''+esc(a.code)+'\')">＋ Add task</button></div>'):'')
     +'</div>';
