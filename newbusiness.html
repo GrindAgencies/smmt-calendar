@@ -404,13 +404,13 @@ function canEdit(p){return OPS||(p.agent_code===CODE);}
 
 /* OPS unlock */
 function toggleOps(){
-  if(OPS){OPS=false;try{sessionStorage.removeItem('nb_ops');}catch(e){}
+  if(OPS){OPS=false;try{localStorage.removeItem('nb_ops');sessionStorage.removeItem('nb_ops');}catch(e){}
     if(window.tsfgOps)tsfgOps.logout();
     applyOps();load();toast('Operations mode off');return;}
   if(!window.tsfgOps){toast('Sign-in unavailable — reload the page.');return;}
   /* Already signed in on this tab (Ops Dashboard, say)? Then no need to ask again. */
   tsfgOps.check().then(function(c){
-    if(c&&c.ok){OPS=true;try{sessionStorage.setItem('nb_ops','1');}catch(e){}applyOps();load();toast('Operations mode — full control unlocked');return;}
+    if(c&&c.ok){OPS=true;try{localStorage.setItem('nb_ops','1');}catch(e){}applyOps();load();toast('Operations mode — full control unlocked');return;}
     var code=prompt('Operations code (0000–0005, or your own if you have Operations rights):');
     if(!code)return;
     code=String(code).trim();
@@ -422,7 +422,7 @@ function toggleOps(){
       var go=st.has_pin?tsfgOps.signIn(code,pin):tsfgOps.createPin(code,pin);
       go.then(function(r){
         if(!r||!r.ok){toast((r&&r.error)||'Could not sign in.');return;}
-        OPS=true;try{sessionStorage.setItem('nb_ops','1');}catch(e){}
+        OPS=true;try{localStorage.setItem('nb_ops','1');}catch(e){}
         applyOps();load();toast('Operations mode — full control unlocked');
       });
     });
@@ -701,7 +701,7 @@ $('ov').addEventListener('click',function(e){if(e.target===$('ov'))closeModal();
   buildSide();
   if(!CODE){location.href='index.html';return;}
   /* Ops mode survives a reload only while the session behind it is still good. */
-  try{if(sessionStorage.getItem('nb_ops')&&opsTok())OPS=true;}catch(e){}
+  try{if(localStorage.getItem('nb_ops')&&opsTok())OPS=true;}catch(e){}
   applyOps();renderStatusGrid();load();
   fetch(TA,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'load',code:CODE})}).then(function(r){return r.json();}).then(function(d){if(d&&d.ok&&d.agent){MYMD=d.agent.md||'';MYEMD=d.agent.emd||'';}}).catch(function(){});
 })();

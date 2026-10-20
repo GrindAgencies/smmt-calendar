@@ -18,6 +18,7 @@
 (function () {
   var AUTH = 'https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/ops-auth';
   var KEY  = 'tsfg_ops_token';
+  var SEATKEY = 'tsfg_ops_seat';
 
   /* The sign-in sheet's own styling. Self-contained on purpose: this loads on five
      pages with different chrome, and it must look the same on all of them. Colours
@@ -77,13 +78,49 @@
     return { root: root, q: function(sel){ return root.querySelector(sel); } };
   }
 
-  function get(){ try { return sessionStorage.getItem(KEY) || ''; } catch (e) { return ''; } }
-  function put(t){ try { if (t) sessionStorage.setItem(KEY, t); else sessionStorage.removeItem(KEY); } catch (e) {} }
+  /* The token lived in sessionStorage, which is per-TAB. That alone signed Operations
+     out several times a day without any session having expired: opening a second tab,
+     closing the window, or cold-starting the installed app all began with an empty
+     store and a PIN box. It belongs in localStorage, where one sign-in covers the
+     whole browser and survives a restart. Any token already held in the old place is
+     carried over on load, so nobody signed in right now is interrupted by this change. */
+  function get(){
+    try {
+      var t = localStorage.getItem(KEY);
+      if (t) return t;
+      var old = sessionStorage.getItem(KEY);          // migrate, once
+      if (old) { localStorage.setItem(KEY, old); sessionStorage.removeItem(KEY); return old; }
+      return '';
+    } catch (e) { return ''; }
+  }
+  function put(t){
+    try {
+      if (t) localStorage.setItem(KEY, t); else localStorage.removeItem(KEY);
+      sessionStorage.removeItem(KEY);
+    } catch (e) {}
+  }
+  /* Which seat is signed in, remembered so a re-prompt can skip straight to the PIN
+     instead of asking "who are you?" again in the middle of someone's work. */
+  function lastSeat(){ try { return localStorage.getItem(SEATKEY) || ''; } catch (e) { return ''; } }
+  function putSeat(c){ try { if (c) localStorage.setItem(SEATKEY, String(c)); } catch (e) {} }
   function call(b){
     return fetch(AUTH, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(b) })
       .then(function(r){ return r.json(); })
       .catch(function(){ return { ok:false, error:'Network error — try again.' }; });
   }
+  /* Carry the seat over from the old per-tab store, once. Without this, everyone
+     signed in at the moment this ships would meet the gate on their next page load
+     even though their session is perfectly valid. */
+  (function(){
+    try {
+      ['tsfg_ops','tsfg_ops_bsscope','nb_ops','tsfg_approver'].forEach(function(k){
+        var old = sessionStorage.getItem(k);
+        if (old && !localStorage.getItem(k)) localStorage.setItem(k, old);
+        if (old) sessionStorage.removeItem(k);
+      });
+    } catch (e) {}
+  })();
+
   window.tsfgOps = {
     token:    get,
     setToken: put,
@@ -95,7 +132,7 @@
     /* Sign in and keep the token. Returns {ok} or {ok:false,error} or {needs_pin:true}. */
     signIn: function(code, pin){
       return window.tsfgOps.login(code, pin).then(function(r){
-        if (r && r.ok && r.token) { put(r.token); return { ok:true, label:r.label, bases:r.bases, master:r.master }; }
+        if (r && r.ok && r.token) { put(r.token); putSeat(code); return { ok:true, label:r.label, bases:r.bases, master:r.master }; }
         return r || { ok:false, error:'Could not sign in.' };
       });
     },
@@ -105,7 +142,7 @@
     ensure: function(){
       return window.tsfgOps.check().then(function(c){
         if (c && c.ok) return { ok:true };
-        return window.tsfgOps.promptSignIn();
+        return window.tsfgOps.promptSignIn(lastSeat());
       });
     },
     /* The sign-in sheet. This used to be two native prompt() boxes, which typed a
@@ -194,4 +231,73 @@
       });
     }
   };
+
+  /* ------------------------------------------------------------------------
+     NOTHING TYPED IS EVER LOST.
+
+     Every Operations screen builds its own request and posts it directly, so an
+     expired session used to surface as a silent failure at whichever call happened
+     to be next -- and if that call was "save this note", the note went with it. The
+     person saw a toast, re-signed in, and found their paragraph gone.
+
+     One wrapper around fetch fixes it for every screen at once, including screens
+     added later. When an Operations call comes back 401, the original request is
+     HELD, the sign-in sheet is shown once, and then the SAME request is replayed
+     with the refreshed token. The save completes; the caller never knows anything
+     happened. Concurrent calls all wait on the one sheet rather than stacking up
+     five PIN boxes on top of each other.
+     ------------------------------------------------------------------------ */
+  var reauth = null;                       // the single in-flight sign-in, shared
+  function reSignIn(){
+    if (reauth) return reauth;
+    reauth = window.tsfgOps.promptSignIn(lastSeat()).then(function(r){
+      reauth = null;
+      return !!(r && r.ok);
+    }, function(){ reauth = null; return false; });
+    return reauth;
+  }
+
+  var of = window.fetch;
+  window.fetch = function(input, init){
+    var url = String((input && input.url) || input || '');
+    /* Only Operations calls, and never the sign-in endpoint itself -- a wrong PIN
+       there is a legitimate 401 and must reach the sheet, not trigger another one. */
+    var mine = url.indexOf('/functions/v1/') > -1 && url.indexOf('/ops-auth') < 0;
+    if (!mine || !init || String(init.method || 'GET').toUpperCase() !== 'POST') {
+      return of.apply(this, arguments);
+    }
+    var raw = init.body;
+    if (typeof raw !== 'string') return of.apply(this, arguments);
+
+    var sent = null;
+    try { sent = JSON.parse(raw); } catch (e) { return of.apply(this, arguments); }
+    /* Only requests that were carrying THIS seat's token. An agent-session call that
+       happens to 401 belongs to session.js, which bounces to the agent sign-in. */
+    var tok = get();
+    if (!tok || !sent || sent.token !== tok) return of.apply(this, arguments);
+
+    var self = this, args = arguments;
+    return of.apply(self, args).then(function(res){
+      if (res.status !== 401) return res;
+      return reSignIn().then(function(ok){
+        if (!ok) return res;                       // cancelled -- hand back the original
+        var fresh = get();
+        if (!fresh || fresh === tok) return res;
+        sent.token = fresh;
+        var retry = {};
+        for (var k in init) if (Object.prototype.hasOwnProperty.call(init, k)) retry[k] = init[k];
+        retry.body = JSON.stringify(sent);
+        return of.call(self, input, retry);
+      });
+    });
+  };
+
+  /* A tab left open all afternoon should still be signed in when it is next touched.
+     One quiet call every ten minutes, only while the tab is actually visible, slides
+     the server-side window forward. Deliberately not a poller: it moves no data. */
+  setInterval(function(){
+    if (document.hidden) return;
+    if (!get()) return;
+    window.tsfgOps.check();
+  }, 600000);
 })();

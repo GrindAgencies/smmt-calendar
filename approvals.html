@@ -98,7 +98,7 @@ function opsIn(){
     return api({action:'whoami'}).then(function(r){
       if(!r||!r.ok||!r.can_approve){ OPS=''; $('gErr').textContent='That code can’t approve access. Use an Operations code or an EMD GFI code.'; return; }
       APPROVER_BY=r.by||'';
-      try{sessionStorage.setItem('tsfg_approver',c);}catch(e){}
+      try{localStorage.setItem('tsfg_approver',c);}catch(e){}
       $('gErr').textContent=''; enterConsole(); load();
     });
   });
@@ -142,7 +142,7 @@ function decide(code,decision){
 (function(){
   try{
     var qp=new URLSearchParams(location.search);
-    var c=(qp.get('code')||qp.get('approver')||sessionStorage.getItem('tsfg_approver')||'').trim().toUpperCase();
+    var c=(qp.get('code')||qp.get('approver')||localStorage.getItem('tsfg_approver')||'').trim().toUpperCase();
     if(!c)return;
     OPS=c;
     /* Arriving from the Ops dashboard link carries a seat code but not a session, so the same
@@ -150,7 +150,7 @@ function decide(code,decision){
     opsSession(c).then(function(ok){
       if(!ok){ OPS=''; return; }
       return api({action:'whoami'}).then(function(r){
-        if(r&&r.ok&&r.can_approve){ APPROVER_BY=r.by||''; try{sessionStorage.setItem('tsfg_approver',c);}catch(e){} enterConsole(); load(); }
+        if(r&&r.ok&&r.can_approve){ APPROVER_BY=r.by||''; try{localStorage.setItem('tsfg_approver',c);}catch(e){} enterConsole(); load(); }
         else { OPS=''; }
       });
     });

@@ -364,7 +364,7 @@ function money(n){n=Math.round(Number(n)||0);return '$'+n.toLocaleString('en-US'
 function money2(n){n=Number(n)||0;if(n>=1e6)return '$'+(n/1e6).toFixed(2)+'M';if(n>=1e3)return '$'+(Math.round(n/100)/10)+'K';return '$'+Math.round(n);}
 function toggleTheme(){var d=document.documentElement.getAttribute('data-theme')==='dark';document.documentElement.setAttribute('data-theme',d?'light':'dark');try{localStorage.setItem('gfi_theme',d?'light':'dark');}catch(e){}}
 (function(){try{var t=localStorage.getItem('gfi_theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
-function signOut(){try{sessionStorage.removeItem('tsfg_ops');sessionStorage.removeItem('tsfg_ops_bsscope');}catch(e){}OPS=null;BSSCOPE=null;$('app').classList.add('hide');$('gate').classList.remove('hide');$('gName').value='';$('gCode').value='';}
+function signOut(){try{localStorage.removeItem('tsfg_ops');sessionStorage.removeItem('tsfg_ops');localStorage.removeItem('tsfg_ops_bsscope');sessionStorage.removeItem('tsfg_ops_bsscope');}catch(e){}OPS=null;BSSCOPE=null;$('app').classList.add('hide');$('gate').classList.remove('hide');$('gName').value='';$('gCode').value='';}
 /* The Operations session token replaces the literal "2026" that shipped in this
    page. opsTok() is empty until the seat has signed in with its PIN; while the
    legacy token is still accepted server-side an empty token simply means the call
@@ -388,7 +388,7 @@ function doLogin(){
       if(r&&r.ok&&r.scope==='base'){
         OPS={code:code,name:r.label,title:'Operations',role:'ops',can_edit:true,baseshops:r.bases||[]};
         BSSCOPE=r.bases||[];
-        try{sessionStorage.setItem('tsfg_ops',JSON.stringify(OPS));sessionStorage.setItem('tsfg_ops_bsscope',JSON.stringify(BSSCOPE));}catch(e){}
+        try{localStorage.setItem('tsfg_ops',JSON.stringify(OPS));localStorage.setItem('tsfg_ops_bsscope',JSON.stringify(BSSCOPE));}catch(e){}
         needSession(OPS,msg);return;
       }
       finishLogin(name,code,msg); /* 0000 master or non-base code → existing flow */
@@ -458,7 +458,7 @@ function submitPin(){
   go.then(function(r){
     if(!r||!r.ok){msg.style.color='var(--red)';msg.textContent=(r&&r.error)||'Could not sign in.';return;}
     OPS=OPSPEND; OPSPEND=null; pinShow(false,false);
-    try{sessionStorage.setItem('tsfg_ops',JSON.stringify(OPS));}catch(e){}
+    try{localStorage.setItem('tsfg_ops',JSON.stringify(OPS));}catch(e){}
     showApp();
   });
 }
@@ -468,7 +468,7 @@ function finishLogin(name,code,msg){
     if(!r||!r.ok){msg.style.color='var(--red)';msg.textContent=(r&&r.error)||'Could not sign in.';return;}
     OPS={code:r.ops.code,name:r.ops.name,title:r.ops.title,role:r.role,can_edit:r.can_edit,baseshops:r.ops.baseshops||[]};
     BSSCOPE=null;
-    try{sessionStorage.setItem('tsfg_ops',JSON.stringify(OPS));sessionStorage.removeItem('tsfg_ops_bsscope');}catch(e){}
+    try{localStorage.setItem('tsfg_ops',JSON.stringify(OPS));localStorage.removeItem('tsfg_ops_bsscope');sessionStorage.removeItem('tsfg_ops_bsscope');}catch(e){}
     if(OPS.role==='ops'){needSession(OPS,msg);return;}
     showApp();
   }).catch(function(){msg.style.color='var(--red)';msg.textContent='Network error — try again.';});
@@ -1794,11 +1794,11 @@ function openNotif(){
 
 $('ov').addEventListener('click',function(e){if(e.target===this)closeDrawer();});
 (function(){
-  try{var s=sessionStorage.getItem('tsfg_ops');if(s){OPS=JSON.parse(s);try{var bs=sessionStorage.getItem('tsfg_ops_bsscope');BSSCOPE=bs?JSON.parse(bs):null;}catch(e2){BSSCOPE=null;}if(OPS&&OPS.code){/* A restored tab keeps its seat, but an Operations seat needs a live session before it can act. Token and seat both live in sessionStorage, so they expire together; if the session is gone, ask for the PIN again rather than run tokenless. */if(OPS.role==='ops'&&!opsTok()){needSession(OPS,$('gMsg'));return;}showApp();return;}}}catch(e){}
+  try{var s=localStorage.getItem('tsfg_ops');if(s){OPS=JSON.parse(s);try{var bs=localStorage.getItem('tsfg_ops_bsscope');BSSCOPE=bs?JSON.parse(bs):null;}catch(e2){BSSCOPE=null;}if(OPS&&OPS.code){/* A restored tab keeps its seat, but an Operations seat needs a live session before it can act. Token and seat both live in sessionStorage, so they expire together; if the session is gone, ask for the PIN again rather than run tokenless. */if(OPS.role==='ops'&&!opsTok()){needSession(OPS,$('gMsg'));return;}showApp();return;}}}catch(e){}
   var qc='',qn='';try{var q=new URLSearchParams(location.search);qc=q.get('code')||'';qn=q.get('name')||'';}catch(e){}
   if(!qc){try{qc=localStorage.getItem('tsfg_code')||'';qn=localStorage.getItem('tsfg_name')||'';}catch(e){}}
   if(qc)$('gCode').value=qc;if(qn)$('gName').value=qn;
-  if(qc&&qn){api({action:'ops_login',code:qc,name:qn}).then(function(r){if(r&&r.ok){OPS={code:r.ops.code,name:r.ops.name,title:r.ops.title,role:r.role,can_edit:r.can_edit,baseshops:r.ops.baseshops||[]};try{sessionStorage.setItem('tsfg_ops',JSON.stringify(OPS));}catch(e){}showApp();}}).catch(function(){});}
+  if(qc&&qn){api({action:'ops_login',code:qc,name:qn}).then(function(r){if(r&&r.ok){OPS={code:r.ops.code,name:r.ops.name,title:r.ops.title,role:r.role,can_edit:r.can_edit,baseshops:r.ops.baseshops||[]};try{localStorage.setItem('tsfg_ops',JSON.stringify(OPS));}catch(e){}showApp();}}).catch(function(){});}
 })();
 </script>
 <script src="i18n.js"></script>
