@@ -134,6 +134,13 @@
   <h1>Put The Standard on your phone</h1>
   <p class="lede">Your numbers, your team, your bookings — one tap from your home screen. Takes about twenty seconds.</p>
 
+  <!-- When the App Store listing goes live this becomes the headline action on iPhone.
+       Hidden until APPSTORE_URL is filled in. -->
+  <div id="storeWrap" style="display:none">
+    <a class="open" id="storeBtn" href="#">  Get it on the App Store</a>
+    <p class="autoNote">The full app, straight from Apple. One tap to install.</p>
+  </div>
+
   <!-- Already running as an installed app -->
   <div class="done" id="done">
     <b>✓ You're all set</b>
@@ -202,6 +209,31 @@
 
 <script>
 (function(){
+  /* ======================================================================
+     THE ONE SWITCH — the whole App Store transition lives on this line.
+
+     The QR code is printed on flyers, pinned in chats and stuck on walls, and it
+     points at THIS page. So this page is the switchboard: fill in the App Store URL
+     below and push, and every code already in the wild starts sending iPhone users
+     to the App Store instead of walking them through Add to Home Screen. Nothing
+     gets reprinted, no link gets re-sent, nobody has to be told anything.
+
+     Leave it EMPTY until Apple actually approves. While it is empty the page behaves
+     exactly as it does today.
+
+     After approval:  var APPSTORE_URL = 'https://apps.apple.com/app/id6806612694';
+
+     Android is deliberately untouched — the one-tap PWA install stays the best route
+     there, and there is no Play listing.
+     ====================================================================== */
+  var APPSTORE_URL = '';
+
+  /* Declared here, above every use. It was previously declared further down with
+     `var storeOn = false`, which hoisted the declaration but ran the ASSIGNMENT after
+     the line that set it true — silently resetting it and showing both install routes
+     at once. Same shape as the bug that made the Marketing Plan row colours vanish. */
+  var storeOn = false;
+
   var SHARE='<span class="ic"><svg viewBox="0 0 24 24"><path d="M12 15V3M12 3 8 7M12 3l4 4"/><path d="M4 13v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6"/></svg></span>';
   var DOTS='<span class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="12" cy="19" r="1.4"/></svg></span>';
   var PLUS='<span class="ic"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span>';
@@ -263,8 +295,29 @@
 
   pick(isIOS ? 'ios' : isAndroid ? 'android' : 'desktop');
 
-  /* Only iPhone users get the animation: everyone else has a real install button. */
-  if(isIOS && !standalone){
+  /* With the App Store live, an iPhone gets the store and nothing else: the manual
+     gesture, the animation and the Safari warning all exist only because there was no
+     store link. Keep a quiet way back to the web version for anyone who wants it. */
+  storeOn = isIOS && !standalone && !!APPSTORE_URL;
+  if(storeOn){
+    var sb=document.getElementById('storeBtn');
+    sb.setAttribute('href', APPSTORE_URL);
+    document.getElementById('storeWrap').style.display='block';
+    document.getElementById('tabs').style.display='none';
+    document.getElementById('steps').style.display='none';
+    var wsf=document.getElementById('warnSafari'); if(wsf) wsf.style.display='none';
+    var aw=document.getElementById('autoWrap'); if(aw) aw.style.display='none';
+    var lede=document.querySelector('.lede');
+    if(lede) lede.textContent='Install it from the App Store — your numbers, your team and your bookings, one tap away.';
+    var full=document.querySelector('.open[href="app.html"]');
+    if(full){ full.textContent='Or use it in your browser →';
+              full.style.background='transparent';
+              full.style.color='var(--muted)';
+              full.style.border='1px solid var(--line)'; }
+  }
+
+  /* Only iPhone users get the animation, and only while there is no store link. */
+  if(isIOS && !standalone && !storeOn){
     var dm=document.getElementById('demo');
     dm.style.display='block';
     dm.classList.add('run');
@@ -284,7 +337,10 @@
   window.addEventListener('beforeinstallprompt', function(e){
     e.preventDefault();            // stop Chrome's own mini-infobar; we present it properly
     deferred = e;
-    if(!standalone){
+    /* Never offer two install routes at once. This fires asynchronously and can land
+       after the store panel is already up, which would show "Get it on the App Store"
+       and "Install now" together. */
+    if(!standalone && !storeOn){
       document.getElementById('autoWrap').style.display='block';
       /* The steps are still there if they prefer them, just demoted. */
       document.getElementById('steps').style.display='none';
