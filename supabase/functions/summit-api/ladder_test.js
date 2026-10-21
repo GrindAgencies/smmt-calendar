@@ -1,5 +1,9 @@
+/* The page declares LADDER as the VIEWED AGENT'S CODE and assigns it at sign-in. The first
+   version of this harness omitted that, so a spec array also named LADDER passed every test
+   and then died on the live site. Both now exist here, in the same order the page does. */
+var STEP=0, LADDER='', ROADVIEW='mine';
 var BOARD={derived:{},checks:{}}, BYCODE={}, CODE='ME';
-var LADDER=[
+var ROAD=[
  {id:'ica', title:'ICA', meaning:"Complete the Independent Contractor's Agreement", reqs:[
    {id:'bg_done', label:'Complete background check.'},
    {id:'bg_paid', label:'Pay for the background check.'},
@@ -128,12 +132,12 @@ var LADDER=[
    {id:'persist90',   label:'90% persistency.'}]}
 ];
 /* Titles only, for badge alt text and anywhere a flat list is still convenient. */
-var STAGES=LADDER.map(function(s){return s.title;});
-var STAGE_COUNT=LADDER.length;
+var STAGES=ROAD.map(function(s){return s.title;});
+var STAGE_COUNT=ROAD.length;
 
 /* Every requirement of a stage, flattened, each carrying the path it belongs to. */
 function reqsOf(i){
-  var s=LADDER[i]; if(!s) return [];
+  var s=ROAD[i]; if(!s) return [];
   if(s.paths){
     var out=[];
     s.paths.forEach(function(p){ p.reqs.forEach(function(r){
@@ -148,7 +152,7 @@ function reqsOf(i){
    invented here — these are facts the app holds, offered as corroboration. */
 function platformSays(i,s){
   s=s||{}; var L=(s.license_status||''), lvl=(s.contract_level||'').toLowerCase();
-  var id=(LADDER[i]||{}).id;
+  var id=(ROAD[i]||{}).id;
   /* Once a count is past its target, saying "14 of 10" reads like a mistake. */
   var tally=function(cur,tgt,noun){
     return cur>=tgt ? (noun+': <b>'+cur+'</b> — target of '+tgt+' met.')
@@ -748,7 +752,7 @@ function ladderAgents(){
    rule cleared EVERY stage for an EMD or NVP; under the new ladder that would have quietly
    certified The Big Base Shop, Leaders Council, SVP and Senior Partner for people who have
    never been assessed against them. */
-function stageIndexById(id){for(var i=0;i<LADDER.length;i++)if(LADDER[i].id===id)return i;return -1;}
+function stageIndexById(id){for(var i=0;i<ROAD.length;i++)if(ROAD[i].id===id)return i;return -1;}
 function derivedOf(code){ return ((BOARD.derived||{})[code])||{}; }
 function rankClearsTo(code){
   var d=derivedOf(code);
@@ -783,7 +787,7 @@ function checksFor(code,i){
 }
 /* Stages 11 and 15 qualify on EITHER complete path. A partial mixture never qualifies. */
 function pathProgress(code,i){
-  var s=LADDER[i]; if(!s||!s.paths)return null;
+  var s=ROAD[i]; if(!s||!s.paths)return null;
   return s.paths.map(function(p){
     var done=p.reqs.filter(function(r){return reqDone(code,i,s.id+'.'+p.id+'.'+r.id);}).length;
     return {id:p.id, name:p.name, done:done, total:p.reqs.length, complete:done===p.reqs.length};
@@ -816,16 +820,16 @@ function eq(got,want,what){
 }
 function counts(){
   var out=[];
-  for(var i=0;i<LADDER.length;i++){
-    var st=LADDER[i];
+  for(var i=0;i<ROAD.length;i++){
+    var st=ROAD[i];
     if(st.paths){ var p=[]; st.paths.forEach(function(x){p.push(x.reqs.length);}); out.push('alt'+p.join('/')); }
     else out.push(st.reqs.length);
   }
   return out;
 }
-eq(LADDER.length,20,'twenty stages');
-eq(LADDER[19].title,'Senior Partner','stage 20 is Senior Partner');
-eq(LADDER[0].title,'ICA','stage 1 is ICA');
+eq(ROAD.length,20,'twenty stages');
+eq(ROAD[19].title,'Senior Partner','stage 20 is Senior Partner');
+eq(ROAD[0].title,'ICA','stage 1 is ICA');
 eq(counts(),[3,5,4,6,10,3,3,3,2,5,'alt3/2',1,3,1,'alt5/5',4,4,3,4,4],'requirement counts per stage');
 eq(stagesDone('NOBODY'),0,'an agent with no evidence clears nothing');
 
@@ -862,7 +866,7 @@ eq(stageComplete('LIC',stageIndexById('net_license')),false,'Get Your Net Licens
 eq(stageComplete('LIC',stageIndexById('appts')),false,'licensing proves nothing about appointments');
 
 var keys={},dupes=0,bad=0,total=0;
-for(var i=0;i<LADDER.length;i++){
+for(var i=0;i<ROAD.length;i++){
   reqsOf(i).forEach(function(r){
     total++;
     if(keys[r.key])dupes++;
@@ -873,3 +877,10 @@ for(var i=0;i<LADDER.length;i++){
 eq(dupes,0,'no duplicate requirement ids');
 eq(bad,0,'every id matches the pattern the server enforces');
 console.log(fail ? (fail+' FAILURES') : 'ALL PASS - '+total+' requirements across 20 stages');
+
+/* and now do what the page does at sign-in */
+LADDER=CODE;
+eq(typeof ROAD,'object','the spec survives LADDER=CODE');
+eq(ROAD.length,20,'still twenty stages after the agent code is assigned');
+eq(stagesDone('NOBODY'),0,'logic still works after assignment');
+console.log('regression guard: spec intact after LADDER=CODE');

@@ -599,6 +599,12 @@ document.addEventListener('error', function(e){
   }catch(_){}
 }, true);
 /* ===== THE ROAD — twenty stages, exactly as Elijah dictated 2026-10-20 ==================
+   NAMED `ROAD`, NOT `LADDER`. `LADDER` is already taken: it holds the CODE of the agent whose
+   ladder is being viewed (`LADDER=CODE`, `LADDER=this.value` from the agent picker). Declaring
+   the spec as `LADDER` parsed fine, passed a node test, and then the first `LADDER=CODE` at
+   sign-in replaced the whole array with the string "C1991" — the Road tab rendered nothing but
+   "Loading the organization…". Caught on the live site, not by the unit test, because the test
+   harness never ran the assignment.
    Replaces the old nineteen-stage ladder and its "Promotion Requirement 1-4" placeholders.
 
    WHY THIS IS DATA AND NOT AN ARRAY OF NAMES. The old ladder was a list of 19 titles with a
@@ -613,7 +619,7 @@ document.addEventListener('error', function(e){
 
    Stages 11 and 15 are ALTERNATIVES: completing every requirement of EITHER path qualifies.
    A partial mixture across both paths does not. */
-var LADDER=[
+var ROAD=[
  {id:'ica', title:'ICA', meaning:"Complete the Independent Contractor's Agreement", reqs:[
    {id:'bg_done', label:'Complete background check.'},
    {id:'bg_paid', label:'Pay for the background check.'},
@@ -742,12 +748,12 @@ var LADDER=[
    {id:'persist90',   label:'90% persistency.'}]}
 ];
 /* Titles only, for badge alt text and anywhere a flat list is still convenient. */
-var STAGES=LADDER.map(function(s){return s.title;});
-var STAGE_COUNT=LADDER.length;
+var STAGES=ROAD.map(function(s){return s.title;});
+var STAGE_COUNT=ROAD.length;
 
 /* Every requirement of a stage, flattened, each carrying the path it belongs to. */
 function reqsOf(i){
-  var s=LADDER[i]; if(!s) return [];
+  var s=ROAD[i]; if(!s) return [];
   if(s.paths){
     var out=[];
     s.paths.forEach(function(p){ p.reqs.forEach(function(r){
@@ -762,7 +768,7 @@ function reqsOf(i){
    invented here — these are facts the app holds, offered as corroboration. */
 function platformSays(i,s){
   s=s||{}; var L=(s.license_status||''), lvl=(s.contract_level||'').toLowerCase();
-  var id=(LADDER[i]||{}).id;
+  var id=(ROAD[i]||{}).id;
   /* Once a count is past its target, saying "14 of 10" reads like a mistake. */
   var tally=function(cur,tgt,noun){
     return cur>=tgt ? (noun+': <b>'+cur+'</b> — target of '+tgt+' met.')
@@ -1370,7 +1376,7 @@ function ladderAgents(){
    rule cleared EVERY stage for an EMD or NVP; under the new ladder that would have quietly
    certified The Big Base Shop, Leaders Council, SVP and Senior Partner for people who have
    never been assessed against them. */
-function stageIndexById(id){for(var i=0;i<LADDER.length;i++)if(LADDER[i].id===id)return i;return -1;}
+function stageIndexById(id){for(var i=0;i<ROAD.length;i++)if(ROAD[i].id===id)return i;return -1;}
 function derivedOf(code){ return ((BOARD.derived||{})[code])||{}; }
 function rankClearsTo(code){
   var d=derivedOf(code);
@@ -1405,7 +1411,7 @@ function checksFor(code,i){
 }
 /* Stages 11 and 15 qualify on EITHER complete path. A partial mixture never qualifies. */
 function pathProgress(code,i){
-  var s=LADDER[i]; if(!s||!s.paths)return null;
+  var s=ROAD[i]; if(!s||!s.paths)return null;
   return s.paths.map(function(p){
     var done=p.reqs.filter(function(r){return reqDone(code,i,s.id+'.'+p.id+'.'+r.id);}).length;
     return {id:p.id, name:p.name, done:done, total:p.reqs.length, complete:done===p.reqs.length};
@@ -1542,7 +1548,7 @@ function renderRoad(){
   if(pp){
     /* Both paths stay inspectable. Switching between them must never erase the other's
        evidence, so both are rendered - neither is hidden behind a toggle. */
-    var sdef=LADDER[STEP];
+    var sdef=ROAD[STEP];
     reqs='<p class="altnote">Either complete path qualifies \u2014 you do not need both.</p>'
       +sdef.paths.map(function(p,pi){
         var pr=pp[pi];
@@ -1577,7 +1583,7 @@ function renderRoad(){
     +'<p>Level '+(STEP<9?('0'+(STEP+1)):(STEP+1))+' emblem</p><small>Summit progression badge</small></div>'
     +'<div class="rank-req"><header><div><div class="eyebrow">Progression step</div>'
     +'<h2>'+esc(STAGES[STEP])+'</h2>'
-    +(LADDER[STEP].meaning?('<div class="stmean">'+esc(LADDER[STEP].meaning)+'</div>'):'')
+    +(ROAD[STEP].meaning?('<div class="stmean">'+esc(ROAD[STEP].meaning)+'</div>'):'')
     +'<span class="stchip '+st+'">'+(st==='complete'?'Stage complete':(st==='started'?'In progress':'Not started'))+'</span>'
     +'</div><span class="cnt">'+done+'/'+total+'</span></header>'
     +reqs
