@@ -66,3 +66,14 @@ service_role. Probed 2026-10-20 with an empty POST:
 These were **left alone deliberately**. `personal.config`, "health vision" and Telegram
 suggest a personal project rather than TSFG, possibly with its own front end that is not
 in this repo. Deleting or locking them is Christopher's call, not an obvious cleanup.
+
+## Schema changes
+
+The project tracks migrations (190+ of them, visible via Supabase's migration history), but
+work done through the MCP `execute_sql` tool records **nothing** — same blind spot the edge
+functions had. Tonight's Road-to-EMD schema went in that way and was back-filled afterwards as
+`road_to_emd_20_stage_checks_and_derivation` and `retire_19_stage_ladder_derivation`.
+
+Use `apply_migration` for DDL, not `execute_sql`, and write the SQL so replaying it is a no-op
+(`create table if not exists`, `create or replace function`, `add column if not exists`) — the
+back-fill above was only safe because every statement was idempotent.
