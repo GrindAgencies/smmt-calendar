@@ -746,7 +746,11 @@ function doDelete(id){
 /* ROUND TWO task 11. The swatches, drawn once per open so the chosen one is always in step
    with the record being edited. */
 function paintColours(sel){
-  EDIT_COLOUR = sel || 'gold';
+  /* An empty selection is MEANINGFUL: it means this event carries a hex colour from the older
+     Scheduler, which no swatch represents. `sel || 'gold'` collapsed that into gold, so the
+     picker claimed gold and saving would have overwritten the stored hex - the exact silent
+     colour loss the hex handling exists to prevent. undefined still defaults to gold. */
+  EDIT_COLOUR = (sel === '') ? '' : (sel || 'gold');
   var host=document.getElementById('e_colour'); if(!host) return;
   host.innerHTML = EVCOLOURS.map(function(c){
     return '<button type="button" class="cdot" data-c="'+c.k+'" style="background:'+c.css+'" '+
@@ -812,7 +816,13 @@ function openNew(){
   }catch(e){}
   document.getElementById('evSheet').classList.add('on');
 }
-function closeNew(){ document.getElementById('evSheet').classList.remove('on'); }
+function closeNew(){
+  /* Clear edit mode on the way out. openNew() also clears it, so the "+" button was safe,
+     but leaving it set meant any other path into saveEvent would have updated the record
+     that merely happened to be open last. */
+  EDIT_ID = null;
+  document.getElementById('evSheet').classList.remove('on');
+}
 function syncAllDay(){
   var on=document.getElementById('e_allday').classList.contains('on');
   document.getElementById('e_start').disabled=on;
@@ -865,7 +875,9 @@ function saveEvent(){
     ? { action:'update_appt', code:CODE, id:EDIT_ID,
         title:title, date:date, time:to12(st), with:(cname||tname||''),
         notes:document.getElementById('e_notes').value.trim(),
-        color:EDIT_COLOUR, email:cemail, phone:cphone, guests:guests }
+        /* No swatch chosen on a hex-coloured event: leave the stored colour alone rather
+           than writing an empty string over it. */
+        email:cemail, phone:cphone, guests:guests }
     : {
       /* Two shapes, because they are two different things. Name somebody and it is an
          appointment WITH them (staff_appt). Name nobody and it is a block on your own
@@ -884,6 +896,8 @@ function saveEvent(){
       color:EDIT_COLOUR,
       notes:document.getElementById('e_notes').value.trim()
     };
+
+  if(EDIT_COLOUR) payload.color = EDIT_COLOUR;    /* only when a swatch was actually chosen */
 
   fetch(SX,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
     .then(function(r){ return r.json(); })
