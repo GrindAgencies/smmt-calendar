@@ -16,8 +16,10 @@ This directory is the fix. It is **incomplete** — see below.
 | `hub-sweep`  | v2  | byte-identical to deployed |
 | `summit-api` | v7  | byte-identical to deployed |
 | `atlas-api`  | v19 | byte-identical to deployed |
+| `calendly-book` | v5 | deployed from this copy |
+| `cal-import` | v5 | deployed from this copy |
 
-**102 functions still have no copy here.**
+**100 functions still have no copy here.**
 
 ## Adding one
 
