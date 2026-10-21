@@ -43,15 +43,43 @@
   .tl{ position:relative; display:grid; grid-template-columns:52px 1fr; }
   .tl .hr{ height:56px; font-size:11px; color:var(--tsfg-ink-3); padding-top:1px; }
   .tl .slot{ height:56px; border-top:1px solid var(--tsfg-line-soft); position:relative; }
+  /* ROUND TWO task 9. An event's height IS its duration - box-sizing:border-box so the 2px
+     transparent bottom border is a visual gap INSIDE the hour rather than 3px shaved off the
+     card, which is what used to make every 3-4pm event stop short of the 4pm line. */
   .ev{
-    position:absolute; left:4px; right:2px; border-radius:9px; padding:7px 10px; overflow:hidden;
-    border-left:3px solid var(--tsfg-gold); background:rgba(232,199,119,.13);
-    cursor:pointer;
+    position:absolute; box-sizing:border-box; border-radius:9px; padding:6px 9px; overflow:hidden;
+    border-left:3px solid var(--tsfg-gold); border-bottom:2px solid transparent;
+    background:rgba(232,199,119,.13);
+    cursor:pointer; display:flex; flex-direction:column; justify-content:center;
   }
   .ev.team{ border-left-color:var(--tsfg-info); background:rgba(90,169,230,.13); }
   .ev.off{ border-left-color:var(--tsfg-ink-3); background:rgba(154,154,159,.1); opacity:.6; }
   .ev .t{ font-size:13px; font-weight:700; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .ev .s{ font-size:11.5px; color:var(--tsfg-ink-2); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+  /* A short event gets a deliberately compact card - one line, smaller type - instead of two
+     lines with the bottom one sliced in half. Truncation on purpose beats clipping by accident. */
+  .ev.sm{ padding:2px 8px; }
+  .ev.sm .t{ font-size:11.5px; }
+  .ev.sm .s{ display:none; }
+  .ev.xs{ padding:0 8px; }
+  .ev.xs .t{ font-size:10.5px; }
+
+  /* ROUND TWO task 11: a per-appointment colour, so a calendar can be read at a glance.
+     An accent stripe plus a faint tint - never saturated fill behind the text, which is how
+     colour pickers usually end up unreadable. */
+  .ev.c-gold  { border-left-color:#e8c777; background:rgba(232,199,119,.13); }
+  .ev.c-blue  { border-left-color:#5aa9e6; background:rgba(90,169,230,.13); }
+  .ev.c-green { border-left-color:#4fb286; background:rgba(79,178,134,.14); }
+  .ev.c-purple{ border-left-color:#a78bfa; background:rgba(167,139,250,.15); }
+  .ev.c-red   { border-left-color:#ef6461; background:rgba(239,100,97,.14); }
+  .ev.c-grey  { border-left-color:#9a9a9f; background:rgba(154,154,159,.12); }
+
+  .cdots{ display:flex; gap:9px; flex-wrap:wrap; }
+  .cdot{ width:34px; height:34px; border-radius:50%; cursor:pointer; border:2px solid transparent; position:relative; }
+  .cdot[aria-pressed="true"]{ border-color:var(--tsfg-ink); }
+  .cdot[aria-pressed="true"]::after{ content:'\2713'; position:absolute; inset:0; display:flex;
+    align-items:center; justify-content:center; color:#17120a; font-size:15px; font-weight:800; }
 
   /* The "now" line — the one thing that tells you where you are in the day. */
   .now{ position:absolute; left:40px; right:0; height:0; z-index:4; pointer-events:none; }
@@ -151,6 +179,20 @@
 <button class="fab" onclick="openNew()" aria-label="New event">+</button>
 
 <!-- ============================ new event ============================ -->
+<!-- ROUND TWO task 10: tapping an appointment opens its real details, with Edit and Delete
+     for whoever is allowed. Both actions are enforced server-side; this sheet only offers what
+     the record and the endpoints actually support. -->
+<div class="sheet" id="dtSheet" onclick="if(event.target===this)closeDetails()">
+  <div class="sheet-c">
+    <div class="sheet-top">
+      <button class="x" onclick="closeDetails()" aria-label="Close">&times;</button>
+      <h3>Appointment</h3>
+      <span></span>
+    </div>
+    <div id="dtBody"></div>
+  </div>
+</div>
+
 <div class="sheet" id="evSheet" onclick="if(event.target===this)closeNew()">
   <div class="sheet-c">
     <div class="sheet-top">
@@ -220,6 +262,11 @@
       <textarea id="e_notes" rows="3" placeholder="Anything you want on the card"></textarea>
     </div>
 
+    <div class="tsfg-field" style="margin-top:14px">
+      <label>Colour <span class="opt">(so you can read the week at a glance)</span></label>
+      <div class="cdots" id="e_colour" role="group" aria-label="Appointment colour"></div>
+    </div>
+
     <button class="tsfg-btn" onclick="saveEvent()" style="margin-top:4px">Save event</button>
     <p class="tsfg-muted tsfg-center" style="font-size:12px;margin:12px 0 0">
       This goes on your own calendar and <b>does not send invitations</b> &mdash; Calendly is what
@@ -252,6 +299,7 @@
 var AT  = 'https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/atlas-api';
 var SX  = 'https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/sched-ext';
 var TB  = 'https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/trainer-bookings';
+var CB  = 'https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/calendly-book';
 
 try{ if(!localStorage.getItem('tsfg_code')) location.replace('index.html'); }catch(e){}
 var CODE = (localStorage.getItem('tsfg_code')||'').toUpperCase();
@@ -425,20 +473,59 @@ function paintDay(){
   h += '<div class="tl" id="tl">'+rows+'</div>';
   document.getElementById('body').innerHTML=h;
 
-  /* Place each event against its hour row, sized by its duration. */
+  /* ROUND TWO task 9. An event occupies exactly the time it runs for.
+     What was wrong, in one line:
+         el.style.height = Math.max(34, mins/60*56 - 3)+'px';
+     The hour row is 56px, so a 60-minute event was drawn 53px tall and visibly stopped short
+     of the next hour line - which is precisely what Elijah reported about a 3-4pm appointment.
+     The 34px floor did worse: a 15-minute and a 30-minute event both came out 34px, so below
+     about 36 minutes duration meant nothing at all, and 34px is too short for the two lines of
+     text inside, which is where the half-cut second line came from.
+     Height is now duration, the gap is a transparent border INSIDE that height, and a short
+     event gets a compact one-line card rather than two lines with one of them sliced. */
+  var HOURPX = 56;
+  var MIN_TAPPABLE = 22;      /* a 15-minute event is 14px; this keeps it reachable, and it is
+                                 below a 30-minute card so it never flattens real differences */
   var tl=document.getElementById('tl');
-  items.forEach(function(x){
-    var slot=tl.querySelector('.slot[data-h="'+x.s.getHours()+'"]');
-    if(!slot) return;
-    var mins=Number(x.b.duration_minutes)||60;
-    var el=document.createElement('div');
-    el.className='ev '+kindOf(x.b);
-    el.style.top = (x.s.getMinutes()/60*56)+'px';
-    el.style.height = Math.max(34, mins/60*56 - 3)+'px';
-    el.onclick=function(){ showEvent(x.b); };
-    el.innerHTML='<div class="t">'+esc(labelOf(x.b))+'</div><div class="s">'+
-                 hhmm(x.s)+(subOf(x.b)?(' · '+esc(subOf(x.b))):'')+'</div>';
-    slot.appendChild(el);
+
+  /* Simultaneous events shared one absolute position and sat on top of each other. Anything
+     whose time overlaps is laid out in columns side by side, so both stay readable and each
+     click target is over its own event. */
+  var sorted = items.slice().sort(function(a,b){ return a.s - b.s; });
+  var groups = [], cur = [];
+  sorted.forEach(function(x){
+    var e = endOf(x);
+    if(!cur.length){ cur=[x]; groups.push(cur); return; }
+    var overlaps = cur.some(function(y){ return x.s < endOf(y) && y.s < e; });
+    if(overlaps) cur.push(x); else { cur=[x]; groups.push(cur); }
+  });
+
+  groups.forEach(function(g){
+    var cols = g.length;
+    g.forEach(function(x, i){
+      var slot=tl.querySelector('.slot[data-h="'+x.s.getHours()+'"]');
+      if(!slot) return;
+      var mins = minutesOf(x);
+      var hpx  = mins/60*HOURPX;
+      var el=document.createElement('div');
+      el.className='ev '+kindOf(x.b)+' '+colourClassOf(x.b)+(hpx<42?' sm':'')+(hpx<26?' xs':'');
+      el.style.top    = (x.s.getMinutes()/60*HOURPX)+'px';
+      el.style.height = Math.max(MIN_TAPPABLE, hpx)+'px';
+      /* columns, with the usual 4px/2px inset preserved at the outer edges */
+      var leftPct  = (i/cols)*100, widthPct = (1/cols)*100;
+      el.style.left  = 'calc(4px + '+leftPct+'% )';
+      el.style.width = 'calc('+widthPct+'% - 6px)';
+      el.style.right = 'auto';
+      applyColour(el, x.b);
+      el.setAttribute('role','button');
+      el.setAttribute('tabindex','0');
+      el.setAttribute('aria-label', labelOf(x.b)+', '+hhmm(x.s)+', '+mins+' minutes');
+      el.onclick=function(){ showEvent(x.b); };
+      el.onkeydown=function(ev){ if(ev.key==='Enter'||ev.key===' '){ ev.preventDefault(); showEvent(x.b); } };
+      el.innerHTML='<div class="t">'+esc(labelOf(x.b))+'</div><div class="s">'+
+                   hhmm(x.s)+(subOf(x.b)?(' · '+esc(subOf(x.b))):'')+'</div>';
+      slot.appendChild(el);
+    });
   });
 
   if(isToday){
@@ -498,18 +585,217 @@ function paintAgenda(){
   document.getElementById('body').innerHTML=h;
 }
 
+/* The real length of an appointment, preferring the stored end time over the stored duration:
+   ends_at is what the provider actually booked. They agree on every current row - I checked -
+   but if they ever disagree the end time is the truth. */
+function minutesOf(x){
+  var e = endOf(x);
+  if(e && x.s){ var m = Math.round((e - x.s)/60000); if(m > 0) return m; }
+  return Number(x.b.duration_minutes) || 60;
+}
+function endOf(x){
+  if(x.b.ends_at){ var d=new Date(x.b.ends_at); if(!isNaN(d)) return d; }
+  var m = Number(x.b.duration_minutes) || 60;
+  return new Date(x.s.getTime() + m*60000);
+}
+
+/* ROUND TWO task 11. A per-appointment colour. Gold stays the default for everything booked
+   before this existed, so no calendar silently changes appearance. */
+var EVCOLOURS = [
+  { k:'gold',   label:'Gold',   css:'#e8c777' },
+  { k:'blue',   label:'Blue',   css:'#5aa9e6' },
+  { k:'green',  label:'Green',  css:'#4fb286' },
+  { k:'purple', label:'Purple', css:'#a78bfa' },
+  { k:'red',    label:'Red',    css:'#ef6461' },
+  { k:'grey',   label:'Grey',   css:'#9a9a9f' }
+];
+function colourClassOf(b){
+  var c = String((b && b.color) || '').trim().toLowerCase();
+  for(var i=0;i<EVCOLOURS.length;i++) if(EVCOLOURS[i].k===c) return 'c-'+c;
+  return '';            /* no stored colour, or a hex one: handled by applyColour below */
+}
+/* 21 appointments already carry a colour, stored as HEX by an earlier version of this screen.
+   Matching only the new palette names would have quietly thrown those away and returned every
+   one of them to gold, so a hex value is honoured directly instead - accent stripe plus a faint
+   tint of the same hue, exactly as the named palette renders. */
+function hexOf(b){
+  var c = String((b && b.color) || '').trim();
+  return /^#[0-9a-fA-F]{6}$/.test(c) ? c : '';
+}
+function applyColour(el, b){
+  var hx = hexOf(b);
+  if(!hx) return;                       /* a named palette colour is already on the class */
+  var r=parseInt(hx.slice(1,3),16), g=parseInt(hx.slice(3,5),16), bl=parseInt(hx.slice(5,7),16);
+  el.style.borderLeftColor = hx;
+  el.style.background = 'rgba('+r+','+g+','+bl+',.15)';
+}
+
+/* ROUND TWO task 10. Tapping an appointment used to fire a toast - the whole record flattened
+   into one disappearing line, with no way to change or cancel anything. It now opens the real
+   record, and offers only the actions this particular appointment genuinely supports. */
+var EDIT_ID = null, EDIT_COLOUR = 'gold';
+
+function canEdit(b){
+  /* A manual entry belongs to whoever created it, and sched-ext enforces exactly that on the
+     write. A Calendly appointment is owned by Calendly: it can be cancelled from here (which
+     cancels it there too) but its time is not ours to rewrite behind the provider's back. */
+  return String(b.source||'')!=='calendly' && String(b.booked_by||'').toUpperCase()===CODE;
+}
+function canDelete(b){
+  if(String(b.source||'')==='calendly'){
+    return [String(b.agent_code||''), String(b.trainer_code||''), String(b.booked_by||'')]
+      .map(function(x){return x.toUpperCase();}).indexOf(CODE) >= 0;
+  }
+  return String(b.booked_by||'').toUpperCase()===CODE;
+}
+
 function showEvent(b){
   if(typeof b==='string') b = BOOK.filter(function(x){ return String(x.id)===b; })[0];
   if(!b) return;
-  var s=parseStart(b);
-  var bits=[labelOf(b), s?(DOW[s.getDay()]+' '+MON[s.getMonth()].slice(0,3)+' '+s.getDate()+' · '+hhmm(s)):''];
-  if(subOf(b)) bits.push(subOf(b));
-  if(b.notes) bits.push(b.notes);
-  toast(bits.filter(Boolean).join(' — '));
+  var st = parseStart(b);
+  var mins = Number(b.duration_minutes)||60;
+  if(b.ends_at && st){ var e=new Date(b.ends_at); if(!isNaN(e)) mins = Math.round((e-st)/60000); }
+  var en = st ? new Date(st.getTime()+mins*60000) : null;
+
+  function row(k,v){ return v ? '<div class="trow" style="grid-template-columns:96px 1fr"><span>'+esc(k)+'</span><div>'+v+'</div></div>' : ''; }
+  var tz=''; try{ tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; }catch(e){}
+
+  var when = st ? (DOW[st.getDay()]+' '+MON[st.getMonth()].slice(0,3)+' '+st.getDate()+
+                   ' · '+hhmm(st)+(en?(' – '+hhmm(en)):'')+' <span class="tsfg-muted">('+mins+' min)</span>') : '';
+  var people = [];
+  if(b.agent_name)   people.push('<b>'+esc(b.agent_name)+'</b>');
+  if(b.trainer_name && b.trainer_name!==b.agent_name) people.push('trainer '+esc(b.trainer_name));
+  var contact = [];
+  if(b.client_email) contact.push(esc(b.client_email));
+  if(b.client_phone) contact.push(esc(b.client_phone));
+  if(b.guests)       contact.push('guests: '+esc(b.guests));
+
+  var h = '<h3 style="margin:2px 0 4px;font-size:19px;letter-spacing:-.02em">'+esc(labelOf(b))+'</h3>';
+  if(String(b.status||'').toLowerCase().indexOf('cancel')>=0)
+    h += '<p style="color:var(--tsfg-bad);font-size:12.5px;font-weight:700;margin:0 0 8px">This appointment is cancelled.</p>';
+  h += '<div class="tsfg-card" style="padding:4px 14px;margin-top:8px">'+
+         row('When', when)+
+         row('Timezone', esc(tz))+
+         row('With', people.join(' · '))+
+         row('Contact', contact.join('<br>'))+
+         row('Category', esc(b.category||''))+
+         row('Where', b.meeting_link ? ('<a href="'+esc(b.meeting_link)+'" target="_blank" rel="noopener" style="color:var(--tsfg-gold)">Join '+esc(b.meeting_medium||'meeting')+'</a>') : esc(b.location||b.meeting_medium||''))+
+         row('Notes', b.notes ? esc(b.notes).replace(/\n/g,'<br>') : '')+
+         row('Source', b.source==='calendly' ? 'Calendly' : 'Added here')+
+       '</div>';
+
+  var acts = [];
+  if(canEdit(b))   acts.push('<button class="tsfg-btn ghost" onclick="editEvent(\''+b.id+'\')">Edit</button>');
+  if(canDelete(b)) acts.push('<button class="tsfg-btn ghost" style="color:var(--tsfg-bad)" onclick="askDelete(\''+b.id+'\')">'+
+                             (b.source==='calendly'?'Cancel in Calendly':'Delete')+'</button>');
+  h += '<div class="tsfg-btnrow" style="margin-top:14px">'+(acts.join('')||'')+'</div>';
+  if(!acts.length){
+    h += '<p class="tsfg-muted" style="font-size:12.5px;line-height:1.5;margin:12px 2px 0">'+
+         'This appointment is on someone else\u2019s calendar, so it is read-only here.</p>';
+  } else if(String(b.source||'')==='calendly'){
+    h += '<p class="tsfg-muted" style="font-size:12px;line-height:1.5;margin:10px 2px 0">'+
+         'Booked through Calendly. Cancelling here cancels it there too and notifies everyone on it. '+
+         'To move it, reschedule from the Calendly invitation so the provider stays the source of truth.</p>';
+  }
+  document.getElementById('dtBody').innerHTML = h;
+  document.getElementById('dtSheet').classList.add('on');
+}
+function closeDetails(){ document.getElementById('dtSheet').classList.remove('on'); }
+
+/* ---- delete, with a confirmation that names the appointment and its time ---- */
+function askDelete(id){
+  var b = BOOK.filter(function(x){ return String(x.id)===String(id); })[0];
+  if(!b) return;
+  var st=parseStart(b);
+  var when = st ? (MON[st.getMonth()].slice(0,3)+' '+st.getDate()+' at '+hhmm(st)) : 'its scheduled time';
+  var cal = String(b.source||'')==='calendly';
+  document.getElementById('dtBody').innerHTML =
+    '<h3 style="margin:2px 0 8px;font-size:18px">'+(cal?'Cancel this appointment?':'Delete this appointment?')+'</h3>'+
+    '<p style="font-size:14px;line-height:1.55;margin:0 0 6px"><b>'+esc(labelOf(b))+'</b><br>'+esc(when)+'</p>'+
+    '<p class="tsfg-muted" style="font-size:12.5px;line-height:1.5">'+
+      (cal ? 'This cancels it in Calendly as well, and everyone on the invitation is notified.'
+           : 'This removes it from your calendar. It cannot be undone.')+'</p>'+
+    '<div class="tsfg-btnrow" style="margin-top:16px">'+
+      '<button class="tsfg-btn quiet" onclick="showEvent(\''+b.id+'\')">Keep it</button>'+
+      '<button class="tsfg-btn" style="background:var(--tsfg-bad);color:#fff" id="delBtn" onclick="doDelete(\''+b.id+'\')">'+
+        (cal?'Cancel appointment':'Delete')+'</button>'+
+    '</div>';
+}
+function doDelete(id){
+  var b = BOOK.filter(function(x){ return String(x.id)===String(id); })[0];
+  if(!b) return;
+  var btn=document.getElementById('delBtn');
+  if(btn){ if(btn.disabled) return; btn.disabled=true; btn.textContent='Working…'; }   /* no double-fire */
+  var cal = String(b.source||'')==='calendly';
+  var url = cal ? CB : SX;
+  var body = cal
+    ? {action:'cancel', by_code:CODE, event_uuid:b.calendly_event_uuid||'', id:b.id, reason:'Cancelled from The Standard app.'}
+    : {action:'delete_appt', code:CODE, id:b.id};
+  fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+    .then(function(r){ return r.json(); })
+    .then(function(r){
+      if(r && r.ok){ closeDetails(); toast(cal?'Cancelled':'Deleted'); load(); }
+      else { if(btn){ btn.disabled=false; btn.textContent=cal?'Cancel appointment':'Delete'; }
+             toast((r&&r.error)||'Could not do that'); }
+    })
+    .catch(function(){ if(btn){ btn.disabled=false; btn.textContent=cal?'Cancel appointment':'Delete'; }
+                       toast('Network error — try again'); });
 }
 
 /* ------------------------------------------------------------ new event --- */
+/* ROUND TWO task 11. The swatches, drawn once per open so the chosen one is always in step
+   with the record being edited. */
+function paintColours(sel){
+  EDIT_COLOUR = sel || 'gold';
+  var host=document.getElementById('e_colour'); if(!host) return;
+  host.innerHTML = EVCOLOURS.map(function(c){
+    return '<button type="button" class="cdot" data-c="'+c.k+'" style="background:'+c.css+'" '+
+           'aria-pressed="'+(c.k===EDIT_COLOUR?'true':'false')+'" aria-label="'+c.label+'" '+
+           'title="'+c.label+'" onclick="pickColour(\''+c.k+'\')"></button>';
+  }).join('');
+}
+function pickColour(k){
+  EDIT_COLOUR=k;
+  Array.prototype.forEach.call(document.querySelectorAll('#e_colour .cdot'),function(b){
+    b.setAttribute('aria-pressed', b.getAttribute('data-c')===k ? 'true':'false');
+  });
+}
+
+/* Open the existing record in the same form the new one uses, so the fields, the validation
+   and the save path cannot drift apart. */
+function editEvent(id){
+  var b = BOOK.filter(function(x){ return String(x.id)===String(id); })[0];
+  if(!b) return;
+  closeDetails();
+  openNew();                       /* resets every field first */
+  EDIT_ID = b.id;
+  var st=parseStart(b);
+  var mins=Number(b.duration_minutes)||60;
+  if(b.ends_at && st){ var e=new Date(b.ends_at); if(!isNaN(e)) mins=Math.round((e-st)/60000); }
+  var en = st ? new Date(st.getTime()+mins*60000) : null;
+  function V(i,v){ var el=document.getElementById(i); if(el) el.value = v || ''; }
+  V('e_title', b.title || b.category || '');
+  if(st){
+    V('e_date',  ymd(st));
+    V('e_start', String(st.getHours()).padStart(2,'0')+':'+String(st.getMinutes()).padStart(2,'0'));
+    V('e_end',   en ? (String(en.getHours()).padStart(2,'0')+':'+String(en.getMinutes()).padStart(2,'0')) : '');
+  }
+  V('e_with',   b.agent_name || '');
+  V('e_cemail', b.client_email || '');
+  V('e_cphone', b.client_phone || '');
+  V('e_guests', b.guests || '');
+  V('e_notes',  b.notes || '');
+  /* A hex colour has no swatch to tick; show the palette unticked rather than claiming gold,
+     and leave the stored hex alone unless a swatch is actually chosen. */
+  var stored = String(b.color||'').toLowerCase();
+  paintColours(/^#/.test(stored) ? '' : (stored || 'gold'));
+  var hd=document.querySelector('#evSheet .sheet-top h3'); if(hd) hd.textContent='Edit event';
+}
+
 function openNew(){
+  EDIT_ID = null;
+  var hd=document.querySelector('#evSheet .sheet-top h3'); if(hd) hd.textContent='New event';
+  paintColours('gold');
   var d=new Date(SEL);
   var n=new Date(); n.setMinutes(0,0,0); n.setHours(n.getHours()+1);
   document.getElementById('e_date').value  = ymd(d);
@@ -572,8 +858,15 @@ function saveEvent(){
 
   /* staff_appt is the same write the full Scheduler uses for a manual entry, so an event
      made here is an ordinary booking — it shows up everywhere else without a special case. */
-  fetch(SX,{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({
+  /* ROUND TWO task 10: the same form saves a new appointment and an edit. An edit UPDATES the
+     record it opened - it never creates a second one - which is why the id is carried rather
+     than the form being re-submitted as a fresh booking. */
+  var payload = EDIT_ID
+    ? { action:'update_appt', code:CODE, id:EDIT_ID,
+        title:title, date:date, time:to12(st), with:(cname||tname||''),
+        notes:document.getElementById('e_notes').value.trim(),
+        color:EDIT_COLOUR, email:cemail, phone:cphone, guests:guests }
+    : {
       /* Two shapes, because they are two different things. Name somebody and it is an
          appointment WITH them (staff_appt). Name nobody and it is a block on your own
          calendar (create_appt), which is the one case that legitimately has no guest -
@@ -588,16 +881,22 @@ function saveEvent(){
       client_name:cname, client_email:cemail, client_phone:cphone,
       guests:guests,
       minutes:mins, duration_minutes:mins,
+      color:EDIT_COLOUR,
       notes:document.getElementById('e_notes').value.trim()
-    })})
+    };
+
+  fetch(SX,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
     .then(function(r){ return r.json(); })
     .then(function(r){
       btn.disabled=false; btn.textContent='Save';
       if(r && r.ok){
+        var wasEdit = !!EDIT_ID;
+        EDIT_ID = null;
         closeNew();
         /* Say which it was. A form that takes three addresses and sends nothing must not
            imply it invited anyone. */
-        toast(r.local_only ? 'Saved to your calendar — no invites sent' : 'Event saved');
+        toast(wasEdit ? 'Changes saved'
+                      : (r.local_only ? 'Saved to your calendar — no invites sent' : 'Event saved'));
         load();
       }
       else toast((r && r.error) || 'Could not save that event');
