@@ -12,6 +12,14 @@
   --bg:#f5f5f7;--panel:#fff;--panel2:#fbfbfd;--ink:#1d1d1f;--ink2:#6e6e73;--ink3:#8e8e93;
   --line:#ececf0;--line2:#e3e3e8;--accent:#5b6cff;--accent2:#4f46e5;--accent-soft:rgba(91,108,255,.10);
   --green:#34c759;--gold:#c99a2e;--gold-soft:rgba(201,154,46,.14);--red:#ff3b30;
+  /* The conversation-view gold. These lived on body.phone only, which was wrong the moment
+     anything outside the phone list used them: on desktop var(--cvgold) resolved to nothing,
+     so `background:var(--cvgold)` fell back to transparent and `border-color:var(--cvgold)`
+     fell back to currentColor. That silently took out four things at once - the group sheet's
+     primary buttons (measured 1.03:1 contrast, i.e. invisible), the group avatar's fallback
+     gradient, the upload progress bar's fill, and the row menu's focus ring. Declared here so
+     they exist at every width. */
+  --cvgold:#c99a2e;--cvgold-br:#e8c777;
   --shadow-sm:0 1px 2px rgba(0,0,0,.04),0 1px 3px rgba(0,0,0,.03);--shadow:0 2px 6px rgba(0,0,0,.04),0 12px 34px rgba(0,0,0,.06);
   --shadow-lg:0 20px 50px rgba(0,0,0,.14);--side:248px;--font:'Inter',-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',system-ui,sans-serif;
 }
@@ -143,6 +151,17 @@ body.drawer .scrim{display:block;}
 .replybar{display:none;align-items:center;gap:9px;font-size:12.5px;color:var(--ink3);padding:6px 10px;margin-bottom:8px;background:var(--panel2);border-radius:10px;}
 .replybar.on{display:flex;}.replybar b{color:var(--ink2);}.replybar .x{margin-left:auto;cursor:pointer;font-size:15px;}
 .cbox{display:flex;align-items:flex-end;gap:8px;border:1px solid var(--line2);border-radius:16px;padding:8px 8px 8px 14px;background:var(--panel2);}
+/* The phone needs its own way in to attachments. The 📎 lives in .chips, and .chips is
+   display:none on a phone - so adding attachments to that row made the feature unreachable
+   on the one device people actually take photos with. This is the same control, in the
+   composer itself where a phone expects it, and it is hidden on desktop so the Attach chip
+   there is not duplicated. */
+.cbox .cbtn.clip{display:none;}
+body.phone .cbox .cbtn.clip{display:inline-flex;align-items:center;justify-content:center;
+  flex:0 0 auto;width:34px;height:34px;border:0;border-radius:50%;background:none;
+  color:var(--ink2);cursor:pointer;padding:0;}
+body.phone .cbox .cbtn.clip svg{width:19px;height:19px;}
+body.phone .cbox .cbtn.clip:active{background:var(--line);color:var(--ink);}
 .cbox textarea{flex:1;border:none;background:none;outline:none;resize:none;color:var(--ink);font-size:14.5px;font-family:inherit;max-height:140px;line-height:1.4;padding:5px 0;}
 .cbtn{width:38px;height:38px;border-radius:11px;border:none;background:none;color:var(--ink2);display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
 .cbtn:hover{background:var(--bg);color:var(--ink);}.cbtn svg{width:19px;height:19px;}
@@ -333,6 +352,9 @@ html, body{ overflow-x: hidden; }
       <div class="replybar" id="replybar"></div>
       <div class="mentions" id="mentions"></div>
       <div class="cbox" data-drop="fileIn">
+        <button class="cbtn clip" onclick="document.getElementById('fileIn').click()" title="Attach a photo, video or file" aria-label="Attach a photo, video or file">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+        </button>
         <textarea id="cin" rows="1" placeholder="Message… (@ to mention)" oninput="onType()" onkeydown="onKey(event)"></textarea>
         <input type="file" id="fileIn" class="hide" onchange="onFile(event)" accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv">
         <button class="cbtn send" onclick="sendNow()" title="Send"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"/></svg></button>
@@ -1423,7 +1445,7 @@ function sendNow(){
   var a=PENDATTACH;
   /* An attachment still uploading is not ready to send, and one picked in another chat must
      never ride along into this one. Both are quietly common and both would be wrong. */
-  if(a && a.state==='uploading'){ toast('Still uploading\u2014 one moment'); return; }
+  if(a && a.state==='uploading'){ toast('Still uploading \u2014 one moment'); return; }
   if(a && a.state==='failed'){ toast('That upload failed. Try again or remove it.'); return; }
   if(a && a.channel && a.channel!==CHAN){ toast('That file was picked in another chat'); return; }
   if(!body&&!a)return;
@@ -1745,7 +1767,7 @@ document.addEventListener('drop',function(e){var m=zf(e.target);hi(cur,false);cu
    window size, and it has to reach the app's 248px navigation rail, which a
    width query alone could not switch off cleanly.
    =========================================================================== */
-body.phone{ --cvgold:#c99a2e; --cvgold-br:#e8c777; }
+/* --cvgold / --cvgold-br now live on :root - see the note there. */
 
 body.phone .side{ transform:translateX(-100%) !important; }
 body.phone .hub{ grid-template-columns:1fr !important; display:block !important; }

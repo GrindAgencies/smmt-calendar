@@ -802,11 +802,29 @@ function submitApp(){
      not this form's to rewrite. */
   var body;
   if(EDIT_APP){
-    body = payload(EDIT_APP.status || 'pending');
+    /* START FROM THE RECORD AS STORED, then overlay only what this form actually edits.
+       newbiz-api's newbiz_update builds a FULL row and PATCHes all of it, so every column the
+       three-step wizard does not collect was being written back as its default. Saving an
+       untouched edit would have blanked the split partner and both split percentages, the
+       advance %, the carrier code, the date of birth, the notes, the paid-out date and the
+       whole chargeback/trailing block. On policy 20 that silently erased a 50/50 split with
+       another agent - their credit, not just a display field.
+       Overlaying rather than listing the fields to rescue means a column added to the ledger
+       later is carried through automatically instead of being quietly dropped. */
+    body = {};
+    Object.keys(EDIT_APP).forEach(function(k){ body[k] = EDIT_APP[k]; });
+    var form = payload(EDIT_APP.status || 'pending');
+    Object.keys(form).forEach(function(k){ body[k] = form[k]; });
     body.action = 'newbiz_update';
+    body.code = CODE;
     body.id = EDIT_APP.id;
-    /* An edit must never move the submitted date; newbiz-api v15 learned that the hard way. */
+    /* An edit must never move the submitted date; newbiz-api v15 learned that the hard way.
+       date_written is the same trap one column over: the form has a single date field, it is
+       prefilled from the SUBMITTED date, and payload() sends it as date_written too - so an
+       edit overwrote the real written date with the submitted one. 74 of 228 policies have
+       those two dates genuinely different. Keep whatever is on the record. */
     delete body.submitted_date;
+    body.date_written = EDIT_APP.date_written ? String(EDIT_APP.date_written).slice(0,10) : '';
   } else {
     body = payload('pending');
   }
