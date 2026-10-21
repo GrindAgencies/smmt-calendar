@@ -8,7 +8,7 @@ copy outside the platform.
 
 This directory is the fix. It is **still incomplete** — see below.
 
-## Backed up so far (29 of 106)
+## Backed up so far (30 of 106)
 
 | Function | Header says |
 |---|---|
@@ -30,6 +30,7 @@ This directory is the fix. It is **still incomplete** — see below.
 | `newbiz-api` | v22 |
 | `ops-auth` | v1 |
 | `ops-directory` | v28 |
+| `ops-inforce` | v13 |
 | `ops-metrics` | v5 |
 | `ops-nbfeed` | v22 |
 | `ops-platform` | — |
@@ -42,7 +43,7 @@ This directory is the fix. It is **still incomplete** — see below.
 | `task-api` | v10 |
 | `tracker-api` | v40 |
 
-**77 functions still have no copy here.**
+**76 functions still have no copy here.**
 
 **Two different version numbers, do not confuse them.** The table shows the version in the
 file's own header comment — the author's label. Supabase keeps a separate deploy counter,
@@ -91,6 +92,34 @@ That check is the only reason this directory can be trusted at all.
 
 Every one of these was picking the wrong record, not bad parsing. Diff against something
 known-good before trusting a recovered file.
+
+## Four INFORCE lists. Three must agree; the fourth must NOT.
+
+A policy is in exactly one of three places — pipeline, in force, or dead — and three functions
+each carry their own copy of what that means. They have drifted before (`ops-nbfeed` v18 is the
+standing reminder: a leak happened because two copies disagreed about scope). Verified
+2026-10-21, all three identical:
+
+| | INFORCE |
+|---|---|
+| `ops-inforce` | `["paid"]` |
+| `ops-nbfeed` | `["paid"]` |
+| `ops-metrics` | `["paid"]` |
+
+`DEAD` is likewise identical in `ops-nbfeed` and `ops-metrics`:
+`["declined","cancelled","incomplete","closed","lapsed"]`.
+
+**`leaderboard-api` deliberately disagrees**, and must keep disagreeing:
+
+```
+const INFORCE = ["paid", "funds_received", "policy_issued", "premium_drafted"];
+```
+
+It is used at exactly one site — the Families Helped calculation — and it answers a different
+question. A family has been *helped* once their policy is on the books; whether the carrier has
+paid the commission out yet is irrelevant to them. Narrowing this to `["paid"]` to "make the
+four match" would silently drop every issued-but-not-yet-paid household out of Families Helped.
+Check the use site before touching the list.
 
 ## Deploying
 
