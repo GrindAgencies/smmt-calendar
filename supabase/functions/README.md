@@ -8,7 +8,7 @@ copy outside the platform.
 
 This directory is the fix. It is **still incomplete** — see below.
 
-## Backed up so far (27 of 106)
+## Backed up so far (29 of 106)
 
 | Function | Header says |
 |---|---|
@@ -26,10 +26,12 @@ This directory is the fix. It is **still incomplete** — see below.
 | `hub-files` | v2 |
 | `hub-sweep` | v2 |
 | `integrity-check` | v2 |
+| `leaderboard-api` | v24 |
 | `newbiz-api` | v22 |
 | `ops-auth` | v1 |
 | `ops-directory` | v28 |
 | `ops-metrics` | v5 |
+| `ops-nbfeed` | v22 |
 | `ops-platform` | — |
 | `org-api` | v13 |
 | `pin` | v11 |
@@ -40,7 +42,7 @@ This directory is the fix. It is **still incomplete** — see below.
 | `task-api` | v10 |
 | `tracker-api` | v40 |
 
-**79 functions still have no copy here.**
+**77 functions still have no copy here.**
 
 **Two different version numbers, do not confuse them.** The table shows the version in the
 file's own header comment — the author's label. Supabase keeps a separate deploy counter,
