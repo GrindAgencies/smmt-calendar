@@ -968,7 +968,11 @@ function setCtx(c){CTX=c;try{if(window.tsfgBrandScope)window.tsfgBrandScope(c===
 
 /* ---------- LEADERBOARD (live, game-like) ---------- */
 var LB="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/leaderboard-api";
-var TB="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/team-board";
+/* team-board is RETIRED. The team tab used to call it; it duplicated the ranking,
+   capped at 10 without zeros, and — unlike leaderboard-api — credited a split
+   policy's FULL premium to the writer, so 39 partners scored nothing for their
+   half. Every scope goes through leaderboard-api now. The constant is removed so
+   nothing can be re-wired to it by accident; the endpoint itself still exists. */
 var HUB="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/hub-api";
 var HUBAV={},LBDATA=null,LBPREV={},LBSCOPEPREV=null,LBLAST=0,LBPOLL=null,LBSYNCT=null,LBCHAMPSEEN={},LBPERIOD='month';
 function setPeriod(p){LBPERIOD=p;LBPREV={};LBCHAMPSEEN={};var bs=document.querySelectorAll('.lbper button');for(var i=0;i<bs.length;i++)bs[i].classList.toggle('on',bs[i].getAttribute('data-p')===p);loadLeaderboard();}

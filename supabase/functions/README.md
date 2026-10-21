@@ -8,7 +8,7 @@ copy outside the platform.
 
 This directory is the fix. It is **still incomplete** — see below.
 
-## Backed up so far (30 of 106)
+## Backed up so far (31 of 106)
 
 | Function | Header says |
 |---|---|
@@ -41,9 +41,10 @@ This directory is the fix. It is **still incomplete** — see below.
 | `push-send` | v7 |
 | `summit-api` | v7 |
 | `task-api` | v10 |
+| `team-board` | — |
 | `tracker-api` | v40 |
 
-**76 functions still have no copy here.**
+**75 functions still have no copy here.**
 
 **Two different version numbers, do not confuse them.** The table shows the version in the
 file's own header comment — the author's label. Supabase keeps a separate deploy counter,
@@ -130,6 +131,33 @@ corrected in v23. `leaderboard-api` and `ops-metrics` both already treated an ab
 rate as nothing.
 
 If you touch commission maths, diff all four.
+
+## Who credits a SPLIT policy, and who does not
+
+A split policy has two agents. Any figure that credits a PERSON must divide it; any figure that
+totals a BOOK of business must not. Audited 2026-10-21 across every backed-up function that
+reads `annual_premium`:
+
+| Function | Per-agent? | Split-aware | |
+|---|---|---|---|
+| `leaderboard-api` | yes | yes | |
+| `newbiz-api` | yes | yes | |
+| `ops-metrics` | yes | yes | credits each side to its own baseshop |
+| `ops-nbfeed` | yes | yes | fixed in v23 |
+| `ops-inforce` | **no** | no | correct — it totals the policies on screen, not people |
+| `ops-directory` | **yes** | **NO** | `polByAgent()` credits the writer 100% |
+| `team-board` | yes | **NO** | **dead code**, see below |
+
+`ops-directory` is the live outlier and the difference is large: Christopher reads $145,501 where
+the split-aware figure is $116,365; Todd Doyle reads $0 against $25,617 of real split business.
+Whether that is wrong depends on what the Operations Tracker's AP column is meant to MEAN —
+"business this person wrote" (writer takes all) or "this person's production" (split) — which is
+a business decision, not a code one. Left as found, deliberately, pending that decision.
+
+`team-board` is **retired**. `index.html` stopped calling it (its comment: it "duplicated the
+ranking and capped it at 10 without zeros, so it drifted from the other tabs") and the dead `TB`
+constant has now been removed so nothing can be re-wired to it by accident. The endpoint is still
+deployed and still split-blind; deleting it is Christopher's call, like the `twin-*` set.
 
 ## Deploying
 
