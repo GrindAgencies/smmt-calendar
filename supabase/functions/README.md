@@ -8,7 +8,7 @@ copy outside the platform.
 
 This directory is the fix. It is **still incomplete** — see below.
 
-## Backed up so far (23 of 106)
+## Backed up so far (25 of 106)
 
 | Function | Header says |
 |---|---|
@@ -22,6 +22,7 @@ This directory is the fix. It is **still incomplete** — see below.
 | `calendly-sync` | v12 |
 | `calendly-webhook` | v3 |
 | `desk` | v2 |
+| `hub-api` | v21 |
 | `hub-files` | v2 |
 | `hub-sweep` | v2 |
 | `integrity-check` | v2 |
@@ -35,8 +36,9 @@ This directory is the fix. It is **still incomplete** — see below.
 | `push-send` | v7 |
 | `summit-api` | v7 |
 | `task-api` | v10 |
+| `tracker-api` | v40 |
 
-**83 functions still have no copy here.**
+**81 functions still have no copy here.**
 
 **Two different version numbers, do not confuse them.** The table shows the version in the
 file's own header comment — the author's label. Supabase keeps a separate deploy counter,
@@ -47,9 +49,16 @@ When checking whether a backup is current, compare the SUPABASE number from
 
 ## THE TRAP: a stale backup is worse than no backup
 
-Sources can be recovered in bulk from the session transcript (`extract_fns.py` in the
-scratchpad walks every tool result, keeps the newest record per function, and refuses a
-Read-tool dump by spotting the `<n>\t` line-number prefix).
+Sources can be recovered in bulk two ways, both in the scratchpad: `extract_fns.py` walks
+the session transcript, and `extract_persisted.py` walks the `tool-results/` directory,
+where any result over ~50KB is written instead of the transcript. The big functions
+(hub-api, tracker-api, atlas-api) only ever appear in the second. Both keep the newest
+record per function and refuse a Read-tool dump by spotting the `<n>\t` line-number prefix.
+
+A trap inside the trap: in a persisted file the payload is JSON nested inside a JSON
+string, so its keys appear ESCAPED (`\"files\"`). A filter looking for the literal
+`"files"` silently skips every one of them — which is exactly what happened to
+tracker-api on the first run.
 
 **But most of what it recovers is out of date.** On 2026-10-21 it pulled 76 function
 sources out of one session; cross-checked against `list_edge_functions`, **59 of them
