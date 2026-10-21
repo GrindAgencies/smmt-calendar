@@ -1,0 +1,189 @@
+// pin v11 — 4-digit sign-in PINs for The Standard, and the thing that issues an agent session.
+//
+// The PIN is hashed with bcrypt in Postgres (pgcrypto) and never stored or logged in readable
+// form. PIN material lives in its own table (agent_pins), NOT on tracker_agents: tracker-api
+// returns whole agent rows to the browser, so a hash stored there would be handed out to anyone
+// holding a GFI code and cracked offline in seconds.
+//
+// v11 (2026-09-30) — VERIFYING A PIN NOW ISSUES AN AGENT SESSION. Until today the rest of the
+// platform took a bare agent code as proof of identity, and codes are printed on the org chart,
+// so one person could read and in places write as another. A session token is the only thing that
+// can answer "who is actually calling", and the only honest place to mint one is the moment
+// somebody proves who they are with their PIN. Resetting a PIN revokes every session for that
+// person, so a stolen session cannot outlive the credential it came from.
+//
+// v8 (2026-09-30) — CLAIMING AN ACCOUNT NEEDS PROOF, NOT JUST PUBLIC FACTS. Name + code are both
+// on the org chart. First-time setup also requires the email or last 4 of the phone on the
+// record, or a one-time setup code from Operations or the person's own upline.
+//
+// THE RULE, set by Christopher 2026-09-17: "be within 90% accuracy of the name as an acceptance.
+// 100% accuracy of the code."
+//   CODE  — exact, always. Never fuzzy-matched in any action.
+//   NAME  — forgiving. A second factor, not a spelling test.
+//
+// v7 counts a TRANSPOSITION as one edit (Damerau). v5 added middle-name tolerance after seven
+// agents were locked out of their own accounts. v3 closed an earlier takeover on 'reset'.
+//
+// Actions: status | set | verify | reset | issue_setup_code | logout
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+
+const SUPA = Deno.env.get("SUPABASE_URL")!;
+const KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const DBH = { apikey: KEY, Authorization: `Bearer ${KEY}`, "Content-Type": "application/json" };
+const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "*", "Access-Control-Allow-Methods": "POST, GET, OPTIONS" };
+const json = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { ...CORS, "Content-Type": "application/json" } });
+const norm = (c: unknown) => (c ?? "").toString().trim().toUpperCase();
+const clean = (s: unknown, n = 80) => (s ?? "").toString().trim().slice(0, n);
+
+const tokens = (s: unknown) =>
+  (s ?? "").toString().toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().split(" ").filter(Boolean);
+
+// Damerau-Levenshtein: insert, delete, substitute OR transpose, each costing one.
+function editDistance(a: string, b: string): number {
+  if (a === b) return 0;
+  if (!a.length) return b.length;
+  if (!b.length) return a.length;
+  const d: number[][] = [];
+  for (let i = 0; i <= a.length; i++) { d[i] = new Array(b.length + 1).fill(0); d[i][0] = i; }
+  for (let j = 0; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + cost);
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) {
+        d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + cost);
+      }
+    }
+  }
+  return d[a.length][b.length];
+}
+function similarity(a: string, b: string): number {
+  const longest = Math.max(a.length, b.length);
+  return longest ? (longest - editDistance(a, b)) / longest : 1;
+}
+const NAME_THRESHOLD = 0.80;
+
+function nameMatches(typed: unknown, stored: unknown): boolean {
+  const t = tokens(typed), s = tokens(stored);
+  if (!t.length || !s.length) return false;
+  const tj = t.join(""), sj = s.join("");
+  if (tj === sj) return true;                                   // same name, any spacing
+  if (t[0] === s[0]) return true;                               // "Jon" vs "Jon Paul"
+  if (t[t.length - 1] === s[s.length - 1]) return true;         // "Gillis" vs "Dwight Gillis"
+  if (t.some((x) => s.indexOf(x) >= 0)) return true;            // a middle name typed on its own
+  if (similarity(tj, sj) >= NAME_THRESHOLD) return true;        // a typo
+  return t.some((x) => s.some((y) => x.length >= 4 && similarity(x, y) >= NAME_THRESHOLD));
+}
+
+async function rpc(fn: string, args: Record<string, unknown>) {
+  const r = await fetch(`${SUPA}/rest/v1/rpc/${fn}`, {
+    method: "POST", headers: DBH, body: JSON.stringify(args),
+  });
+  return await r.json();
+}
+async function opsOk(token: string) {
+  const r = await rpc("ops_authorize", { p_token: token });
+  return !!(r && r.ok);
+}
+async function mayVouchFor(byCode: string, target: string, token: string): Promise<boolean> {
+  if (await opsOk(token)) return true;
+  const by = norm(byCode);
+  if (!by) return false;
+  if (await rpc("is_platform_admin", { p_code: by }) === true) return true;
+  return (await rpc("is_in_downline", { p_leader: by, p_target: norm(target) })) === true;
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
+  try {
+    let body: Record<string, unknown> = {};
+    if (req.method === "POST") body = await req.json().catch(() => ({}));
+    const action = clean(body.action, 20);
+    const ua = clean(req.headers.get("user-agent") || "", 200);
+
+    /* Ending a session needs only the session itself. */
+    if (action === "logout") {
+      const res = await rpc("agent_session_revoke", { p_token: clean(body.session, 80) });
+      return json(res || { ok: true });
+    }
+
+    // THE CODE IS EXACT. It is never fuzzy-matched, in any action.
+    const code = norm(body.code);
+    if (!code) return json({ ok: false, error: "Enter your GFI code." });
+
+    if (action === "status") {
+      const res = await rpc("pin_status", { p_code: code });
+      if (res && res.ok) {
+        return json({ ok: true, has_pin: !!res.has_pin, locked: !!res.locked, name: res.name || "" });
+      }
+      return json(res);
+    }
+
+    if (action === "set") {
+      const pin = clean(body.pin, 8);
+      if (!/^[0-9]{4}$/.test(pin)) return json({ ok: false, error: "Your PIN must be 4 digits." });
+      if (/^(\d)\1{3}$/.test(pin) || pin === "1234" || pin === "0000" || pin === "4321") {
+        return json({ ok: false, error: "Pick something less guessable than that." });
+      }
+
+      const st = await rpc("pin_status", { p_code: code });
+      if (!st || !st.ok) return json(st || { ok: false, error: "We don't recognise that code." });
+      if (st.has_pin) return json({ ok: false, error: "A PIN is already set. Ask Operations to reset it." });
+
+      const first = clean(body.first, 60);
+      const last = clean(body.last, 60);
+      if (!tokens(first).length || !tokens(last).length) {
+        return json({ ok: false, error: "Enter your first and last name to set up your PIN.", needs_name: true });
+      }
+      if (!tokens(st.first_name).length || !tokens(st.last_name).length) {
+        return json({ ok: false, error: "This account is missing its name. Ask Operations to finish setting it up." });
+      }
+      if (!nameMatches(first, st.first_name) || !nameMatches(last, st.last_name)) {
+        return json({ ok: false, error: "That name does not match this code.", needs_name: true });
+      }
+
+      // and one thing the org chart does not show.
+      const proof = clean(body.proof, 120);
+      const res = await rpc("pin_set", { p_code: code, p_pin: pin, p_proof: proof || null });
+      if (res && res.ok) {
+        const sess = await rpc("agent_session_new", { p_code: code, p_ua: ua });
+        if (sess && sess.ok) return json({ ok: true, session: sess.token, code });
+      }
+      return json(res);
+    }
+
+    if (action === "verify") {
+      const pin = clean(body.pin, 8);
+      if (!/^[0-9]{4}$/.test(pin)) return json({ ok: false, error: "Enter your 4-digit PIN." });
+      const res = await rpc("pin_verify", { p_code: code, p_pin: pin });
+      if (res && res.ok) {
+        /* The session is minted HERE and nowhere else: the only moment this platform actually
+           knows who somebody is, is the moment they prove it with their PIN. */
+        const sess = await rpc("agent_session_new", { p_code: code, p_ua: ua });
+        if (sess && sess.ok) return json({ ok: true, session: sess.token, code });
+      }
+      return json(res);
+    }
+
+    if (action === "reset") {
+      if (!(await opsOk(clean(body.token, 80)))) return json({ ok: false, error: "unauthorized" }, 401);
+      const res = await rpc("pin_reset", { p_code: code });
+      // a reset credential must take its sessions with it
+      await rpc("agent_sessions_revoke_all", { p_code: code });
+      return json(res);
+    }
+
+    if (action === "issue_setup_code") {
+      const by = clean(body.by_code || body.by, 24);
+      if (!(await mayVouchFor(by, code, clean(body.token, 80)))) {
+        return json({ ok: false, error: "Only Operations or this person's upline can issue a setup code." }, 403);
+      }
+      const res = await rpc("agent_setup_code_issue", { p_code: code, p_by: norm(by) || "OPS" });
+      return json(res);
+    }
+
+    return json({ ok: false, error: "unknown action" }, 400);
+  } catch (e) {
+    return json({ ok: false, error: String(e) }, 500);
+  }
+});

@@ -6,37 +6,75 @@ review a change before it went live. On 2026-10-20, patching `newbiz-api` meant 
 recovering its source by digging it out of a chat transcript, because that was the only
 copy outside the platform.
 
-This directory is the fix. It is **incomplete** — see below.
+This directory is the fix. It is **still incomplete** — see below.
 
-## Backed up so far
+## Backed up so far (20 of 106)
 
-| Function | Version | Verified |
-|---|---|---|
-| `newbiz-api` | v22 | byte-identical to deployed |
-| `hub-sweep`  | v2  | byte-identical to deployed |
-| `summit-api` | v7  | byte-identical to deployed |
-| `atlas-api`  | v19 | byte-identical to deployed |
-| `calendly-book` | v5 | deployed from this copy |
-| `cal-import` | v5 | deployed from this copy |
+| Function | Header says |
+|---|---|
+| `access-api` | v9 |
+| `atlas-api` | v19 |
+| `base-brand` | v3 |
+| `book-manual` | v1 |
+| `booking-purge` | v2 |
+| `cal-import` | v5 |
+| `calendly-book` | v4 |
+| `calendly-sync` | v12 |
+| `calendly-webhook` | v3 |
+| `desk` | v2 |
+| `hub-files` | v2 |
+| `hub-sweep` | v2 |
+| `integrity-check` | v2 |
+| `newbiz-api` | v22 |
+| `ops-auth` | v1 |
+| `ops-platform` | — |
+| `pin` | v11 |
+| `push-register` | v4 |
+| `push-send` | v7 |
+| `summit-api` | v7 |
 
-**100 functions still have no copy here.**
+**86 functions still have no copy here.**
 
-## Adding one
+**Two different version numbers, do not confuse them.** The table shows the version in the
+file's own header comment — the author's label. Supabase keeps a separate deploy counter,
+and they rarely agree (`calendly-book`'s header says v4; Supabase calls the same file
+version 5, because the counter increments on every deploy including failed experiments).
+When checking whether a backup is current, compare the SUPABASE number from
+`list_edge_functions` against the deploy that produced the file — never the header.
 
-There is no Supabase CLI on this machine, so the source has to come back through the
-MCP `get_edge_function` call and be written out. Two things will bite you:
+## THE TRAP: a stale backup is worse than no backup
 
-1. **Verify what you saved is what is deployed.** Do not assume. Compare byte counts
-   and diff. The first attempt at this directory silently saved a *different* file —
-   a `Read` tool result that had line numbers (`1\t// ...`) baked into every line, and
-   the wrong version header. It looked plausible and was completely wrong.
-2. **Check the header line and the closing brace.** A truncated source will still look
-   fine at a glance. `braces {n}/{n}` balanced and a trailing `});` are quick tells.
-3. **It has now gone wrong TWICE.** The second time, the extracted `summit-api` was missing
-   its entire 1,858-character "WHO IS CALLING" session-auth block — the file parsed, the
-   braces balanced, and nothing looked amiss. Had it been deployed from that copy it would
-   have silently removed identity checking from the whole endpoint. Diff against the deployed
-   source every single time; do not trust a copy because it looks complete.
+Sources can be recovered in bulk from the session transcript (`extract_fns.py` in the
+scratchpad walks every tool result, keeps the newest record per function, and refuses a
+Read-tool dump by spotting the `<n>\t` line-number prefix).
+
+**But most of what it recovers is out of date.** On 2026-10-21 it pulled 76 function
+sources out of one session; cross-checked against `list_edge_functions`, **59 of them
+were behind the deployed version** — some by four releases. Only 17 matched production.
+
+Restoring from one of those would have silently reverted weeks of fixes while looking
+completely healthy. So:
+
+> **Never save a recovered source without comparing its version against the DEPLOYED
+> version first.** `list_edge_functions` gives the live number; the file header gives
+> the recovered one. They must be equal.
+
+That check is the only reason this directory can be trusted at all.
+
+## It has now gone wrong three times
+
+1. The first attempt saved a `Read` tool result with line numbers (`1\t// ...`) baked into
+   every line, and the wrong version header. It looked plausible and was completely wrong.
+2. The second saved a `summit-api` copy missing its entire 1,858-character "WHO IS CALLING"
+   session-auth block. The file parsed, the braces balanced, nothing looked amiss. Deploying
+   from it would have removed identity checking from the whole endpoint.
+3. The third (2026-10-21) keyed recovered files on their full path. A function's entrypoint is
+   sometimes `index.ts` and sometimes `<slug>/index.ts` depending on how it was deployed, so one
+   function looked like two and the STALE copy won. Caught only because `calendly-book` and
+   `cal-import` were on disk already and could be diffed.
+
+Every one of these was picking the wrong record, not bad parsing. Diff against something
+known-good before trusting a recovered file.
 
 ## Deploying
 
@@ -74,7 +112,7 @@ in this repo. Deleting or locking them is Christopher's call, not an obvious cle
 
 The project tracks migrations (190+ of them, visible via Supabase's migration history), but
 work done through the MCP `execute_sql` tool records **nothing** — same blind spot the edge
-functions had. Tonight's Road-to-EMD schema went in that way and was back-filled afterwards as
+functions had. The Road-to-EMD schema went in that way and was back-filled afterwards as
 `road_to_emd_20_stage_checks_and_derivation` and `retire_19_stage_ladder_derivation`.
 
 Use `apply_migration` for DDL, not `execute_sql`, and write the SQL so replaying it is a no-op
