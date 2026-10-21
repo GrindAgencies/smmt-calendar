@@ -1459,6 +1459,15 @@ function cbBook(){
      was disabled — so Confirm sat on "Booking in Calendly…" for ever with no error and no
      booking. Seen live on the real site. Check before touching the button. */
   if(!CBTYPE||!CBSLOT){err.textContent='Pick a meeting type and a time first.';return;}
+  /* SNAPSHOT WHAT WE ARE BOOKING, BEFORE THE REQUEST LEAVES.
+     CBSEL / CBTYPE / CBSLOT are shared selection state, and cbPickTrainer and cbPickType both
+     set CBSLOT=null. So tapping another trainer or meeting type while "Booking in Calendly…"
+     is in flight nulled them, and the SUCCESS handler then threw on CBSLOT.date — after the
+     booking had already been made. Curtis Tucker Mecham hit exactly that on 2026-10-21
+     (calendar.html:1482:70): the appointment existed in Calendly, and he saw no confirmation.
+     These locals are captured while the values are still valid, so the receipt renders from
+     what was actually booked no matter what the user taps next. */
+  var bkTrainer=(CBSEL&&CBSEL.name)||'', bkDate=CBSLOT.date, bkTime=CBSLOT.time;
   btn.disabled=true;btn.textContent='Booking in Calendly…';err.textContent='';
   cbApi({action:'book',trainer_code:CBSEL.code,by_code:CODE,
          trainee_name:tname,trainee_email:email,
@@ -1472,14 +1481,16 @@ function cbBook(){
          invent an answer — it is still one booking, still made in Calendly. */
       $('bkDrawer').innerHTML='<div class="done"><div class="chk" style="background:var(--gold)">→</div><h3>Finish in Calendly</h3>'+
         '<p class="dsub">'+esc(r.reason||'This meeting needs a detail only you can give.')+'</p>'+
-        '<div style="margin-top:14px"><a class="go" style="display:inline-block;text-decoration:none" href="'+esc(r.scheduling_url||'')+'" target="_blank" rel="noopener" onclick="setTimeout(function(){$(\'bkOv\').classList.remove(\'on\');loadMy(function(){});},400)">Open '+esc(CBSEL.name.split(' ')[0])+'’s Calendly →</a></div>'+
+        '<div style="margin-top:14px"><a class="go" style="display:inline-block;text-decoration:none" href="'+esc(r.scheduling_url||'')+'" target="_blank" rel="noopener" onclick="setTimeout(function(){$(\'bkOv\').classList.remove(\'on\');loadMy(function(){});},400)">Open '+esc((bkTrainer||'').split(' ')[0]||'their')+'’s Calendly →</a></div>'+
         '<div style="font-size:11.5px;color:var(--ink3);margin-top:12px;line-height:1.5">It opens on this exact time. Once you finish there it appears here automatically.</div></div>';
       return;
     }
     if(!r||!r.ok){btn.disabled=false;btn.textContent='Confirm booking';err.textContent=(r&&r.error)||'Could not book.';return;}
     var b=r.booking||{};
     $('bkDrawer').innerHTML='<div class="done"><div class="chk">✓</div><h3>You’re booked!</h3>'+
-      '<p class="dsub">'+esc(CBSEL.name)+' · '+esc(prettyDate(CBSLOT.date))+' at '+esc(localSlot(CBSLOT.date,CBSLOT.time))+tzTag()+'</p>'+
+      /* The server's own answer first, then the snapshot taken before the request. Never the
+         live selection state, which the user may have changed while this was in flight. */
+      '<p class="dsub">'+esc(b.trainer_name||bkTrainer)+' · '+esc(prettyDate(b.date||bkDate))+' at '+esc(localSlot(b.date||bkDate,b.time||bkTime))+tzTag()+'</p>'+
       '<div class="cnum">Confirmation '+esc(r.conf||b.conf||'')+'</div>'+
       '<div style="font-size:12px;color:var(--ink3);margin-top:12px;line-height:1.5">Booked in Calendly and on your schedule here. Calendly is sending the invite'+(guests?' to you and your guests':'')+'.</div>'+
       (r.warning?('<div style="font-size:11.5px;color:var(--gold);margin-top:10px;line-height:1.5">'+esc(r.warning)+'</div>'):'')+
