@@ -2101,7 +2101,13 @@ function paintProfile(p){
     h+='<div class="sec"><div class="sech"><h2>Your public booking link</h2></div><div style="padding:16px;border:1px solid var(--line);border-radius:14px;background:var(--panel)"><div style="font-size:13px;color:var(--ink2);margin-bottom:10px">Share with clients &amp; recruits — they book you directly, no login.</div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input id="pubLink" readonly value="'+esc(_link)+'" style="flex:1;min-width:200px;padding:10px 12px;border:1px solid var(--line2);border-radius:10px;background:var(--bg);color:var(--ink);font-size:12.5px"><button style="border:none;padding:10px 16px;border-radius:10px;font-weight:700;font-size:13px;background:var(--accent);color:#fff;cursor:pointer" onclick="copyLink()">Copy</button><a href="'+esc(_link)+'" target="_blank" rel="noopener" style="padding:10px 16px;border-radius:10px;font-weight:700;font-size:13px;border:1px solid var(--line2);background:var(--panel);color:var(--accent)">Preview</a></div></div></div>';
     h+=availabilityHtml(me);
   } else { h+='<div class="sec"><div class="sech"><h2>Availability</h2></div><div class="empty">You’re not set up to take bookings yet. Ask an admin to enable your calendar and your availability controls appear here.</div></div>'; }
-  $('profBody').innerHTML=h;
+  /* #profBody belongs to profile.html; it does not exist on this page. This renderer and
+     setProfSub() are a copy of profile.html's pair and are unreachable here — each is only
+     called by the other — so this guard is insurance, not a live fix. Written the same way
+     as the two other profBody reads above (lines ~2016, ~2043) and as profile.html, which
+     really did throw on a null here. */
+  var pbody=$('profBody'); if(!pbody) return;
+  pbody.innerHTML=h;
   loadCalSyncStatus();
 }
 function availabilityHtml(me){
