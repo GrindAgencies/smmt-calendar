@@ -8,7 +8,7 @@ copy outside the platform.
 
 This directory is the fix. It is **still incomplete** — see below.
 
-## Backed up so far (31 of 106)
+## Backed up so far (33 of 106)
 
 | Function | Header says |
 |---|---|
@@ -21,7 +21,9 @@ This directory is the fix. It is **still incomplete** — see below.
 | `calendly-book` | v4 |
 | `calendly-sync` | v12 |
 | `calendly-webhook` | v3 |
+| `cancel-followups` | v5 |
 | `desk` | v2 |
+| `ft-tally` | v2 |
 | `hub-api` | v21 |
 | `hub-files` | v2 |
 | `hub-sweep` | v2 |
@@ -44,7 +46,7 @@ This directory is the fix. It is **still incomplete** — see below.
 | `team-board` | — |
 | `tracker-api` | v40 |
 
-**75 functions still have no copy here.**
+**73 functions still have no copy here.**
 
 **Two different version numbers, do not confuse them.** The table shows the version in the
 file's own header comment — the author's label. Supabase keeps a separate deploy counter,
@@ -158,6 +160,32 @@ a business decision, not a code one. Left as found, deliberately, pending that d
 ranking and capped it at 10 without zeros, so it drifted from the other tabs") and the dead `TB`
 constant has now been removed so nothing can be re-wired to it by accident. The endpoint is still
 deployed and still split-blind; deleting it is Christopher's call, like the `twin-*` set.
+
+## Booking status and "what counts as a field training" — audited, no drift
+
+`bookings.status` has exactly ONE spelling of each value in live data (checked 2026-10-21):
+`completed` 1161, `canceled` 425 (one L), `booked` 39, `confirmed` 14, `no_show` 5,
+`declined` 4, `pending` 1. `cancel-followups` querying `in.(canceled,cancelled)` is harmless
+belt-and-braces, not evidence of a second spelling.
+
+The functions filter that vocabulary differently, and every difference checked out as
+deliberate rather than drift:
+
+| Function | Filter | Why it is right |
+|---|---|---|
+| `atlas-api` reminders | `in.(booked,confirmed)` | never remind about a booking the trainer has not approved |
+| `atlas-api` availability | `in.(booked,confirmed,pending)` | a pending booking still blocks the slot |
+| `leaderboard-api` | skips canceled/declined/no_show/pending | a competition counts trainings that happened |
+| `ops-directory` | hides canceled/declined only | an Ops seat wants to see its own no-shows |
+
+**"Field training" is defined twice, and they agree — for now.** `leaderboard-api` matches
+`category ILIKE '%field%training%'` (both words, in order); `ft-tally` matches
+`field` OR `training`. Across all 512 field-training bookings the two select exactly the same
+rows, so there is no divergence today — but a future category called "Phone Zone Training" or
+"Onboarding Training" would be counted by `ft-tally` and not by the leaderboard. Worth knowing
+before adding a category with the word "training" in it.
+
+Both lists also carry a `"transferred"` status that has never existed in the data; harmless.
 
 ## Deploying
 
