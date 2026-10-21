@@ -1,4 +1,16 @@
-// ops-nbfeed v22 — LIVE, TWO-WAY New Business feed.
+// ops-nbfeed v23 — LIVE, TWO-WAY New Business feed.
+//
+// v23 (2026-10-21) — A PARTNER'S RATE MUST NEVER FALL BACK TO THE WRITER'S.
+//      Found by diffing this function's commission maths against newbiz-api's expCommOf(),
+//      which is the canonical formula and states the rule in its own comment. This one did
+//      the opposite: `pr = partner_contract_pct ?? wr`. Editing the split % on a policy whose
+//      partner has no recorded rate therefore credited the partner at the WRITER's rate and
+//      wrote roughly double into expected_commission.
+//      Seven live splits are in that state, every one at an 85% writer rate. Together they
+//      would have gone from $25,082 to $54,957; the largest alone, Luis Esquivel Saldana's
+//      $28,154 policy, from $11,965 to $23,930.
+//      LATENT, NOT ACTIVE: all seven still held the canonical value, so nothing was wrong in
+//      the ledger — the fault was one Operations edit away from being introduced.
 // v19 (2026-09-14): CLIENT STATE, PHONE AND EMAIL ARE REAL COLUMNS.
 //      Christopher: "please show ops the state in which clients are in" and make the board
 //      "COPY and Paste friendly. for transferring between tabs." State was never fetched at all,
@@ -270,7 +282,16 @@ Deno.serve(async (req) => {
       if (p) {
         const prem = numOr(p.annual_premium);
         const wr = (p.contract_pct != null) ? Number(p.contract_pct) : null;
-        const pr = (p.partner_contract_pct != null) ? Number(p.partner_contract_pct) : wr;
+        /* A MISSING PARTNER RATE CONTRIBUTES NOTHING. It must never fall back to `wr`, the
+           WRITER's rate, which is what this line did until v23 — and it disagreed with
+           newbiz-api's expCommOf(), the canonical formula, which uses 0 and says so out loud.
+           Seven live splits carry no partner rate, all at a writer rate of 85%, so one edit to
+           the split % on any of them rewrote expected_commission at roughly DOUBLE: Luis
+           Esquivel Saldana's $28,154 policy would have gone from $11,965 to $23,930, and the
+           seven together from $25,082 to $54,957. Nothing had triggered it yet — every stored
+           value was still the canonical one — so this is a latent fault being closed, not a
+           repair of figures already wrong. */
+        const pr = (p.partner_contract_pct != null) ? Number(p.partner_contract_pct) : null;
         if (wr != null) {
           const writerPart = Math.round(prem * (sp / 100) * (wr / 100));
           const partnerPart = (p.split_flag && pr != null) ? Math.round(prem * ((100 - sp) / 100) * (pr / 100)) : 0;

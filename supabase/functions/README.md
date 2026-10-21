@@ -32,7 +32,7 @@ This directory is the fix. It is **still incomplete** — see below.
 | `ops-directory` | v28 |
 | `ops-inforce` | v13 |
 | `ops-metrics` | v5 |
-| `ops-nbfeed` | v22 |
+| `ops-nbfeed` | v23 |
 | `ops-platform` | — |
 | `org-api` | v13 |
 | `pin` | v11 |
@@ -120,6 +120,16 @@ question. A family has been *helped* once their policy is on the books; whether 
 paid the commission out yet is irrelevant to them. Narrowing this to `["paid"]` to "make the
 four match" would silently drop every issued-but-not-yet-paid household out of Families Helped.
 Check the use site before touching the list.
+
+## The commission formula lives in four places too
+
+`newbiz-api`'s `expCommOf()` is canonical and says the rule in its own comment: **a missing
+partner rate contributes nothing, and must never inherit the writer's**. Verified 2026-10-21
+against `ops-nbfeed`, which had the opposite (`pr = partner_contract_pct ?? wr`) and was
+corrected in v23. `leaderboard-api` and `ops-metrics` both already treated an absent partner
+rate as nothing.
+
+If you touch commission maths, diff all four.
 
 ## Deploying
 
