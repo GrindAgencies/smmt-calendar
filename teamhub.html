@@ -328,13 +328,13 @@ html, body{ overflow-x: hidden; }
       <div class="chips">
         <button class="chip rec" onclick="openRecognize()">🎉 Recognize</button>
         <button class="chip ai" onclick="askInsert()">🤖 Ask Bob</button>
-        <button class="chip" onclick="document.getElementById('fileIn').click()">📎 Attach</button>
+        <button class="chip" onclick="document.getElementById('fileIn').click()" aria-label="Attach a photo, video or file">📎 Attach</button>
       </div>
       <div class="replybar" id="replybar"></div>
       <div class="mentions" id="mentions"></div>
       <div class="cbox" data-drop="fileIn">
         <textarea id="cin" rows="1" placeholder="Message… (@ to mention)" oninput="onType()" onkeydown="onKey(event)"></textarea>
-        <input type="file" id="fileIn" class="hide" onchange="onFile(event)" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt">
+        <input type="file" id="fileIn" class="hide" onchange="onFile(event)" accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv">
         <button class="cbtn send" onclick="sendNow()" title="Send"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"/></svg></button>
       </div>
     </div>
@@ -704,8 +704,15 @@ function convRows(){
   return rows;
 }
 function convRowHtml(r){
+  /* A group that has been renamed or re-photographed reads the same everywhere - list row,
+     conversation header, search result - rather than only inside its own details sheet. */
+  if(!r.dm){
+    var gn = groupNameOf(r.id, r.label); if(gn) r.label = gn;
+  }
+  var gav = r.dm ? '' : groupAvatarOf(r.id);
   var av = r.dm ? '<div class="cv-av">'+esc(initials(MEMBERS[r.other]||r.label))+'</div>'
-                : '<div class="cv-av ch">'+(r.icon||'#')+'</div>';
+                : (gav ? '<img class="cv-av" src="'+esc(gav)+'" alt="">'
+                       : '<div class="cv-av ch">'+(r.icon||'#')+'</div>');
   var prev = r.preview ? esc(r.preview) : '<span class="cv-mute">No messages yet</span>';
   var hay = (r.label+' '+(r.preview||'')).toLowerCase();
   var pinned = !!PINNED[r.id];
@@ -900,7 +907,191 @@ function chanMeta(id){
 function openChan(id){CHAN=id;LASTID=0;NEWLINE=(readMap()[id]||0);renderTyping([]);PINS=[];SEEN={};renderPins();loadPins();$('mlist').innerHTML='';renderRooms();renderHead();loadMsgs(true);document.body.classList.remove('rooms-open');if(typeof heartbeat==='function')heartbeat();}
 function chanNameOf(id){if(!id)return '';if(id.indexOf('dm:')===0)return 'a direct message';var c=CHANNELS.filter(function(x){return x.id===id;})[0];if(c){if(c.baseshop){var L={announcements:'Announcements',training:'Training',licensing:'Licensing',cft:'CFT Room',operations:'Operations'}[c.sub]||c.name;return (c.baseshopName?c.baseshopName+' \u00b7 ':'')+L;}return c.name;}return id;}
 function presenceList(){var codes=Object.keys(ONLINE);if(!codes.length)return '<div class="presrow"><span class="pc">No one online right now</span></div>';return codes.sort(function(a,b){return ((ONLINE[a]&&ONLINE[a].name)||'').localeCompare((ONLINE[b]&&ONLINE[b].name)||'');}).map(function(cd){var ob=ONLINE[cd]||{};var away=ob.status==='away';var ch=ob.channel?chanNameOf(ob.channel):'';var sub=away?'Away from computer':(ch?('in '+ch):'Active now');return '<div class="presrow"><span class="pdd'+(away?' away':'')+'"></span><div><div class="pn">'+esc(ob.name||cd)+(away?' <span style=\"color:#e6a700;font-weight:700\">\u2022 Away</span>':'')+'</div><div class="pc">'+esc(sub)+'</div></div></div>';}).join('');}
-function renderHead(){var m=chanMeta(CHAN);var del=(CHAN.indexOf('c_')===0)?'<button class="tic" title="Delete channel" onclick="deleteChannel()" style="margin-left:10px;flex:0 0 auto">\ud83d\uddd1\ufe0f</button>':'';$('chead').innerHTML='<div class="ci">'+(m.dm?'<div class="dmav" style="width:34px;height:34px">'+m.icon+'</div>':m.icon)+'</div><div><div class="cn">'+esc(m.name)+'</div><div class="cs">'+esc(m.sub)+'</div></div><div class="presence"><span class="pd"></span>'+Object.keys(ONLINE).length+' online<div class="preslist"><div class="preshdr">Online now</div>'+presenceList()+'</div></div>'+del;}
+/* A group's own name and photo, once somebody has set them (round two task 5). Empty until
+   then, so a group nobody has renamed keeps the name hub-api derives for it. */
+var GROUPMETA = {};
+function groupNameOf(ch, fallback){ var g=GROUPMETA[ch]; return (g && g.name) || fallback; }
+function groupAvatarOf(ch){ var g=GROUPMETA[ch]; return (g && g.avatar) || ''; }
+
+function renderHead(){
+  var m=chanMeta(CHAN);
+  var del=(CHAN.indexOf('c_')===0)?'<button class="tic" title="Delete channel" onclick="deleteChannel()" style="margin-left:10px;flex:0 0 auto">\ud83d\uddd1\ufe0f</button>':'';
+  var isGroup = !m.dm;
+  var nm = isGroup ? groupNameOf(CHAN, m.name) : m.name;
+  var av = isGroup ? groupAvatarOf(CHAN) : '';
+  var icon = m.dm ? '<div class="dmav" style="width:34px;height:34px">'+m.icon+'</div>'
+                  : (av ? '<img src="'+esc(av)+'" alt="" style="width:34px;height:34px;border-radius:50%;object-fit:cover">' : m.icon);
+  /* Tapping the name opens the group's details - the app's existing header/info pattern,
+     rather than a new control competing for room in a header that already overflows. */
+  var tap = isGroup ? ' class="chead-tap" onclick="openGroupDetails()" role="button" tabindex="0"'
+                      +' onkeydown="if(event.key===\'Enter\'){openGroupDetails();}" title="Group details"' : '';
+  $('chead').innerHTML='<div class="ci">'+icon+'</div><div'+tap+'><div class="cn">'+esc(nm)+'</div><div class="cs">'+esc(m.sub)+'</div></div><div class="presence"><span class="pd"></span>'+Object.keys(ONLINE).length+' online<div class="preslist"><div class="preshdr">Online now</div>'+presenceList()+'</div></div>'+del;
+}
+
+/* ================= ROUND TWO tasks 5 & 6: group details =================
+   Three levels of authority, and the server re-checks every one of them on the write:
+   an owner (Elijah, and Christopher) designates admins; a designated admin may rename and
+   re-photograph THAT group only; everyone else reads. EMD rank on its own grants nothing. */
+var HUBGROUPS='https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/hub-groups';
+var GD = null;
+function gdApi(b){
+  return fetch(HUBGROUPS,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b||{})})
+    .then(function(r){ return r.json(); }).catch(function(){ return {ok:false,error:'Network error'}; });
+}
+/* Names and photos for every group this person can see, in one pass at boot. Only groups
+   somebody has actually customised have a row, so this is usually tiny or empty. */
+function loadGroupMeta(){
+  var list=(CHANNELS||[]).filter(function(c){ return c && c.id && String(c.id).indexOf('dm:')!==0; });
+  if(!list.length) return;
+  var done=0;
+  list.forEach(function(c){
+    gdApi({action:'get', channel:c.id}).then(function(r){
+      if(r && r.ok && (r.name || r.avatar)) GROUPMETA[c.id]={name:r.name, avatar:r.avatar};
+      if(++done===list.length){ try{ renderRooms(); renderHead(); }catch(e){} }
+    });
+  });
+}
+
+function openGroupDetails(){
+  if(String(CHAN).indexOf('dm:')===0) return;        /* a DM has no group identity to edit */
+  var ov=document.getElementById('gdOv');
+  if(!ov){
+    ov=document.createElement('div'); ov.id='gdOv'; ov.className='gd-ov';
+    ov.addEventListener('click',function(e){ if(e.target===ov) closeGroupDetails(); });
+    document.body.appendChild(ov);
+  }
+  ov.innerHTML='<div class="gd"><p class="note">Loading…</p></div>';
+  ov.classList.add('on');
+  gdApi({action:'get', channel:CHAN}).then(function(r){
+    if(!r || !r.ok){ ov.innerHTML='<div class="gd"><p class="note">'+esc((r&&r.error)||'Could not load this group.')+'</p></div>'; return; }
+    GD=r; GROUPMETA[CHAN]={name:r.name, avatar:r.avatar};
+    paintGroupDetails();
+    renderHead(); renderRooms();
+  });
+}
+function closeGroupDetails(){ var o=document.getElementById('gdOv'); if(o) o.classList.remove('on'); }
+
+function paintGroupDetails(){
+  var ov=document.getElementById('gdOv'); if(!ov||!GD) return;
+  var m=chanMeta(CHAN);
+  var nm=GD.name||m.name;
+  var h='<div class="gd">';
+  h+='<div class="gav">'+(GD.avatar?('<img src="'+esc(GD.avatar)+'" alt="">'):esc(m.icon||'#'))+'</div>';
+  h+='<h3 style="text-align:center">'+esc(nm)+'</h3>';
+
+  if(GD.can_edit){
+    h+='<label for="gdName">Group name</label>'+
+       '<input type="text" id="gdName" maxlength="60" value="'+esc(nm)+'">'+
+       '<div style="display:flex;gap:9px;margin-top:10px;flex-wrap:wrap">'+
+         '<button class="gbtn go" onclick="saveGroupName()">Save name</button>'+
+         '<button class="gbtn" onclick="document.getElementById(\'gdPhoto\').click()">Change photo</button>'+
+         (GD.avatar?'<button class="gbtn" onclick="removeGroupPhoto()">Remove photo</button>':'')+
+       '</div>'+
+       '<input type="file" id="gdPhoto" accept="image/*" style="display:none" onchange="onGroupPhoto(event)">';
+  } else {
+    h+='<p class="note">Only this group\u2019s admin can change its name or photo.</p>';
+  }
+
+  h+='<label style="margin-top:18px">Chat admins</label>';
+  if(!(GD.admins||[]).length){
+    h+='<p class="note" style="margin-top:2px">Nobody has been designated for this group yet.</p>';
+  } else {
+    h+=(GD.admins||[]).map(function(a){
+      return '<div class="grow"><div class="n">'+esc(a.name)+'<span>'+esc(a.code)+'</span></div>'+
+        (GD.can_assign?('<button class="gbtn" onclick="revokeAdmin(\''+esc(a.code)+'\')">Remove</button>'):'')+
+      '</div>';
+    }).join('');
+  }
+  if(GD.can_assign){
+    h+='<div style="margin-top:12px"><button class="gbtn go" onclick="openAdminPicker()">Designate an admin</button></div>'+
+       '<p class="note">Designating someone lets them rename and re-photograph <b>this group only</b>. '+
+       'It grants nothing else \u2014 not membership changes, not other groups, not Team Highlights.</p>';
+  }
+  h+='<div style="margin-top:16px"><button class="gbtn" onclick="closeGroupDetails()">Close</button></div>';
+  h+='</div>';
+  ov.innerHTML=h;
+}
+
+function saveGroupName(){
+  var v=(document.getElementById('gdName')||{}).value||'';
+  v=v.trim();
+  if(!v){ toast('Give the group a name'); return; }
+  gdApi({action:'set_name', channel:CHAN, name:v}).then(function(r){
+    if(!r||!r.ok){ toast((r&&r.error)||'Could not save that name'); return; }
+    GD.name=r.name; GROUPMETA[CHAN]={name:r.name, avatar:GD.avatar};
+    paintGroupDetails(); renderHead(); renderRooms(); toast('Group name saved');
+  });
+}
+/* Square, small, and resized in the browser before it is sent - the same pipeline profile
+   photos use. A group avatar is a thumbnail, not an upload. */
+function onGroupPhoto(ev){
+  var f=(ev.target.files||[])[0]; ev.target.value='';
+  if(!f) return;
+  toast('Uploading\u2026');
+  var rd=new FileReader();
+  rd.onload=function(){
+    var img=new Image();
+    img.onerror=function(){ toast('That file is not an image'); };
+    img.onload=function(){
+      var S=256,c=document.createElement('canvas');c.width=S;c.height=S;
+      var sq=Math.min(img.width,img.height);
+      c.getContext('2d').drawImage(img,(img.width-sq)/2,(img.height-sq)/2,sq,sq,0,0,S,S);
+      var url=c.toDataURL('image/jpeg',0.82);
+      gdApi({action:'set_photo', channel:CHAN, avatar:url}).then(function(r){
+        if(!r||!r.ok){ toast((r&&r.error)||'Could not save that photo'); return; }
+        GD.avatar=r.avatar; GROUPMETA[CHAN]={name:GD.name, avatar:r.avatar};
+        paintGroupDetails(); renderHead(); renderRooms(); toast('Group photo updated');
+      });
+    };
+    img.src=rd.result;
+  };
+  rd.readAsDataURL(f);
+}
+function removeGroupPhoto(){
+  gdApi({action:'set_photo', channel:CHAN, avatar:''}).then(function(r){
+    if(!r||!r.ok){ toast((r&&r.error)||'Could not remove that photo'); return; }
+    GD.avatar=null; GROUPMETA[CHAN]={name:GD.name, avatar:null};
+    paintGroupDetails(); renderHead(); renderRooms(); toast('Photo removed');
+  });
+}
+
+/* The picker lists real eligible accounts from the roster's own rank fields. If the roster
+   records no EMD at all it says so, rather than showing an empty list that reads as a loading
+   failure. */
+function openAdminPicker(){
+  gdApi({action:'eligible'}).then(function(r){
+    var ov=document.getElementById('gdOv'); if(!ov) return;
+    if(!r||!r.ok){ toast((r&&r.error)||'Could not load that list'); return; }
+    var list=(r.eligible||[]).filter(function(e){
+      return !(GD.admins||[]).some(function(a){ return a.code===e.code; });
+    });
+    var h='<div class="gd"><h3>Designate a chat admin</h3>';
+    if(!list.length){
+      h+='<p class="note">'+esc(r.note || 'Everyone eligible already administers this group.')+'</p>';
+    } else {
+      h+=list.map(function(e){
+        return '<div class="grow"><div class="n">'+esc(e.name)+'<span>'+esc(e.baseshop||'')+' \u00b7 '+esc(e.rank||'')+'</span></div>'+
+          '<button class="gbtn go" onclick="assignAdmin(\''+esc(e.code)+'\')">Designate</button></div>';
+      }).join('');
+    }
+    h+='<div style="margin-top:16px"><button class="gbtn" onclick="openGroupDetails()">Back</button></div></div>';
+    ov.innerHTML=h;
+  });
+}
+function assignAdmin(code){
+  gdApi({action:'admin_add', channel:CHAN, who:code}).then(function(r){
+    if(!r||!r.ok){ toast((r&&r.error)||'Could not designate that account'); return; }
+    toast((r.name||code)+' can now edit this group');
+    openGroupDetails();
+  });
+}
+function revokeAdmin(code){
+  gdApi({action:'admin_remove', channel:CHAN, who:code}).then(function(r){
+    if(!r||!r.ok){ toast((r&&r.error)||'Could not remove that admin'); return; }
+    toast('Removed');
+    openGroupDetails();
+  });
+}
 
 /* messages */
 var MSGS=[];
@@ -1069,7 +1260,10 @@ function renderMsgs(scroll){
       var q=m.reply_to?findMsg(m.reply_to):null;
       var quote=q?'<div class="quote">↩ <b>'+esc(q.author_name)+'</b> '+esc((q.body||'').slice(0,80))+'</div>':'';
       var att='';
-      if(m.attach&&m.attach.type==='image')att='<img class="mimg" src="'+m.attach.url+'" onclick="window.open(this.src)">';
+      /* v2 attachments live in private storage and are signed on demand (round two task 8).
+         Older messages carry a data URL inline and keep working untouched. */
+      if(m.attach&&m.attach.v===2&&m.attach.path) att=attachHtml(m.attach);
+      else if(m.attach&&m.attach.type==='image')att='<img class="mimg" src="'+m.attach.url+'" onclick="window.open(this.src)">';
       else if(m.attach&&m.attach.type==='file')att='<a class="mfile" href="'+m.attach.url+'" download="'+esc(m.attach.name)+'"><span class="fi">📄</span><span>'+esc(m.attach.name)+'</span></a>';
       inner=quote+(m.body?'<div class="mtext">'+linkify(m.body)+'</div>':'')+att;
     }
@@ -1226,11 +1420,22 @@ function pickMention(c){var t=$('cin');var v=t.value;var pos=t.selectionStart;va
 function askInsert(){var t=$('cin');t.value='@Question ';t.focus();autoresize();}
 function sendNow(){
   var t=$('cin');var body=t.value.trim();
-  if(!body&&!PENDATTACH)return;
+  var a=PENDATTACH;
+  /* An attachment still uploading is not ready to send, and one picked in another chat must
+     never ride along into this one. Both are quietly common and both would be wrong. */
+  if(a && a.state==='uploading'){ toast('Still uploading\u2014 one moment'); return; }
+  if(a && a.state==='failed'){ toast('That upload failed. Try again or remove it.'); return; }
+  if(a && a.channel && a.channel!==CHAN){ toast('That file was picked in another chat'); return; }
+  if(!body&&!a)return;
   // @Question -> post user msg + AI reply
   var msg={action:'hub_send',code:CODE,channel:CHAN,author_name:NAME,body:body,reply_to:REPLYTO};
-  if(PENDATTACH){msg.attach=PENDATTACH;}
-  t.value='';autoresize();clearReply();PENDATTACH=null;
+  /* Only the metadata travels - the file itself is already in private storage. */
+  if(a && a.state==='ready'){
+    msg.attach={ v:2, kind:a.kind, path:a.path, name:a.name, size:a.size, mime:a.mime };
+  }
+  t.value='';autoresize();clearReply();
+  if(a && a.preview){ try{ URL.revokeObjectURL(a.preview); }catch(e){} }
+  PENDATTACH=null; paintDraft();
   // Bob (Questions AI) auto-answers server-side when the message is a question or @Question
   h(msg).then(function(rr){
     if(rr&&rr.ok===false){
@@ -1247,8 +1452,150 @@ function sendNow(){
     t.value=body; autoresize();
   });
 }
-function onFile(ev){var f=ev.target.files[0];if(!f)return;if(f.size>2600000){toast('File too large (max ~2.5MB for now)');ev.target.value='';return;}
-  var rd=new FileReader();rd.onload=function(){PENDATTACH=(f.type.indexOf('image')===0)?{type:'image',url:rd.result,name:f.name}:{type:'file',url:rd.result,name:f.name};toast('Attached: '+f.name+' — press Send');};rd.readAsDataURL(f);ev.target.value='';}
+/* ================= ROUND TWO task 8: real attachments =================
+   What was here read every file into a data URL and refused anything over ~2.5MB, so photos
+   mostly worked, video never did, and the whole file travelled inside the message row. Files
+   now go to private storage through hub-files, which checks the caller is actually in this
+   conversation before it will even issue an upload location; the message carries only small
+   metadata. Nothing is readable by a plain URL - viewing mints a short-lived signed link.
+
+   Choosing a file does NOT send it. It becomes a draft you can remove, with its own progress,
+   and Send is still Send - which is what stops a half-picked photo publishing itself. */
+var HUBFILES='https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/hub-files';
+var ATT_MAX_MB = 50;
+function hfApi(b){
+  return fetch(HUBFILES,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b||{})})
+    .then(function(r){ return r.json(); }).catch(function(){ return {ok:false,error:'Network error'}; });
+}
+function prettySize(n){
+  n=Number(n)||0;
+  return n>=1048576 ? (n/1048576).toFixed(1)+' MB' : Math.max(1,Math.round(n/1024))+' KB';
+}
+function attKind(mime){
+  mime=String(mime||'');
+  if(mime.indexOf('image/')===0) return 'image';
+  if(mime.indexOf('video/')===0) return 'video';
+  return 'file';
+}
+
+function onFile(ev){
+  var f=(ev.target.files||[])[0]; ev.target.value='';
+  if(!f) return;
+  if(f.size > ATT_MAX_MB*1048576){
+    toast('That file is '+prettySize(f.size)+' — the limit is '+ATT_MAX_MB+'MB');
+    return;
+  }
+  /* The conversation is captured NOW. Switching channel mid-upload must never deliver this
+     file into a different chat, so everything below is tied to the channel it started in. */
+  var forChan = CHAN;
+  var kind = attKind(f.type);
+  PENDATTACH = { state:'uploading', pct:0, name:f.name, size:f.size, mime:f.type, kind:kind, channel:forChan };
+  if(kind==='image'){ try{ PENDATTACH.preview = URL.createObjectURL(f); }catch(e){} }
+  paintDraft();
+
+  hfApi({action:'sign_upload', channel:forChan, mime:f.type, size:f.size, name:f.name})
+    .then(function(r){
+      if(!r || !r.ok){ PENDATTACH={state:'failed', name:f.name, size:f.size, kind:kind, channel:forChan, error:(r&&r.error)||'Could not start that upload', file:f}; paintDraft(); return; }
+      /* XHR rather than fetch, purely because it reports upload progress and fetch does not. */
+      var xhr=new XMLHttpRequest();
+      xhr.open('PUT', r.upload_url, true);
+      if(f.type) xhr.setRequestHeader('Content-Type', f.type);
+      xhr.upload.onprogress=function(e){
+        if(!e.lengthComputable || !PENDATTACH) return;
+        PENDATTACH.pct = Math.round(e.loaded/e.total*100);
+        paintDraft();
+      };
+      xhr.onload=function(){
+        if(!PENDATTACH || PENDATTACH.channel!==forChan) return;
+        if(xhr.status>=200 && xhr.status<300){
+          PENDATTACH = { state:'ready', path:r.path, name:r.name||f.name, size:f.size,
+                         mime:f.type, kind:kind, channel:forChan, preview:PENDATTACH.preview };
+        } else {
+          PENDATTACH = { state:'failed', name:f.name, size:f.size, kind:kind, channel:forChan,
+                         error:'Upload failed ('+xhr.status+')', file:f };
+        }
+        paintDraft();
+      };
+      xhr.onerror=function(){
+        if(!PENDATTACH || PENDATTACH.channel!==forChan) return;
+        PENDATTACH={state:'failed', name:f.name, size:f.size, kind:kind, channel:forChan, error:'Upload failed', file:f};
+        paintDraft();
+      };
+      xhr.send(f);
+    });
+}
+
+/* A stored attachment is rendered as a placeholder first and its signed link fetched after,
+   so a conversation with twenty photos does not fire twenty signing requests before anything
+   appears - and a link that expires simply gets signed again next time the message renders. */
+var ATT_URLS = {};
+function attachHtml(a){
+  var id='att_'+String(a.path).replace(/[^A-Za-z0-9]/g,'_');
+  var known=ATT_URLS[a.path];
+  var inner;
+  if(a.kind==='image'){
+    inner = known ? '<img src="'+esc(known)+'" alt="'+esc(a.name)+'" onclick="window.open(this.src)">'
+                  : '<div class="ic" style="height:120px;display:flex;align-items:center;justify-content:center;color:var(--ink3)">Loading\u2026</div>';
+  } else if(a.kind==='video'){
+    inner = known ? '<video src="'+esc(known)+'" controls preload="metadata" playsinline></video>'
+                  : '<div class="ic" style="height:120px;display:flex;align-items:center;justify-content:center;color:var(--ink3)">\u25B6 Loading\u2026</div>';
+  } else {
+    inner = '<a class="att-file" '+(known?('href="'+esc(known)+'" target="_blank" rel="noopener"'):'')+'>'+
+            '<span class="ic">\u25A4</span><span><b>'+esc(a.name)+'</b><span>'+prettySize(a.size)+'</span></span></a>';
+  }
+  if(!known) setTimeout(function(){ signAttach(a); }, 0);
+  return '<div class="att-msg" id="'+id+'">'+inner+'</div>';
+}
+function signAttach(a){
+  if(ATT_URLS[a.path]==='pending') return;
+  ATT_URLS[a.path]='pending';
+  hfApi({action:'sign_view', channel:CHAN, path:a.path}).then(function(r){
+    if(r && r.ok && r.url){ ATT_URLS[a.path]=r.url; renderMsgs(false); }
+    else { delete ATT_URLS[a.path]; }
+  });
+}
+
+function paintDraft(){
+  var host=document.getElementById('attDraft');
+  if(!host){
+    var box=document.querySelector('.composer .cbox');
+    if(!box) return;
+    host=document.createElement('div'); host.id='attDraft';
+    box.parentNode.insertBefore(host, box);
+  }
+  var a=PENDATTACH;
+  if(!a){ host.innerHTML=''; return; }
+  var icon = a.kind==='video' ? '\u25B6' : (a.kind==='image' ? '\u25A3' : '\u25A4');
+  var thumb = (a.kind==='image' && a.preview) ? '<img src="'+esc(a.preview)+'" alt="">'
+                                              : '<div class="ic">'+icon+'</div>';
+  var status = a.state==='uploading' ? ('Uploading\u2026 '+(a.pct||0)+'%')
+             : a.state==='failed'    ? esc(a.error||'Upload failed')
+             : (prettySize(a.size)+' \u00b7 ready to send');
+  host.innerHTML =
+    '<div class="att-draft">'+thumb+
+      '<div class="meta"><b>'+esc(a.name)+'</b><span>'+status+'</span>'+
+        (a.state==='uploading'?'<div class="att-bar"><i style="width:'+(a.pct||0)+'%"></i></div>':'')+
+      '</div>'+
+      (a.state==='failed'?'<button class="x" title="Try again" onclick="retryAttach()">\u21BB</button>':'')+
+      '<button class="x" title="Remove" onclick="clearAttach()">\u00d7</button>'+
+    '</div>';
+}
+function retryAttach(){
+  var a=PENDATTACH; if(!a || !a.file) return;
+  var dt=new DataTransfer(); dt.items.add(a.file);
+  var inp=document.getElementById('fileIn'); inp.files=dt.files;
+  onFile({target:inp});
+}
+/* Removing a draft also tidies the uploaded file away, so a picked-then-cancelled photo does
+   not sit in storage for ever. A file already attached to a sent message is never touched. */
+function clearAttach(){
+  var a=PENDATTACH; PENDATTACH=null; paintDraft();
+  if(a && a.state==='ready' && a.path){
+    hfApi({action:'discard', channel:a.channel, path:a.path});
+  }
+  if(a && a.preview){ try{ URL.revokeObjectURL(a.preview); }catch(e){} }
+}
+
 // drag drop
 document.addEventListener('dragover',function(e){e.preventDefault();});
 document.addEventListener('drop',function(e){e.preventDefault();var f=e.dataTransfer.files[0];if(f){var dt=new DataTransfer();dt.items.add(f);$('fileIn').files=dt.files;onFile({target:$('fileIn')});}});
@@ -1543,6 +1890,63 @@ body:not(.phone) .cv-tabs{ display:none; }
    header at the top of the page carries its own Home button, so this one would only be an
    unstyled stray glyph in the channel column. */
 body:not(.phone) .cv-home{ display:none; }
+
+/* ROUND TWO task 7. Inside a conversation the header carries the BACK arrow and Channels -
+   not Home. That is the nesting the brief lays out: a conversation goes back to the list, and
+   the list goes back to the tools screen. Home sitting here skipped a level, which is also why
+   it read as "a separate home icon" that wanted replacing. */
+body.phone.chat-open #hubHome{ display:none !important; }
+body.phone.chat-open .top .tic.chan-toggle{
+  width:auto; padding:0 11px; gap:6px; font:800 13px/1 inherit; color:var(--cvgold);
+}
+
+/* The group name in the header is the way into its details. */
+.chead-tap{ cursor:pointer; }
+.chead-tap:active{ opacity:.65; }
+
+/* ---------- group details (tasks 5 & 6) ---------- */
+.gd-ov{ position:fixed; inset:0; z-index:960; background:rgba(0,0,0,.66);
+  display:none; align-items:flex-end; justify-content:center; }
+.gd-ov.on{ display:flex; }
+.gd{ width:100%; max-width:520px; max-height:90dvh; overflow-y:auto; background:var(--panel);
+  border:1px solid var(--line); border-radius:16px 16px 0 0;
+  padding:14px 15px calc(env(safe-area-inset-bottom) + 18px); }
+.gd h3{ margin:4px 0 12px; font-size:18px; letter-spacing:-.02em; }
+.gd .gav{ width:76px; height:76px; border-radius:50%; margin:0 auto 10px; display:flex;
+  align-items:center; justify-content:center; font-size:30px; overflow:hidden;
+  background:linear-gradient(145deg,var(--cvgold-br),var(--cvgold)); color:#17120a; }
+.gd .gav img{ width:100%; height:100%; object-fit:cover; }
+.gd label{ display:block; font-size:12px; font-weight:700; color:var(--ink2); margin:12px 2px 5px; }
+.gd input[type=text]{ width:100%; box-sizing:border-box; padding:11px 12px; font:inherit; font-size:15px;
+  background:var(--panel2); color:var(--ink); border:1px solid var(--line); border-radius:11px; }
+.gd .gbtn{ padding:10px 14px; border-radius:11px; border:1px solid var(--line);
+  background:var(--panel2); color:var(--ink); font:inherit; font-weight:700; font-size:13.5px; cursor:pointer; }
+.gd .gbtn.go{ background:var(--cvgold); color:#17120a; border-color:var(--cvgold); }
+.gd .grow{ display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--line); }
+.gd .grow:last-child{ border-bottom:0; }
+.gd .grow .n{ flex:1 1 auto; min-width:0; font-size:14px; }
+.gd .grow .n span{ display:block; font-size:11.5px; color:var(--ink3); }
+.gd .note{ font-size:12px; color:var(--ink3); line-height:1.5; margin:10px 2px 0; }
+
+/* ---------- attachments (task 8) ---------- */
+.att-draft{ display:flex; gap:9px; align-items:center; padding:8px 10px; margin:0 0 7px;
+  background:var(--panel2); border:1px solid var(--line); border-radius:12px; }
+.att-draft img{ width:42px; height:42px; object-fit:cover; border-radius:8px; flex:0 0 auto; }
+.att-draft .ic{ width:42px; height:42px; border-radius:8px; flex:0 0 auto; display:flex;
+  align-items:center; justify-content:center; font-size:20px; background:var(--panel); }
+.att-draft .meta{ flex:1 1 auto; min-width:0; font-size:13px; }
+.att-draft .meta b{ display:block; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.att-draft .meta span{ font-size:11.5px; color:var(--ink3); }
+.att-draft .x{ border:0; background:none; color:var(--ink2); font-size:19px; cursor:pointer; flex:0 0 auto; }
+.att-bar{ height:3px; border-radius:2px; background:var(--line); overflow:hidden; margin-top:4px; }
+.att-bar i{ display:block; height:100%; width:0; background:var(--cvgold); transition:width .2s ease; }
+.att-msg{ max-width:260px; border-radius:12px; overflow:hidden; display:block; }
+.att-msg img, .att-msg video{ width:100%; display:block; border-radius:12px; background:var(--panel2); }
+.att-file{ display:flex; align-items:center; gap:9px; padding:9px 11px; border-radius:12px;
+  background:var(--panel2); border:1px solid var(--line); text-decoration:none; color:inherit; max-width:280px; }
+.att-file .ic{ font-size:19px; }
+.att-file b{ display:block; font-size:13px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.att-file span{ font-size:11.5px; color:var(--ink3); }
 body.phone .cv-tab{
   height:60px; border:0; background:none; font-family:inherit; cursor:pointer;
   color:var(--ink3); font-size:10.5px; font-weight:600;
@@ -1670,6 +2074,7 @@ body.phone .composer textarea{ border-radius:21px !important; padding:11px 15px 
        re-rendered once they arrive so a pinned chat does not jump after the fact. */
     try{ setConvFilter(CVFILTER); }catch(e){}
     if(!PREFS_READY) loadPrefs(function(){ try{ renderRooms(); }catch(e){} });
+    loadGroupMeta();
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', init); else init();
   setTimeout(init,500); setTimeout(init,1500);
