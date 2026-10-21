@@ -95,6 +95,9 @@ input.in[readonly]{background:var(--panel2);color:var(--ink2)}
 .botrow:first-of-type{border-top:none}
 .sw{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:800;color:var(--ink2);cursor:pointer}
 .sw input{width:18px;height:18px;accent-color:var(--accent)}
+#announceSec .arow{display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:10px 0;border-bottom:1px solid var(--line)}
+#announceSec .arow:last-child{border-bottom:0}
 #emdCtrlSec textarea.in{resize:vertical;line-height:1.5}
 </style>
 <style id="profile-fit">
@@ -266,12 +269,76 @@ function paintProfile(p){
     h+='<div class="sec"><div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap"><div><div style="font-weight:800;font-size:14px">Manage your booking availability</div><div style="font-size:12.5px;color:var(--ink3)">Weekly hours, blackouts & vacations live in the Scheduler.</div></div><a class="btn ghost" style="text-decoration:none" href="calendar.html?tab=avail">Open My Availability →</a></div></div>';
   }
   h+='<div id="notifPrefsSec"></div>';
-  h+='<div id="emdCtrlSec"></div><div id="baseBrandSec"></div>';
+  h+='<div id="emdCtrlSec"></div><div id="baseBrandSec"></div><div id="announceSec"></div>';
   $('profBody').innerHTML=h+'<datalist id="statelist">'+US_STATES.map(function(s){return '<option value="'+s+'">';}).join('')+'</datalist>';
   loadNotifPrefs();
   loadCalendlyStatus();
   loadBaseBrand();
   loadEmdControl();
+  loadAnnouncerAdmin();
+}
+
+/* ===== WHO MAY POST ANNOUNCEMENTS =========================================
+   Elijah asked for an Announcements chat the whole company reads and only
+   designated leadership writes in, managed from Settings.
+
+   This is DELIBERATELY NARROWER than the EMD controls above it. Being an EMD
+   does not confer it; being able to post announcements confers nothing else.
+   The authority to hand it out is the same explicit allow-list that decides
+   group admins (app_settings.hub_group_owners) — not a rank, not Operations,
+   not platform_admin. Anyone else never sees this block.
+
+   The real restriction is a database trigger on hub_messages. This panel only
+   edits the list the trigger reads, so revoking someone takes effect on their
+   very next message even if their app is already open.
+   ========================================================================= */
+var HUBGROUPS="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/hub-groups";
+var ANNRS=null, ANNELIG=null;
+function hgApi(b){
+  return fetch(HUBGROUPS,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(b||{})}).then(function(r){return r.json();})
+    .catch(function(){return {ok:false,error:'Network error'};});
+}
+function loadAnnouncerAdmin(){
+  hgApi({action:'announcers'}).then(function(r){
+    if(!r||!r.ok)return;
+    ANNRS=r;
+    if(!r.can_manage){ ANNRS=null; return; }      /* not yours to manage: nothing is drawn */
+    hgApi({action:'eligible'}).then(function(e){ ANNELIG=(e&&e.ok)?e:null; renderAnnouncerAdmin(); });
+    renderAnnouncerAdmin();
+  });
+}
+function renderAnnouncerAdmin(){
+  var sec=document.getElementById('announceSec'); if(!sec||!ANNRS)return;
+  var cur=(ANNRS.people||[]);
+  var have={}; cur.forEach(function(p){ have[p.code]=1; });
+  var canAdd=((ANNELIG&&ANNELIG.eligible)||[]).filter(function(e){ return !have[e.code]; });
+  sec.innerHTML=
+    '<div class="card"><div class="ttl">\ud83d\udce3 Announcements</div>'+
+    '<div style="font-size:12.5px;color:var(--ink3);line-height:1.55;margin:0 0 12px">'+
+      'Everyone in the company can read Announcements. Only the people below can post there. '+
+      'This grants nothing else \u2014 not group editing, not bots, not the ability to hand this out.'+
+    '</div>'+
+    (cur.length
+      ? cur.map(function(p){
+          return '<div class="arow"><div><b>'+esc(p.name||p.code)+'</b> <span style="color:var(--ink3)">'+esc(p.code)+'</span></div>'+
+                 '<button class="btn ghost" onclick="setAnnouncer(\''+esc(p.code)+'\',false)">Remove</button></div>';
+        }).join('')
+      : '<div style="font-size:13px;color:var(--ink3);padding:4px 0 10px">Nobody can post yet. Announcements will be read-only for everyone until you add someone.</div>')+
+    (canAdd.length
+      ? ('<div style="font-size:12px;color:var(--ink3);margin:14px 0 6px;text-transform:uppercase;letter-spacing:.06em">Add</div>'+
+         canAdd.map(function(e){
+           return '<div class="arow"><div><b>'+esc(e.name)+'</b> <span style="color:var(--ink3)">'+esc(e.baseshop||'')+'</span></div>'+
+                  '<button class="btn" onclick="setAnnouncer(\''+esc(e.code)+'\',true)">Can post</button></div>';
+         }).join(''))
+      : '')+
+    '</div>';
+}
+function setAnnouncer(code,on){
+  hgApi({action:on?'announcer_add':'announcer_remove', who:code}).then(function(r){
+    if(!r||!r.ok){ alert((r&&r.error)||'Could not save that.'); return; }
+    loadAnnouncerAdmin();
+  });
 }
 /* ===== YOUR BASESHOP =======================================================
    An EMD runs their baseshop as its own operating space: the colour their team

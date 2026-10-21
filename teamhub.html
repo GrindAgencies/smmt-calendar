@@ -67,7 +67,15 @@ body.drawer .scrim{display:block;}
 @media(max-width:860px){.side{transform:translateX(-100%);box-shadow:var(--shadow-lg);}body.drawer .side{transform:none;}.top{left:0;}.hub{left:0;}.rooms{left:0;}}
 .rooms{background:var(--panel);border-right:1px solid var(--line);overflow-y:auto;min-height:0;padding:14px 10px;}
 @media(min-width:981px){body.rooms-collapsed .hub{grid-template-columns:1fr;}body.rooms-collapsed .rooms{display:none;}}
-@media(max-width:640px){.mlist{padding:12px 12px 6px;}.composer{padding:10px 12px 14px;}.chead{padding:10px 12px;}.msg{gap:9px;padding:6px 4px;}.chips{gap:6px;}.chip{padding:6px 10px;font-size:12px;}.cbox{padding:7px 7px 7px 12px;}}
+@media(max-width:640px){.mlist{padding:12px 12px 6px;}/* A channel you may read but not write in. The composer is removed rather than disabled:
+   a greyed-out input still invites a tap and still looks like a fault. */
+.composer.readonly{ display:none !important; }
+.ronote{
+  margin:0 14px 14px; padding:11px 14px; border-radius:12px;
+  background:var(--panel2); border:1px solid var(--line2);
+  color:var(--ink2); font-size:12.5px; line-height:1.5; text-align:center;
+}
+.composer{padding:10px 12px 14px;}.chead{padding:10px 12px;}.msg{gap:9px;padding:6px 4px;}.chips{gap:6px;}.chip{padding:6px 10px;font-size:12px;}.cbox{padding:7px 7px 7px 12px;}}
 .hsearch{display:flex;align-items:center;gap:8px;padding:9px 12px;border:1px solid var(--line2);border-radius:11px;background:var(--panel2);margin-bottom:12px;}
 .hsearch input{border:none;background:none;outline:none;color:var(--ink);font-size:13.5px;width:100%;font-family:inherit;}
 .hsearch svg{width:15px;height:15px;color:var(--ink3);}
@@ -968,6 +976,7 @@ function renderHead(){
      rather than a new control competing for room in a header that already overflows. */
   var tap = isGroup ? ' class="chead-tap" onclick="openGroupDetails()" role="button" tabindex="0"'
                       +' onkeydown="if(event.key===\'Enter\'){openGroupDetails();}" title="Group details"' : '';
+  syncComposer();
   $('chead').innerHTML='<div class="ci">'+icon+'</div><div'+tap+'><div class="cn">'+esc(nm)+'</div><div class="cs">'+esc(m.sub)+'</div></div><div class="presence"><span class="pd"></span>'+Object.keys(ONLINE).length+' online<div class="preslist"><div class="preshdr">Online now</div>'+presenceList()+'</div></div>'+del;
 }
 
@@ -977,6 +986,36 @@ function renderHead(){
    re-photograph THAT group only; everyone else reads. EMD rank on its own grants nothing. */
 var HUBGROUPS='https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/hub-groups';
 var GD = null;
+/* ===== ANNOUNCEMENTS =================================================================
+   One channel the whole company reads and only designated people write in. The restriction
+   that MATTERS is a database trigger on hub_messages — this only decides whether to show a
+   composer somebody cannot use. Hiding a composer is a courtesy; the trigger is the control,
+   and it holds for attachments, edits and direct API calls too. */
+var ANNOUNCE='announcements';
+var ANNOUNCERS={ codes:[], can_post:false, can_manage:false, loaded:false };
+function loadAnnouncers(){
+  return gdApi({action:'announcers'}).then(function(r){
+    if(r && r.ok){ ANNOUNCERS={ codes:r.codes||[], people:r.people||[],
+                                can_post:!!r.can_post, can_manage:!!r.can_manage, loaded:true }; }
+    else { ANNOUNCERS.loaded=true; }
+    syncComposer();
+  }).catch(function(){ ANNOUNCERS.loaded=true; });
+}
+function isAnnouncements(ch){ return String(ch||CHAN)===ANNOUNCE; }
+function mayPostHere(){ return !isAnnouncements(CHAN) || ANNOUNCERS.can_post; }
+/* Called whenever the open conversation changes. A read-only channel shows why it is
+   read-only rather than an input that silently refuses. */
+function syncComposer(){
+  var comp=document.querySelector('.composer'); if(!comp) return;
+  var note=document.getElementById('roNote');
+  var locked = isAnnouncements(CHAN) && ANNOUNCERS.loaded && !ANNOUNCERS.can_post;
+  comp.classList.toggle('readonly', locked);
+  if(locked && !note){
+    note=document.createElement('div'); note.id='roNote'; note.className='ronote';
+    note.textContent='Announcements are posted by leadership. You will see them here.';
+    comp.parentNode.insertBefore(note, comp);
+  } else if(!locked && note){ note.remove(); }
+}
 function gdApi(b){
   return fetch(HUBGROUPS,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b||{})})
     .then(function(r){ return r.json(); }).catch(function(){ return {ok:false,error:'Network error'}; });
@@ -1463,6 +1502,9 @@ function pickMention(c){var t=$('cin');var v=t.value;var pos=t.selectionStart;va
 function askInsert(){var t=$('cin');t.value='@Question ';t.focus();autoresize();}
 function sendNow(){
   var t=$('cin');var body=t.value.trim();
+  /* Access can be revoked while this page is open. The trigger would refuse the insert
+     anyway; this turns that into a sentence instead of a failed save. */
+  if(!mayPostHere()){ toast('Only designated people can post in Announcements.'); return; }
   var a=PENDATTACH;
   /* An attachment still uploading is not ready to send, and one picked in another chat must
      never ride along into this one. Both are quietly common and both would be wrong. */
@@ -1745,7 +1787,7 @@ function heartbeat(){var st=(Date.now()-lastActivity>600000)?'away':'active';if(
   }
   buildSide();
   MEMBERS[CODE]=NAME;
-  loadChannels();renderHead();loadMsgs(true);heartbeat();loadAvatars();loadEmblems();loadRoster();
+  loadChannels();renderHead();loadMsgs(true);heartbeat();loadAvatars();loadEmblems();loadRoster();loadAnnouncers();
   // roster for DMs + mentions
   fetch(TA,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'team',leader:BASESHOP_LEADER})}).then(function(r){return r.json();}).then(function(d){(d&&d.agents||[]).forEach(function(a){var nm=((a.first_name||'')+' '+(a.last_name||'')).trim();if(a.code&&nm)MEMBERS[a.code]=nm;});renderRooms();})
   /* A phone that loses signal mid-load threw this as an unhandled rejection, which
