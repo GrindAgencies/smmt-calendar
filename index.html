@@ -713,16 +713,38 @@ function closeDrawer(){$('app').classList.remove('drawer');}
 
 /* ---------- CLOCK / GREETING / QUOTE ---------- */
 var QUOTES=[["Consistency compounds.",""],["The fortune is in the follow-up.",""],["Protect families. Build leaders.",""],["Activity beats anxiety.",""],["Small disciplines, repeated daily.",""],["You don't have to be great to start — start to be great.",""],["Serve first. The sale follows.",""],["Every no is closer to a yes.",""]];
-function tickClock(){var now=new Date();var opt={timeZone:'America/Los_Angeles',hour:'numeric',minute:'2-digit',second:'2-digit',hour12:true};$('heroClock').textContent=new Intl.DateTimeFormat('en-US',opt).format(now)+' PT';}
+/* These two run on timers - the clock every second - and they were the only render
+   functions on this page that wrote to an element without checking it was there. Every
+   other one guards (`var g=$('snapGrid'); if(!g) return;`). Writing to a null on a
+   1-second interval is the highest-frequency crash the app can produce, and it logged as
+   a platform fault each time. `setText` writes only when the element exists. */
+function setText(id, text){ var el=$(id); if(el) el.textContent=text; }
+function tickClock(){
+  var opt={timeZone:'America/Los_Angeles',hour:'numeric',minute:'2-digit',second:'2-digit',hour12:true};
+  setText('heroClock', new Intl.DateTimeFormat('en-US',opt).format(new Date())+' PT');
+}
 function paintHeaderTime(){
   var now=new Date();
-  $('heroDate').textContent=new Intl.DateTimeFormat('en-US',{timeZone:'America/Los_Angeles',weekday:'long',month:'long',day:'numeric'}).format(now);
+  setText('heroDate', new Intl.DateTimeFormat('en-US',{timeZone:'America/Los_Angeles',weekday:'long',month:'long',day:'numeric'}).format(now));
   var h=parseInt(new Intl.DateTimeFormat('en-US',{timeZone:'America/Los_Angeles',hour:'numeric',hour12:false}).format(now),10);
   var g=h<12?'Good morning':h<18?'Good afternoon':'Good evening';
   var first=(NAME||'').split(' ')[0]||'there';
-  $('heroGreeting').textContent=g+', '+first+'.';
-  var q=QUOTES[now.getDate()%QUOTES.length];$('heroQuote').textContent=q[0];
-  $('footYear').textContent=now.getFullYear();
+  setText('heroGreeting', g+', '+first+'.');
+  var q=QUOTES[now.getDate()%QUOTES.length];
+  setText('heroQuote', q[0]);
+  setText('footYear', now.getFullYear());
+}
+/* showApp() has four call sites - boot/resume, the PIN gate, and two sign-in paths - and
+   more than one can run in a single visit. Each call used to start ANOTHER pair of
+   intervals that nothing ever cleared, so a person who resumed and then signed in had two
+   clocks ticking per second, then three. Re-arming replaces rather than stacks. */
+var CLOCK_T=null, HEADER_T=null;
+function startClocks(){
+  paintHeaderTime(); tickClock();
+  if(CLOCK_T) clearInterval(CLOCK_T);
+  if(HEADER_T) clearInterval(HEADER_T);
+  CLOCK_T=setInterval(tickClock,1000);
+  HEADER_T=setInterval(paintHeaderTime,60000);
 }
 
 /* ---------- SNAPSHOT ---------- */
@@ -1042,7 +1064,7 @@ function renderLeaderboard(r){
 function showApp(){
   $('gate').classList.add('hide');$('app').classList.remove('hide');
   $('sideName').textContent=NAME||('GFI '+CODE);$('sideSub').textContent=CODE;$('sideAv').textContent=initials(NAME||CODE);
-  paintHeaderTime();tickClock();setInterval(tickClock,1000);setInterval(paintHeaderTime,60000);
+  startClocks();
   loadData();loadLeaderboard();loadAvatars();startLBPoll();
   /* Declared in a LATER <script> block, and hoisting does not cross blocks — so on the
      boot/resume path, which runs while the page is still parsing, this threw
