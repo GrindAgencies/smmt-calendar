@@ -189,11 +189,9 @@
   }
   .toast.on{ opacity:1; }
 
-  /* notif.js injects its own bell; this screen has the Alerts tab instead. */
-  .ntf-btn{ display:none !important; }
 </style>
 </head>
-<body class="tsfg tsfg-haspad">
+<body class="tsfg">
 
 <div class="tsfg-wrap">
 
@@ -250,26 +248,8 @@
     </button>
   </div>
 
-  <p class="tsfg-center" style="margin:22px 0 0">
-    <a href="index.html" style="color:var(--tsfg-ink-3);font-size:12.5px;text-decoration:none">Open the full platform →</a>
-  </p>
 </div>
 
-<nav class="tsfg-tabs" style="--tsfg-tabn:4">
-  <button class="tsfg-tab on">
-    <svg viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v9a2 2 0 0 1-2 2h-4v-6H9v6H5a2 2 0 0 1-2-2Z"/></svg>Home
-  </button>
-  <button class="tsfg-tab" onclick="go('teamhub.html')">
-    <svg viewBox="0 0 24 24"><path d="M20 15a2 2 0 0 1-2 2H8l-4 4V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2Z"/></svg>The Hub
-  </button>
-  <button class="tsfg-tab" onclick="openNotifs()" style="position:relative">
-    <svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 1 0-12 0c0 7-2 8-2 8h16s-2-1-2-8"/><path d="M13.7 20a1.9 1.9 0 0 1-3.4 0"/></svg>Alerts
-    <span class="badge" id="tabDot" style="display:none;position:absolute;top:6px;right:22px;min-width:17px;height:17px;padding:0 4px;border-radius:999px;background:var(--tsfg-gold);color:#17120a;font-size:10px;font-weight:800;align-items:center;justify-content:center"></span>
-  </button>
-  <button class="tsfg-tab" onclick="go('profile.html')">
-    <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Profile
-  </button>
-</nav>
 
 <!-- Manage highlights. Only ever opened by the one account the server lets edit; every
      button in here is refused server-side as well, so the sheet is convenience, not security. -->
@@ -529,35 +509,15 @@
     });
   }
 
-  /* ============================ alerts ============================ */
-  /* The Alerts tab opens the shared bell panel that notif.js injects. That script is
-     deferred, so the button can be tapped before it exists — wait for it rather than
-     doing nothing, and give up to the full platform if it never arrives. */
-  function openNotifs(){
-    var b = document.querySelector('.ntf-btn');
-    if (b) { b.click(); return; }
-    var n = 0, t = setInterval(function(){
-      var x = document.querySelector('.ntf-btn');
-      if (x) { clearInterval(t); x.click(); }
-      else if (++n > 25) { clearInterval(t); location.href = 'index.html'; }
-    }, 150);
-  }
+  /* The bottom tab bar is gone (Christopher, 2026-10-21: "redundant and unnecessary" —
+     every destination it held is already a tile above). notif.js's own bell was hidden on
+     this screen ONLY because the Alerts tab stood in for it, so it is visible again; it is
+     now the way to reach notifications from here. The helper that proxied taps to it and the
+     timer that mirrored its unread count onto the tab went with the tab.
 
-  /* Mirror notif.js's unread count onto the Alerts tab. Read it from the bell's TEXT, not
-     from whether the badge is visible: the bell is display:none here, so offsetParent is
-     always null and a visibility test would report zero unread for ever. */
-  setInterval(function(){
-    var btn = document.querySelector('.ntf-btn');
-    var dot = document.getElementById('tabDot');
-    if (!dot) return;
-    var n = btn ? parseInt(String(btn.textContent || '').replace(/\D/g, ''), 10) : 0;
-    if (n > 0) { dot.textContent = n > 9 ? '9+' : String(n); dot.style.display='flex'; }
-    else { dot.textContent = ''; dot.style.display='none'; }
-  }, 1200);
-
-  /* The injected Ask button and language pill are positioned by tsfg-ui.css now — a
-     stylesheet rule beats their inline style every time it is re-applied, which a timer
-     here could not. */
+     Dropping .tsfg-haspad from <body> also drops tsfg-ui.css's tab-bar offset for the Ask
+     button, which is correct: with no bar to clear it sits at its normal bottom-right spot.
+     body.tsfg-hasfab still supplies the padding that keeps the last tile clear of it. */
 
   /* Belt and braces — notif.js registers this too, but a cold launch should not depend
      on a deferred script to become installable. */
