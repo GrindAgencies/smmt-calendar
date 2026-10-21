@@ -15,8 +15,9 @@ This directory is the fix. It is **incomplete** — see below.
 | `newbiz-api` | v22 | byte-identical to deployed |
 | `hub-sweep`  | v2  | byte-identical to deployed |
 | `summit-api` | v7  | byte-identical to deployed |
+| `atlas-api`  | v19 | byte-identical to deployed |
 
-**103 functions still have no copy here.**
+**102 functions still have no copy here.**
 
 ## Adding one
 
