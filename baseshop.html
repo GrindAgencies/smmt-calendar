@@ -127,6 +127,14 @@ var CANAPPROVE=false;
 
 function $(id){return document.getElementById(id);}
 function esc(s){return (s==null?'':String(s)).replace(/[&<>"']/g,function(c){
+/* A value that lands inside a single-quoted JS string inside an HTML attribute has to be
+   escaped for BOTH layers, in that order. innerHTML runs the HTML parser first, so entities
+   are decoded and THEN the handler is compiled - which is why HTML-escaping the apostrophe
+   does not help: &#39; turns back into ' before the JS is parsed. Verified in the browser on
+   the real innerHTML path: with a raw OR entity-encoded apostrophe the element ends up with
+   no onclick at all, so the control is silently dead rather than throwing. Na'Riya Parks is
+   on the roster, so this was not hypothetical. */
+function escJs(s){ return esc(String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'")); }
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 function post(url,b){return fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},
   body:JSON.stringify(b)}).then(function(r){return r.json();}).catch(function(){return {ok:false,error:'Network error'};});}
@@ -444,7 +452,7 @@ function paintBots(){
           '<div class="fld"><label class="lbl">What it says <span style="font-weight:500;color:var(--ink3)">— one line per post, it rotates through them</span></label>'+
             '<textarea class="in" data-f="messages" rows="4">'+esc((sc.messages||[]).join('\n'))+'</textarea></div>'+
           '<button class="btn ghost" onclick="saveCustom(\''+esc(b.code)+'\')">Save</button>'+
-          '<button class="btn ghost" style="margin-left:7px;color:var(--red);border-color:var(--red)" onclick="deleteCustom(\''+esc(b.code)+'\',\''+esc(b.name)+'\')">Delete</button>'+
+          '<button class="btn ghost" style="margin-left:7px;color:var(--red);border-color:var(--red)" onclick="deleteCustom(\''+esc(b.code)+'\',\''+escJs(b.name)+'\')">Delete</button>'+
           '<span class="stat" id="cb_'+esc(b.code)+'"></span></div>';
       });
     } else {

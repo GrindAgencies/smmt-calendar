@@ -389,6 +389,14 @@ var DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 var AVCOL=['#5b6cff','#34c759','#ff9f0a','#af52de','#ff2d55','#0a84ff','#c99a2e','#30b0c7'];
 function $(id){return document.getElementById(id);}
 function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+/* A value that lands inside a single-quoted JS string inside an HTML attribute has to be
+   escaped for BOTH layers, in that order. innerHTML runs the HTML parser first, so entities
+   are decoded and THEN the handler is compiled - which is why HTML-escaping the apostrophe
+   does not help: &#39; turns back into ' before the JS is parsed. Verified in the browser on
+   the real innerHTML path: with a raw OR entity-encoded apostrophe the element ends up with
+   no onclick at all, so the control is silently dead rather than throwing. Na'Riya Parks is
+   on the roster, so this was not hypothetical. */
+function escJs(s){ return esc(String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'")); }
 function toast(t){var e=$('toast');e.textContent=t;e.classList.add('on');clearTimeout(e._t);e._t=setTimeout(function(){e.classList.remove('on');},2400);}
 function avColor(s){var h=0;s=s||'';for(var i=0;i<s.length;i++)h=s.charCodeAt(i)+((h<<5)-h);return AVCOL[Math.abs(h)%AVCOL.length];}
 function initials(nm){nm=(nm||'').trim();var p=nm.split(/\s+/);return (((p[0]||'')[0]||'')+((p[1]||'')[0]||'')).toUpperCase();}
@@ -674,12 +682,12 @@ function canPromote(){return PROFILE&&(PROFILE.access_scope==='super'||(PROFILE.
 function opsRow(p){
   var col=avColor(p.name);var lvl=p.contract_level||'Associate';
   var lvlSel=canPromote()
-    ? '<select onchange="setLevel(\''+esc(p.code)+'\',this.value,\''+esc(p.name)+'\')" title="Contract level" style="font-size:11px;font-weight:700;padding:3px 22px 3px 8px;border-radius:8px;border:1px solid var(--line2);background:var(--panel);color:var(--ink2);cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url(&quot;data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'14\' height=\'14\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%238e8e93\' stroke-width=\'2.5\' stroke-linecap=\'round\'><path d=\'m6 9 6 6 6-6\'/></svg>&quot;);background-repeat:no-repeat;background-position:right 6px center">'+LEVELS.map(function(o){return '<option'+(o===lvl?' selected':'')+'>'+o+'</option>';}).join('')+'</select>'
+    ? '<select onchange="setLevel(\''+esc(p.code)+'\',this.value,\''+escJs(p.name)+'\')" title="Contract level" style="font-size:11px;font-weight:700;padding:3px 22px 3px 8px;border-radius:8px;border:1px solid var(--line2);background:var(--panel);color:var(--ink2);cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url(&quot;data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'14\' height=\'14\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%238e8e93\' stroke-width=\'2.5\' stroke-linecap=\'round\'><path d=\'m6 9 6 6 6-6\'/></svg>&quot;);background-repeat:no-repeat;background-position:right 6px center">'+LEVELS.map(function(o){return '<option'+(o===lvl?' selected':'')+'>'+o+'</option>';}).join('')+'</select>'
     : '<span style="font-size:10.5px;font-weight:800;padding:2px 7px;border-radius:7px;background:var(--panel2);color:var(--ink2)">'+esc(lvl)+'</span>';
   var baseb=p.baseshop?'<span style="font-size:10.5px;color:var(--ink3);margin-left:6px">'+esc(p.baseshop)+'</span>':'';
   var btn=p.bookable
-    ? '<button onclick="toggleBookable(\''+esc(p.code)+'\',\''+esc(p.name)+'\',false)" style="border:1px solid var(--green);background:var(--green-soft,rgba(52,199,89,.14));color:var(--green);border-radius:10px;padding:7px 13px;font-weight:800;font-size:12.5px;cursor:pointer;white-space:nowrap">Bookable ✓</button>'
-    : '<button onclick="toggleBookable(\''+esc(p.code)+'\',\''+esc(p.name)+'\',true)" style="border:none;background:var(--accent);color:#fff;border-radius:10px;padding:7px 13px;font-weight:700;font-size:12.5px;cursor:pointer;white-space:nowrap">Make bookable</button>';
+    ? '<button onclick="toggleBookable(\''+esc(p.code)+'\',\''+escJs(p.name)+'\',false)" style="border:1px solid var(--green);background:var(--green-soft,rgba(52,199,89,.14));color:var(--green);border-radius:10px;padding:7px 13px;font-weight:800;font-size:12.5px;cursor:pointer;white-space:nowrap">Bookable ✓</button>'
+    : '<button onclick="toggleBookable(\''+esc(p.code)+'\',\''+escJs(p.name)+'\',true)" style="border:none;background:var(--accent);color:#fff;border-radius:10px;padding:7px 13px;font-weight:700;font-size:12.5px;cursor:pointer;white-space:nowrap">Make bookable</button>';
   return '<div class="apt"><div class="tav" style="width:40px;height:40px;background:'+col+'">'+initials(p.name)+'</div><div style="min-width:0"><div style="font-weight:700;font-size:14px">'+esc(p.name)+baseb+'</div><div style="font-size:12px;color:var(--ink3);display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:3px"><span>'+esc(p.code)+(p.email?' · '+esc(p.email):'')+'</span>'+lvlSel+'</div></div><span style="margin-left:auto">'+btn+'</span></div>';
 }
 function setLevel(code2,level,name2){
