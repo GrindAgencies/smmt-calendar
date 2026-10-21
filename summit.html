@@ -321,9 +321,35 @@ h1.big{margin:4px 0 0;font-size:26px;letter-spacing:-.01em;font-weight:800}
   .agentsel{margin-left:0;width:100%}
   .agentsel select{width:100%}
   .rank-card{grid-template-columns:1fr;padding:20px;min-height:0}
+  /* The card is a GRID; its children need min-width:0 for the same reason the card itself
+     needs it as a flex item. Without it the heading, the completion count, every requirement
+     row and the progress bar kept their intrinsic widths and ran outside the card's own
+     border — the "panel extends beyond its narrower enclosing outline" from the video. */
+  .rank-card > *{ min-width:0; }
+  .rank-req header{ gap:10px; }
+  .rank-req header .cnt{ flex:0 0 auto; }
   .rank-visual{min-height:280px}
   .mini svg{width:24px;height:24px}
-  .arrow{width:36px;height:36px;font-size:17px}
+
+  /* Previous/next sat either side of the card in a nowrap flex row, so on a 386px phone the
+     two arrows plus gaps took 108px and left the card 254px. That is what put the next arrow
+     over the completion count: measured, the count ended at x350 and the arrow began at x326.
+     On a phone they get their own row under the card — the card gets the full column, and the
+     controls land where a thumb already is. */
+  .stagewrap{
+    display:grid; grid-template-columns:1fr 1fr; gap:12px;
+    grid-template-areas:"card card" "prev next";
+  }
+  .stagewrap > .rank-card{ grid-area:card; }
+  .stagewrap > .arrow:first-child{ grid-area:prev; justify-self:start; }
+  .stagewrap > .arrow:last-child{  grid-area:next; justify-self:end; }
+  /* 44px is the touch target the brief asks for; 36 was under it. */
+  .arrow{width:44px;height:44px;font-size:19px}
+
+  /* Three tabs at desktop scale measured 433px of content in a 350px rail, so "Road to EMD"
+     rested 59px off the right edge. They fit at phone scale instead of needing a scroll. */
+  .tabs{ gap:4px; }
+  .tab{ padding:9px 10px; font-size:12px; letter-spacing:.01em; }
   #stage{height:64vh}
   .wrap{padding:0 12px 70px}
 }
