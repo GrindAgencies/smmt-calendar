@@ -448,6 +448,32 @@ html, body{ overflow-x: hidden; }
   .ctx button{padding:6px 9px;font-size:11.5px;}
   .content{padding:14px 11px !important;}
 }
+
+/* Comfortable touch targets on phones.
+   Measured on the live page at a 390px viewport: the Personal/Team/Baseshop/Hierarchy
+   buttons came out 28px tall, Week/Month/Year 24px, and "Full report →" just 19px.
+   That is not an accident — the rules above deliberately shrink padding and type so the
+   rows fit the width, and they overshot into targets that are hard to hit. Apple's
+   guideline is 44px.
+   The fix keeps the compactness that made them fit: font-size and horizontal padding are
+   left exactly as the rules above set them, and only the BOX grows, via min-height plus
+   centring. So the text still reads small and the row still fits — the finger just gets
+   somewhere to land. This block sits last so it wins the cascade without !important. */
+@media(max-width:560px){
+  .ctx button,
+  .lbper button{
+    min-height:44px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+  }
+  /* A bare text link has no box of its own to grow; give it one without moving the text. */
+  .panel-h a{
+    display:inline-flex;
+    align-items:center;
+    min-height:44px;
+  }
+}
 </style>
 <style id="pin-css">
 #pinOv{position:fixed;inset:0;background:rgba(8,10,20,.66);z-index:3000;display:none;

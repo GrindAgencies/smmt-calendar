@@ -343,3 +343,24 @@ body.tsfg-haspad #i18nToggle{
   left: 14px !important;
   right: auto !important;
 }
+
+/* ---------------------------------------------------------------------------
+   Touch targets on phones.
+
+   Measured on the live site at a 390px viewport: .tsfg-pill came out 30px tall,
+   and the scheduler's month arrows ("‹" / "›") landed at 37x30. Apple's guideline
+   is 44px, and those arrows are the controls people hit most on that screen.
+
+   Only the BOX grows — font-size and horizontal padding are untouched, so pill
+   rows keep the width that let them fit in the first place and nothing reflows
+   sideways. Verified at 390px: page scroll width unchanged, no sideways scroll.
+
+   Desktop keeps the tighter 30px pill; this applies to phone widths only. */
+@media (max-width:560px){
+  .tsfg-pill{
+    min-height:44px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+  }
+}
