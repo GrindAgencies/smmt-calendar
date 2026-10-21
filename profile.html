@@ -95,6 +95,16 @@ input.in[readonly]{background:var(--panel2);color:var(--ink2)}
 .botrow:first-of-type{border-top:none}
 .sw{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:800;color:var(--ink2);cursor:pointer}
 .sw input{width:18px;height:18px;accent-color:var(--accent)}
+#apptMailSec .lbl{display:block;font-size:12px;color:var(--ink3);margin:0 0 6px;
+  text-transform:uppercase;letter-spacing:.06em}
+#apptMailSec textarea.in{width:100%;box-sizing:border-box;resize:vertical;line-height:1.5}
+#apptMailSec .warnbox{background:var(--gold-soft,rgba(201,154,46,.14));
+  border:1px solid var(--gold,#c99a2e);border-radius:10px;padding:10px 12px;
+  font-size:12.5px;line-height:1.5;margin:0 0 12px}
+#apptMailSec .prevbox{margin-top:12px;padding:12px;border:1px solid var(--line);
+  border-radius:12px;background:var(--panel2,rgba(0,0,0,.03))}
+#apptMailSec .prow{display:flex;gap:10px;font-size:12.5px;padding:2px 0}
+#apptMailSec .prow span{color:var(--ink3);min-width:62px}
 #announceSec .arow{display:flex;align-items:center;justify-content:space-between;gap:12px;
   padding:10px 0;border-bottom:1px solid var(--line)}
 #announceSec .arow:last-child{border-bottom:0}
@@ -269,13 +279,102 @@ function paintProfile(p){
     h+='<div class="sec"><div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap"><div><div style="font-weight:800;font-size:14px">Manage your booking availability</div><div style="font-size:12.5px;color:var(--ink3)">Weekly hours, blackouts & vacations live in the Scheduler.</div></div><a class="btn ghost" style="text-decoration:none" href="calendar.html?tab=avail">Open My Availability →</a></div></div>';
   }
   h+='<div id="notifPrefsSec"></div>';
-  h+='<div id="emdCtrlSec"></div><div id="baseBrandSec"></div><div id="announceSec"></div>';
+  h+='<div id="apptMailSec"></div><div id="emdCtrlSec"></div><div id="baseBrandSec"></div><div id="announceSec"></div>';
   $('profBody').innerHTML=h+'<datalist id="statelist">'+US_STATES.map(function(s){return '<option value="'+s+'">';}).join('')+'</datalist>';
   loadNotifPrefs();
   loadCalendlyStatus();
   loadBaseBrand();
   loadEmdControl();
   loadAnnouncerAdmin();
+  loadApptMail();
+}
+
+/* ===== APPOINTMENT EMAILS =================================================
+   Elijah: when you book a meeting and add a guest's email, that guest should
+   get the details plus YOUR saved message and Zoom information.
+
+   This screen owns the CONTENT. It does not claim to send, because sending is
+   not configured — email-sender reports RESEND_API_KEY unset and has delivered
+   0 of 21 queued messages since July. The brief is explicit that API acceptance
+   must never be reported as delivery and that a read-only mail connection is
+   not proof of sending, so the panel says plainly that nothing will reach a
+   guest yet instead of implying it will.
+
+   Everyone gets this: it is personal content, not an administrative control.
+   Each row is keyed by agent code server-side from the session, so one
+   organizer's save can never land on another's.
+   ========================================================================= */
+var AVP_URL="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/av-prefs";
+var APPTMAIL=null;
+function loadApptMail(){
+  fetch(AVP_URL,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'appt_get'})})
+   .then(function(r){return r.json();})
+   .then(function(d){ if(d&&d.ok){ APPTMAIL=d; renderApptMail(); } })
+   .catch(function(){});
+}
+function renderApptMail(){
+  var sec=document.getElementById('apptMailSec'); if(!sec||!APPTMAIL)return;
+  var notReady = !APPTMAIL.sending_configured;
+  sec.innerHTML=
+    '<div class="card"><div class="ttl">\u2709\ufe0f Appointment emails</div>'+
+    '<div style="font-size:12.5px;color:var(--ink3);line-height:1.55;margin:0 0 12px">'+
+      'When you book a meeting and add a guest\u2019s email, this is the message and joining '+
+      'information that goes out with the appointment details. It is yours \u2014 nobody else sees '+
+      'or changes it.</div>'+
+    (notReady
+      ? '<div class="warnbox">\u26a0\ufe0f No sending account is connected yet, so guests will not '+
+        'receive this. Saving it now means it is ready the moment one is.</div>'
+      : '')+
+    '<label class="lbl">Your message to the guest</label>'+
+    '<textarea class="in" id="am_msg" rows="4" placeholder="Looking forward to meeting you. Here is what to expect\u2026">'+esc(APPTMAIL.message||'')+'</textarea>'+
+    '<label class="lbl" style="margin-top:12px">Joining / Zoom details</label>'+
+    '<textarea class="in" id="am_join" rows="3" placeholder="Zoom ID 964 650 9994 \u00b7 Passcode WEALTH">'+esc(APPTMAIL.join_info||'')+'</textarea>'+
+    '<div style="display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap">'+
+      '<button class="btn" id="am_save" onclick="saveApptMail()">Save</button>'+
+      '<button class="btn ghost" onclick="previewApptMail()">Preview</button>'+
+      '<span id="am_status" style="font-size:12.5px;color:var(--ink3)"></span>'+
+    '</div>'+
+    '<div id="am_preview"></div>'+
+    '</div>';
+}
+function saveApptMail(){
+  var b=document.getElementById('am_save'); if(b){ if(b.disabled)return; b.disabled=true; b.textContent='Saving\u2026'; }
+  fetch(AVP_URL,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'appt_set',
+      message:(document.getElementById('am_msg')||{}).value||'',
+      join_info:(document.getElementById('am_join')||{}).value||''})})
+   .then(function(r){return r.json();})
+   .then(function(d){
+     if(b){ b.disabled=false; b.textContent='Save'; }
+     var st=document.getElementById('am_status');
+     if(d&&d.ok){ if(st){st.textContent='Saved';} APPTMAIL.message=d.message; APPTMAIL.join_info=d.join_info; }
+     else if(st){ st.textContent=(d&&d.error)||'Could not save'; }
+   })
+   .catch(function(){ if(b){b.disabled=false;b.textContent='Save';}
+     var st=document.getElementById('am_status'); if(st)st.textContent='Network error \u2014 not saved'; });
+}
+/* Sample data, clearly marked. The brief asks for a preview so people understand what a guest
+   receives, and warns against showing raw template syntax. Absent parts are simply omitted —
+   no empty headings, no "null". */
+function previewApptMail(){
+  var host=document.getElementById('am_preview'); if(!host)return;
+  var msg=((document.getElementById('am_msg')||{}).value||'').trim();
+  var join=((document.getElementById('am_join')||{}).value||'').trim();
+  var rows=[
+    ['To','Alex Rivera (sample guest)'],
+    ['Subject','Business Consultation with '+(NAME||'you')],
+    ['When','Thursday, 23 October 2026 at 3:00 PM Pacific (60 minutes)']
+  ];
+  host.innerHTML='<div class="prevbox">'+
+    '<div style="font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);margin-bottom:8px">Sample \u2014 not sent to anyone</div>'+
+    rows.map(function(r){ return '<div class="prow"><span>'+esc(r[0])+'</span><b>'+esc(r[1])+'</b></div>'; }).join('')+
+    '<div style="margin-top:10px;white-space:pre-wrap;font-size:13px;line-height:1.55">'+
+      'Hi Alex,\n\n'+
+      (msg ? esc(msg)+'\n\n' : '')+
+      (join ? ('Joining details\n'+esc(join)+'\n\n') : '')+
+      '\u2014 '+esc(NAME||'')+
+    '</div></div>';
 }
 
 /* ===== WHO MAY POST ANNOUNCEMENTS =========================================
