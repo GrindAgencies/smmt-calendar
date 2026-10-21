@@ -8,7 +8,7 @@ copy outside the platform.
 
 This directory is the fix. It is **still incomplete** — see below.
 
-## Backed up so far (20 of 106)
+## Backed up so far (23 of 106)
 
 | Function | Header says |
 |---|---|
@@ -28,12 +28,15 @@ This directory is the fix. It is **still incomplete** — see below.
 | `newbiz-api` | v22 |
 | `ops-auth` | v1 |
 | `ops-platform` | — |
+| `org-api` | v13 |
 | `pin` | v11 |
+| `profile-api` | v21 |
 | `push-register` | v4 |
 | `push-send` | v7 |
 | `summit-api` | v7 |
+| `task-api` | v10 |
 
-**86 functions still have no copy here.**
+**83 functions still have no copy here.**
 
 **Two different version numbers, do not confuse them.** The table shows the version in the
 file's own header comment — the author's label. Supabase keeps a separate deploy counter,
