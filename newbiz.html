@@ -575,7 +575,13 @@ function paint(){
   $('list').innerHTML = rows.map(function(p){
     var cls = isPaid(p.status)?'paid':(isDead(p.status)?'dead':'pend');
     var lbl = isPaid(p.status)?'In force':(isDead(p.status)?'Closed':'Pending');
-    return '<div class="app">'+
+    /* ROUND TWO task 12. These rows have always LOOKED tappable - .app carries
+       cursor:pointer - and nothing happened, which is exactly what Elijah reported. The
+       record is opened by its stable id, never by the client's display name. */
+    return '<div class="app" role="button" tabindex="0" data-id="'+esc(String(p.id))+'"'+
+      ' onclick="openApp(\''+esc(String(p.id))+'\')"'+
+      ' onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();openApp(\''+esc(String(p.id))+'\');}"'+
+      ' aria-label="Open application for '+esc(p.client_name||'this client')+'">'+
       '<div class="mid"><div class="nm">'+esc(p.client_name||'—')+'</div>'+
       '<div class="sb">'+esc([p.carrier,p.product].filter(Boolean).join(' · ')||'—')+
       (p.policy_number?(' · #'+esc(p.policy_number)):'')+
@@ -589,8 +595,72 @@ function paint(){
 }
 
 /* ================================ wizard ================================= */
-function openWiz(){ resetWiz(); goStep(1); $('wiz').classList.add('on'); loadMyRate(); }
-function closeWiz(){ $('wiz').classList.remove('on'); load(); }
+var EDIT_APP = null;      /* the record being edited, or null when adding a new one */
+
+function openWiz(){ EDIT_APP=null; resetWiz(); setWizChrome(); goStep(1); $('wiz').classList.add('on'); loadMyRate(); }
+
+/* Whether this person may change this record. newbiz-api enforces exactly this on the write
+   (writer OR split partner, or Operations); the UI simply agrees with it rather than offering
+   a Save that the server will refuse. Being able to SEE a record - Base shop and Hierarchy both
+   show other people's business - is not permission to edit it. */
+function mayEditApp(p){
+  var me = CODE;
+  return String(p.agent_code||'').toUpperCase()===me ||
+         String(p.split_agent_code||'').toUpperCase()===me;
+}
+
+function setWizChrome(){
+  var t=document.querySelector('#wiz .wiz-top h3');
+  if(t) t.textContent = EDIT_APP ? 'Edit application' : 'New application';
+  var b=$('nextBtn');
+  if(b && STEP===3) b.textContent = EDIT_APP ? 'Save changes' : 'Submit application';
+  var d=$('draftBtn'); if(d) d.style.display = EDIT_APP ? 'none' : '';
+}
+
+/* ROUND TWO task 12. Open an existing application in the SAME form that creates one, so the
+   fields, the Life/Annuity split, the required-field rules and the validation cannot drift
+   between the two paths. */
+function openApp(id){
+  var p = ROWS.filter(function(x){ return String(x.id)===String(id); })[0];
+  if(!p) return;
+
+  if(!mayEditApp(p)){
+    /* Read-only is still worth opening - the brief asks that it explain itself rather than
+       simply doing nothing, which is indistinguishable from the bug we are fixing. */
+    toast('This application belongs to '+(p.agent_name||'another agent')+' — you can see it, but not edit it.');
+    return;
+  }
+
+  EDIT_APP = p;
+  resetWiz();
+  /* The product type drives which fields are shown, so set it before filling them. */
+  if(String(p.business_type||'').toLowerCase()==='annuity' && BIZ!=='annuity') setBiz('annuity');
+  if(String(p.business_type||'').toLowerCase()==='life'    && BIZ!=='life')    setBiz('life');
+
+  var nm = String(p.client_name||'').trim().split(/\s+/);
+  function V(i,v){ var el=$(i); if(el) el.value = (v==null?'':v); }
+  V('f_first', nm[0]||'');
+  V('f_last',  nm.slice(1).join(' '));
+  V('f_phone', p.phone); V('f_email', p.email);
+  V('f_state', p.state); V('f_source', p.source);
+  V('f_carrier', p.carrier); V('f_product', p.product);
+  V('f_polnum', p.policy_number);
+  V('f_cov', p.coverage);
+  V('f_contract', p.contract_pct);
+  V('f_date', String(p.submitted_date||'').slice(0,10));
+  /* The form captures a premium and a frequency; the record stores the annualised figure.
+     Showing it as an annual amount at frequency 1 keeps what is displayed equal to what is
+     stored, instead of inventing a monthly figure that was never entered. */
+  V('f_freq', '1');
+  V('f_prem', p.annual_premium);
+  try{ calcAP(); }catch(e){}
+
+  setWizChrome();
+  goStep(1);
+  $('wiz').classList.add('on');
+  loadMyRate();
+}
+function closeWiz(){ EDIT_APP=null; $('wiz').classList.remove('on'); load(); }
 
 function resetWiz(){
   ['f_first','f_last','f_state','f_email','f_phone','f_carrier','f_prem','f_cov','f_polnum','f_source'].forEach(function(i){ $(i).value=''; });
@@ -604,6 +674,7 @@ function resetWiz(){
 
 function goStep(n){
   STEP=n;
+  try{ setWizChrome(); }catch(e){}
   [1,2,3,4].forEach(function(i){ $('st'+i).style.display = (i===n?'':'none'); });
   var st=document.querySelectorAll('#steps .tsfg-step'), bars=document.querySelectorAll('#steps .bar');
   st.forEach(function(e,i){
@@ -720,10 +791,34 @@ function send(body){
 }
 
 function submitApp(){
-  var btn=$('nextBtn'); btn.disabled=true; btn.textContent='Submitting…';
-  send(payload('pending')).then(function(r){
-    btn.disabled=false; btn.textContent='Submit application';
-    if(!r || !r.ok){ $('wizErrTxt').textContent=(r&&r.error)||'Could not submit that application.'; $('wizErr').style.display='flex'; return; }
+  var btn=$('nextBtn');
+  if(btn.disabled) return;                       /* repeated taps must not create two records */
+  btn.disabled=true; btn.textContent = EDIT_APP ? 'Saving…' : 'Submitting…';
+
+  /* ROUND TWO task 12. Editing UPDATES the record that was opened - same id, same audit
+     history - rather than submitting the form again as a fresh application, which is how a
+     list quietly ends up with two of everything. The status is carried through untouched:
+     changing a client's phone number is not a status transition, and paid-status rules are
+     not this form's to rewrite. */
+  var body;
+  if(EDIT_APP){
+    body = payload(EDIT_APP.status || 'pending');
+    body.action = 'newbiz_update';
+    body.id = EDIT_APP.id;
+    /* An edit must never move the submitted date; newbiz-api v15 learned that the hard way. */
+    delete body.submitted_date;
+  } else {
+    body = payload('pending');
+  }
+
+  send(body).then(function(r){
+    btn.disabled=false; btn.textContent = EDIT_APP ? 'Save changes' : 'Submit application';
+    if(!r || !r.ok){ $('wizErrTxt').textContent=(r&&r.error)||((EDIT_APP?'Could not save those changes.':'Could not submit that application.')); $('wizErr').style.display='flex'; return; }
+    if(EDIT_APP){
+      /* Back to the list with its filter, search and position intact - the totals above it
+         are recalculated from the reloaded rows. */
+      EDIT_APP=null; closeWiz(); toast('Changes saved'); return;
+    }
     var f=Number($('f_freq').value)||12;
     $('doneCard').innerHTML =
       '<div style="font-size:18px;font-weight:800;margin-bottom:2px">'+esc(fullName())+'</div>'+
