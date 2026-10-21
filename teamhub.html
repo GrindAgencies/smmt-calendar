@@ -592,6 +592,19 @@ function toggleMod(){if(MODTOKEN){MODTOKEN='';$('modBtn').textContent='🔒';toa
 /* One way out of The Hub, used by the phone list header and the desktop header alike, so the
    two cannot drift. Deliberately an explicit destination rather than history.back(): after a
    login redirect or a cold open from a notification there is nothing useful behind us. */
+/* Forwards to the shared Menu rather than duplicating its route list — one nav, one drawer,
+   and "Profile & Settings" appears here the moment it is added there. The button it clicks is
+   hidden on this screen, which does not stop a programmatic click from opening the drawer.
+   notif.js is deferred, so wait for it rather than doing nothing on an early tap. */
+function openAppMenu(){
+  var b=document.querySelector('.tsfg-menu');
+  if(b){ b.click(); return; }
+  var n=0, t=setInterval(function(){
+    var x=document.querySelector('.tsfg-menu');
+    if(x){ clearInterval(t); x.click(); }
+    else if(++n>25){ clearInterval(t); location.href='app.html'; }
+  },150);
+}
 function hubGoHome(){ location.href = 'app.html'; }
 
 /* ===================== ROUND TWO tasks 3 & 4: the row menu =====================
@@ -1825,6 +1838,13 @@ body.phone .cv-home{
   color:var(--cvgold); font-size:30px; line-height:1;
   display:flex; align-items:center; justify-content:center;
 }
+body.phone .cv-head .cv-menu{
+  grid-column:3; justify-self:end;
+  width:40px; height:40px; border:0; background:none; cursor:pointer;
+  color:var(--cvgold); display:flex; align-items:center; justify-content:center;
+}
+body.phone .cv-head .cv-menu svg{ width:22px; height:22px; }
+body:not(.phone) .cv-menu{ display:none; }
 body.phone .cv-head .cv-new{ grid-column:3; justify-self:end; }
 body.phone .cv-new{ width:38px; height:38px; border:0; background:none; color:var(--cvgold); font-size:20px; cursor:pointer; }
 body.phone .cv-search{ position:relative; margin:10px 16px 10px; }
@@ -2040,7 +2060,14 @@ body.phone .composer textarea{ border-radius:21px !important; padding:11px 15px 
       '<div class="cv-head">'+
         '<button class="cv-home" onclick="hubGoHome()" aria-label="Back to Home" title="Back to Home">&lsaquo;</button>'+
         '<h1>THE HUB</h1>'+
-        '<span></span>'+                        /* keeps the title centred when no trailing action */
+        /* Column 3 was an empty spacer. It now carries the way OUT of this page. Removing the
+           Home / The Hub / Profile bar left the app-wide Menu as the route to Profile,
+           Settings and everything else — but that Menu is injected into .top, which this
+           screen hides on a phone, so it had a 0x0 box and could not be tapped. Measured it:
+           elementFromPoint at its centre returned .cv-head, not the button. */
+        '<button class="cv-menu" onclick="openAppMenu()" aria-label="Menu" title="Menu">'+
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>'+
+        '</button>'+
       '</div>'+
       '<div class="cv-search"><span class="mg">⌕</span>'+
         '<input type="search" placeholder="Search the hub" oninput="onConvSearch(this.value)"></div>'+
