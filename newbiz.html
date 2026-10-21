@@ -46,6 +46,31 @@
   /* the wizard */
   .wiz{ position:fixed; inset:0; z-index:95; background:var(--tsfg-bg); display:none; overflow-y:auto; }
   .wiz.on{ display:block; }
+  /* Confirm sheet for destructive actions. Same shape the Scheduler uses, so the two
+     read as one app. Local rather than in tsfg-ui.css because .sheet is already defined
+     per page in six places; adding a seventh copy is consistent, moving all seven is a
+     separate job. */
+  .sheet{ position:fixed; inset:0; z-index:95; background:rgba(0,0,0,.6); display:none; }
+  .sheet.on{ display:block; }
+  .sheet-c{
+    position:absolute; left:0; right:0; bottom:0; max-height:94vh; overflow-y:auto;
+    background:var(--tsfg-bg); border-top:1px solid var(--tsfg-line);
+    border-radius:18px 18px 0 0; padding:0 16px calc(22px + env(safe-area-inset-bottom));
+  }
+  .sheet-top{
+    position:sticky; top:0; background:var(--tsfg-bg); z-index:2;
+    display:flex; align-items:center; gap:10px; padding:14px 0 12px;
+  }
+  .sheet-top h3{ flex:1 1 auto; font-size:16px; font-weight:800; margin:0; text-align:center; }
+  .sheet-top .x{ border:0; background:none; color:var(--tsfg-gold); font-family:inherit;
+    font-size:22px; line-height:1; cursor:pointer; }
+  /* Destructive, and deliberately NOT gold — gold is the primary action everywhere else in
+     this app, so a gold Delete sitting under a gold Continue is a mis-tap waiting to happen. */
+  .tsfg-btn.danger{ background:transparent; color:var(--tsfg-bad);
+    border:1px solid color-mix(in srgb, var(--tsfg-bad) 55%, transparent); }
+  .tsfg-btn.danger:active{ background:color-mix(in srgb, var(--tsfg-bad) 14%, transparent); }
+  #delRow{ margin-top:10px; }
+  #delRow .tsfg-hint{ font-size:11.5px; color:var(--tsfg-ink-3); text-align:center; margin:8px 2px 0; }
   .wiz-top{
     position:sticky; top:0; z-index:3; background:var(--tsfg-bg);
     display:flex; align-items:center; gap:10px;
@@ -319,6 +344,12 @@
     <div class="tsfg-btnrow">
       <button class="tsfg-btn quiet" id="backBtn" onclick="prevStep()" style="display:none">Back</button>
       <button class="tsfg-btn" id="nextBtn" onclick="nextStep()">Continue</button>
+    </div>
+    <!-- Only ever shown on an application that already exists. A new, unsaved form has
+         nothing to delete, and offering it there would mean two different things by the
+         same word. -->
+    <div id="delRow" style="display:none">
+      <button class="tsfg-btn danger" id="delAppBtn" onclick="askDeleteApp()">Delete application</button>
     </div>
   </div>
 </div>
@@ -609,12 +640,20 @@ function mayEditApp(p){
          String(p.split_agent_code||'').toUpperCase()===me;
 }
 
+/* The server lets the WRITER delete their own application (newbiz-api `newbiz_delete`
+   filters agent_code to the caller) — a split partner may edit the record but not destroy
+   it. The button mirrors that exactly rather than offering an action the server will refuse. */
+function mayDeleteApp(p){
+  return !!p && String(p.agent_code||'').toUpperCase() === String(CODE||'').toUpperCase();
+}
 function setWizChrome(){
   var t=document.querySelector('#wiz .wiz-top h3');
   if(t) t.textContent = EDIT_APP ? 'Edit application' : 'New application';
   var b=$('nextBtn');
   if(b && STEP===3) b.textContent = EDIT_APP ? 'Save changes' : 'Submit application';
   var d=$('draftBtn'); if(d) d.style.display = EDIT_APP ? 'none' : '';
+  var row=$('delRow');
+  if(row) row.style.display = (EDIT_APP && mayDeleteApp(EDIT_APP)) ? '' : 'none';
 }
 
 /* ROUND TWO task 12. Open an existing application in the SAME form that creates one, so the
@@ -660,6 +699,53 @@ function openApp(id){
   $('wiz').classList.add('on');
   loadMyRate();
 }
+/* ===== deleting an application =====================================================
+   Confirmation names the actual record, because "Delete application" on a client with
+   several policies is otherwise ambiguous. Cancel leaves everything alone. */
+function closeDelSheet(){ var o=$('delSheet'); if(o) o.classList.remove('on'); }
+function askDeleteApp(){
+  var p = EDIT_APP;
+  if(!p) return;
+  if(!mayDeleteApp(p)){
+    toast('This application belongs to '+(p.agent_name||'another agent')+' — only they can delete it.');
+    return;
+  }
+  var bits = [p.carrier, p.product, p.policy_number].filter(Boolean).join(' · ');
+  var ap   = Number(p.annual_premium)||0;
+  $('delBody').innerHTML =
+    '<p style="font-size:14px;line-height:1.55;margin:0 0 4px"><b>'+esc(p.client_name||'This application')+'</b></p>'+
+    (bits?('<p class="tsfg-muted" style="font-size:12.5px;line-height:1.5;margin:0 0 2px">'+esc(bits)+'</p>'):'')+
+    (ap?('<p class="tsfg-muted" style="font-size:12.5px;line-height:1.5;margin:0">'+money(ap)+' annualized</p>'):'')+
+    '<p style="font-size:12.5px;line-height:1.55;color:var(--tsfg-ink-2);margin:12px 0 0">'+
+      'This removes this one application from your book. It cannot be undone. '+
+      'Any other policies for this client are untouched.</p>'+
+    '<div class="tsfg-btnrow" style="margin-top:16px">'+
+      '<button class="tsfg-btn quiet" onclick="closeDelSheet()">Keep it</button>'+
+      '<button class="tsfg-btn danger" id="delGo" onclick="doDeleteApp()">Delete application</button>'+
+    '</div>';
+  $('delSheet').classList.add('on');
+}
+function doDeleteApp(){
+  var p = EDIT_APP; if(!p) return;
+  var btn=$('delGo');
+  if(btn){ if(btn.disabled) return; btn.disabled=true; btn.textContent='Deleting…'; }  /* no double-fire */
+  send({action:'newbiz_delete', code:CODE, id:p.id}).then(function(r){
+    if(r && r.ok){
+      closeDelSheet();
+      EDIT_APP=null;
+      $('wiz').classList.remove('on');
+      toast('Application deleted');
+      load();                      /* list AND the four metric cards come from the same load */
+    } else {
+      if(btn){ btn.disabled=false; btn.textContent='Delete application'; }
+      /* The server's own reason, not a guess at why. */
+      toast((r && r.error) || 'Could not delete that application');
+    }
+  }).catch(function(){
+    if(btn){ btn.disabled=false; btn.textContent='Delete application'; }
+    toast('Network error — nothing was deleted');
+  });
+}
 function closeWiz(){ EDIT_APP=null; $('wiz').classList.remove('on'); load(); }
 
 function resetWiz(){
@@ -686,7 +772,10 @@ function goStep(n){
   document.querySelector('#steps').style.display = (n===4?'none':'flex');
   $('wizFoot').style.display = (n===4?'none':'');
   $('backBtn').style.display = (n>1?'':'none');
-  $('nextBtn').textContent   = (n===3?'Submit application':'Continue');
+  /* goStep runs AFTER setWizChrome on the edit path, so this used to relabel an edit's
+     final step "Submit application" — telling someone they were filing a new policy when
+     they were saving changes to an existing one. */
+  $('nextBtn').textContent   = (n===3 ? (EDIT_APP ? 'Save changes' : 'Submit application') : 'Continue');
   $('wizErr').style.display='none';
   if(n===3) fillReview();
   window.scrollTo(0,0);
@@ -869,5 +958,16 @@ load();
 </script>
 <script defer src="notif.js"></script>
 <script src="i18n.js"></script>
+
+<div class="sheet" id="delSheet" onclick="if(event.target===this)closeDelSheet()">
+  <div class="sheet-c">
+    <div class="sheet-top">
+      <button class="x" onclick="closeDelSheet()" aria-label="Close">&times;</button>
+      <h3>Delete application</h3>
+      <span style="width:22px"></span>
+    </div>
+    <div id="delBody"></div>
+  </div>
+</div>
 </body>
 </html>

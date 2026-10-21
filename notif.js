@@ -294,6 +294,7 @@
     calendar: 'M3 4.5h18v16H3zM3 9h18M8 3v3M16 3v3',
     pfr:      'M8 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-2M9 12h6M9 16h6M9 8h6',
     users:    'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
+    gear:     'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z',
     team:     'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
     tree:     'M9 3h6v5H9zM3 16h6v5H3zM15 16h6v5h-6zM12 8v4M6 16v-2h12v2',
     more:     'M6 9l6 6 6-6'
@@ -306,7 +307,12 @@
     ['Scheduler',    'calendar.html',    I.calendar],
     ['New Business', 'newbusiness.html', I.dollar],
     ['Road to EMD',   'summit.html?tab=road', I.check],
-    ['Resources',    'resources.html',   I.book]
+    ['Resources',    'resources.html',   I.book],
+    /* Elijah asked for an obvious way into Settings and there was none: the menu listed
+       tools only, and the bell is a bell. profile.html is where personal settings already
+       live (profile, photo, availability, emblems), so this names it for what people are
+       looking for rather than making them guess that "Profile" is where Settings is. */
+    ['Profile & Settings', 'profile.html', I.gear]
   ];
 
   /* Still live, still reachable — just not competing for attention. */

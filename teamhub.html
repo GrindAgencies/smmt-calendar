@@ -1782,7 +1782,8 @@ body.phone .hub{ grid-template-columns:1fr !important; display:block !important;
 body.phone .chan-toggle{ display:none !important; }
 /* The app-wide "Menu" button from notif.js. On a phone the bottom tabs are the way out of
    this screen, and next to the back chevron a second navigation control is just confusing. */
-body.phone .tsfg-menu{ display:none !important; }
+/* The app-wide Menu used to be hidden here because the bottom bar covered navigation. The
+   bar is gone, so the Menu is how you leave this page — and it is where Settings lives. */
 body.phone #modBtn,
 body.phone #botCfgBtn,
 body.phone .chips,
@@ -1907,16 +1908,7 @@ body.phone .cv-badge{
 body.phone .cv-empty,
 body.phone #cvNone{ padding:40px 20px; text-align:center; color:var(--ink3); font-size:14px; }
 
-/* ---------- bottom bar ---------- */
-body.phone .cv-tabs{
-  position:fixed; left:0; right:0; bottom:0; z-index:80;
-  background:var(--panel); border-top:1px solid var(--line);
-  display:grid; grid-template-columns:repeat(3,1fr);
-  padding-bottom:env(safe-area-inset-bottom);
-}
-body.phone.chat-open .cv-tabs{ display:none; }
-body:not(.phone) .cv-tabs{ display:none; }
-/* The phone list header's Home control is phone chrome, like .cv-tabs above. On desktop the
+/* The phone list header's Home control is phone chrome. On desktop the
    header at the top of the page carries its own Home button, so this one would only be an
    unstyled stray glyph in the channel column. */
 body:not(.phone) .cv-home{ display:none; }
@@ -1977,13 +1969,6 @@ body.phone.chat-open .top .tic.chan-toggle{
 .att-file .ic{ font-size:19px; }
 .att-file b{ display:block; font-size:13px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .att-file span{ font-size:11.5px; color:var(--ink3); }
-body.phone .cv-tab{
-  height:60px; border:0; background:none; font-family:inherit; cursor:pointer;
-  color:var(--ink3); font-size:10.5px; font-weight:600;
-  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
-}
-body.phone .cv-tab.on{ color:var(--cvgold); }
-body.phone .cv-tab i{ font-style:normal; font-size:19px; line-height:1; }
 
 /* ---------- screen 2: the conversation ---------- */
 body.phone.chat-open .top{
@@ -2071,15 +2056,11 @@ body.phone .composer textarea{ border-radius:21px !important; padding:11px 15px 
     none.id='cvNone'; none.style.display='none'; none.textContent='Nothing matches that.';
     rooms.appendChild(none);
 
-    if(!document.querySelector('.cv-tabs')){
-      var tabs=document.createElement('nav');
-      tabs.className='cv-tabs';
-      tabs.innerHTML =
-        '<button class="cv-tab" onclick="location.href=\'app.html\'"><i>⌂</i>Home</button>'+
-        '<button class="cv-tab on"><i>●</i>The Hub</button>'+
-        '<button class="cv-tab" onclick="location.href=\'profile.html\'"><i>○</i>Profile</button>';
-      document.body.appendChild(tabs);
-    }
+    /* The Home / The Hub / Profile strip is gone. "The Hub" was the screen you were already
+       on; Home is the back arrow in this list's own header; and Profile now lives in the
+       app-wide Menu, which this page used to hide on a phone precisely because this bar
+       stood in for it. The bar was also fixed over a list with no bottom padding, so it sat
+       on top of the last conversation row. */
 
     var top=document.querySelector('.top');
     if(top && !top.querySelector('.cv-back')){

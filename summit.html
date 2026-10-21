@@ -307,10 +307,6 @@ h1.big{margin:4px 0 0;font-size:26px;letter-spacing:-.01em;font-weight:800}
 #curtain{position:fixed;inset:0;z-index:900;background:var(--summit-black);display:flex;
   flex-direction:column;align-items:center;justify-content:center;gap:16px;transition:opacity .5s}
 #curtain.gone{opacity:0;pointer-events:none}
-#curtain .t1{font-size:10px;letter-spacing:.34em;text-transform:uppercase;color:var(--summit-muted)}
-#curtain .t2{font-size:30px;letter-spacing:.3em;text-transform:uppercase;font-weight:800;
-  background:linear-gradient(90deg,var(--summit-gold),var(--summit-bright),var(--summit-gold));
-  -webkit-background-clip:text;background-clip:text;color:transparent}
 #curtain .bar{width:168px;height:2px;background:rgba(215,174,84,.16);border-radius:9px;overflow:hidden}
 #curtain .bar i{display:block;height:100%;width:34%;border-radius:9px;
   background:linear-gradient(90deg,transparent,var(--summit-bright),transparent);
@@ -351,13 +347,18 @@ h1.big{margin:4px 0 0;font-size:26px;letter-spacing:-.01em;font-weight:800}
 </head>
 <body>
 
-<div id="curtain">
+<!-- A LOADING STATE, NOT A SECOND INTRO. Opening Road to EMD from the app board already
+     plays a branded title transition; this then covered the screen with a full-size THE
+     STANDARD FINANCIAL GROUP / SUMMIT wordmark and sat there for a further 900ms AFTER the
+     page had finished rendering. Two consecutive branded intros, the second of them stalling
+     on content that was already built. Elijah asked for the duplicate to go.
+     What is left is a quiet progress line that leaves the moment the organization is on
+     screen. The header keeps its normal Summit branding — that was never the complaint. -->
+<div id="curtain" role="status" aria-live="polite">
   <svg width="54" height="54" viewBox="0 0 64 64" aria-hidden="true">
     <path d="M6 50 L24 20 L34 36 L42 26 L58 50 Z" fill="none" stroke="#d7ae54" stroke-width="2" stroke-linejoin="round"/>
     <path d="M24 20 L34 36 L42 26" fill="none" stroke="#f2d17a" stroke-width="2" stroke-linejoin="round"/>
   </svg>
-  <div class="t1">The Standard Financial Group</div>
-  <div class="t2">Summit</div>
   <div class="bar"><i></i></div>
   <div class="t3">Building the organization</div>
 </div>
@@ -844,9 +845,17 @@ function boot(){
     ['map','perf','road'].forEach(function(k){var b=$('tab_'+k);if(b)b.classList.toggle('on',k===TAB);});
     $('ptitle').textContent=(TAB==='map')?'Org Chart':(TAB==='perf')?'Top Performers':'Road to EMD';
     render();
-    setTimeout(function(){var c=$('curtain');if(c)c.classList.add('gone');},900);
+    /* Was a 900ms setTimeout AFTER render() — a deliberate wait on content that was already
+       drawn. The curtain goes the moment there is something to look at. */
+    dropCurtain();
   });
 }
+/* A curtain that fails to lift is worse than no curtain: the page is fully loaded and
+   completely unreachable behind it. Promise.all above cannot reject (every fetch catches its
+   own failure), but a throw inside the .then would strand it, so this runs on a backstop
+   timer as well and is safe to call twice. */
+function dropCurtain(){ var c=$('curtain'); if(c) c.classList.add('gone'); }
+setTimeout(dropCurtain, 6000);
 function depthOf(code,guard){
   var d=0,c=code,g=0;
   while(c&&g++<40){var n=BYCODE[c];if(!n)break;var p=(n.direct_to||'').toUpperCase();if(!p||!BYCODE[p])break;c=p;d++;}
