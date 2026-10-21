@@ -31,7 +31,7 @@ This directory is the fix. It is **still incomplete** — see below.
 | `leaderboard-api` | v24 |
 | `newbiz-api` | v22 |
 | `ops-auth` | v1 |
-| `ops-directory` | v28 |
+| `ops-directory` | v29 |
 | `ops-inforce` | v13 |
 | `ops-metrics` | v5 |
 | `ops-nbfeed` | v23 |
@@ -147,14 +147,19 @@ reads `annual_premium`:
 | `ops-metrics` | yes | yes | credits each side to its own baseshop |
 | `ops-nbfeed` | yes | yes | fixed in v23 |
 | `ops-inforce` | **no** | no | correct — it totals the policies on screen, not people |
-| `ops-directory` | **yes** | **NO** | `polByAgent()` credits the writer 100% |
+| `ops-directory` | yes | yes | fixed in v29 |
 | `team-board` | yes | **NO** | **dead code**, see below |
 
-`ops-directory` is the live outlier and the difference is large: Christopher reads $145,501 where
-the split-aware figure is $116,365; Todd Doyle reads $0 against $25,617 of real split business.
-Whether that is wrong depends on what the Operations Tracker's AP column is meant to MEAN —
-"business this person wrote" (writer takes all) or "this person's production" (split) — which is
-a business decision, not a code one. Left as found, deliberately, pending that decision.
+`ops-directory` was the live outlier until v29. Christopher decided it on 2026-10-21 —
+"operations tracker, split as normal" — so the Tracker now divides like every other per-agent
+figure. Verified against all 137 agents after deploying: zero mismatches.
+
+**An empty string is not a partner.** Three agents appeared to disagree in that check until the
+cause was found: `split_agent_code` is sometimes `''` rather than NULL, and SQL's `IS NOT NULL`
+treats empty as a real partner while the functions' `norm()` test treats it as absent. The
+FUNCTIONS are right and consistent — leaderboard-api and ops-directory both credit the writer in
+full when no partner is recorded. Any query written to audit this must test for a non-empty
+code, not merely a non-null one.
 
 `team-board` is **retired**. `index.html` stopped calling it (its comment: it "duplicated the
 ranking and capped it at 10 without zeros, so it drifted from the other tabs") and the dead `TB`

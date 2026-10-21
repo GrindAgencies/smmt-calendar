@@ -48,9 +48,13 @@ without a PIN, for a future base launch"**. So the day anyone is assigned
 * every GRIND agent immediately sees all 71 SUMMIT people, and
 * every SUMMIT agent immediately sees the new base,
 
-with no deploy, no migration and nothing in any log. If the new base is meant to be
-independent, **remove GRIND from `baseshop_groups` before assigning anyone to it.** If it is
-meant to be Christopher's own base fused with SUMMIT, the group is already right — but that
-should be a decision, not an accident.
+with no deploy, no migration and nothing in any log.
+
+**DECIDED 2026-10-21 — Christopher: "share grind with SUMMIT".** The fusion stays. GRIND and
+SUMMIT are one shop for visibility, so when GRIND launches its agents and SUMMIT's see each
+other from day one, and no change is needed: `baseshop_groups` is already correct for that
+intent. This is now a recorded decision rather than a leftover — if a FUTURE base is ever
+meant to be independent, it must be given a name that is NOT in this group, or be removed
+from it before anyone is assigned.
 
 TITANS, ELEVATE and SCAPED each form a group of one and are correctly isolated.

@@ -1,4 +1,11 @@
-// ops-directory v28 — Operations Tracker API.
+// ops-directory v29 — Operations Tracker API.
+//
+// v29 (2026-10-21): THE TRACKER SPLITS A SPLIT POLICY. Christopher: "operations tracker,
+//   split as normal." polByAgent() credited the writing agent 100% of a split and the
+//   partner nothing, making this the only per-agent premium figure in the platform that did
+//   not divide — leaderboard-api, newbiz-api, ops-metrics and ops-nbfeed all do. Across 113
+//   splits and $638,611 of premium, $286,247 sat on the wrong name and 39 partners were
+//   credited nothing at all. Todd Doyle read $0 against $25,617 of real split business.
 //
 // v28 (2026-10-15): A TYPED CODE IS NOT A CREDENTIAL. auth() accepted three strings as
 //   proof of identity, none of them secret:
@@ -126,10 +133,44 @@ function authOf(core: any, sessionOk: boolean, meCode: string) {
   return { ok: false, error: "The Operations Tracker is for Operations staff and leaders (Marketing Director and above)." };
 }
 
+/* EVERY SIDE OF A SPLIT IS CREDITED TO ITS OWN AGENT (v29, Christopher: "operations
+   tracker, split as normal").
+
+   Until v29 this credited the WRITER the whole premium and the partner nothing, which made
+   the Tracker the one per-agent figure in the platform that did not split — leaderboard-api,
+   newbiz-api, ops-metrics and ops-nbfeed all do. Across 113 splits and $638,611 of premium
+   that silently moved $286,247 onto the wrong name: Christopher read $145,501 against a true
+   $116,365, Gage Griffin $85,980 against $58,503, and Todd Doyle read $0 against $25,617 of
+   real business, so a producing agent looked idle.
+
+   The share is the same one every other function uses: split_pct is the WRITER's percentage,
+   defaulting to 50 when a split carries no figure. A policy with no split, or a split with no
+   partner recorded, is unchanged and credits the writer in full. Counts and status buckets
+   follow the premium — a split policy is one piece of work for each of the two people on it,
+   which is what the Tracker's `count` has always meant for the writer. */
 async function polByAgent() {
-  const pols = await getJSON(`policies?select=agent_code,annual_premium,status,chargeback_amount&limit=20000`);
+  const pols = await getJSON(`policies?select=agent_code,annual_premium,status,chargeback_amount,split_flag,split_pct,split_agent_code&limit=20000`);
   const m: Record<string, any> = {};
-  pols.forEach((p: any) => { const c = norm(p.agent_code); if (!c) return; const b = bucket(p.status); const o = m[c] || (m[c] = { count: 0, ap: 0, pending: 0, approved: 0, paid: 0, closed: 0, cb: 0 }); o.count++; if (b !== "closed") o.ap += numOr(p.annual_premium); o[b] = (o[b] || 0) + 1; o.cb += numOr(p.chargeback_amount); });
+  const credit = (code: unknown, p: any, share: number) => {
+    const c = norm(code); if (!c) return;
+    const b = bucket(p.status);
+    const o = m[c] || (m[c] = { count: 0, ap: 0, pending: 0, approved: 0, paid: 0, closed: 0, cb: 0 });
+    o.count++;
+    if (b !== "closed") o.ap += numOr(p.annual_premium) * share;
+    o[b] = (o[b] || 0) + 1;
+    o.cb += numOr(p.chargeback_amount) * share;
+  };
+  pols.forEach((p: any) => {
+    const partner = norm(p.split_agent_code);
+    if (p.split_flag && partner) {
+      const sp = (p.split_pct != null && p.split_pct !== "") ? numOr(p.split_pct) : 50;
+      const wShare = Math.max(0, Math.min(100, sp)) / 100;
+      credit(p.agent_code, p, wShare);
+      credit(partner,      p, 1 - wShare);
+    } else {
+      credit(p.agent_code, p, 1);
+    }
+  });
   return m;
 }
 function trackerRow(a: any, nb: any, core: any) {
