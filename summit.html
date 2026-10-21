@@ -166,6 +166,18 @@ h1.big{margin:4px 0 0;font-size:26px;letter-spacing:-.01em;font-weight:800}
 .rank-req h2{margin:2px 0 0;font-size:20px;font-weight:800;line-height:1.2}
 .rank-req .cnt{margin-left:auto;font-size:19px;font-weight:900;color:var(--summit-bright);
   font-variant-numeric:tabular-nums}
+/* Alternative-path stages (Marketing Director, EMD). Both groups are always visible so the
+   evidence on the path you are not currently chasing is never hidden or lost. */
+.altnote{margin:2px 0 10px;font-size:12.5px;color:var(--ink2);font-weight:600;}
+.pathgrp{border:1px solid var(--line2);border-radius:14px;padding:10px;margin-bottom:12px;}
+.pathgrp.done{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold) inset;}
+.pathhd{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:2px 4px 9px;font-size:13px;letter-spacing:-.01em;}
+.pathhd b{font-weight:800;}
+.pathcnt{font-size:12px;font-weight:700;color:var(--ink2);white-space:nowrap;}
+.pathgrp.done .pathcnt{color:var(--gold);}
+.stmean{font-size:12.5px;color:var(--ink2);margin:2px 0 0;font-weight:600;}
+@media(max-width:560px){.pathhd{flex-wrap:wrap;}.pathcnt{flex:0 0 auto;}}
 .reqrow{display:flex;align-items:flex-start;gap:12px;padding:12px;border-radius:13px;
   border:1px solid transparent;cursor:pointer;transition:.15s}
 .reqrow:hover{background:rgba(215,174,84,.05)}
@@ -457,8 +469,8 @@ function laurel(side){
    generated SVG below stays as rankBadgeSVG(): it is what draws if an image ever fails to load,
    so a rank is never a blank square. */
 function rankBadgeSVG(level,state,size,prestige){
-  level=Math.max(1,Math.min(19,level|0)); size=size||120;
-  prestige=(level>=19)?Math.max(0,Math.min(5,prestige|0)):0;
+  level=Math.max(1,Math.min(STAGE_COUNT,level|0)); size=size||120;
+  prestige=(level>=stageIndexById('emd')+1)?Math.max(0,Math.min(5,prestige|0)):0;
   var band=Math.min(4,Math.floor((level-1)/4));
   var m=METALS[band], uid='rk'+level+'_'+Math.floor(Math.random()*1e6);
   var pts=6+Math.floor((level-1)/2)*2;                 /* 6 -> 24 */
@@ -507,9 +519,9 @@ function rankBadgeSVG(level,state,size,prestige){
     +'<text x="50" y="86" font-size="12.5" font-weight="900" text-anchor="middle" fill="'+(dim?'#e6e0d2':'#fff')
     +'" font-family="Inter,-apple-system,sans-serif" letter-spacing=".5">'+(level<10?('0'+level):level)+'</text>';
   /* band pips */
-  var pipN=(level>=19&&prestige)?prestige:pip;
+  var pipN=(level>=RANK_ART_MAX&&prestige)?prestige:pip;
   for(var p2=0;p2<pipN;p2++){var px=50+(p2-(pipN-1)/2)*7.5;
-    g+='<path d="'+starPath(px,66,2.7,1.15,5)+'" fill="'+(dim?'#b9b0a0':((level>=19&&prestige)?GEMHUE[2]:'#fff'))+'" opacity=".95"/>';}
+    g+='<path d="'+starPath(px,66,2.7,1.15,5)+'" fill="'+(dim?'#b9b0a0':((level>=RANK_ART_MAX&&prestige)?GEMHUE[2]:'#fff'))+'" opacity=".95"/>';}
   g+='</g>';
 
   return '<svg viewBox="0 0 100 100" width="'+size+'" height="'+size+'" role="img" aria-label="Level '+level+' emblem">'
@@ -523,13 +535,22 @@ function rankBadgeSVG(level,state,size,prestige){
 /* Same signature as before: level 1-19, state complete|current|future, pixel size, prestige 0-5.
    Small list badges (34-40px) load the 128px set; the 290px hero loads the 512px one, so the map
    does not pull a megabyte of artwork to draw thumbnails. */
+/* There are exactly 19 pieces of rank artwork on disk (assets/ranks/rank-01..19.webp). The
+   twentieth stage, Senior Partner, has none — so rather than request rank-20.webp and get a
+   404 and a blank square, levels past the artwork are drawn with the generated emblem that
+   already exists as the fallback for every other level. Raise this the day art 20 lands. */
+var RANK_ART_MAX=19;
 function rankBadge(level,state,size,prestige){
-  level=Math.max(1,Math.min(19,level|0)); size=size||120;
+  level=Math.max(1,Math.min(STAGE_COUNT,level|0)); size=size||120;
   /* Past EMD the emblem grows on CASHFLOW, not promotion. The artwork is fixed, so each level Eli
      has set adds a DIAMOND under the badge — Christopher, 2026-09-30: "set more levels to be able
-     to add diamonds to the emblem to make them grow". The cap is however many levels exist. */
+     to add diamonds to the emblem to make them grow". The cap is however many levels exist.
+     EMD moved from level 19 to level 15 when the ladder was rebuilt, so "past EMD" is resolved
+     from the ladder rather than from a number that silently became wrong. */
+  var emdLevel=stageIndexById('emd')+1;
   var maxPrestige=cashTiers().length;
-  prestige=(level>=19)?Math.max(0,Math.min(maxPrestige,prestige|0)):0;
+  prestige=(level>=emdLevel)?Math.max(0,Math.min(maxPrestige,prestige|0)):0;
+  if(level>RANK_ART_MAX) return rankBadgeSVG(level,state,size,prestige);
   var nn=(level<10?'0':'')+level;
   var src=(size<=72?'assets/ranks/sm/rank-':'assets/ranks/rank-')+nn+'.webp';
   var future=(state==='future');
@@ -577,32 +598,195 @@ document.addEventListener('error', function(e){
     if(t.parentNode)t.parentNode.innerHTML=svg;
   }catch(_){}
 }, true);
-var STAGES=["ICA","Orientation 1 / 2","Schedule Exam","Personal Financial Review","Become a Client",
-"First 10 Field Trainings","Senior Associate","Pass Exam","Apply to State","Fully Licensed",
-"Complete 25 FTAs","Sign Off CFT","MD Promotion","50K Watch Earner","Promote","10 Licensed Agents",
-"2 MDs","100K Ring","EMD"];
+/* ===== THE ROAD — twenty stages, exactly as Elijah dictated 2026-10-20 ==================
+   Replaces the old nineteen-stage ladder and its "Promotion Requirement 1-4" placeholders.
+
+   WHY THIS IS DATA AND NOT AN ARRAY OF NAMES. The old ladder was a list of 19 titles with a
+   fixed four placeholder requirements under each, and completion was stored by ARRAY POSITION
+   - agent, stage number, [true,false,...]. That is why nothing could survive a reorder: stage 7
+   meant "Pass Exam" on Monday and "First Three Clients" on Tuesday, and the stored ticks did not
+   know the difference. Every stage, path and requirement below carries a STABLE ID. Display
+   order is an attribute, never the identity, and completion is stored against those ids.
+
+   Requirement counts vary on purpose: 3, 5, 4, 6, 10, 3, 3, 3, 2, 5, then the alternatives,
+   then 1, 3, 1, alternatives, 4, 4, 3, 4, 4. Nothing here may assume four.
+
+   Stages 11 and 15 are ALTERNATIVES: completing every requirement of EITHER path qualifies.
+   A partial mixture across both paths does not. */
+var LADDER=[
+ {id:'ica', title:'ICA', meaning:"Complete the Independent Contractor's Agreement", reqs:[
+   {id:'bg_done', label:'Complete background check.'},
+   {id:'bg_paid', label:'Pay for the background check.'},
+   {id:'code',    label:'Memorize the code number.'}]},
+
+ {id:'onb1', title:'Onboarding 1', reqs:[
+   {id:'orient1', label:'Attend Orientation 1 class.'},
+   {id:'mwli',    label:'Complete Money Wealth Life Insurance.'},
+   {id:'rdpd',    label:'Complete Rich Dad Poor Dad.'},
+   {id:'pfr',     label:'Schedule your PFR.'},
+   {id:'exam',    label:'Schedule your exam.'}]},
+
+ {id:'onb2', title:'Onboarding 2', reqs:[
+   {id:'comp',      label:'Understand and explain compensation.'},
+   {id:'levels',    label:'Memorize promotion levels.'},
+   {id:'overrides', label:'Understand overrides.'},
+   {id:'list',      label:'Build a list.'}]},
+
+ {id:'list', title:'Building Your List', reqs:[
+   {id:'righthand',  label:'Top 25 Right-Hand Men / Women.'},
+   {id:'dreamers',   label:'Top 25 Big Dreamers.'},
+   {id:'trainers',   label:'Top 25 Trainers and Builders.'},
+   {id:'influential',label:'Top 25 Most Influential People.'},
+   {id:'networks',   label:'Top 25 People with Large Networks.'},
+   {id:'savvy',      label:'Top 25 Financially Savvy People.'}]},
+
+ {id:'appts', title:'Top 10 Appointments', reqs:[
+   {id:'a1',label:'Appointment 1.'},{id:'a2',label:'Appointment 2.'},
+   {id:'a3',label:'Appointment 3.'},{id:'a4',label:'Appointment 4.'},
+   {id:'a5',label:'Appointment 5.'},{id:'a6',label:'Appointment 6.'},
+   {id:'a7',label:'Appointment 7.'},{id:'a8',label:'Appointment 8.'},
+   {id:'a9',label:'Appointment 9.'},{id:'a10',label:'Appointment 10.'}]},
+
+ {id:'partners3', title:'First Three Business Partners', reqs:[
+   {id:'p1',label:'Business partner 1.'},
+   {id:'p2',label:'Business partner 2.'},
+   {id:'p3',label:'Business partner 3.'}]},
+
+ /* The product types are part of the requirement, not examples. */
+ {id:'clients3', title:'First Three Clients', reqs:[
+   {id:'c1',label:'Client 1 — Term.'},
+   {id:'c2',label:'Client 2 — IUL.'},
+   {id:'c3',label:'Client 3 — FIA.'}]},
+
+ /* Aggregates of stages 6 and 7 - NOT three more partners and three more clients. */
+ {id:'senior_assoc', title:'Senior Associate Promotion', reqs:[
+   {id:'three_partners',label:'Three business partners.'},
+   {id:'three_clients', label:'Three clients.'},
+   {id:'pass_exam',     label:'Pass your exam.'}]},
+
+ {id:'net_license', title:'Get Your Net License', reqs:[
+   {id:'lic_appt',label:'Get fully licensed and appointed.'},
+   {id:'first1k', label:'Make $1,000.'}]},
+
+ {id:'producers', title:"The Producer's Club", reqs:[
+   {id:'present',  label:'Signed off to present.'},
+   {id:'illustrate',label:'Signed off to illustrate.'},
+   {id:'apps',     label:'Signed off for applications.'},
+   {id:'cft',      label:'Signed off as a Certified Field Trainer (CFT).'},
+   {id:'ten_k',    label:'Make $10,000.'}]},
+
+ /* NET licensed in Option 1, LICENSED in Option 2. The distinction is deliberate. */
+ {id:'md_promo', title:'Hit Marketing Director Promotion', paths:[
+   {id:'opt1', name:'Option 1', reqs:[
+     {id:'points45k',label:'45,000 team points.'},
+     {id:'net5',     label:'Five net licensed agents.'},
+     {id:'cash25k',  label:'$25,000 in cash flow.'}]},
+   {id:'opt2', name:'Option 2', reqs:[
+     {id:'cash50k',  label:'$50,000 in cash flow.'},
+     {id:'lic10',    label:'Ten licensed agents.'}]}]},
+
+ {id:'watch50k', title:'50K Watch Earner', reqs:[
+   {id:'cash50k_rolling',label:'Make $50,000 in cash flow over a rolling twelve-month period.'}]},
+
+ {id:'pre_emd', title:'Pre-EMD', reqs:[
+   {id:'cash75k_personal',label:'$75,000 in personal cash flow.'},
+   {id:'one_md',          label:'One Marketing Director.'},
+   {id:'net10',           label:'Ten net licensed agents.'}]},
+
+ {id:'ring100k', title:'100K Ring Earner', reqs:[
+   {id:'cash100k_rolling',label:'Make $100,000 in cash flow over a rolling twelve-month period.'}]},
+
+ /* 85% persistency is mandatory on BOTH paths. The 50% personal condition lives inside the
+    points requirement, not as a sixth checkbox. */
+ {id:'emd', title:'EMD', meaning:'Executive Marketing Director', paths:[
+   {id:'path1', name:'Path 1', reqs:[
+     {id:'points150k_6mo',label:'150,000 points in six months; 50% must be personal.'},
+     {id:'ring100k',      label:'100K Ring Earner.'},
+     {id:'watch_md',      label:'One 50K Watch Earner MD.'},
+     {id:'second_leg',    label:'Second MD Insurance Leg.'},
+     {id:'persist85',     label:'85% persistency.'}]},
+   {id:'path2', name:'Path 2', reqs:[
+     {id:'points250k_12mo',label:'250,000 points in twelve months; 50% must be personal.'},
+     {id:'watch_md',       label:'One 50K Watch Earner MD.'},
+     {id:'second_leg',     label:'Second MD Insurance Leg.'},
+     {id:'cash150k_personal',label:'$150,000 in personal cash flow.'},
+     {id:'persist85',      label:'85% persistency.'}]}]},
+
+ {id:'big_base', title:'The Big Base Shop', reqs:[
+   {id:'million_base',label:'One million point base shop.'},
+   {id:'lic50',       label:'Fifty licensed agents.'},
+   {id:'ring250k',    label:'Personal 250K Ring.'},
+   {id:'six_figure',  label:'One six-figure earner.'}]},
+
+ {id:'nvp', title:'National Vice President', reqs:[
+   {id:'emd3_direct',label:'Three direct Executive Marketing Directors.'},
+   {id:'team2m',     label:'Two million point team.'},
+   {id:'lic100',     label:'One hundred licensed agents.'},
+   {id:'persist85',  label:'85% persistency.'}]},
+
+ {id:'leaders_council', title:'Leaders Council', reqs:[
+   {id:'ring500k',label:'500K Ring.'},
+   {id:'team3m',  label:'Three million point team.'},
+   {id:'nvp',     label:'NVP (National Vice President).'}]},
+
+ {id:'svp', title:'Senior Vice President', reqs:[
+   {id:'emd6_direct',label:'Six direct EMDs (Executive Marketing Directors).'},
+   {id:'persist90',  label:'90% persistency.'},
+   {id:'team5m',     label:'Five million point team.'},
+   {id:'ring1m',     label:'$1 million ring.'}]},
+
+ {id:'senior_partner', title:'Senior Partner', reqs:[
+   {id:'team10m',     label:'Ten million point team.'},
+   {id:'emd10_direct',label:'Ten direct EMDs (Executive Marketing Directors).'},
+   {id:'ring1m',      label:'$1 million ring.'},
+   {id:'persist90',   label:'90% persistency.'}]}
+];
+/* Titles only, for badge alt text and anywhere a flat list is still convenient. */
+var STAGES=LADDER.map(function(s){return s.title;});
+var STAGE_COUNT=LADDER.length;
+
+/* Every requirement of a stage, flattened, each carrying the path it belongs to. */
+function reqsOf(i){
+  var s=LADDER[i]; if(!s) return [];
+  if(s.paths){
+    var out=[];
+    s.paths.forEach(function(p){ p.reqs.forEach(function(r){
+      out.push({key:s.id+'.'+p.id+'.'+r.id, label:r.label, path:p.id, pathName:p.name});
+    });});
+    return out;
+  }
+  return s.reqs.map(function(r){ return {key:s.id+'.'+r.id, label:r.label, path:null}; });
+}
 
 /* What the platform already knows, shown beside the manual checkboxes. No requirement is
    invented here — these are facts the app holds, offered as corroboration. */
 function platformSays(i,s){
   s=s||{}; var L=(s.license_status||''), lvl=(s.contract_level||'').toLowerCase();
-  var ft=Number(s.field_trainings)||0;
+  var id=(LADDER[i]||{}).id;
   /* Once a count is past its target, saying "14 of 10" reads like a mistake. */
   var tally=function(cur,tgt,noun){
     return cur>=tgt ? (noun+': <b>'+cur+'</b> — target of '+tgt+' met.')
                     : (noun+': <b>'+cur+'</b> of '+tgt+'.');};
-  if(i===0&&s.ica)return 'Your record shows an ICA on file.';
-  if(i===2&&L==='Exam Scheduled')return 'Licensing board: <b>Exam Scheduled</b>.';
-  if(i===5&&ft)return tally(ft,10,'Field trainings logged');
-  if(i===6&&lvl.indexOf('senior')>=0)return 'Contract level: <b>Senior Associate</b>.';
-  if(i===7&&(L==='Passed Exam'||L==='Fully Licensed & Appointed'))return 'Licensing board: <b>exam passed</b>.';
-  if(i===8&&L.indexOf('Applied to the State')>=0)return 'Licensing board: <b>applied to the state</b>.';
-  if(i===9&&L==='Fully Licensed & Appointed')return 'Licensing board: <b>Fully Licensed &amp; Appointed</b>.';
-  if(i===10&&ft)return tally(ft,25,'Field trainings logged');
-  if(i===12&&(lvl==='md'||lvl.indexOf('marketing director')>=0))return 'Contract level: <b>Marketing Director</b>.';
-  if(i===15&&s.team_licensed!=null)return tally(Number(s.team_licensed)||0,10,'Licensed agents on your team');
-  if(i===16&&s.team_mds!=null)return tally(Number(s.team_mds)||0,2,'MDs on your team');
-  if(i===18&&(lvl==='emd'||lvl.indexOf('executive')>=0))return 'Contract level: <b>Executive Marketing Director</b>.';
+  /* Keyed to the STAGE ID, never its position. The previous version tested i===2, i===5,
+     i===9 and so on against the old ladder; after the rebuild those positions mean entirely
+     different milestones, so it would have told someone on Onboarding 2 that their exam was
+     scheduled and shown a field-training tally beside First Three Business Partners.
+     Field-training counts are deliberately absent: Top 10 Appointments is NOT the old First
+     10 Field Trainings stage, and the brief is explicit that it must not be filled from it. */
+  if(id==='ica'&&s.ica)return 'Your record shows an ICA on file.';
+  if(id==='onb1'&&L==='Exam Scheduled')return 'Licensing board: <b>Exam Scheduled</b> — scheduling is this stage; passing comes later.';
+  if(id==='senior_assoc'){
+    if(L==='Passed Exam'||L==='Fully Licensed & Appointed')return 'Licensing board: <b>exam passed</b>.';
+    if(lvl.indexOf('senior')>=0)return 'Contract level: <b>Senior Associate</b>.';
+  }
+  if(id==='net_license'){
+    if(L==='Fully Licensed & Appointed')return 'Licensing board: <b>Fully Licensed &amp; Appointed</b>.';
+    if(L.indexOf('Applied to the State')>=0)return 'Licensing board: <b>applied to the state</b> — not yet licensed and appointed.';
+  }
+  if(id==='md_promo'&&(lvl==='md'||lvl.indexOf('marketing director')>=0))return 'Contract level: <b>Marketing Director</b>.';
+  if(id==='pre_emd'&&s.team_licensed!=null)return tally(Number(s.team_licensed)||0,10,'Licensed agents on your team');
+  if(id==='emd'&&(lvl==='emd'||lvl.indexOf('executive')>=0))return 'Contract level: <b>Executive Marketing Director</b>.';
+  if(id==='nvp'&&lvl.indexOf('vice president')>=0)return 'Contract level: <b>National Vice President</b>.';
   return null;
 }
 
@@ -1167,30 +1351,85 @@ function ladderAgents(){
 /* Stages the platform can already prove for this agent: rank, the licensing board, the steps
    they ticked in My Tracker, and logged field trainings. Per stage rather than a single floor —
    somebody can have ten field trainings done and still not have passed the exam. */
-function stagesOf(code){var a=(BOARD.stages||{})[code];return Array.isArray(a)?a:[];}
-function isDerived(code,i){return stagesOf(code).indexOf(i)>=0;}
+/* ===== WHAT COUNTS AS DONE ==============================================================
+   Three sources, in order of authority:
+     1. RANK the company has actually awarded   - proves the stages up to that promotion
+     2. RECORDS the platform already holds      - licensing board, exam
+     3. MANUAL ticks against a stable requirement id
+   Nothing else. A requirement whose evidence is unknown stays UNRESOLVED; it never defaults
+   to complete because the text happens to be on screen. */
 
-/* Each baseshop sets its own promotion standards; a shop that has set none uses the placeholders. */
-var DEFAULT_REQS=['Promotion Requirement 1','Promotion Requirement 2','Promotion Requirement 3','Promotion Requirement 4'];
+/* The rank ceiling, and which requirements the platform's own records already prove.
+   BOTH ARE RESOLVED SERVER-SIDE (summit-api board -> BOARD.derived) and simply read here.
+   The previous version computed this in the browser from the licensing signals, which only
+   ever load for the signed-in user — every teammate would have silently shown as having no
+   record evidence at all. The server sees every agent the caller may view, so it answers for
+   all of them or for none.
+
+   A rank proves the ladder up to its OWN promotion stage and not one rung further. The old
+   rule cleared EVERY stage for an EMD or NVP; under the new ladder that would have quietly
+   certified The Big Base Shop, Leaders Council, SVP and Senior Partner for people who have
+   never been assessed against them. */
+function stageIndexById(id){for(var i=0;i<LADDER.length;i++)if(LADDER[i].id===id)return i;return -1;}
+function derivedOf(code){ return ((BOARD.derived||{})[code])||{}; }
+function rankClearsTo(code){
+  var d=derivedOf(code);
+  if(typeof d.upto==='string'&&d.upto) return stageIndexById(d.upto);
+  return -1;
+}
+function derivedReqs(code){ return derivedOf(code).reqs||{}; }
+function isDerived(code,i){var c=rankClearsTo(code);return c>=0&&i<=c;}
+
+/* A baseshop may still override the wording for a stage. With no override the canonical
+   labels above are used - there are no "Promotion Requirement 1-4" placeholders any more. */
 function shopOf(code){var n=BYCODE[code];return ((n&&n.baseshop)||BOARD.my_baseshop||'').toLowerCase();}
 function reqLabels(code,i){
   var byShop=(BOARD.requirements||{})[shopOf(code)]||{};
   var l=byShop[String(i)];
-  return (Array.isArray(l)&&l.length)?l:DEFAULT_REQS;
+  var canon=reqsOf(i);
+  if(Array.isArray(l)&&l.length){
+    /* An override renames in place; it cannot change how many requirements a stage has,
+       because the ids are what completion is stored against. */
+    return canon.map(function(r,k){ return {key:r.key, label:(l[k]||r.label), path:r.path, pathName:r.pathName}; });
+  }
+  return canon;
+}
+function checkMap(code){ return (BOARD.checks||{})[code]||{}; }
+function reqDone(code,i,key){
+  if(isDerived(code,i))return true;
+  var d=derivedReqs(code); if(d[key])return true;
+  return checkMap(code)[key]===true;
 }
 function checksFor(code,i){
-  var n=reqLabels(code,i).length;
-  /* A rank the company has already awarded outranks a checkbox. If the record says EMD, the
-     ladder beneath it is cleared — a stray all-false row must not un-complete it. Manual ticks
-     only ever ADD, on top of what the platform can prove. */
-  if(isDerived(code,i)){var t=[];for(var j=0;j<n;j++)t.push(true);return t;}
-  var p=(BOARD.progress[code]||{})[String(i)];
-  var out=[];for(var k=0;k<n;k++)out.push(Array.isArray(p)?(p[k]===true):false);
-  return out;
+  return reqLabels(code,i).map(function(r){ return reqDone(code,i,r.key); });
+}
+/* Stages 11 and 15 qualify on EITHER complete path. A partial mixture never qualifies. */
+function pathProgress(code,i){
+  var s=LADDER[i]; if(!s||!s.paths)return null;
+  return s.paths.map(function(p){
+    var done=p.reqs.filter(function(r){return reqDone(code,i,s.id+'.'+p.id+'.'+r.id);}).length;
+    return {id:p.id, name:p.name, done:done, total:p.reqs.length, complete:done===p.reqs.length};
+  });
 }
 function stageComplete(code,i){
   if(isDerived(code,i))return true;
-  var c=checksFor(code,i);return c.length&&c.every(Boolean);
+  var pp=pathProgress(code,i);
+  if(pp)return pp.some(function(p){return p.complete;});
+  var c=checksFor(code,i);
+  return c.length>0&&c.every(Boolean);
+}
+/* The headline fraction. For an alternatives stage it is the BEST single path, never the sum
+   across both - showing 3/5 when one 2-item path is finished would be a lie. */
+function stageCount(code,i){
+  var pp=pathProgress(code,i);
+  if(pp){
+    var best=pp[0];
+    pp.forEach(function(p){ if(p.complete&&!best.complete) best=p;
+      else if(p.complete===best.complete && (p.done/p.total)>(best.done/best.total)) best=p; });
+    return {done:best.done,total:best.total};
+  }
+  var c=checksFor(code,i);
+  return {done:c.filter(Boolean).length, total:c.length};
 }
 function cashOf(code){var c=(BOARD.cash||{})[code];return c?c:{amount:0,prestige:0};}
 /* The cashflow levels past EMD are Eli's and Operations' to set (summit-api v5,
@@ -1268,7 +1507,7 @@ function renderTeamLadder(){
       +'<span><b>'+team.length+'</b><i>on your team</i></span>'
       +'<span><b>'+team.filter(function(t){return t.done>0;}).length+'</b><i>have started</i></span>'
       +'<span><b>'+avg+'</b><i>average stages cleared</i></span>'
-      +'<span><b>'+team.filter(function(t){return t.done>=19;}).length+'</b><i>at EMD</i></span>'
+      +'<span><b>'+team.filter(function(t){return t.done>=stageIndexById('emd')+1;}).length+'</b><i>at EMD or beyond</i></span>'
     +'</div></div>'
     +'<div class="panel">'+rows+'</div>';
 }
@@ -1277,8 +1516,9 @@ function renderRoad(){
   if(ROADVIEW==='team')return renderTeamLadder();
   var agents=ladderAgents();
   var sig=(LADDER===CODE)?(BOARD.signals||{}):{};
-  var checks=checksFor(LADDER,STEP), done=checks.filter(Boolean).length, total=checks.length||4;
-  var cleared=stagesDone(LADDER), pctAll=Math.round(cleared/STAGES.length*100);
+  var checks=checksFor(LADDER,STEP);
+  var sc=stageCount(LADDER,STEP), done=sc.done, total=sc.total;
+  var cleared=stagesDone(LADDER), pctAll=Math.round(cleared/STAGE_COUNT*100);
   var st=stageState(LADDER,STEP);
 
   var mini=STAGES.map(function(sg,i){
@@ -1290,12 +1530,31 @@ function renderRoad(){
 
   var auto=isDerived(LADDER,STEP);
   var labels=reqLabels(LADDER,STEP);
-  var reqs=labels.map(function(lb,i){
-    return '<label class="reqrow'+(checks[i]?' checked':'')+'" onclick="toggleReq('+i+')">'
+  var drv=derivedReqs(LADDER);
+  function reqRow(r){
+    var on=reqDone(LADDER,STEP,r.key);
+    var why=!on?'Requirement pending':(auto?'Cleared by record':(drv[r.key]?'Cleared by record':'Completed'));
+    return '<label class="reqrow'+(on?' checked':'')+'" onclick="toggleReq(\''+esc(r.key)+'\')">'
       +'<span class="ck">\u2713</span>'
-      +'<div><strong>'+esc(lb)+'</strong>'
-      +'<small>'+(checks[i]?(auto?'Cleared by record':'Completed'):'Requirement pending')+'</small></div></label>';
-  }).join('');
+      +'<div><strong>'+esc(r.label)+'</strong><small>'+why+'</small></div></label>';
+  }
+  var pp=pathProgress(LADDER,STEP), reqs;
+  if(pp){
+    /* Both paths stay inspectable. Switching between them must never erase the other's
+       evidence, so both are rendered - neither is hidden behind a toggle. */
+    var sdef=LADDER[STEP];
+    reqs='<p class="altnote">Either complete path qualifies \u2014 you do not need both.</p>'
+      +sdef.paths.map(function(p,pi){
+        var pr=pp[pi];
+        return '<div class="pathgrp'+(pr.complete?' done':'')+'">'
+          +'<div class="pathhd"><b>'+esc(p.name)+'</b>'
+          +'<span class="pathcnt">'+pr.done+'/'+pr.total+(pr.complete?' \u00b7 qualifies':'')+'</span></div>'
+          +p.reqs.map(function(r){return reqRow({key:sdef.id+'.'+p.id+'.'+r.id,label:r.label});}).join('')
+          +'</div>';
+      }).join('');
+  } else {
+    reqs=labels.map(reqRow).join('');
+  }
 
   var says=platformSays(STEP,sig);
   var swipe=STAGES.map(function(sg,i){
@@ -1306,9 +1565,9 @@ function renderRoad(){
 
   $('view').innerHTML=roadHeader()
     +'<div class="overall">'
-      +'<span class="ov1">Stage <b>'+(STEP+1)+'</b> of 19</span>'
+      +'<span class="ov1">Stage <b>'+(STEP+1)+'</b> of '+STAGE_COUNT+'</span>'
       +'<span class="ovbar"><span style="width:'+pctAll+'%"></span></span>'
-      +'<span class="ov2"><b>'+cleared+'</b> of 19 stages cleared \u00b7 '+pctAll+'%</span>'
+      +'<span class="ov2"><b>'+cleared+'</b> of '+STAGE_COUNT+' stages cleared \u00b7 '+pctAll+'%</span>'
     +'</div>'
     +'<div class="mini-track">'+mini+'</div>'
     +'<div class="stagewrap">'
@@ -1318,6 +1577,7 @@ function renderRoad(){
     +'<p>Level '+(STEP<9?('0'+(STEP+1)):(STEP+1))+' emblem</p><small>Summit progression badge</small></div>'
     +'<div class="rank-req"><header><div><div class="eyebrow">Progression step</div>'
     +'<h2>'+esc(STAGES[STEP])+'</h2>'
+    +(LADDER[STEP].meaning?('<div class="stmean">'+esc(LADDER[STEP].meaning)+'</div>'):'')
     +'<span class="stchip '+st+'">'+(st==='complete'?'Stage complete':(st==='started'?'In progress':'Not started'))+'</span>'
     +'</div><span class="cnt">'+done+'/'+total+'</span></header>'
     +reqs
@@ -1325,7 +1585,7 @@ function renderRoad(){
     +(auto?('<div class="platform">Cleared automatically from '+esc(LADDER===CODE?'your':'their')+' record \u2014 '
             +esc(rankLabelOf(LADDER))+'.</div>'):'')
     +(says?('<div class="platform">'+says+'</div>'):'')
-    +(STEP===18?cashPanel(LADDER):'')
+    +(STEP===stageIndexById('emd')?cashPanel(LADDER):'')
     +(BOARD.can_set_standards?('<button class="ghost" style="margin-top:12px" onclick="openStandards('+STEP+')">Edit '+esc(shopOf(LADDER).toUpperCase()||'shop')+' standards for this stage</button>'):'')
     +'</div></div>'
     +'<button class="arrow" onclick="goStep('+(STEP+1)+')"'+(STEP===STAGES.length-1?' disabled':'')+' aria-label="Next stage">\u203a</button>'
@@ -1359,20 +1619,30 @@ function cashPanel(code){
 /* An EMD writes their own shop's promotion standards. Up to six per stage; clearing them all
    puts that stage back on the placeholders. Only this shop's EMD or Operations gets here —
    the server checks again, so hiding the button is convenience rather than the control. */
+/* The editor renames the requirements of a stage in place. It deliberately cannot ADD or
+   REMOVE requirements: the ids are what completion is stored against, so changing the count
+   would orphan evidence. A stage with alternative paths shows its groups separately and
+   labels each field with the path it belongs to. */
 function openStandards(stage){
   var shop=shopOf(LADDER)||BOARD.my_baseshop||'';
-  var cur=reqLabels(LADDER,stage);
-  var isDefault=!(((BOARD.requirements||{})[shop]||{})[String(stage)]||[]).length;
-  var fields='';
-  for(var i=0;i<6;i++){
-    var v=(!isDefault&&cur[i])?cur[i]:'';
-    fields+='<div class="fld"><label>Requirement '+(i+1)+(i>3?' (optional)':'')+'</label>'
-      +'<input id="rq'+i+'" value="'+esc(v)+'" placeholder="'+(i<4?'e.g. Submit 3 applications':'Leave blank to skip')+'"></div>';
-  }
+  var canon=reqsOf(stage);
+  var over=((BOARD.requirements||{})[shop]||{})[String(stage)]||[];
+  var isDefault=!over.length;
+  var fields='', lastPath=null;
+  canon.forEach(function(r,i){
+    if(r.pathName&&r.pathName!==lastPath){
+      lastPath=r.pathName;
+      fields+='<div class="pathhd" style="padding-top:10px"><b>'+esc(r.pathName)+'</b></div>';
+    }
+    var v=(!isDefault&&over[i])?over[i]:r.label;
+    fields+='<div class="fld"><label>Requirement '+(i+1)+'</label>'
+      +'<input id="rq'+i+'" value="'+esc(v)+'" placeholder="'+esc(r.label)+'"></div>';
+  });
   $('drawer').innerHTML='<h3>'+esc(shop.toUpperCase()||'Baseshop')+' standards</h3>'
-    +'<p class="dsub">Stage '+(stage+1)+' \u00b7 '+esc(STAGES[stage])+'. These apply to everyone in '
+    +'<p class="dsub">Stage '+(stage+1)+' \u00b7 '+esc(STAGES[stage])+' \u2014 '+canon.length+' requirement'
+    +(canon.length===1?'':'s')+'. These apply to everyone in '
     +esc(shop.toUpperCase()||'this shop')+' \u2014 other baseshops keep their own.</p>'
-    +(isDefault?'<div class="platform" style="margin:0 0 14px">Currently on the default placeholders.</div>':'')
+    +(isDefault?'<div class="platform" style="margin:0 0 14px">Currently on the standard wording. Editing changes only how a requirement reads here, never how many there are.</div>':'')
     +fields
     +'<button class="go" onclick="saveStandards('+stage+')">Save standards</button>'
     +'<button class="ghost" onclick="closeDrawer()">Cancel</button>';
@@ -1380,8 +1650,10 @@ function openStandards(stage){
 }
 function saveStandards(stage){
   var shop=shopOf(LADDER)||BOARD.my_baseshop||'';
-  var labels=[];
-  for(var i=0;i<6;i++){var e=$('rq'+i);var v=e?(e.value||'').trim():'';if(v)labels.push(v);}
+  /* One label per canonical requirement, in order. A blank field falls back to the standard
+     wording rather than deleting the requirement. */
+  var canon=reqsOf(stage), labels=[];
+  for(var i=0;i<canon.length;i++){var e=$('rq'+i);var v=e?(e.value||'').trim():'';labels.push(v||canon[i].label);}
   fetch(SUMAPI,{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({action:'req_set',code:CODE,baseshop:shop,stage_index:stage,labels:labels})})
    .then(function(r){return r.json();}).then(function(r){
@@ -1392,25 +1664,29 @@ function saveStandards(stage){
      toast(labels.length?'Standards saved for '+shop.toUpperCase():'Back to the default requirements');
    }).catch(function(){toast('Network error');});
 }
-function goStep(n){STEP=Math.max(0,Math.min(STAGES.length-1,n));renderRoad();}
-function toggleReq(i){
+function goStep(n){STEP=Math.max(0,Math.min(STAGE_COUNT-1,n));renderRoad();}
+/* Stored against the requirement's stable id, so reordering or renaming a stage can never
+   move somebody's tick onto a different milestone. */
+function toggleReq(key){
   if(isDerived(LADDER,STEP)){
     toast('Already cleared by '+(LADDER===CODE?'your':'their')+' promotion record');
     return;
   }
-  var c=checksFor(LADDER,STEP).slice();
-  c[i]=!c[i];
-  if(!BOARD.progress[LADDER])BOARD.progress[LADDER]={};
-  BOARD.progress[LADDER][String(STEP)]=c;
+  if(derivedReqs(LADDER)[key]){
+    toast('Already cleared by '+(LADDER===CODE?'your':'their')+' record');
+    return;
+  }
+  if(!BOARD.checks)BOARD.checks={};
+  if(!BOARD.checks[LADDER])BOARD.checks[LADDER]={};
+  var was=BOARD.checks[LADDER][key]===true, now=!was;
+  if(now)BOARD.checks[LADDER][key]=true; else delete BOARD.checks[LADDER][key];
   renderRoad();
+  var revert=function(){ if(was)BOARD.checks[LADDER][key]=true; else delete BOARD.checks[LADDER][key]; renderRoad(); };
   fetch(SUMAPI,{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({action:'progress_set',code:CODE,agent_code:LADDER,stage_index:STEP,checks:c})})
+    body:JSON.stringify({action:'check_set',code:CODE,agent_code:LADDER,req_key:key,done:now})})
    .then(function(r){return r.json();}).then(function(r){
-     if(!r||!r.ok){
-       c[i]=!c[i];BOARD.progress[LADDER][String(STEP)]=c;renderRoad();
-       toast((r&&r.error)||'Could not save');
-     }
-   }).catch(function(){toast('Network error — not saved');});
+     if(!r||!r.ok){ revert(); toast((r&&r.error)||'Could not save'); }
+   }).catch(function(){ revert(); toast('Network error \u2014 not saved'); });
 }
 
 /* ===== menu ===================================================================== */

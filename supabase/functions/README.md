@@ -14,8 +14,9 @@ This directory is the fix. It is **incomplete** — see below.
 |---|---|---|
 | `newbiz-api` | v22 | byte-identical to deployed |
 | `hub-sweep`  | v2  | byte-identical to deployed |
+| `summit-api` | v7  | byte-identical to deployed |
 
-**104 functions still have no copy here.**
+**103 functions still have no copy here.**
 
 ## Adding one
 
@@ -28,6 +29,11 @@ MCP `get_edge_function` call and be written out. Two things will bite you:
    the wrong version header. It looked plausible and was completely wrong.
 2. **Check the header line and the closing brace.** A truncated source will still look
    fine at a glance. `braces {n}/{n}` balanced and a trailing `});` are quick tells.
+3. **It has now gone wrong TWICE.** The second time, the extracted `summit-api` was missing
+   its entire 1,858-character "WHO IS CALLING" session-auth block — the file parsed, the
+   braces balanced, and nothing looked amiss. Had it been deployed from that copy it would
+   have silently removed identity checking from the whole endpoint. Diff against the deployed
+   source every single time; do not trust a copy because it looks complete.
 
 ## Deploying
 
