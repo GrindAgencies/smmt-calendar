@@ -270,3 +270,57 @@ tracker-api whose entrypoints sit under a nested path.
 A `get_edge_function` result over ~50KB is written to the SESSION-scoped
 tool-results directory as a .txt, not to the project-level one. The extractor
 has to scan both; nexus-app and nexus-brain were invisible until it did.
+
+## The one bug class — and a scanner for it (2026-10-21)
+
+Every auth hole found on this platform is the same mistake: deciding WHOSE data to
+serve or write from a value that arrived in the request. A GFI agent code is printed
+on the org chart; a four-digit Ops seat code is typed on a sign-in screen every
+morning. Neither is a credential. The only proofs are `agent_session_code(p_token)`,
+`ops_authorize(p_token)`, and the PIN checked server-side (`pin_verify`).
+
+`ops/scan-identity.py` sweeps all 106 backed-up sources for it. Run it after adding
+any endpoint. It strips comments first — every fix here is documented above the code
+it fixed, so without that every *fixed* function reports as broken.
+
+**It is a review aid, not a verdict.** It cannot see which branch guards which read,
+so every OPEN / OPS-ONLY row must be read by a person and probed live before anything
+changes. It was validated against five fixtures with known answers before being
+trusted: the pre-fix ops-import (OPEN), ops-bot and roadmap-outcome (OPS-ONLY), and
+mktg-team and pfr-api (OK). The first attempt at that validation silently fetched
+whole-commit diffs instead of sources and "passed" all five — the scanner had never
+actually been tested. Check your fixtures.
+
+### Closed tonight
+| function | was | damage |
+|---|---|---|
+| i18n-api v4 | literal `"2026"` | rewrite any UI label for every Spanish-speaking agent |
+| ops-import v4 | bare seat code | replace a seat's whole ticket board |
+| ops-bot v6 | bare seat code | whole book of business; create tasks; kill automations |
+| roadmap-outcome v5 | nothing at all | read any broker's history; slide their tracker backwards |
+| book-manual v2 | nothing at all | plant appointments on anyone's calendar, and block their slots |
+| cal-feed v6 | any non-empty string | 2000 company bookings incl. client emails and phones |
+
+### A server fix can break a client that has not shipped yet
+cal-feed v5 required a session the LIVE client does not send, because the other half
+of the fix is in `session.js` — a client file served from GitHub Pages, which runs
+whatever was last pushed. Every request answered 401 + `needs_session`, and session.js
+reacts to that by clearing the session AND `tsfg_code` and redirecting to sign-in. For
+a few minutes, opening the Scheduler signed you out.
+
+v6 is the shim: no session gets an empty, successful answer — never a 401 — so nobody
+is bounced and no data leaves. **Remove the shim once session.js is pushed.** The
+lesson generalises: before tightening a function, check whether the matching client
+change is already live, and if it is not, fail SOFT rather than with the flag that
+logs people out.
+
+### Still open, on purpose
+- **avatar** — unauthenticated by design; an `<img src>` cannot carry a token and the
+  exposure is one profile photo. Reasoning is recorded in the file and expires if it
+  ever returns more than the photo.
+- **ops-bot's leader branch** — a typed EMD code still works, because it mirrors
+  ops.html's own code+name leader login. Closing it means leaders use a PIN.
+- **cal-feed's breadth** — every signed-in agent still receives every shop's bookings
+  with client contact fields; calendar.html filters client-side. Scoping it changes
+  what the dashboard shows, so it needs a decision.
+- **11 OPS-ONLY rows** from the scanner, unreviewed.

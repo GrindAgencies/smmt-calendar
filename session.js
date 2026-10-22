@@ -66,9 +66,16 @@
      of these functions already reads. Deliberately NOT done by appending the token to the URL:
      query strings end up in server logs, and a session token does not belong there.
 
-     Restricted to the handful of functions actually called this way, so nothing that genuinely
-     wants a GET (cal-feed serves a calendar file) is touched. */
-  var GETFIX = ['atlas-api', 'tracker-api', 'hub-api', 'trainer-bookings'];
+     Restricted to the handful of functions actually called this way.
+
+     cal-feed WAS excluded here on the stated grounds that it "serves a calendar file". It does
+     not — the name misleads. Its only action is company_events, which returns JSON to the
+     calendar, and because the session never reached it the function fell back to accepting any
+     non-empty `code` string. `?code=x` returned company bookings carrying client email addresses
+     and phone numbers. Converting its GET like the others is what let cal-feed v5 require a real
+     session. If anything ever does need a genuine GET from this list, give it its own route
+     rather than dropping the proof. */
+  var GETFIX = ['atlas-api', 'tracker-api', 'hub-api', 'trainer-bookings', 'cal-feed'];
   function asPost(url, init, tok) {
     try {
       var q = url.indexOf('?');

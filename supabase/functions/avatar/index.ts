@@ -1,4 +1,15 @@
 // avatar — serves a person's profile photo as a real, cacheable image by code.
+//
+// ACCEPTED AS UNAUTHENTICATED, DELIBERATELY. ops/scan-identity.py reports this as OPEN and that
+// is correct: a `code` in the query string is the whole input. It is left that way because
+//   1. this is the target of an <img src>, and a browser fetching an image cannot attach a
+//      session token — closing it properly means every face on the org chart, My Team and the
+//      Hub becomes a fetch-then-blob, which is a real change for no real gain, and
+//   2. the entire exposure is ONE PROFILE PHOTO to somebody who already knows an agent code.
+//      No name, no contact details, no business data — the response is image bytes and nothing
+//      else. Those faces are shown to every colleague across the app by design.
+// If that ever stops being true — if this endpoint starts returning anything but the photo — the
+// reasoning above expires and it needs the session like everything else.
 // hub_avatars stores photos as base64 data URLs; this decodes and streams the bytes so
 // browsers can lazy-load + cache each face individually (never bloats the org/team JSON).
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
