@@ -1,5 +1,22 @@
-// ops-bot v3 — Claude-backed Operations Assistant. Data-aware, can create tasks & toggle automations,
-// carries an editable knowledge base to debrief new Ops staff. Ops-gated. High token ceiling (unlimited-feel).
+// ops-bot v6 (2026-10-21) — Claude-backed Operations Assistant. Data-aware, can create tasks & toggle
+// automations, carries an editable knowledge base to debrief new Ops staff. High token ceiling.
+//
+// v6: THE SEAT-CODE DOOR IS CLOSED. v3's comment said a four-digit code "must be a REAL Operations
+// seat" — and that was the whole test. There are six seat codes (0000-0005), each typed on a
+// sign-in screen every morning, so `{"code":"0002"}` was an Operations login to an assistant that
+// reads the entire book of business in snapshot() — every agent, every policy, submitted AP,
+// paid-out AP and commission — and can create tasks and switch the automations off. Operations
+// must now present the session token minted at PIN entry. No regression: ops.html has sent that
+// token on every ops-role call since the September cutover, and a restored tab without a live
+// session is already bounced to the PIN prompt rather than running tokenless.
+//
+// STILL OPEN, DELIBERATELY, PENDING A DECISION: the leader branch below still accepts a typed
+// agent code for a baseshop owner or anyone whose contract_level reads EMD/NVP/SEVP, and those
+// codes are printed on the org chart. It is left in place because it is the same code-as-identity
+// login that ops.html itself offers leaders (code + name, no PIN), so closing it here alone would
+// lock MD/EMDs out of the assistant while leaving the rest of the page open — a worse, more
+// confusing state. Closing it properly means leaders sign in with a PIN like everybody else,
+// which is Christopher's call, not a change to make quietly at 4am.
 //
 // v3 (2026-09-02) fixes two ways in. Authorisation was the literal "2026", which shipped
 // inside ops.html for anyone to read; it is now an Operations session from ops-auth.
@@ -43,12 +60,11 @@ async function callClaude(sys: string, messages: any[], maxTokens: number): Prom
 async function opsAuth(body: any): Promise<{ ok: boolean; name: string }> {
   if (await opsAuthorized(body.token)) return { ok: true, name: clean(body.name) || "Operations" };
   const code = norm(body.code); if (!code) return { ok: false, name: "" };
-  // A four-digit code must be a REAL Operations seat, not merely four digits.
-  if (/^\d{4}$/.test(code)) {
-    const seat = await getJSON(`ops_accounts?code=eq.${encodeURIComponent(code)}&select=code,label&limit=1`);
-    if (seat && seat[0]) return { ok: true, name: clean(body.name) || String(seat[0].label || "Operations") };
-    return { ok: false, name: "" };
-  }
+  /* A seat code is NOT a credential. It is four digits, there are six of them, and staff type
+     theirs on the sign-in screen every morning — so this used to be the cheapest way into the
+     whole book of business on the platform. An Operations seat presents its session token or it
+     does not get in; there is no code fallback. */
+  if (/^\d{4}$/.test(code)) return { ok: false, name: "" };
   const bs = await loadKey("baseshops"); const list = (bs && Array.isArray(bs.bases)) ? bs.bases : [];
   if (list.some((b: any) => norm(b.owner_code) === code)) return { ok: true, name: clean(body.name) || code };
   const a = (await getJSON(`tracker_agents?code=eq.${encodeURIComponent(code)}&select=first_name,last_name,contract_level&limit=1`))[0];
