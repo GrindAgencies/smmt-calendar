@@ -58,3 +58,32 @@ meant to be independent, it must be given a name that is NOT in this group, or b
 from it before anyone is assigned.
 
 TITANS, ELEVATE and SCAPED each form a group of one and are correctly isolated.
+
+## Booking across baseshops is INTENDED — do not "fix" it
+
+Audited 2026-10-21. The Scheduler shows your own shop's trainers by default
+(`SHOPONLY = true` in calendar.html) but ships a visible **"Whole hierarchy"**
+button — `setShopScope(false)` — and when your shop has no connected trainer it
+actively offers *"Show the whole hierarchy"*. Any signed-in agent can see and book
+any baseshop's trainers.
+
+So the absence of a baseshop check in the booking path is correct, not an oversight:
+
+* `atlas-api` contains **no** `baseshop` reference at all.
+* `calendly-book`'s `bookableTrainers()` returns every connected trainer, and its
+  `book` action validates trainer, meeting type and time — never the caller's shop.
+
+**`trainer-scope` disagrees with all of this, and nothing calls it.** Its header states
+a stricter rule — *"Certified Field Trainers are bookable inside your own baseshop. MDs
+and EMDs can be booked across baseshops"* — and its own v4 note already records that no
+page in the app calls it. It is a dormant endpoint encoding a rule the shipped product
+deliberately does not follow.
+
+If anyone ever wires `trainer-scope` into the Scheduler, it will start refusing bookings
+the UI is currently inviting people to make, and the symptom will be "the trainer list went
+empty for half the company". Either delete it, or change its rule to match the product
+first. It is session-gated as of v4, so it leaks nothing while it sits there.
+
+Note this is a different question from DATA isolation, which IS enforced: see the table
+above. Seeing a trainer's name in order to book them is not the same as reading another
+shop's book of business.

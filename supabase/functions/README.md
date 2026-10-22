@@ -8,7 +8,7 @@ copy outside the platform.
 
 This directory is the fix. It is **still incomplete** — see below.
 
-## Backed up so far (33 of 106)
+## Backed up so far (34 of 106)
 
 | Function | Header says |
 |---|---|
@@ -45,8 +45,9 @@ This directory is the fix. It is **still incomplete** — see below.
 | `task-api` | v10 |
 | `team-board` | — |
 | `tracker-api` | v40 |
+| `trainer-scope` | v4 |
 
-**73 functions still have no copy here.**
+**72 functions still have no copy here.**
 
 **Two different version numbers, do not confuse them.** The table shows the version in the
 file's own header comment — the author's label. Supabase keeps a separate deploy counter,
