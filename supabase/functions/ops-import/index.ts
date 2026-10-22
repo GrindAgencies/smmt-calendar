@@ -1,4 +1,16 @@
-// ops-import v1 — bring an Operations person's existing Google Sheet onto their own board.
+// ops-import v4 (2026-10-21) — bring an Operations person's existing Google Sheet onto their own board.
+//
+// v4: A TYPED SEAT CODE IS NOT A CREDENTIAL. seatOf() took a four-digit string straight out of the
+// request and asked only "is this a row in ops_accounts?" — so `{"code":"0002"}` was a full
+// Operations login here. There are six seat codes in total (0000-0005), so that was not even a
+// guess; and `commit` with append:false REPLACES the named seat's entire ticket board, client
+// names, carriers, premiums and all. ops-newbiz v12 closed exactly this door on the SAME two
+// app_settings keys this function writes, which left one board with one locked door and one open
+// one. Identity now comes from the Ops session token minted at PIN entry, and the SEAT comes from
+// the token as well — naming somebody else's board no longer reaches it.
+//
+// Verified before the change (0002 was accepted) and after (it is refused). ops.html's impApi now
+// sends the token it already holds for every other Operations call.
 //
 // The new baseshop Operations staff each run their book out of a spreadsheet today.
 // Retyping it is how a transition goes wrong, so this reads the sheet directly, shows
@@ -39,15 +51,31 @@ async function saveKey(k: string, v: unknown) {
     body: JSON.stringify({ key: k, value: v, updated_at: new Date().toISOString() }) });
 }
 
-/* ---------- who is asking, and whose board is it ---------- */
-async function seatOf(code: string): Promise<{ ok: boolean; seat: string | null; name: string; bases: string[] }> {
-  const c = clean(code, 8);
-  if (/^\d{4}$/.test(c)) {
-    const s = (await getJSON(`ops_accounts?code=eq.${enc(c)}&select=code,label,bases,is_master&limit=1`))[0];
-    if (s) return { ok: true, seat: s.is_master ? null : c, name: String(s.label || "Operations"),
-                    bases: Array.isArray(s.bases) ? s.bases.map(String) : [] };
+/* ---------- who is asking, and whose board is it ----------
+   The token is minted when a seat enters its PIN and carries the seat it belongs to, so the
+   board below is chosen by the credential and never by what the caller typed. A master seat
+   gets the shared board, exactly as ops-newbiz decides it. */
+async function rpc(fn: string, args: Record<string, unknown>) {
+  try {
+    const r = await fetch(`${SUPA}/rest/v1/rpc/${fn}`, { method: "POST", headers: DBH, body: JSON.stringify(args) });
+    return await r.json();
+  } catch (_) { return null; }
+}
+async function seatOf(token: unknown): Promise<{ ok: boolean; seat: string | null; name: string; bases: string[] }> {
+  const t = String(token ?? "").trim();
+  if (!t) return { ok: false, seat: null, name: "", bases: [] };
+  const az = await rpc("ops_authorize", { p_token: t });
+  if (!(az && az.ok)) return { ok: false, seat: null, name: "", bases: [] };
+  const c = String(az.code ?? "").trim();
+  /* A seat's private board is keyed by its four-digit code. A master seat, and anything that
+     is not a four-digit seat, works the shared board — same rule as ops-newbiz seatOf(). */
+  const seat = (!az.master && /^\d{4}$/.test(c)) ? c : null;
+  let bases: string[] = [];
+  if (seat) {
+    const row = (await getJSON(`ops_accounts?code=eq.${enc(seat)}&select=bases&limit=1`))[0];
+    bases = (row && Array.isArray(row.bases)) ? row.bases.map(String) : [];
   }
-  return { ok: false, seat: null, name: "", bases: [] };
+  return { ok: true, seat, name: String(az.label || "Operations"), bases };
 }
 
 /* ---------- Google Sheets ---------- */
@@ -138,8 +166,10 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({})) as Record<string, unknown>;
     const action = clean(body.action, 20) || "preview";
-    const who = await seatOf(String(body.code ?? ""));
-    if (!who.ok) return json({ ok: false, error: "Sign in to an Operations seat first." }, 401);
+    const who = await seatOf(body.token);
+    /* Deliberately NOT needs_session: that flag throws the person out to the AGENT sign-in
+       screen, which is the wrong place for an Operations seat whose token simply ran out. */
+    if (!who.ok) return json({ ok: false, error: "Sign in to Operations again to import a sheet." }, 401);
 
     // read the sheet (link) or the pasted table
     let text = "";

@@ -235,3 +235,38 @@ functions had. The Road-to-EMD schema went in that way and was back-filled after
 Use `apply_migration` for DDL, not `execute_sql`, and write the SQL so replaying it is a no-op
 (`create table if not exists`, `create or replace function`, `add column if not exists`) — the
 back-fill above was only safe because every statement was idempotent.
+
+## All 106 backed up — 2026-10-21
+
+Every edge function deployed to bmfqxtocxkjhsgfnndlo now has its source here,
+and each copy was version-checked against what is actually running before it
+was written. 98 matched their fetched version exactly; the other 8 are files
+edited and redeployed during the sweep itself, where the repo copy is the newer
+source (i18n-api v4, ops-bot v6, ops-import v4, plus newbiz-api v22,
+ops-directory v29, ops-nbfeed v23, summit-api v7, cal-import v5 from earlier).
+
+### The trap this sweep walked into
+
+A later pass of the recovery script wrote the PRE-FIX fetched source back over
+three functions that had just been patched and deployed. Production kept the
+fix; the repo silently lost it, and a restore from here would have reopened two
+auth holes. It was only caught by auditing the saved copies against the live
+version list rather than trusting that a file existed.
+
+The script now refuses to overwrite any function directory with uncommitted
+local changes, and reports them as PROTECTED. The rule is the same one that
+governs the whole exercise: **a backup that is quietly older than production is
+worse than no backup**, and that includes being older than your own working
+tree.
+
+### Multi-file functions
+
+Four functions are more than one file and must be restored whole:
+nexus-app (index.ts, shell.ts, icons.ts), plus atlas-api, hub-api and
+tracker-api whose entrypoints sit under a nested path.
+
+### Where the large sources come from
+
+A `get_edge_function` result over ~50KB is written to the SESSION-scoped
+tool-results directory as a .txt, not to the project-level one. The extractor
+has to scan both; nexus-app and nexus-brain were invisible until it did.
