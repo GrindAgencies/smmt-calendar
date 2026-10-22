@@ -1,0 +1,270 @@
+// hub-groups v2 (2026-10-21) — a group chat's own name and photo, who may change them, and
+// who may post in the organisation-wide Announcements channel.
+//
+// v2 adds the announcer allow-list. Elijah asked for an Announcements chat everyone can read
+// and only designated leadership can post in, managed from Settings. The WRITE restriction is
+// not implemented here: it is a BEFORE INSERT trigger on hub_messages
+// (hub_announcements_write_guard), because the brief requires it to hold for attachments,
+// edits, realtime operations and direct API requests — "a hidden composer alone is
+// insufficient" — and to take effect for an already-open session. A trigger is consulted on
+// every insert from every path. What lives here is only the management of the list.
+//
+// ROUND TWO tasks 5 and 6. Elijah: a group chat has its own profile picture, its designated
+// admin can change the name and the photo, and Elijah decides who those admins are.
+//
+// THREE SEPARATE LEVELS OF AUTHORITY, and none of them is inherited from being powerful
+// elsewhere — the brief is explicit that a group-admin role must not confer company-wide
+// access, and equally that EMD rank by itself confers nothing until somebody is designated:
+//
+//   OWNER          may designate and revoke group admins, for any group, AND may designate
+//                  announcers. An explicit allow-list of agent codes in
+//                  app_settings.hub_group_owners - GFI20 (Elijah) and C1991 (Christopher,
+//                  added at his request). Not a rank, not platform_admin, not Operations.
+//   GROUP ADMIN    may rename and re-photograph THE GROUPS THEY ARE NAMED ON, and nothing else.
+//   ANNOUNCER      may post in Announcements, and nothing else. Posting an announcement is NOT
+//                  administration: it grants no group edit, no designation power, no bots.
+//   MEMBER         may read. That is all.
+//
+// Every write re-checks. The UI hiding a button is a courtesy to everyone else, never the
+// control: an unauthorised request straight to this function is refused the same way.
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+
+const SUPA = Deno.env.get("SUPABASE_URL")!;
+const KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const DBH = { apikey: KEY, Authorization: `Bearer ${KEY}`, "Content-Type": "application/json" };
+const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "*", "Access-Control-Allow-Methods": "POST, GET, OPTIONS" };
+const json = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { ...CORS, "Content-Type": "application/json" } });
+const norm = (c: unknown) => (c ?? "").toString().trim().toUpperCase();
+const low = (s: unknown) => (s ?? "").toString().trim().toLowerCase();
+const enc = encodeURIComponent;
+
+const MAX_AVATAR = 300_000;          // a 256px square JPEG is ~20-40KB; this is generous
+const MAX_NAME = 60;
+const OWNER_FALLBACK = ["GFI20"];    // if the setting is ever lost, authority SHRINKS, never opens
+const ANNOUNCE_CHANNEL = "announcements";
+
+async function getJSON(path: string) { try { const r = await fetch(`${SUPA}/rest/v1/${path}`, { headers: DBH }); return (await r.json()) || []; } catch (_) { return []; } }
+async function rpc(fn: string, args: Record<string, unknown>) { try { const r = await fetch(`${SUPA}/rest/v1/rpc/${fn}`, { method: "POST", headers: DBH, body: JSON.stringify(args) }); return await r.json(); } catch (_) { return null; } }
+
+async function whoIs(body: any): Promise<string> {
+  const t = String(body.token ?? "").trim();
+  if (t) { const r = await rpc("ops_authorize", { p_token: t }); if (r && r.ok) return norm(body.code) || norm(r.code); }
+  const s = String(body.session ?? "").trim().slice(0, 120);
+  if (!s) return "";
+  const got = await rpc("agent_session_code", { p_token: s });
+  return (typeof got === "string") ? norm(got) : "";
+}
+
+async function owners(): Promise<string[]> {
+  const rows = await getJSON(`app_settings?key=eq.hub_group_owners&select=value`);
+  const v = rows[0] && rows[0].value;
+  const list = (v && Array.isArray(v.codes)) ? v.codes : null;
+  const codes = (list || OWNER_FALLBACK).map(norm).filter(Boolean);
+  return codes.length ? codes : OWNER_FALLBACK;
+}
+async function isOwner(code: string) { return (await owners()).indexOf(code) >= 0; }
+async function isGroupAdmin(code: string, channel: string) {
+  if (!code || !channel) return false;
+  const r = await getJSON(`hub_group_admins?channel=eq.${enc(channel)}&code=eq.${enc(code)}&select=code&limit=1`);
+  return r.length > 0;
+}
+
+/* The announcer allow-list. Read straight from app_settings so this and the database trigger
+   that actually enforces posting are looking at exactly one source of truth. */
+async function announcers(): Promise<string[]> {
+  const rows = await getJSON(`app_settings?key=eq.hub_announcers&select=value`);
+  const v = rows[0] && rows[0].value;
+  return ((v && Array.isArray(v.codes)) ? v.codes : []).map(norm).filter(Boolean);
+}
+async function saveAnnouncers(codes: string[], by: string) {
+  const seen = new Set<string>(); const clean: string[] = [];
+  for (const c of codes) { const n = norm(c); if (n && !seen.has(n)) { seen.add(n); clean.push(n); } }
+  const body = JSON.stringify({
+    key: "hub_announcers",
+    value: {
+      note: "Agent codes permitted to post in the org-wide Announcements channel. Managed by the hub_group_owners allow-list.",
+      codes: clean, set_on: new Date().toISOString().slice(0, 10), set_by: by,
+    },
+    updated_at: new Date().toISOString(),
+  });
+  const r = await fetch(`${SUPA}/rest/v1/app_settings?on_conflict=key`, {
+    method: "POST", headers: { ...DBH, Prefer: "resolution=merge-duplicates,return=minimal" }, body,
+  });
+  return { ok: r.ok, codes: clean };
+}
+
+/* The same access rule the chat itself uses, forwarded with the caller's own session -
+   hub-api identifies people by session, never by a typed code. A DM has no group identity to
+   edit, so this is channels only. */
+async function inChannel(code: string, channel: string, session: string, opsToken: string): Promise<boolean> {
+  if (!code || !channel || channel.startsWith("dm:")) return false;
+  try {
+    const payload: Record<string, unknown> = { action: "hub_channels", code };
+    if (session) payload.session = session;
+    if (opsToken) payload.token = opsToken;
+    const r = await fetch(`${SUPA}/functions/v1/hub-api`, {
+      method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${KEY}`, apikey: KEY },
+      body: JSON.stringify(payload),
+    });
+    const j = await r.json();
+    const list = (j && Array.isArray(j.channels)) ? j.channels : [];
+    return list.some((c: any) => String(c && c.id) === channel);
+  } catch (_) { return false; }
+}
+
+const okChannel = (s: unknown) => {
+  const v = (s ?? "").toString().trim();
+  return v.length > 0 && v.length <= 120 && /^[A-Za-z0-9_.-]+$/.test(v);   // groups only, never dm:
+};
+
+async function nameOf(code: string) {
+  const a = (await getJSON(`tracker_agents?code=eq.${enc(code)}&select=first_name,last_name`))[0];
+  return a ? `${a.first_name || ""} ${a.last_name || ""}`.trim() : code;
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
+  let body: any = {}; try { body = req.method === "POST" ? await req.json() : {}; } catch (_) { body = {}; }
+
+  const me = await whoIs(body);
+  if (!me) return json({ ok: false, needs_session: true, error: "Please sign in again." }, 401);
+
+  const action = String(body.action || "get");
+  const channel = String(body.channel ?? "").trim();
+  const sess = String(body.session ?? "").trim().slice(0, 120);
+  const opsTok = String(body.token ?? "").trim();
+
+  /* ---------------------------------------------- who may be designated at all ---- */
+  /* EMDs, resolved from the roster's own rank fields rather than guessed from a name. Both
+     columns are consulted because leadership and commission rank are different things here -
+     Elijah's title reads Executive Marketing Director while his contract level reads National
+     Vice President. */
+  if (action === "eligible") {
+    if (!(await isOwner(me))) return json({ ok: false, error: "Only the owner can manage group admins." }, 403);
+    const rows = await getJSON(`tracker_agents?select=code,first_name,last_name,baseshop,title,contract_level,status&status=neq.quit&limit=2000`);
+    const emds = rows.filter((a: any) => {
+      const t = low(a.title), c = low(a.contract_level);
+      return /executive marketing director/.test(t) || c === "emd" ||
+             /executive marketing director/.test(c);
+    }).map((a: any) => ({
+      code: norm(a.code), name: `${a.first_name || ""} ${a.last_name || ""}`.trim(),
+      baseshop: a.baseshop || "", rank: a.title || a.contract_level || "",
+    }));
+    /* If the roster carries no EMD at all, say so plainly rather than returning an empty
+       picker that looks like a loading failure. */
+    return json({ ok: true, eligible: emds, count: emds.length,
+      note: emds.length ? null : "No account on the roster is recorded as an EMD, so there is nobody to designate yet. Set a title or contract level of Executive Marketing Director on the people who lead the shops." });
+  }
+
+  /* ------------------------------------------- who may post in Announcements ------ */
+  /* Readable by anyone signed in: every member needs to know whether the composer they are
+     looking at will work, and the list of who speaks for the company is not a secret.
+     Changing it is owner-only, re-checked on every write. */
+  if (action === "announcers") {
+    const codes = await announcers();
+    const people = [];
+    for (const c of codes) people.push({ code: c, name: await nameOf(c) });
+    return json({ ok: true, channel: ANNOUNCE_CHANNEL, codes, people,
+                  can_post: codes.indexOf(me) >= 0, can_manage: await isOwner(me) });
+  }
+
+  if (action === "announcer_add" || action === "announcer_remove") {
+    if (!(await isOwner(me))) {
+      return json({ ok: false, error: "Only the owner can decide who posts announcements." }, 403);
+    }
+    const who = norm(body.who);
+    if (!who) return json({ ok: false, error: "Which account?" }, 400);
+    const exists = (await getJSON(`tracker_agents?code=eq.${enc(who)}&select=code,status&limit=1`))[0];
+    if (!exists) return json({ ok: false, error: "No account with that code." }, 404);
+    if (low(exists.status) === "quit") return json({ ok: false, error: "That account is no longer active." }, 400);
+
+    const cur = await announcers();
+    let next: string[];
+    if (action === "announcer_add") {
+      if (cur.indexOf(who) >= 0) return json({ ok: true, codes: cur, already: true });
+      next = cur.concat([who]);
+    } else {
+      /* The last announcer may be removed. An empty list means nobody can post, which is a
+         coherent state and recoverable by the owner at any time - safer than a rule that
+         quietly keeps somebody's access because the list would otherwise be empty. */
+      next = cur.filter((c) => c !== who);
+    }
+    const saved = await saveAnnouncers(next, me);
+    return json({ ok: saved.ok, codes: saved.codes, who, name: await nameOf(who),
+                  posting: action === "announcer_add" });
+  }
+
+  if (!okChannel(channel)) return json({ ok: false, error: "Which group?" }, 400);
+
+  const owner = await isOwner(me);
+  const admin = await isGroupAdmin(me, channel);
+  const member = owner || admin || await inChannel(me, channel, sess, opsTok);
+
+  /* ------------------------------------------------------------------- read ----- */
+  if (action === "get") {
+    if (!member) return json({ ok: false, error: "You are not in that group." }, 403);
+    const g = (await getJSON(`hub_groups?channel=eq.${enc(channel)}&select=channel,name,avatar,updated_by,updated_at`))[0] || null;
+    const admins = await getJSON(`hub_group_admins?channel=eq.${enc(channel)}&select=code,assigned_by,assigned_at&order=assigned_at.asc`);
+    const withNames = [];
+    for (const a of admins) withNames.push({ code: norm(a.code), name: await nameOf(norm(a.code)), assigned_at: a.assigned_at });
+    return json({
+      ok: true, channel,
+      name: (g && g.name) || null,            // null = still using the derived name
+      avatar: (g && g.avatar) || null,
+      can_edit: owner || admin,               // owners can edit too, so a group is never stranded
+      can_assign: owner,
+      admins: withNames,
+    });
+  }
+
+  /* ------------------------------------------------------------- name / photo ---- */
+  if (action === "set_name" || action === "set_photo") {
+    if (!(owner || admin)) {
+      return json({ ok: false, error: "Only this group's admin can change it." }, 403);
+    }
+    const patch: Record<string, unknown> = { channel, updated_by: me, updated_at: new Date().toISOString() };
+    if (action === "set_name") {
+      const nm = String(body.name ?? "").trim();
+      if (!nm) return json({ ok: false, error: "Give the group a name." }, 400);
+      if (nm.length > MAX_NAME) return json({ ok: false, error: `Keep the name under ${MAX_NAME} characters.` }, 400);
+      patch.name = nm;
+    } else {
+      const url = String(body.avatar ?? "");
+      if (url === "") { patch.avatar = null; }      // removing the photo falls back to the group icon
+      else {
+        if (!url.startsWith("data:image/")) return json({ ok: false, error: "That does not look like an image." }, 400);
+        if (url.length > MAX_AVATAR) return json({ ok: false, error: "That image is too large even after resizing." }, 400);
+        patch.avatar = url;
+      }
+    }
+    const r = await fetch(`${SUPA}/rest/v1/hub_groups?on_conflict=channel`, {
+      method: "POST", headers: { ...DBH, Prefer: "resolution=merge-duplicates,return=representation" },
+      body: JSON.stringify(patch),
+    });
+    if (!r.ok) return json({ ok: false, error: "Could not save that." }, 500);
+    const saved = (await r.json())[0] || {};
+    return json({ ok: true, channel, name: saved.name || null, avatar: saved.avatar || null });
+  }
+
+  /* ------------------------------------------------------- designate / revoke ---- */
+  if (action === "admin_add" || action === "admin_remove") {
+    if (!owner) return json({ ok: false, error: "Only Elijah can decide who administers a chat." }, 403);
+    const who = norm(body.who);
+    if (!who) return json({ ok: false, error: "Which account?" }, 400);
+    const exists = (await getJSON(`tracker_agents?code=eq.${enc(who)}&select=code,status&limit=1`))[0];
+    if (!exists) return json({ ok: false, error: "No account with that code." }, 404);
+    if (low(exists.status) === "quit") return json({ ok: false, error: "That account is no longer active." }, 400);
+
+    if (action === "admin_remove") {
+      const d = await fetch(`${SUPA}/rest/v1/hub_group_admins?channel=eq.${enc(channel)}&code=eq.${enc(who)}`, { method: "DELETE", headers: { ...DBH, Prefer: "return=minimal" } });
+      return json({ ok: d.ok, channel, who, admin: false });
+    }
+    const r = await fetch(`${SUPA}/rest/v1/hub_group_admins?on_conflict=channel,code`, {
+      method: "POST", headers: { ...DBH, Prefer: "resolution=merge-duplicates,return=minimal" },
+      body: JSON.stringify({ channel, code: who, assigned_by: me, assigned_at: new Date().toISOString() }),
+    });
+    return json({ ok: r.ok, channel, who, admin: true, name: await nameOf(who) });
+  }
+
+  return json({ ok: false, error: "unknown action" }, 400);
+});
