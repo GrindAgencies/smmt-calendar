@@ -1,15 +1,4 @@
-// i18n-api v4 (2026-10-21) — platform-wide EN→ES translation with a shared, growing server-side cache.
-//
-// v4: THE LAST '2026' MASTER KEY. set_override — which rewrites the Spanish wording shown on every
-// page of the platform to every Spanish-speaking agent — was guarded by `ADMIN_TOKEN = "2026"`,
-// compared as a literal. Four digits, from anywhere on the internet, could change what any label
-// says: a carrier name, a commission figure, a disclosure. The October sweep closed six functions
-// that did this; this was the seventh and it was missed because nothing in the app calls it (it is
-// used by hand), so no screen broke to point at it. It now goes through ops_authorize(), the one
-// authority every other Operations endpoint uses, which means the legacy switch applies to it too.
-// `dict` and `translate` stay open on purpose: they are what every page calls on load, they read
-// and extend a cache of UI labels, and gating them would put a sign-in in front of the language
-// toggle.
+// i18n-api v1 — platform-wide EN→ES translation with a shared, growing server-side cache.
 // actions:
 //   dict            → { ok, map }        the full cached English→Spanish map (client applies instantly)
 //   translate {strings:[...]} → { ok, map }  translate any not-yet-cached strings via ai-api (Claude), cache, return
@@ -18,6 +7,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 const SUPA = Deno.env.get("SUPABASE_URL")!;
 const KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const ADMIN_TOKEN = "2026";
 const AI = `${SUPA.replace(/\/$/, "")}/functions/v1/ai-api`;
 const CACHE_KEY = "i18n_es";
 const DBH = { apikey: KEY, Authorization: `Bearer ${KEY}`, "Content-Type": "application/json" };
@@ -26,9 +16,6 @@ function json(o: unknown, s = 200) { return new Response(JSON.stringify(o), { st
 const clean = (s: unknown) => (s ?? "").toString();
 async function loadKey(k: string) { const r = await fetch(`${SUPA}/rest/v1/app_settings?key=eq.${k}&select=value`, { headers: DBH }); const rows = await r.json(); return (rows && rows[0]) ? rows[0].value : null; }
 async function saveKey(k: string, v: unknown) { await fetch(`${SUPA}/rest/v1/app_settings?on_conflict=key`, { method: "POST", headers: { ...DBH, Prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify({ key: k, value: v, updated_at: new Date().toISOString() }) }); }
-async function rpc(fn: string, args: Record<string, unknown>) { try { const r = await fetch(`${SUPA}/rest/v1/rpc/${fn}`, { method: "POST", headers: DBH, body: JSON.stringify(args) }); return await r.json(); } catch (_) { return null; } }
-/* The one authority for "is this really Operations", shared with every other Operations endpoint. */
-async function opsAuthorized(token: unknown) { const t = String(token ?? "").trim(); if (!t) return false; const r = await rpc("ops_authorize", { p_token: t }); return !!(r && r.ok); }
 async function getMap(): Promise<Record<string, string>> { const raw = await loadKey(CACHE_KEY); return (raw && typeof raw === "object") ? raw : {}; }
 
 const SYS = "You are a professional translator for a US financial-services platform (life insurance, IUL, FIA, annuities, recruiting). Translate each English UI string into natural, warm Latin-American Spanish as used with US Hispanic clients. Rules: keep it concise (these are UI labels, buttons, and short sentences); do NOT translate or alter product acronyms or codes (IUL, FIA, PFR, GFI, AP, EMD, MD, CFT, ROP, SMD, NVP), numbers, currency, %, emojis, {curly placeholders}, or HTML entities; preserve leading/trailing spacing intent; keep punctuation. Return ONLY a compact JSON array of the translated strings, in the SAME order and SAME length as the input array — no keys, no commentary, no code fences.";
@@ -52,7 +39,7 @@ Deno.serve(async (req) => {
   if (action === "dict") { return json({ ok: true, map: await getMap() }); }
 
   if (action === "set_override") {
-    if (!(await opsAuthorized(body.token))) return json({ ok: false, error: "unauthorized" }, 401);
+    if (String(body.token || "") !== ADMIN_TOKEN) return json({ ok: false, error: "unauthorized" }, 401);
     const en = clean(body.en).trim(); const es = clean(body.es).trim();
     if (!en || !es) return json({ ok: false, error: "en and es required" });
     const map = await getMap(); map[en] = es; await saveKey(CACHE_KEY, map);

@@ -1781,7 +1781,12 @@ function closeDrawer(){$('ov').classList.remove('on');CUR=null;}
    anything is written — headers, row count, and which spreadsheet column it thinks is
    which — so a mistake is caught at the preview rather than after 400 rows land. */
 var SHEET={src:'',csv:'',headers:[],cols:[],map:{},rows:0};
-function impApi(b){b=b||{};b.code=(OPS&&OPS.code)||'';b.board=NBBOARD;
+function impApi(b){b=b||{};b.board=NBBOARD;
+  /* The Ops session token, the same one every other Operations call carries. ops-import v4
+     takes the seat from the token: a typed four-digit code used to be enough to replace any
+     seat's whole board, and there are only six of them. */
+  if(opsTok())b.token=opsTok();
+
   return fetch(IMPORT_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();}).catch(function(){return{ok:false,error:'Network error'};});}
 function openSheetImport(){
   SHEET={src:'',csv:'',headers:[],cols:[],map:{},rows:0};
