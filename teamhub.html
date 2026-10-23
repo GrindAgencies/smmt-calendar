@@ -39,6 +39,10 @@ a{color:inherit;text-decoration:none;}button{font-family:inherit;cursor:pointer;
 .sfoot{margin-top:auto;padding-top:10px;border-top:1px solid var(--line);}
 .top{position:fixed;top:0;left:var(--side);right:0;height:56px;z-index:850;display:flex;align-items:center;gap:14px;padding:0 20px;background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid var(--line);}
 .tic{width:36px;height:36px;border-radius:11px;border:1px solid var(--line2);background:var(--panel);color:var(--ink2);display:flex;align-items:center;justify-content:center;}
+/* The create action reads as a create action: circular, gold-edged, gold glyph. The other
+   header icons stay neutral so one control is clearly primary. */
+.tic.newgrp{border-radius:50%;border-color:var(--gold);color:var(--gold);font-size:22px;font-weight:600;line-height:1;padding-bottom:2px}
+.tic.newgrp:active{background:var(--gold-soft)}
 .tic svg{width:18px;height:18px;}.ttl{font-weight:800;font-size:16px;letter-spacing:-.02em;}
 .scrim{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:880;}
 body.drawer .scrim{display:block;}
@@ -330,6 +334,16 @@ html, body{ overflow-x: hidden; }
   <button class="tic" id="hubHome" onclick="hubGoHome()" aria-label="Home" title="Home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10 9-7 9 7v9a2 2 0 0 1-2 2h-4v-6H9v6H5a2 2 0 0 1-2-2Z"/></svg></button>
   <button class="tic chan-toggle" onclick="toggleRooms()" title="Show / hide channels"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg><span class="ct-lbl">Channels</span></button>
   <div class="ttl">Team Hub</div><div style="flex:1"></div>
+  <!-- NEW GROUP, reachable from the Hub itself. The flow already existed in full -- photo,
+       name, searchable members, create -- but openNewChannel() had exactly one trigger: a
+       small plus inside the "Channels" section header of the rooms panel. On a phone that
+       panel is collapsed behind the channels toggle, so creating a group meant open channels,
+       find the section, hit a small plus. Section 4 of the 2026-10-23 handoff asks for a plus
+       in the header; this ADDS one and calls the same function.
+       It does not replace the channels toggle (that shows/hides channels) or the navigation
+       drawer (injected by notif.js) -- neither is a create action, and removing either would
+       cost the Hub something it needs. -->
+  <button class="tic newgrp" onclick="openNewChannel()" title="New group" aria-label="Create a new group">+</button>
   <button class="tic" data-drop="avIn" onclick="document.getElementById('avIn').click()" title="Set your photo">📷</button>
   <input type="file" id="avIn" class="hide" accept="image/*" onchange="onAvatar(event)">
   <button class="tic" onclick="toggleMod()" id="modBtn" title="Moderator">🔒</button>

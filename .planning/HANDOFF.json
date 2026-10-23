@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-10-23T21:29:48.815Z",
+  "timestamp": "2026-10-23T21:37:28.448Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -19,12 +19,8 @@
     {
       "status": "M",
       "path": ".planning/HANDOFF.json"
-    },
-    {
-      "status": "M",
-      "path": "summit.html"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\ne73c116 Home logo: the black box was baked into the asset, not the CSS\n54a5bf9 Make the roster numbers honest, and stop two different states both calling themselves \"archived\"\n04d9d68 Notes: write down why, and make the record visible\n385d6d9 Archive everyone without a PIN, and make signing in bring them back\n59596a5 PIN help: show Operations who cannot sign in, and give them the one button that fixes it"
+  "context_notes": "Recent commits:\n7e5d93d Road to EMD: section 10 header, without deleting the Org Chart\ne73c116 Home logo: the black box was baked into the asset, not the CSS\n54a5bf9 Make the roster numbers honest, and stop two different states both calling themselves \"archived\"\n04d9d68 Notes: write down why, and make the record visible\n385d6d9 Archive everyone without a PIN, and make signing in bring them back"
 }
