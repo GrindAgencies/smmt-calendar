@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-10-23T20:10:29.633Z",
+  "timestamp": "2026-10-23T20:41:24.321Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -15,7 +15,16 @@
   "blockers": [],
   "human_actions_pending": [],
   "decisions": [],
-  "uncommitted_files": [],
+  "uncommitted_files": [
+    {
+      "status": "M",
+      "path": ".planning/HANDOFF.json"
+    },
+    {
+      "status": "M",
+      "path": "supabase/functions/pin/index.ts"
+    }
+  ],
   "next_action": null,
-  "context_notes": "Recent commits:\n2dbbbac pin v12: close an account-takeover hole in issue_setup_code\neefab95 Shared Ops sign-in sheet: don't offer a PIN box that the server will refuse\n4c6a482 Watchtower: alert when nobody can administer Operations, and retire the dead queue check\ne5f6d23 ops-auth v3: pass the agent session to enroll, so a platform admin is actually recognised\nf2b1231 ops.html: decide the seat-setup button from the server on every boot path"
+  "context_notes": "Recent commits:\n4db3676 Guard the setup-code hole so it cannot come back\n2dbbbac pin v12: close an account-takeover hole in issue_setup_code\neefab95 Shared Ops sign-in sheet: don't offer a PIN box that the server will refuse\n4c6a482 Watchtower: alert when nobody can administer Operations, and retire the dead queue check\ne5f6d23 ops-auth v3: pass the agent session to enroll, so a platform admin is actually recognised"
 }

@@ -1,4 +1,4 @@
-// pin v12 — 4-digit sign-in PINs for The Standard, and the thing that issues an agent session.
+// pin v13 — 4-digit sign-in PINs for The Standard, and the thing that issues an agent session.
 //
 // v12 (2026-10-23) — ACCOUNT TAKEOVER, CLOSED. `issue_setup_code` decided who was allowed to
 // vouch for somebody's first PIN by reading `by_code` out of the REQUEST BODY and asking
@@ -40,7 +40,7 @@
 // v7 counts a TRANSPOSITION as one edit (Damerau). v5 added middle-name tolerance after seven
 // agents were locked out of their own accounts. v3 closed an earlier takeover on 'reset'.
 //
-// Actions: status | set | verify | reset | issue_setup_code | logout
+// Actions: status | set | verify | reset | needs_setup | issue_setup_code | logout
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const SUPA = Deno.env.get("SUPABASE_URL")!;
@@ -132,6 +132,18 @@ async function mayVouchFor(target: string, token: string, session: string): Prom
   if ((await rpc("is_in_downline", { p_leader: me, p_target: norm(target) })) === true) return me;
   return "";
 }
+/* Who is asking, for a question that is not about one named person. Same two authorities as
+   mayVouchFor, minus the per-target downline test, which the caller applies per row instead. */
+async function whoIsAsking(token: string, session: string): Promise<{ ops: boolean; code: string; admin: boolean }> {
+  if (await opsOk(token)) return { ops: true, code: "OPS", admin: true };
+  const s = (session ?? "").toString().trim().slice(0, 120);
+  if (!s) return { ops: false, code: "", admin: false };
+  const got = await rpc("agent_session_code", { p_token: s });
+  const me = (typeof got === "string") ? norm(got) : "";
+  if (!me) return { ops: false, code: "", admin: false };
+  const admin = (await rpc("is_platform_admin", { p_code: me })) === true;
+  return { ops: false, code: me, admin };
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
@@ -145,6 +157,53 @@ Deno.serve(async (req) => {
     if (action === "logout") {
       const res = await rpc("agent_session_revoke", { p_token: clean(body.session, 80) });
       return json(res || { ok: true });
+    }
+
+    /* WHO CANNOT SIGN IN, AND WHY. Operations had no way to see this: the tracker carries no
+       email, no phone and no PIN state, so the people who were stuck were invisible to the
+       people who could unstick them. On 2026-10-23, 66 ACTIVE agents had no PIN, no email and
+       no usable phone -- pin_set() offers them no proof route at all, so they could not set a
+       first PIN by any means, and nobody could tell. Christian Monaghan was one of them and it
+       took a direct report from Christopher to surface him.
+       Scoped like everything else: Operations and platform admins see everyone, a leader sees
+       their own downline. */
+    if (action === "needs_setup") {
+      const who = await whoIsAsking(clean(body.token, 80), clean(body.session, 120));
+      if (!who.ops && !who.code) return json({ ok: false, error: "Sign in first." }, 401);
+      const r = await fetch(
+        `${SUPA}/rest/v1/tracker_agents?select=code,first_name,last_name,email,phone,status,baseshop,direct_to,direct_to_name&limit=5000`,
+        { headers: DBH },
+      );
+      const agents: Record<string, unknown>[] = (await r.json()) || [];
+      const pr = await fetch(`${SUPA}/rest/v1/agent_pins?select=code&limit=5000`, { headers: DBH });
+      const withPin = new Set(((await pr.json()) || []).map((p: Record<string, unknown>) => norm(p.code)));
+      const seeAll = who.ops || who.admin;
+      const out: Record<string, unknown>[] = [];
+      for (const a of agents) {
+        const c = norm(a.code);
+        if (!c || withPin.has(c)) continue;
+        if (String(a.status || "") !== "active") continue;
+        if (!seeAll) {
+          const mine = (await rpc("is_in_downline", { p_leader: who.code, p_target: c })) === true;
+          if (!mine) continue;
+        }
+        const email = clean(a.email, 120);
+        const digits = clean(a.phone, 40).replace(/[^0-9]/g, "");
+        out.push({
+          code: a.code, name: `${a.first_name || ""} ${a.last_name || ""}`.trim(),
+          baseshop: a.baseshop || "", upline: a.direct_to_name || a.direct_to || "",
+          has_email: !!email, has_phone: digits.length >= 4,
+          /* The whole point of the list: with neither, pin_set() has no route to offer them
+             and a setup code is the ONLY way in. */
+          can_self_serve: !!email || digits.length >= 4,
+        });
+      }
+      out.sort((x, y) => Number(x.can_self_serve) - Number(y.can_self_serve) ||
+                         String(x.name).localeCompare(String(y.name)));
+      return json({
+        ok: true, scope: seeAll ? "all" : "downline", count: out.length,
+        stuck: out.filter((o) => !o.can_self_serve).length, agents: out.slice(0, 400),
+      });
     }
 
     // THE CODE IS EXACT. It is never fuzzy-matched, in any action.
