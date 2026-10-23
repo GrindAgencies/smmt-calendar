@@ -1,3 +1,7 @@
+// newbiz-api v23 (2026-10-23) — mapRow() now carries target_premium, so the New Business form
+//      can actually store it. It is an ALLOWLIST and it is shared by newbiz_add and
+//      newbiz_update, so a column missing from it is silently dropped by both while the
+//      endpoint still answers ok:true. Nothing else in this file changed.
 // newbiz-api v22 (2026-10-20) — numOr() no longer turns an explicit null into 0. See its note.
 // newbiz-api v21 (2026-10-20) — newbiz_update NO LONGER BLANKS COLUMNS IT WAS NOT SENT.
 //      It built a complete row via mapRow() and PATCHed all of it, so any caller sending a

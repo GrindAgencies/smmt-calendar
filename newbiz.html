@@ -294,21 +294,16 @@
       <div class="tsfg-field" id="f_target_w">
         <label>Target premium <span class="opt">optional</span></label>
         <input id="f_target" type="number" inputmode="decimal" step="0.01" min="0"
-               disabled placeholder="Available once the ledger update ships">
+               placeholder="e.g. 900">
         <div class="err">Enter a target premium of $0 or more.</div>
-        <!-- DISABLED ON PURPOSE, AND THIS IS THE HONEST STATE.
-             policies.target_premium exists and the form is wired, but newbiz-api cannot store
-             it yet: newbiz_add inserts exactly what mapRow() returns, and newbiz_update builds
-             its patch with hasOwnProperty.call(full, k) where full = mapRow(merged) -- so a
-             column mapRow does not name is dropped by BOTH paths. Measured against the live
-             endpoint: newbiz_update with target_premium returned ok:true and bumped updated_at,
-             and the column stayed NULL. A silent discard that reports success.
-             The one-line fix is already in supabase/functions/newbiz-api/index.ts (mapRow) and
-             ships with the next deploy of that function. An enabled field that eats what you
-             type is worse than a disabled one that says so -- "a button drawn on screen is not
-             a completed feature" cuts both ways.
-             TO FINISH: deploy newbiz-api, then remove `disabled` and this placeholder. -->
-        <div class="hint">Being wired up — the ledger needs one update before this can save. It will accept an amount that differs from the annualized figure, and nothing will recalculate it.</div>
+        <!-- LIVE as of newbiz-api v23 (2026-10-23). It was disabled before that, because
+             mapRow() is an allowlist shared by newbiz_add and newbiz_update, so a column it
+             did not name was dropped by both paths while the endpoint still answered ok:true.
+             Verified end to end against the live function before this was enabled: created a
+             policy with 900.5 (stored), updated it to 1500.25 (stored), sent an unrelated
+             partial payload (the target and the commission both survived), and sent an
+             explicit null (cleared, not turned into 0). -->
+        <div class="hint">Optional. Type the target premium if it differs from the annualized figure — nothing recalculates it.</div>
       </div>
       <div class="tsfg-field" id="f_cov_w">
         <label>Coverage amount <span class="req">*</span></label>
