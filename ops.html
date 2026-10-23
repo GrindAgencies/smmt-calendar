@@ -531,13 +531,21 @@ function showApp(){
   /* Master is read back from the live session rather than from OPS in localStorage, which is
      only ever what this browser last remembered. Seat setup hands out the master seat, so the
      one thing it must not trust is the client's own idea of who it is. */
-  if(window.tsfgOps&&tsfgOps.check){tsfgOps.check().then(function(c){
-    /* A master Operations seat, or a platform admin. ops_pin_enroll() accepts exactly these
-       two and refuses everything else, so the button matches what the server will honour
-       instead of appearing and then failing. */
-    OPSMASTER=!!(c&&c.ok&&c.master)||PLATADMIN;
-    var b=$('seatSetupBtn');if(b)b.classList.toggle('hide',!OPSMASTER);
-  });}
+  /* A master Operations seat, or a platform admin. ops_pin_enroll() accepts exactly those two
+     and refuses everything else, so the button matches what the server will honour instead of
+     appearing and then failing.
+     Decided HERE rather than inherited from whichever boot path ran: a stale-but-non-empty
+     seat token sends boot down the branch that never probes, and the button would then stay
+     hidden for a platform admin who is demonstrably already inside the tracker. Asking
+     check() first and falling back to the server's own verdict is true on every path. */
+  if(window.tsfgOps&&tsfgOps.check){
+    tsfgOps.check().then(function(c){
+      if(c&&c.ok){OPSMASTER=!!c.master;paintSeatBtn();return;}
+      api(auth({action:'overview'})).then(function(r){
+        PLATADMIN=!!(r&&r.ok);OPSMASTER=PLATADMIN;paintSeatBtn();
+      }).catch(paintSeatBtn);
+    }).catch(paintSeatBtn);
+  }
   var fab=$('obotFab');if(fab)fab.classList.toggle('hide',!canEdit());
 }
 /* ===== Ops Assistant (Claude-backed) ===== */
@@ -1802,6 +1810,7 @@ function closeDrawer(){$('ov').classList.remove('on');CUR=null;}
    and 0000 sees every baseshop. The server caps it at 240 minutes regardless of what is asked
    for here. */
 var OPSMASTER=false,PLATADMIN=false;
+function paintSeatBtn(){var b=$('seatSetupBtn');if(b)b.classList.toggle('hide',!OPSMASTER);}
 var OPS_SEATS=['0000','0001','0002','0003','0004','0005']; /* the seeded Operations seats */
 function openSeatSetup(){
   if(!OPSMASTER){toast('Only a master Operations seat can open setup.');return;}
