@@ -67,6 +67,17 @@ def strip_comments(src: str) -> str:
         out.append(c); i += 1
     return "".join(out)
 
+# A STANDING, WRITTEN EXCEPTION. Some endpoints cannot carry a session by construction: the
+# avatar is the target of an <img src>, and a browser fetching an image attaches nothing. Such a
+# function may declare itself with the exact phrase below, in a comment, directly above the
+# reasoning. It is then reported as ACCEPTED rather than OPEN.
+#
+# ACCEPTED IS NOT HIDDEN. Accepted rows print in their own section every run, so the standing
+# exceptions get re-read alongside the new findings instead of fading into a passing count. The
+# phrase is searched in the RAW source, not the comment-stripped code, which is the one place in
+# this script where that distinction is deliberate rather than a bug.
+ACCEPTED_PHRASE = "ACCEPTED AS UNAUTHENTICATED, DELIBERATELY"
+
 rows = []
 for slug in sorted(os.listdir(ROOT)):
     d = os.path.join(ROOT, slug)
@@ -82,6 +93,7 @@ for slug in sorted(os.listdir(ROOT)):
     has_sess = bool(SESSION.search(code))
     has_ops  = bool(OPSAUTH.search(code))
     has_pin  = bool(PINPROOF.search(code))
+    accepted = ACCEPTED_PHRASE in src
 
     if not reads_ident:
         verdict = "n/a"
@@ -91,16 +103,25 @@ for slug in sorted(os.listdir(ROOT)):
         verdict = "OPS-ONLY"
     else:
         verdict = "OPEN"
+    if verdict in ("OPEN", "OPS-ONLY") and accepted:
+        verdict = "ACCEPTED"
     rows.append((verdict, slug, reads_ident, has_sess, has_ops, has_pin))
 
-order = {"OPEN": 0, "OPS-ONLY": 1, "OK": 2, "n/a": 3}
+order = {"OPEN": 0, "OPS-ONLY": 1, "ACCEPTED": 2, "OK": 3, "n/a": 4}
 rows.sort(key=lambda r: (order[r[0]], r[1]))
 
 counts = {}
 for v, *_ in rows: counts[v] = counts.get(v, 0) + 1
 print(f"scanned {len(rows)} functions:",
-      " ".join(f"{k}={counts.get(k,0)}" for k in ("OPEN","OPS-ONLY","OK","n/a")))
+      " ".join(f"{k}={counts.get(k,0)}" for k in ("OPEN","OPS-ONLY","ACCEPTED","OK","n/a")))
 print()
 for v, slug, ri, hs, ho, hp in rows:
     if v in ("OPEN", "OPS-ONLY"):
         print(f"  {v:<9} {slug:<22} session={hs} ops_authorize={ho} pin={hp}")
+
+acc = [r for r in rows if r[0] == "ACCEPTED"]
+if acc:
+    print()
+    print("Standing exceptions (declared in the source, re-read them):")
+    for _, slug, ri, hs, ho, hp in acc:
+        print(f"  ACCEPTED  {slug:<22} session={hs} ops_authorize={ho} pin={hp}")

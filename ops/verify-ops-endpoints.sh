@@ -73,3 +73,12 @@ chk "google-oauth disconnect" "$(curl -s -X POST "$U/google-oauth" -H 'Content-T
 chk "ops-bot leader code    " "$(curl -s -X POST "$U/ops-bot" -H 'Content-Type: application/json' -d '{"action":"get_knowledge","code":"GFI20"}')" 'Operations only'
 # i18n-api's content override must stay Ops-only.
 chk "i18n-api set_override  " "$(curl -s -X POST "$U/i18n-api" -H 'Content-Type: application/json' -d '{"action":"set_override","token":"2026","en":"x","es":"y"}')" 'unauthorized'
+# cal-feed v8: the two cases must stay DISTINGUISHABLE. A sessionless caller gets empty-and-200
+# (a 401 would clear tsfg_code and sign the agent out); a caller that sent a session gets the 401.
+chk "cal-feed expired sess " "$(curl -s -X POST "$U/cal-feed" -H 'Content-Type: application/json' -d '{"action":"company_events","session":"not-a-real-token","from":"2026-10-01","to":"2026-10-31"}')" 'needs_session'
+# The dead "2026" master key must buy nothing here either.
+case "$(curl -s -X POST "$U/cal-feed" -H 'Content-Type: application/json' -d '{"action":"company_events","token":"2026","from":"2026-10-01","to":"2026-10-31"}')" in
+  *'client_email'*) echo "  cal-feed legacy token   *** 2026 STILL OPENS THE COMPANY FEED ***" ;;
+  *'"events":[]'*)  echo "  cal-feed legacy token   ok (buys nothing)" ;;
+  *)                echo "  cal-feed legacy token   unexpected" ;;
+esac

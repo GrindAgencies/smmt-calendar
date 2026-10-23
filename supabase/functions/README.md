@@ -339,7 +339,7 @@ afterwards to confirm the probes wrote and deleted nothing:
 | ops-bot v6→v7 | the whole book of business; create tasks; kill automations |
 | roadmap-outcome v5 | read any broker's history; slide their tracker backwards |
 | book-manual v2 | plant appointments on anyone's calendar, and block their slots |
-| cal-feed v6→v7 | 2000 company bookings incl. client emails and phones |
+| cal-feed v6→v8 | 2000 company bookings incl. client emails and phones |
 | booking-purge v5 | permanently delete anyone's appointment; read any appointment |
 | coaching v5 | read anyone's private feedback; write under a trainer's byline |
 | bots-cron v9 | rewrite what the bots post into every team's channel |
@@ -362,3 +362,50 @@ request identifier somewhere, not because it is trusted:
 nothing had flowed through them — they were closed before the features were used. Say that
 plainly rather than counting them alongside cal-feed, which was leaking real client contact
 details at the moment it was found.
+
+### Closing the breadth, not just the door (cal-feed v8)
+
+The first seven versions of `cal-feed` fixed *who may call it*. v8 fixes *what the caller gets*,
+which is the half I had twice flagged and left alone:
+
+- **Scoped by baseshop.** `agent_scope()` is the platform's one answer to "which shops may this
+  person see", and the feed now uses it. A row survives when the caller is a party to it, or when
+  **either** side's baseshop is in their scope — either side, because cross-baseshop bookings are
+  deliberate and both participants must keep seeing them.
+- **Client email and phone only on your own rows.** Exactly one consumer reads them,
+  `clientBookings()` in `calendar.html`, and it already filters to your own bookings first. Every
+  other row was carrying a client's contact details for no reader at all.
+
+**Measured both ways before deploying, because a narrowing fix can break a screen as easily as a
+widening one.** The two accounts that resolve to `all:true` keep the full company view, unchanged.
+A TITANS agent went from receiving all 12 October SUMMIT bookings — 7 of them carrying a client
+email — to 0 rows. A real scoped session returns `scoped:true` with zero client emails; the probe
+session was deleted afterwards and the table re-checked.
+
+Checked first, and the reason the filter matches on **code OR name**: 7 of the 1,120 bookings that
+carry a client email have a `trainer_name` but no `trainer_code`. Matching on code alone would
+have silently emptied those from that trainer's own Clients tab — a fix that quietly deletes
+someone's client list is worse than the leak.
+
+Also checked before narrowing: **nothing uses this feed for conflict detection**, so it cannot
+cause a double-booking. Its four consumers are the month/day grid, a lookup by an id already on
+screen, the Calendly-overlay dedupe and the Clients tab. That audit turned up a separate dead
+line — `bookedCalendlyUuids()` matches `calendly_event_uuid`, which the function never selected,
+so half that dedupe had always compared `undefined` to `undefined`. The column is in the select
+list now.
+
+### ACCEPTED, so that OPEN means something
+
+`ops/scan-identity.py` reported `avatar` as OPEN on every run, correctly and permanently. A known
+hole that never clears is how a new one hides, so a function that cannot carry a session **by
+construction** may now declare itself with the phrase `ACCEPTED AS UNAUTHENTICATED, DELIBERATELY`
+above its reasoning, and is reported as ACCEPTED instead.
+
+Accepted is not hidden: those rows print in their own section every run, to be re-read beside the
+new findings rather than fading into a passing count. The phrase is searched in the raw source
+rather than the comment-stripped code — the one place in that script where the distinction is
+deliberate instead of the bug it was the first time.
+
+The scanner now reads: **OPEN=0, OPS-ONLY=5, ACCEPTED=1, OK=57, n/a=43** across all 106 functions,
+and `ops/verify-ops-endpoints.sh` holds 25 live probes, including that the dead `2026` master key
+buys nothing from the company feed and that **public booking still works**.
