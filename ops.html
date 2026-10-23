@@ -2298,7 +2298,23 @@ function openNotif(){
 
 $('ov').addEventListener('click',function(e){if(e.target===this)closeDrawer();});
 (function(){
-  try{var s=localStorage.getItem('tsfg_ops');if(s){OPS=JSON.parse(s);try{var bs=localStorage.getItem('tsfg_ops_bsscope');BSSCOPE=bs?JSON.parse(bs):null;}catch(e2){BSSCOPE=null;}if(OPS&&OPS.code){/* A restored tab keeps its seat, but an Operations seat needs a live session before it can act. Token and seat both live in sessionStorage, so they expire together; if the session is gone, ask for the PIN again rather than run tokenless. */if(OPS.role==='ops'&&!opsTok()){needSession(OPS,$('gMsg'));return;}showApp();return;}}}catch(e){}
+  try{var s=localStorage.getItem('tsfg_ops');if(s){OPS=JSON.parse(s);try{var bs=localStorage.getItem('tsfg_ops_bsscope');BSSCOPE=bs?JSON.parse(bs):null;}catch(e2){BSSCOPE=null;}if(OPS&&OPS.code){/* A restored tab keeps its seat, but an Operations seat needs a live session before it can act. Token and seat both live in sessionStorage, so they expire together; if the session is gone, ask for the PIN again rather than run tokenless. */
+if(OPS.role==='ops'&&!opsTok()){
+  /* ...UNLESS the server already authorises this person as THEMSELVES. A platform admin
+     signed in with their own agent session is granted the Operations Tracker by
+     ops-directory (authOf -> isPlatformAdmin), and session.js puts that session on every
+     function call automatically. Demanding an Operations SEAT PIN from them asks for a
+     credential they may not hold -- Christopher was shut out of his own tracker this way
+     while the server was answering his reads perfectly well.
+     The probe is the server's own verdict, not anything this browser believes: `overview`
+     is served only after authOf() passes. A real Operations staffer with no agent session
+     still falls through to the PIN, exactly as before. */
+  api(auth({action:'overview'})).then(function(r){
+    if(r&&r.ok){showApp();} else {needSession(OPS,$('gMsg'));}
+  }).catch(function(){needSession(OPS,$('gMsg'));});
+  return;
+}
+showApp();return;}}}catch(e){}
   var qc='',qn='';try{var q=new URLSearchParams(location.search);qc=q.get('code')||'';qn=q.get('name')||'';}catch(e){}
   if(!qc){try{qc=localStorage.getItem('tsfg_code')||'';qn=localStorage.getItem('tsfg_name')||'';}catch(e){}}
   if(qc)$('gCode').value=qc;if(qn)$('gName').value=qn;

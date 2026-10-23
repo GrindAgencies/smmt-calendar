@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-10-23T16:24:58.240Z",
+  "timestamp": "2026-10-23T16:34:59.954Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -19,20 +19,8 @@
     {
       "status": "M",
       "path": ".planning/HANDOFF.json"
-    },
-    {
-      "status": "M",
-      "path": "ops-session.js"
-    },
-    {
-      "status": "M",
-      "path": "ops.html"
-    },
-    {
-      "status": "M",
-      "path": "supabase/functions/ops-auth/index.ts"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\nf2d7d97 profile.html: a real modal to connect Calendly, instead of a browser prompt()\nfc18b1b Phone sweep: safe-area insets across every page, and two tap targets lifted off the home indicator\nbeb0a2a Calendly owns all client correspondence, permanently; retire the email sender\n2abfa51 calendar.html: a client whose name contains an apostrophe no longer breaks their row\n14be8df email-sender v5: refuse to send a message that is no longer true"
+  "context_notes": "Recent commits:\necad149 Ops seat setup: make the instruction the sign-in screen gives actually possible\nf2d7d97 profile.html: a real modal to connect Calendly, instead of a browser prompt()\nfc18b1b Phone sweep: safe-area insets across every page, and two tap targets lifted off the home indicator\nbeb0a2a Calendly owns all client correspondence, permanently; retire the email sender\n2abfa51 calendar.html: a client whose name contains an apostrophe no longer breaks their row"
 }
