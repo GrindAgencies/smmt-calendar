@@ -1,4 +1,4 @@
-// booking-purge v5 (2026-10-22) — delete an appointment and have it stay deleted, everywhere.
+// booking-purge v6 (2026-10-22) — delete an appointment and have it stay deleted, everywhere.
 //
 // v5: THE IDENTITY WAS STILL TYPED, AND PREVIEW WAS NEVER GATED AT ALL.
 //
@@ -16,10 +16,42 @@
 //   token. `deleted_by` on the tombstone records that verified identity instead of whatever
 //   name the caller claimed — an audit trail that stores a self-reported name is not one.
 //
-// STILL BROAD, FLAGGED NOT CHANGED: any MD or EMD may delete any appointment in the company,
-// not only one belonging to their own team. The rule above this function says "their
-// leadership", and is_in_downline() exists to express exactly that. Narrowing it would refuse
-// deletions that work today, so it is a product decision rather than a quiet edit.
+// v6 (2026-10-22) CLOSES THE BREADTH v5 FLAGGED, AND THE FLAG UNDERSTATED IT.
+//
+//   v5 said "any MD or EMD may delete any appointment in the company". True, but the test was
+//   `contract_level IN ('MD','EMD')` — an EXACT match on an abbreviation, against a free-text
+//   COMMISSION field whose values are not written consistently. So it over-granted and
+//   under-granted at the same time, and the data says so:
+//
+//     Edgar Zavala      contract_level "MD", no title        -> could delete all 1,653
+//     Elijah Cox        the ORG ROOT, EMD by title, but
+//                       contract_level "National Vice
+//                       President"                           -> matched nothing, could delete none
+//     Christopher       contract_level "Marketing Director"  -> also matched nothing; only
+//                                                               platform_admin rescued him
+//
+//   Leadership is `title` and the org tree; `contract_level` is what somebody is PAID at, and
+//   there is a standing rule never to conflate the two — this function was conflating them, which
+//   is why the org root had no delete rights while an MD had rights over every shop. The fix is
+//   not to swap one field for the other: 126 of 203 records have no title, so `title` alone would
+//   have stripped a real MD. Both are read, tolerantly, and the DOWNLINE test is mandatory. Being
+//   generous about who counts as a leader is safe when nobody reaches outside their own team.
+//
+//   v6: the whole company for Operations, platform admins and anyone agent_scope() answers
+//   all:true for (which is how the org root gets it, by the one scoping rule rather than a
+//   special case); your OWN appointments either side; and for a leader, the appointments of
+//   their OWN DOWNLINE, via is_in_downline() — exactly what "their leadership" always meant.
+//
+//   Measured before changing: each of the 8 leaders could delete all 1,653 appointments; under
+//   the downline rule they hold between 0 and 8. All 1,653 resolve to a real agent code on at
+//   least one side, so the rule can always be evaluated and no fail-open clause is needed — the
+//   v5 worry that narrowing "would refuse deletions that work today" was unfounded. The feature
+//   has been used exactly once in its life, by an Associate, through the pre-v2 hole.
+//
+//   PREVIEW IS NOW GATED THE SAME WAY, because it was gated by nothing per-appointment: any
+//   signed-in person could read any appointment's agent, trainer, category, date and time from
+//   its id. You may preview what you could delete. Preview exists only as the confirm step
+//   before deleting, so the two rights are the same right.
 //
 // Cancelling only set status='cancelled', and the two existing deletes each covered a single
 // source ("this only removes it from your calendar"). Neither actually removed the appointment
@@ -33,6 +65,8 @@
 //   is public (verify_jwt false), so this was a live hole in a destructive, irreversible action.
 //   Deleting now requires one of: the agent on the booking, the trainer on it, an MD/EMD, a
 //   platform admin, or Operations. `preview` is read-only and stays open to any signed-in caller.
+//   [SUPERSEDED by v5 and v6 — kept as the record of what was believed at the time. Preview was
+//   not open to signed-in callers but to everyone, and it is now gated exactly like delete.]
 //
 // What a purge clears:
 //   bookings            the row itself
@@ -87,17 +121,44 @@ async function whoIs(body: Record<string, unknown>): Promise<{ ops: boolean; cod
   if (az && az.ok) return { ops: true, code: norm(az.code) };
   return { ops: false, code: await sessionCode(body.session) };
 }
-/* Who may permanently delete this appointment? The people it actually belongs to, their
-   leadership, or Operations. Nobody else — this cannot be undone. */
+/* Is this person a leader at all?
+   `title` is the LEADERSHIP rank and `contract_level` is what somebody is PAID at, and the two
+   must never be conflated — but 126 of 203 records have no title, including a real MD whose only
+   leadership signal is the commission field. So BOTH are read here, matched tolerantly, because
+   the values are free text ("MD" on one record, "Marketing Director" on the next).
+   Being generous here is safe: this gate only decides whether the DOWNLINE test below gets to
+   run, and that test is never skipped. Generous about who counts as a leader, strict about whose
+   appointments they may touch — the strictness that matters lives in is_in_downline(). */
+const LEADERISH = /\b(md|emd|marketing director|executive marketing director|nvp|national vice president|sevp|senior executive)\b/;
+function isLeaderish(a: Record<string, unknown>): boolean {
+  const t = (a.title ?? "").toString().trim().toLowerCase();
+  const c = (a.contract_level ?? "").toString().trim().toLowerCase();
+  return (!!t && LEADERISH.test(t)) || (!!c && LEADERISH.test(c));
+}
+/* Who may permanently delete this appointment? The people it actually belongs to, their own
+   leadership, or Operations. Nobody else — this cannot be undone.
+   Used for `preview` too: you may preview what you could delete. */
 async function mayDelete(b: any, me: { ops: boolean; code: string }): Promise<boolean> {
   if (me.ops) return true;
   const code = me.code;                       /* verified, never from the request body */
   if (!code) return false;
+  /* Your own appointment, either side of it. */
   if (code === norm(b.agent_code) || code === norm(b.trainer_code)) return true;
-  const a = (await getJSON(`tracker_agents?code=eq.${enc(code)}&select=contract_level,platform_admin`))[0];
+  /* The whole company, for the few who really do see the whole company. agent_scope() is the
+     one scoping rule, and all:true is how the org root qualifies — by the rule, not by name. */
+  const sc = await rpc("agent_scope", { p_code: code });
+  if (sc && sc.ok === true && sc.all === true) return true;
+  const a = (await getJSON(`tracker_agents?code=eq.${enc(code)}&select=title,contract_level,platform_admin`))[0];
   if (!a) return false;
   if (a.platform_admin === true) return true;
-  return ["MD", "EMD"].indexOf(norm(a.contract_level)) >= 0;
+  /* A leader, over their OWN downline. This is what "their leadership" always meant. */
+  if (!isLeaderish(a)) return false;
+  for (const target of [b.agent_code, b.trainer_code]) {
+    const t = norm(target); if (!t) continue;
+    const d = await rpc("is_in_downline", { p_leader: code, p_target: t });
+    if (d === true) return true;
+  }
+  return false;
 }
 
 Deno.serve(async (req) => {
@@ -152,7 +213,14 @@ Deno.serve(async (req) => {
       },
     };
 
-    if (action === "preview") return json({ ok: true, ...summary });
+    if (action === "preview") {
+      /* Gated identically to delete. It used to return the agent, the trainer, the category,
+         the date and the time to any signed-in caller holding an id. */
+      if (!(await mayDelete(b, me))) {
+        return json({ ok: false, error: "That appointment is not yours to manage." }, 403);
+      }
+      return json({ ok: true, ...summary });
+    }
     if (action !== "delete") return json({ ok: false, error: "unknown action" }, 400);
 
     if (!(await mayDelete(b, me))) {

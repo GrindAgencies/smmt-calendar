@@ -340,7 +340,7 @@ afterwards to confirm the probes wrote and deleted nothing:
 | roadmap-outcome v5 | read any broker's history; slide their tracker backwards |
 | book-manual v2 | plant appointments on anyone's calendar, and block their slots |
 | cal-feed v6→v8 | 2000 company bookings incl. client emails and phones |
-| booking-purge v5 | permanently delete anyone's appointment; read any appointment |
+| booking-purge v5→v6 | permanently delete anyone's appointment; read any appointment |
 | coaching v5 | read anyone's private feedback; write under a trainer's byline |
 | bots-cron v9 | rewrite what the bots post into every team's channel |
 | calendly-sync v15 | **repoint someone's public booking link at your own calendar** |
@@ -409,3 +409,54 @@ deliberate instead of the bug it was the first time.
 The scanner now reads: **OPEN=0, OPS-ONLY=5, ACCEPTED=1, OK=57, n/a=43** across all 106 functions,
 and `ops/verify-ops-endpoints.sh` holds 25 live probes, including that the dead `2026` master key
 buys nothing from the company feed and that **public booking still works**.
+
+### booking-purge v6 — the flag understated the bug
+
+v5 closed the typed-identity hole and then flagged what it had left: *"any MD or EMD may delete
+any appointment in the company, not only one belonging to their own team."* That was true and
+also too kind to the code. The test was `contract_level IN ('MD','EMD')` — an **exact** match on
+an abbreviation, against a **free-text commission field** whose values are not written
+consistently. So it over-granted and under-granted simultaneously:
+
+| person | field | could delete |
+|---|---|---|
+| Edgar Zavala | `contract_level "MD"`, no title | **all 1,653 appointments** |
+| Elijah Cox | the **org root**, EMD by title, `contract_level "National Vice President"` | **none** |
+| Christopher | `contract_level "Marketing Director"` | none — only `platform_admin` rescued him |
+
+The standing rule is that `title` is the **leadership** rank and `contract_level` is what somebody
+is **paid** at, and the two must never be conflated. This function conflated them, which is how
+the org root ended up with no delete rights while an MD held rights over every baseshop.
+
+The fix is **not** swapping one field for the other — 126 of 203 records have no `title`, so
+`title` alone would have stripped a real MD. v6 reads both, tolerantly, and makes the **downline
+test mandatory**. Generous about who counts as a leader, strict about whose appointments they may
+touch: the strictness that matters lives in `is_in_downline()`, and nothing skips it.
+
+Who may delete now: Operations; `platform_admin`; anyone `agent_scope()` answers `all:true` for
+(which is how the org root qualifies — by the one scoping rule, not a special case); either party
+to the appointment; and a leader, over their **own downline**.
+
+**Preview is gated identically**, because per-appointment it was gated by nothing: any signed-in
+person holding an id could read that appointment's agent, trainer, category, date and time. You
+may preview what you could delete — preview exists only as the confirm step before deleting, so
+the two rights are one right.
+
+Measured before changing, which is what made it safe to change: all 1,653 appointments resolve to
+a real agent code on at least one side, so the rule can always be evaluated and no fail-open
+clause was needed — the v5 worry that narrowing "would refuse deletions that work today" was
+unfounded. Each of the 8 leaders could delete all 1,653; under the downline rule they hold between
+0 and 8. The feature has been used **once in its life**, by an Associate, through the pre-v2 hole.
+
+Verified live with `preview` only, never `delete`:
+
+| probe | result |
+|---|---|
+| no session | `needs_session` |
+| a signed-in non-party, someone else's appointment | **403, refused** (was readable) |
+| `platform_admin` / org root, same appointment | `ok:true` — not locked out |
+| the dead `2026` master key | `needs_session` |
+
+Afterwards: 1,653 bookings still present, 1 tombstone (the historical one), the probe target
+intact, every minted verification session deleted. A probe against a destructive endpoint has to
+prove it destroyed nothing.

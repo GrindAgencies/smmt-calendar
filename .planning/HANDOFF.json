@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-10-23T02:31:33.196Z",
+  "timestamp": "2026-10-23T02:38:55.409Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -22,17 +22,9 @@
     },
     {
       "status": "M",
-      "path": "ops/scan-identity.py"
-    },
-    {
-      "status": "M",
-      "path": "ops/verify-ops-endpoints.sh"
-    },
-    {
-      "status": "M",
-      "path": "supabase/functions/cal-feed/index.ts"
+      "path": "supabase/functions/booking-purge/index.ts"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\n7d30bad Close the last identity holes: Google account-linking, and the ops-bot leader branch\ncc0f2a9 calendly-sync v15: a typed code could repoint someone's booking link\n8cc01ed bots-cron v9: a typed code could rewrite what the bots say to every team\n84eda57 coaching v5: private feedback was readable, and bylines were forgeable\n96c37d6 booking-purge v5: typed-code deletion, and a preview nobody had to sign in for"
+  "context_notes": "Recent commits:\n7b497d9 cal-feed v8: scope the company calendar by baseshop, and stop shipping client contact details on other people's rows\n7d30bad Close the last identity holes: Google account-linking, and the ops-bot leader branch\ncc0f2a9 calendly-sync v15: a typed code could repoint someone's booking link\n8cc01ed bots-cron v9: a typed code could rewrite what the bots say to every team\n84eda57 coaching v5: private feedback was readable, and bylines were forgeable"
 }
