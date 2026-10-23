@@ -179,6 +179,16 @@
           window.tsfgOps.status(code).then(function(st){
             if (!st || !st.ok) { say((st && st.error) || 'That Operations code is not recognised.', true); codeIn.focus(); return; }
             if (st.locked)     { say('Too many wrong PINs on this seat. Try again in a few minutes.', true); return; }
+            /* A seat with no PIN can only choose one while a setup window is open, so offering
+               the box without checking is offering something ops_pin_set() will refuse -- the
+               person types a PIN twice and is told "this seat is not open for setup yet", which
+               reads as their fault. Say it before they type. ops.html's own sheet already made
+               this distinction; this shared one (tasks, approvals, pfr, new business) did not,
+               so which page you happened to start from changed what you were told. */
+            if (!st.has_pin && !st.can_enroll) {
+              say('This Operations seat has not been set up yet. Ask Operations to open setup for it, then sign in again.', true);
+              return;
+            }
             seat = { code: code, label: st.label || code, has_pin: !!st.has_pin };
             el.q('.opsq-coderow').style.display = 'none';
             el.q('.opsq-pinrow').style.display = '';
