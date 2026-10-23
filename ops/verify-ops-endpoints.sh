@@ -82,3 +82,8 @@ case "$(curl -s -X POST "$U/cal-feed" -H 'Content-Type: application/json' -d '{"
   *'"events":[]'*)  echo "  cal-feed legacy token   ok (buys nothing)" ;;
   *)                echo "  cal-feed legacy token   unexpected" ;;
 esac
+# pin v12: a setup code is proof-of-identity for pin_set(), so minting one must never be
+# authorised by a code typed into the body. A borrowed platform-admin code used to pass.
+chk "pin setup_code by_code " "$(curl -s -X POST "$U/pin" -H 'Content-Type: application/json' -d '{"action":"issue_setup_code","code":"H7581","by_code":"C1991"}')" 'Only Operations'
+chk "pin setup_code session " "$(curl -s -X POST "$U/pin" -H 'Content-Type: application/json' -d '{"action":"issue_setup_code","code":"H7581","session":"not-a-real-session"}')" 'Only Operations'
+chk "pin setup_code 2026    " "$(curl -s -X POST "$U/pin" -H 'Content-Type: application/json' -d '{"action":"issue_setup_code","code":"H7581","token":"2026"}')" 'Only Operations'
