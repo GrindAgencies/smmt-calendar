@@ -532,7 +532,10 @@ function showApp(){
      only ever what this browser last remembered. Seat setup hands out the master seat, so the
      one thing it must not trust is the client's own idea of who it is. */
   if(window.tsfgOps&&tsfgOps.check){tsfgOps.check().then(function(c){
-    OPSMASTER=!!(c&&c.ok&&c.master);
+    /* A master Operations seat, or a platform admin. ops_pin_enroll() accepts exactly these
+       two and refuses everything else, so the button matches what the server will honour
+       instead of appearing and then failing. */
+    OPSMASTER=!!(c&&c.ok&&c.master)||PLATADMIN;
     var b=$('seatSetupBtn');if(b)b.classList.toggle('hide',!OPSMASTER);
   });}
   var fab=$('obotFab');if(fab)fab.classList.toggle('hide',!canEdit());
@@ -1798,7 +1801,7 @@ function closeDrawer(){$('ov').classList.remove('on');CUR=null;}
    Short on purpose: while a window is open, the first person to type that seat code claims it,
    and 0000 sees every baseshop. The server caps it at 240 minutes regardless of what is asked
    for here. */
-var OPSMASTER=false;
+var OPSMASTER=false,PLATADMIN=false;
 var OPS_SEATS=['0000','0001','0002','0003','0004','0005']; /* the seeded Operations seats */
 function openSeatSetup(){
   if(!OPSMASTER){toast('Only a master Operations seat can open setup.');return;}
@@ -2310,7 +2313,10 @@ if(OPS.role==='ops'&&!opsTok()){
      is served only after authOf() passes. A real Operations staffer with no agent session
      still falls through to the PIN, exactly as before. */
   api(auth({action:'overview'})).then(function(r){
-    if(r&&r.ok){showApp();} else {needSession(OPS,$('gMsg'));}
+    /* Got in with no Operations SEAT session, yet the server granted the tracker. A real
+       Operations staffer always holds a seat session, so this is a platform admin --
+       which is the one way to identify one from the client without inventing a new field. */
+    if(r&&r.ok){PLATADMIN=true;showApp();} else {needSession(OPS,$('gMsg'));}
   }).catch(function(){needSession(OPS,$('gMsg'));});
   return;
 }
