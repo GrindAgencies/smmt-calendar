@@ -209,6 +209,21 @@
   border:1px solid var(--tsfg-line); border-radius:var(--tsfg-r-sm);
   font-family:inherit; font-size:16px;              /* 16px: iOS zooms below it */
 }
+/* NATIVE DATE/TIME CONTROLS OVERFLOW THEIR CONTAINER ON iOS WITHOUT THIS.
+   width:100% only sets the PREFERRED width. Safari gives these inputs an intrinsic
+   min-width:auto sized to the rendered date plus its native chrome, and the intrinsic minimum
+   wins -- so the field pushes past the right gutter and the rounded border is cut off, which
+   is the defect in screenshot F of the 2026-10-23 handoff. min-width:0 lets the container win;
+   appearance:none stops Safari reserving the chrome width in the first place.
+   Fixed here rather than per page: every form in the app shares this vocabulary, and the bug
+   is in the vocabulary. Nothing but date/time inputs is affected. */
+.tsfg-field input[type="date"],
+.tsfg-field input[type="datetime-local"],
+.tsfg-field input[type="time"],
+.tsfg-field input[type="month"]{
+  min-width:0; max-width:100%;
+  -webkit-appearance:none; appearance:none;
+}
 .tsfg-field input::placeholder, .tsfg-field textarea::placeholder{ color:var(--tsfg-ink-3); }
 .tsfg-field input:focus, .tsfg-field select:focus, .tsfg-field textarea:focus{
   outline:none; border-color:var(--tsfg-gold-dim);

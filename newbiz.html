@@ -80,7 +80,13 @@
   .wiz-top button{ border:0; background:none; color:var(--tsfg-gold); font-family:inherit;
     font-size:14px; font-weight:700; cursor:pointer; }
   .wiz-top .x{ font-size:22px; }
-  .wiz-body{ padding:0 16px calc(96px + env(safe-area-inset-bottom)); max-width:520px; margin:0 auto; }
+  /* The reserve below the form is the footer's MEASURED height, not a guess. It was a fixed
+     96px, which is about right for Back/Continue alone -- but #delRow adds a whole extra
+     "Delete application" button whenever an existing application is open, and the footer then
+     covered the annualized premium summary. That is the second defect in screenshot F, and it
+     showed up worst in edit mode, which is the common case. --foot-h is set by
+     syncFootSpace(). The 96px here is only the value used before the first measurement. */
+  .wiz-body{ padding:0 16px calc(var(--foot-h, 96px) + 12px + env(safe-area-inset-bottom)); max-width:520px; margin:0 auto; }
   .wiz-foot{
     position:fixed; left:0; right:0; bottom:0; z-index:4;
     padding:12px 16px calc(12px + env(safe-area-inset-bottom));
@@ -758,6 +764,26 @@ function resetWiz(){
   calcAP();
 }
 
+/* Measure the footer and reserve exactly that much space under the form. Called on every step
+   change, and watched continuously where ResizeObserver exists so the Delete button appearing,
+   a button wrapping at large text, or an orientation change all re-reserve on their own. */
+function syncFootSpace(){
+  var f=document.getElementById('wizFoot'); if(!f)return;
+  var h=(f.style.display==='none')?0:Math.ceil(f.getBoundingClientRect().height);
+  document.documentElement.style.setProperty('--foot-h', h+'px');
+}
+(function(){
+  if(typeof ResizeObserver==='undefined')return;
+  var start=function(){
+    var f=document.getElementById('wizFoot'); if(!f)return;
+    try{ new ResizeObserver(syncFootSpace).observe(f); }catch(e){}
+  };
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);
+  else start();
+})();
+window.addEventListener('resize', syncFootSpace);
+window.addEventListener('orientationchange', function(){ setTimeout(syncFootSpace,150); });
+
 function goStep(n){
   STEP=n;
   try{ setWizChrome(); }catch(e){}
@@ -771,6 +797,7 @@ function goStep(n){
   bars.forEach(function(b,i){ b.classList.toggle('done', i<n-1); });
   document.querySelector('#steps').style.display = (n===4?'none':'flex');
   $('wizFoot').style.display = (n===4?'none':'');
+  syncFootSpace();
   $('backBtn').style.display = (n>1?'':'none');
   /* goStep runs AFTER setWizChrome on the edit path, so this used to relabel an edit's
      final step "Submit application" — telling someone they were filing a new policy when
