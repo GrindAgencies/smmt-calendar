@@ -1,4 +1,20 @@
-// pin v11 — 4-digit sign-in PINs for The Standard, and the thing that issues an agent session.
+// pin v12 — 4-digit sign-in PINs for The Standard, and the thing that issues an agent session.
+//
+// v12 (2026-10-23) — ACCOUNT TAKEOVER, CLOSED. `issue_setup_code` decided who was allowed to
+// vouch for somebody's first PIN by reading `by_code` out of the REQUEST BODY and asking
+// whether that code was a platform admin or the target's upline. Agent codes are printed on
+// the org chart. So with no credential at all:
+//     {"action":"issue_setup_code","code":"<anyone>","by_code":"<a platform admin's code>"}
+// returned a valid setup code, and pin_set(<anyone>, <a PIN of your choosing>, <that code>)
+// then took the account. Measured, not supposed: three borrowed codes -- a platform admin, the
+// org root, and the target's own upline -- each passed the check with no token. 89 of 137
+// accounts had no PIN and were claimable this way.
+//
+// This is the same bug class v8 and v11 closed elsewhere in this very file: a GFI code is a
+// public identifier, never a credential. It survived here because `issue_setup_code` has no UI
+// and no client ever called it, so nothing exercised it and nothing complained. Authority now
+// comes from the caller's own agent session, or a real Operations token; `by_code` remains only
+// as the byline recorded against the issued code.
 //
 // The PIN is hashed with bcrypt in Postgres (pgcrypto) and never stored or logged in readable
 // form. PIN material lives in its own table (agent_pins), NOT on tracker_agents: tracker-api
@@ -85,12 +101,36 @@ async function opsOk(token: string) {
   const r = await rpc("ops_authorize", { p_token: token });
   return !!(r && r.ok);
 }
-async function mayVouchFor(byCode: string, target: string, token: string): Promise<boolean> {
-  if (await opsOk(token)) return true;
-  const by = norm(byCode);
-  if (!by) return false;
-  if (await rpc("is_platform_admin", { p_code: by }) === true) return true;
-  return (await rpc("is_in_downline", { p_leader: by, p_target: norm(target) })) === true;
+/* WHO MAY VOUCH FOR SOMEBODY ELSE'S FIRST PIN.
+   This decides whether a setup code is minted, and a setup code is proof-of-identity for
+   pin_set(). Get it wrong and it is not a data leak, it is account takeover.
+
+   IT WAS WRONG. It read `by_code` straight from the request body and asked whether THAT code
+   was a platform admin or the target's upline. Agent codes are printed on the org chart, so
+   with no token at all:
+       {"action":"issue_setup_code","code":"<anyone>","by_code":"<a platform admin's code>"}
+   returned a valid 6-character setup code, and
+       pin_set(<anyone>, <a PIN you choose>, <that setup code>)
+   then claimed the account. Measured on 2026-10-23: three different borrowed codes -- a
+   platform admin, the org root, and the target's own upline -- all passed this check with no
+   credential whatsoever. 89 of 137 accounts had no PIN at the time and were therefore
+   claimable by anyone who could reach the endpoint.
+
+   Identity now comes from the caller's own AGENT SESSION, which session.js injects into every
+   /functions/v1/ call, or from a real Operations token. `by_code` is still accepted but only
+   as the BYLINE recorded against the issued code -- never as the authority to issue one.
+   Nothing in the client passed by_code for authority, because nothing in the client calls this
+   at all; the only caller it ever had was a person with curl. */
+async function mayVouchFor(target: string, token: string, session: string): Promise<string> {
+  if (await opsOk(token)) return "OPS";
+  const s = (session ?? "").toString().trim().slice(0, 120);
+  if (!s) return "";
+  const got = await rpc("agent_session_code", { p_token: s });
+  const me = (typeof got === "string") ? norm(got) : "";
+  if (!me) return "";
+  if (await rpc("is_platform_admin", { p_code: me }) === true) return me;
+  if ((await rpc("is_in_downline", { p_leader: me, p_target: norm(target) })) === true) return me;
+  return "";
 }
 
 Deno.serve(async (req) => {
@@ -174,11 +214,12 @@ Deno.serve(async (req) => {
     }
 
     if (action === "issue_setup_code") {
-      const by = clean(body.by_code || body.by, 24);
-      if (!(await mayVouchFor(by, code, clean(body.token, 80)))) {
+      /* The VERIFIED caller, not a code they typed. Whatever by_code says is only a label. */
+      const who = await mayVouchFor(code, clean(body.token, 80), clean(body.session, 120));
+      if (!who) {
         return json({ ok: false, error: "Only Operations or this person's upline can issue a setup code." }, 403);
       }
-      const res = await rpc("agent_setup_code_issue", { p_code: code, p_by: norm(by) || "OPS" });
+      const res = await rpc("agent_setup_code_issue", { p_code: code, p_by: who });
       return json(res);
     }
 

@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-10-23T17:47:59.101Z",
+  "timestamp": "2026-10-23T20:09:05.838Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -19,8 +19,12 @@
     {
       "status": "M",
       "path": ".planning/HANDOFF.json"
+    },
+    {
+      "status": "M",
+      "path": "supabase/functions/pin/index.ts"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\n4c6a482 Watchtower: alert when nobody can administer Operations, and retire the dead queue check\ne5f6d23 ops-auth v3: pass the agent session to enroll, so a platform admin is actually recognised\nf2b1231 ops.html: decide the seat-setup button from the server on every boot path\n2432b0b Seat setup reachable by a platform admin, so the lockout can be fixed from the app\nb6eb464 ops.html: a platform admin signed in as themselves is no longer shut out by the seat gate"
+  "context_notes": "Recent commits:\neefab95 Shared Ops sign-in sheet: don't offer a PIN box that the server will refuse\n4c6a482 Watchtower: alert when nobody can administer Operations, and retire the dead queue check\ne5f6d23 ops-auth v3: pass the agent session to enroll, so a platform admin is actually recognised\nf2b1231 ops.html: decide the seat-setup button from the server on every boot path\n2432b0b Seat setup reachable by a platform admin, so the lockout can be fixed from the app"
 }
