@@ -1,4 +1,32 @@
-// calendly-sync v12 — per-agent Calendly PAT + analytics + public-link routing + WEBHOOK auto-register.
+// calendly-sync v15 (2026-10-22) — per-agent Calendly PAT + analytics + public-link routing +
+// WEBHOOK auto-register.
+//
+// v15: THE PER-PERSON ACTIONS TRUSTED A TYPED CODE. `code` came straight off the request and was
+// used both as "which Operations seat is this" AND as "which agent am I", and the second meaning
+// is not something a request may assert. Agent codes are printed on the org chart, so:
+//
+//   save_token     attached a Calendly account to ANY agent's code — and it also PATCHes that
+//                  agent's cal_link, so their public booking link would point at the attacker's
+//                  calendar. The most serious of these.
+//   disconnect     deleted anyone's Calendly connection, silently stopping their sync.
+//   status         returned whether they are connected, their Calendly name and email, their
+//                  scheduling URL and event count. (It never returned the token itself.)
+//   webhook_status confirmed whether they have a webhook. Measured live before the fix.
+//   sync/list/
+//   analytics/alerts  acted as that person.
+//
+// `code` is deliberately LEFT ALONE, because ops_scope() legitimately resolves it as a SEAT code
+// for the Operations paths. What is new is meCode: the signed-in agent, proven by the session
+// minted at PIN entry. Every per-person action uses meCode now. Operations keeps naming an agent,
+// which is what support needs.
+//
+// DELIBERATELY STILL OPEN: public_link and exact_slot. book.html is the PUBLIC booking page, used
+// by clients who have no account; public_link resolves a name slug to a Calendly scheduling URL
+// that is public by definition, and exact_slot returns open times. Gating either would break
+// booking for the people it exists to serve.
+//
+// No client change: profile.html, calendar.html and ops.html all load session.js. book.html does
+// too, and sends no session — which is correct, and the two actions it needs stay open.
 // v5: exact_slot — exact-slot deep link, prefilled with invitee name/email/guests.
 // v6: exact_slot no longer force-picks an arbitrary event type when the category doesn't match.
 // v7 (2026-09-03): admin check goes through ops_authorize instead of the literal "2026".
@@ -34,6 +62,14 @@ async function db(path: string, init?: RequestInit) { return fetch(`${SUPA}/rest
 async function dbGet(path: string) { const r = await db(path); return (await r.json()) || []; }
 async function rpc(fn: string, args: Record<string, unknown>) { const r = await db(`rpc/${fn}`, { method: "POST", body: JSON.stringify(args) }); return r.ok ? await r.json() : null; }
 async function opsAuthorized(token: unknown) { const r = await rpc("ops_authorize", { p_token: String(token ?? "") }); return !!(r && r.ok); }
+/* Proof of identity. A typed code let anyone attach THEIR Calendly to somebody else's account,
+   read that person's connection, or delete it. */
+async function sessionCode(session: unknown): Promise<string> {
+  const v = String(session ?? "").trim().slice(0, 120);
+  if (!v) return "";
+  const got = await rpc("agent_session_code", { p_token: v });
+  return (typeof got === "string") ? norm(got) : "";
+}
 function calHdr(token: string) { return { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }; }
 async function calMe(token: string) { const r = await fetch(`${CAL}/users/me`, { headers: calHdr(token) }); if (!r.ok) return null; const j = await r.json(); return j.resource || null; }
 async function agentRow(code: string) { const rows = await dbGet(`tracker_agents?code=eq.${enc(norm(code))}&select=first_name,last_name`); return rows[0] || null; }
@@ -143,8 +179,13 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   let body: any = {}; try { body = await req.json(); } catch (_) { body = {}; }
   const action = String(body.action || "");
+  /* `code` is left exactly as it was because it serves TWO purposes here: for Operations paths
+     it is the Ops SEAT code handed to scopeOf(), and ops_scope resolves it. What it must never
+     be again is proof of which AGENT you are — see meCode. */
   const code = norm(body.code);
   const isAdmin = await opsAuthorized(body.token);
+  /* The signed-in agent, proven. Every per-person action below uses this instead of `code`. */
+  const meCode = isAdmin ? code : await sessionCode(body.session);
 
   if (action === "exact_slot") {
     let tcode = norm(body.trainer_code); if (!tcode) tcode = await codeOfName(clean(body.trainer_name));
@@ -192,7 +233,10 @@ Deno.serve(async (req) => {
   }
 
   if (action === "save_token") {
-    if (!code) return json({ ok: false, error: "sign in required" }, 401);
+    /* WAS: a typed code. Anyone could attach their own Calendly to another agent's account,
+       which rewrote that agent's public cal_link to point at the attacker's calendar. */
+    const code = meCode;
+    if (!code) return json({ ok: false, needs_session: true, error: "Please sign in again." }, 401);
     const token = clean(body.token); if (!token) return json({ ok: false, error: "Paste your Calendly API token." });
     const me = await calMe(token);
     if (!me || !me.uri) return json({ ok: false, error: "That token didn’t validate. Copy the Personal Access Token from Calendly → Integrations → API & webhooks." });
@@ -204,7 +248,8 @@ Deno.serve(async (req) => {
   }
 
   if (action === "status") {
-    if (!code) return json({ ok: false, error: "sign in required" }, 401);
+    const code = meCode;
+    if (!code) return json({ ok: false, needs_session: true, error: "Please sign in again." }, 401);
     const rows = await dbGet(`calendly_connections?code=eq.${enc(code)}&select=scheduling_url,cal_name,cal_email,synced_at,token,webhook_uri`);
     const c = rows[0]; if (!c) return json({ ok: true, connected: false });
     const cnt = await db(`calendly_events?agent_code=eq.${enc(code)}&select=event_uri`, { headers: { Prefer: "count=exact", Range: "0-0" } });
@@ -212,7 +257,7 @@ Deno.serve(async (req) => {
     return json({ ok: true, connected: true, has_token: !!c.token, webhook: !!c.webhook_uri, scheduling_url: c.scheduling_url || "", cal_name: c.cal_name || "", cal_email: c.cal_email || "", synced_at: c.synced_at, events: totalEvents });
   }
 
-  if (action === "webhook_status") { if (!code) return json({ ok: false }, 401); const rows = await dbGet(`calendly_connections?code=eq.${enc(code)}&select=webhook_uri`); return json({ ok: true, webhook: !!(rows[0] && rows[0].webhook_uri) }); }
+  if (action === "webhook_status") { const code = meCode; if (!code) return json({ ok: false, needs_session: true, error: "Please sign in again." }, 401); const rows = await dbGet(`calendly_connections?code=eq.${enc(code)}&select=webhook_uri`); return json({ ok: true, webhook: !!(rows[0] && rows[0].webhook_uri) }); }
   if (action === "register_webhooks") {
     if (!isAdmin) return json({ ok: false, error: "unauthorized" }, 401);
     const conns = await dbGet(`calendly_connections?token=not.is.null&select=code,token,uri,organization,webhook_uri`);
@@ -221,8 +266,9 @@ Deno.serve(async (req) => {
     return json({ ok: true, connections: conns.length, registered: ok, details });
   }
 
-  if (action === "disconnect") { if (!code) return json({ ok: false, error: "sign in required" }, 401); await db(`calendly_connections?code=eq.${enc(code)}`, { method: "DELETE", headers: { Prefer: "return=minimal" } }); return json({ ok: true }); }
-  if (action === "sync") { if (!code) return json({ ok: false, error: "sign in required" }, 401); return json(await syncOne(code)); }
+  /* WAS: a typed code deleted anyone's Calendly connection, silently stopping their sync. */
+  if (action === "disconnect") { const code = meCode; if (!code) return json({ ok: false, needs_session: true, error: "Please sign in again." }, 401); await db(`calendly_connections?code=eq.${enc(code)}`, { method: "DELETE", headers: { Prefer: "return=minimal" } }); return json({ ok: true }); }
+  if (action === "sync") { const code = meCode; if (!code) return json({ ok: false, needs_session: true, error: "Please sign in again." }, 401); return json(await syncOne(code)); }
   if (action === "sync_all") {
     if (!isAdmin) return json({ ok: false, error: "unauthorized" }, 401);
     const conns = await dbGet(`calendly_connections?token=not.is.null&select=code`);
@@ -233,11 +279,11 @@ Deno.serve(async (req) => {
 
   if (action === "analytics") {
     const { scoped, seat } = await scopeOf(body.token, body.code);
-    if (!isAdmin && !seat && !code) return json({ ok: false, error: "unauthorized" }, 401);
+    if (!isAdmin && !seat && !meCode) return json({ ok: false, needs_session: true, error: "Please sign in again." }, 401);
     // A baseshop seat does not get company-wide analytics. The page recomputes them
     // from the bookings it is allowed to see, which are scoped below.
     if (scoped) return json({ ok: true, scope: "baseshop", scoped: true, analytics: {} });
-    const agent = (isAdmin || seat) ? null : (code || null);
+    const agent = (isAdmin || seat) ? null : (meCode || null);
     const a = await rpc("calendly_analytics", { p_agent: agent });
     return json({ ok: true, scope: agent || "company", analytics: a || {} });
   }
@@ -245,8 +291,8 @@ Deno.serve(async (req) => {
     const { scoped, seat, allow } = await scopeOf(body.token, body.code);
     const adminRead = isAdmin || seat;
     if (action === "list_all") { if (!adminRead) return json({ ok: false, error: "unauthorized" }, 401); }
-    else if (!code && !adminRead) { return json({ ok: false, error: "unauthorized" }, 401); }
-    const agent = (action === "list") ? code : (adminRead ? (clean(body.agent) ? norm(body.agent) : null) : (code || null));
+    else if (!meCode && !adminRead) { return json({ ok: false, needs_session: true, error: "Please sign in again." }, 401); }
+    const agent = (action === "list") ? meCode : (adminRead ? (clean(body.agent) ? norm(body.agent) : null) : (meCode || null));
     let rows = await rpc("calendly_bookings", { p_agent: agent, p_status: clean(body.status) || null, p_type: clean(body.type) || null, p_upcoming: (body.upcoming === true ? true : (body.upcoming === false ? false : null)), p_search: clean(body.search) || null, p_limit: Number(body.limit) || 300 });
     if (scoped) {
       const base = await baseByCode();
@@ -257,8 +303,8 @@ Deno.serve(async (req) => {
   if (action === "alerts") {
     const { scoped, seat, allow } = await scopeOf(body.token, body.code);
     const adminRead = isAdmin || seat;
-    if (!adminRead && !code) return json({ ok: false, error: "unauthorized" }, 401);
-    const agent = adminRead ? null : (code || null);
+    if (!adminRead && !meCode) return json({ ok: false, needs_session: true, error: "Please sign in again." }, 401);
+    const agent = adminRead ? null : (meCode || null);
     const q = agent ? `calendly_alerts?agent_code=eq.${enc(agent)}&order=created_at.desc&limit=50` : `calendly_alerts?order=created_at.desc&limit=50`;
     let alerts = await dbGet(q);
     if (scoped) { const base = await baseByCode(); alerts = (alerts || []).filter((a: any) => allow.has(base[norm(a.agent_code)] || "")); }
