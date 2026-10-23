@@ -285,6 +285,18 @@
         <div class="v" id="apOut">$0.00</div>
         <div class="n" id="apNote">Calculated from the premium &times; 12</div>
       </div>
+      <!-- TARGET PREMIUM (handoff section 6B, confirmed by Elijah). Manually entered, saved
+           independently of Premium amount, Lump sum and Annualized premium -- it is not another
+           name for any of them. Deliberately NOT required and NOT auto-filled: the brief says
+           not to make it mandatory just because it is new, and not to recalculate or overwrite
+           what was typed when frequency, premium, carrier or product change. Placed directly
+           under the annualized summary so the two read as related but clearly separate. -->
+      <div class="tsfg-field" id="f_target_w">
+        <label>Target premium <span class="opt">optional</span></label>
+        <input id="f_target" type="number" inputmode="decimal" step="0.01" min="0" placeholder="Leave blank if not applicable">
+        <div class="err">Enter a target premium of $0 or more.</div>
+        <div class="hint">The actual target premium for this application. It can differ from the annualized figure above, and nothing recalculates it.</div>
+      </div>
       <div class="tsfg-field" id="f_cov_w">
         <label>Coverage amount <span class="req">*</span></label>
         <input id="f_cov" type="number" inputmode="decimal" placeholder="250000">
@@ -698,6 +710,8 @@ function openApp(id){
      stored, instead of inventing a monthly figure that was never entered. */
   V('f_freq', '1');
   V('f_prem', p.annual_premium);
+  /* Blank stays blank. V() with null would print "null" into a money field. */
+  V('f_target', (p.target_premium===null||p.target_premium===undefined) ? '' : p.target_premium);
   try{ calcAP(); }catch(e){}
 
   setWizChrome();
@@ -825,6 +839,11 @@ function validate(step){
     ok = bad('f_date',    !$('f_date').value)           && ok;
     ok = bad('f_prem',    !(Number($('f_prem').value)>0)) && ok;
     ok = bad('f_cov',     !(Number($('f_cov').value)>0))  && ok;
+    /* Target premium is OPTIONAL, so blank passes. A value that is present must be a real
+       number of 0 or more -- negative and malformed are rejected, and no arbitrary maximum is
+       invented, which section 6B explicitly forbids. */
+    ok = bad('f_target',  (function(){ var r=String($('f_target').value||'').trim();
+                                       return !!r && !(isFinite(Number(r)) && Number(r)>=0); })()) && ok;
     ok = bad('f_polnum',  !$('f_polnum').value.trim())  && ok;
   }
   $('wizErr').style.display = ok?'none':'flex';
@@ -873,6 +892,9 @@ function fillReview(){
     row('Premium frequency', word) +
     row(word+' premium', money2(Number($('f_prem').value)||0)) +
     row('Annualized premium', money2(annualized())) +
+    /* Section 6B: show it on Review, and show "not provided" cleanly rather than letting a
+       blank read as a computed $0.00. */
+    row('Target premium', (targetPremium()===null ? 'Not provided' : money2(targetPremium()))) +
     row('Coverage amount', money(Number($('f_cov').value)||0)) +
     row('Policy number', $('f_polnum').value.trim()) +
     (rate?row('Your contract %', rate+'%'):'') +
@@ -892,6 +914,9 @@ function payload(status){
     product: $('f_product').value,
     policy_number: $('f_polnum').value.trim(),
     annual_premium: annualized(),
+    /* Sent as null when blank, never 0: the brief requires "not provided" to stay
+       distinguishable from an explicitly entered zero. */
+    target_premium: targetPremium(),
     coverage: Number($('f_cov').value)||0,
     contract_pct: Number($('f_contract').value)||null,
     submitted_date: $('f_date').value,
@@ -900,6 +925,16 @@ function payload(status){
   };
 }
 
+/* Blank -> null, so an untouched field is "not provided" rather than zero. A typed 0 is kept
+   as 0, which is a different statement. Anything unparseable is null too; validateTarget()
+   below is what tells the user, rather than silently sending a wrong number. */
+function targetPremium(){
+  var el=$('f_target'); if(!el) return null;
+  var raw=String(el.value||'').trim();
+  if(!raw) return null;
+  var n=Number(raw);
+  return (isFinite(n) && n>=0) ? n : null;
+}
 function send(body){
   return fetch(NB,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
     .then(function(r){ return r.json(); })
