@@ -100,10 +100,10 @@ html,body{overflow-x:hidden}
 .togglebar.reordering{outline:2px dashed var(--gold);outline-offset:3px;border-radius:14px}
 .tabhint{font-size:11.5px;color:var(--ink3);margin:6px 2px 0;display:flex;align-items:center;gap:5px}
 /* Ops Assistant chat bubble */
-.obot-fab{position:fixed;right:20px;bottom:20px;z-index:300;width:58px;height:58px;border-radius:50%;border:none;cursor:pointer;background:linear-gradient(135deg,var(--gold),var(--gold-dp));color:#fff;font-size:25px;box-shadow:0 10px 28px rgba(0,0,0,.28);display:flex;align-items:center;justify-content:center;animation:obotpop .4s cubic-bezier(.2,1.4,.4,1)}
+.obot-fab{position:fixed;right:20px;bottom:calc(20px + env(safe-area-inset-bottom));z-index:300;width:58px;height:58px;border-radius:50%;border:none;cursor:pointer;background:linear-gradient(135deg,var(--gold),var(--gold-dp));color:#fff;font-size:25px;box-shadow:0 10px 28px rgba(0,0,0,.28);display:flex;align-items:center;justify-content:center;animation:obotpop .4s cubic-bezier(.2,1.4,.4,1)}
 @keyframes obotpop{0%{transform:scale(.4);opacity:0}100%{transform:scale(1);opacity:1}}
 .obot-fab.hide{display:none}
-.obot-panel{position:fixed;right:20px;bottom:88px;z-index:300;width:min(392px,calc(100vw - 32px));height:min(580px,calc(100vh - 130px));background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow-lg);display:none;flex-direction:column;overflow:hidden}
+.obot-panel{position:fixed;right:20px;bottom:calc(88px + env(safe-area-inset-bottom));z-index:300;width:min(392px,calc(100vw - 32px));height:min(580px,calc(100vh - 130px));background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow-lg);display:none;flex-direction:column;overflow:hidden}
 .obot-panel.on{display:flex}
 .obot-hd{padding:13px 15px;background:linear-gradient(135deg,var(--gold),var(--gold-dp));color:#fff;display:flex;align-items:center;gap:9px}
 .obot-hd .t{font-weight:800;font-size:14.5px;line-height:1.1}.obot-hd .s{font-size:11px;opacity:.92}

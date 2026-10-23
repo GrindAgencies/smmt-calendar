@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-10-23T03:06:38.837Z",
+  "timestamp": "2026-10-23T14:42:12.642Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -22,9 +22,29 @@
     },
     {
       "status": "M",
-      "path": "calendar.html"
+      "path": "approvals.html"
+    },
+    {
+      "status": "M",
+      "path": "checklist.html"
+    },
+    {
+      "status": "M",
+      "path": "ops.html"
+    },
+    {
+      "status": "M",
+      "path": "roadmap-builder.html"
+    },
+    {
+      "status": "M",
+      "path": "scheduler.html"
+    },
+    {
+      "status": "M",
+      "path": "tasks.html"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\n2abfa51 calendar.html: a client whose name contains an apostrophe no longer breaks their row\n14be8df email-sender v5: refuse to send a message that is no longer true\nd9e4109 calendar.html: stop sending code/by on the delete call\nd239bd4 booking-purge v6: a leader may delete their own team's appointments, not the whole company -- and preview is gated at all\n7b497d9 cal-feed v8: scope the company calendar by baseshop, and stop shipping client contact details on other people's rows"
+  "context_notes": "Recent commits:\nbeb0a2a Calendly owns all client correspondence, permanently; retire the email sender\n2abfa51 calendar.html: a client whose name contains an apostrophe no longer breaks their row\n14be8df email-sender v5: refuse to send a message that is no longer true\nd9e4109 calendar.html: stop sending code/by on the delete call\nd239bd4 booking-purge v6: a leader may delete their own team's appointments, not the whole company -- and preview is gated at all"
 }

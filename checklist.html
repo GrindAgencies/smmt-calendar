@@ -1499,11 +1499,11 @@ function tsfgSignOut(){try{if(window.tsfgSession)tsfgSession.clear();}catch(e){}
 
 <!-- ===== AI Training Coach ===== -->
 <style>
-.tc-fab{position:fixed;right:20px;bottom:20px;z-index:1200;display:inline-flex;align-items:center;gap:8px;border:none;cursor:pointer;
+.tc-fab{position:fixed;right:20px;bottom:calc(20px + env(safe-area-inset-bottom));z-index:1200;display:inline-flex;align-items:center;gap:8px;border:none;cursor:pointer;
   background:linear-gradient(135deg,#6470ff,#5b6cff);color:#fff;font-weight:800;font-size:14px;padding:13px 18px;border-radius:999px;
   box-shadow:0 10px 30px rgba(91,108,255,.4);font-family:inherit;}
 .tc-fab:hover{filter:brightness(1.05);transform:translateY(-1px);}
-.tc-panel{position:fixed;right:20px;bottom:20px;z-index:1201;width:380px;max-width:calc(100vw - 24px);height:560px;max-height:calc(100vh - 40px);
+.tc-panel{position:fixed;right:20px;bottom:calc(20px + env(safe-area-inset-bottom));z-index:1201;width:380px;max-width:calc(100vw - 24px);height:560px;max-height:calc(100vh - 40px);
   background:var(--panel);border:1px solid #e6e6ea;border-radius:20px;box-shadow:0 30px 70px rgba(0,0,0,.3);display:none;flex-direction:column;overflow:hidden;font-family:inherit;}
 .tc-panel.on{display:flex;}
 .tc-head{background:linear-gradient(135deg,#6470ff,#5b6cff);color:#fff;padding:15px 18px;display:flex;align-items:center;gap:10px;}

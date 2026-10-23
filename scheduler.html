@@ -109,7 +109,11 @@
   .sheet{ position:fixed; inset:0; z-index:95; background:rgba(0,0,0,.6); display:none; }
   .sheet.on{ display:block; }
   .sheet-c{
-    position:absolute; left:0; right:0; bottom:0; max-height:94vh; overflow-y:auto;
+    position:absolute; left:0; right:0; bottom:0; overflow-y:auto;
+    /* 94vh alone leaves 56px above the sheet on a 932px screen, where the status bar is 59px,
+       so at full height the sheet's own top edge crept under the clock. Subtracting the inset
+       makes that impossible on every device instead of only on most of them. */
+    max-height:calc(94vh - env(safe-area-inset-top));
     background:var(--tsfg-bg); border-top:1px solid var(--tsfg-line);
     border-radius:18px 18px 0 0; padding:0 16px calc(22px + env(safe-area-inset-bottom));
   }
