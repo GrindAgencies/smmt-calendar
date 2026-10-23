@@ -1,4 +1,4 @@
-// ops-auth v2 — sign-in for the Operations platform.
+// ops-auth v3 — sign-in for the Operations platform.
 //
 // Until now a 4-digit platform code WAS the whole credential, and every admin call
 // then carried the literal string "2026" as its authorisation. Both are readable by
@@ -72,16 +72,29 @@ Deno.serve(async (req) => {
       }));
     }
 
-    /* A master seat opens first-PIN setup for another seat. Authority is the CALLER'S OWN
-       session token, and ops_pin_enroll() checks master itself and refuses a seat that already
-       has a PIN -- this adds no new trust, it just makes the existing one reachable. */
+    /* A master seat, or a platform admin, opens first-PIN setup for another seat. Authority is
+       the CALLER'S OWN credential; ops_pin_enroll() decides which credentials count and still
+       refuses a seat that already has a PIN -- this adds no new trust, it makes existing trust
+       reachable.
+
+       TWO DIFFERENT CREDENTIALS CAN AUTHORISE IT, AND THEY ARRIVE IN DIFFERENT FIELDS.
+       `token` is the Operations SEAT session the page holds. `session` is the caller's own
+       agent session, which session.js injects into every /functions/v1/ call. A master seat
+       proves itself with the first; a platform admin proves themselves with the second and
+       holds no seat token at all -- which is exactly why they were locked out, and why passing
+       only `token` here silently dropped the one credential they had. */
     if (action === "enroll") {
       const mins = Math.max(5, Math.min(Number(body.minutes) || 60, 240));
-      return json(await rpc("ops_pin_enroll", {
-        p_token: clean(body.token, 80),
-        p_code: clean(body.code, 8),
-        p_minutes: mins,
-      }));
+      const code = clean(body.code, 8);
+      const seat = clean(body.token, 80);
+      const sess = clean(body.session, 120);
+      /* ops_pin_enroll() takes ONE token, so try the seat then fall back to the session. The
+         function remains the single authority on which of them counts. */
+      let r: any = seat ? await rpc("ops_pin_enroll", { p_token: seat, p_code: code, p_minutes: mins }) : null;
+      if ((!r || r.ok !== true) && sess) {
+        r = await rpc("ops_pin_enroll", { p_token: sess, p_code: code, p_minutes: mins });
+      }
+      return json(r || { ok: false, error: "Sign in to an Operations seat first." });
     }
 
     if (action === "check")  return json(await rpc("ops_session_ok", { p_token: clean(body.token, 80) }));

@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-10-23T16:38:46.996Z",
+  "timestamp": "2026-10-23T16:47:04.283Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -19,8 +19,12 @@
     {
       "status": "M",
       "path": ".planning/HANDOFF.json"
+    },
+    {
+      "status": "M",
+      "path": "supabase/functions/ops-auth/index.ts"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\nb6eb464 ops.html: a platform admin signed in as themselves is no longer shut out by the seat gate\necad149 Ops seat setup: make the instruction the sign-in screen gives actually possible\nf2d7d97 profile.html: a real modal to connect Calendly, instead of a browser prompt()\nfc18b1b Phone sweep: safe-area insets across every page, and two tap targets lifted off the home indicator\nbeb0a2a Calendly owns all client correspondence, permanently; retire the email sender"
+  "context_notes": "Recent commits:\nf2b1231 ops.html: decide the seat-setup button from the server on every boot path\n2432b0b Seat setup reachable by a platform admin, so the lockout can be fixed from the app\nb6eb464 ops.html: a platform admin signed in as themselves is no longer shut out by the seat gate\necad149 Ops seat setup: make the instruction the sign-in screen gives actually possible\nf2d7d97 profile.html: a real modal to connect Calendly, instead of a browser prompt()"
 }
