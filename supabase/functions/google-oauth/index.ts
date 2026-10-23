@@ -1,3 +1,23 @@
+// google-oauth v5 (2026-10-22) — WHOSE GOOGLE CALENDAR.
+//
+// v5: auth_url, status, sync and disconnect all took a typed `code`. Agent codes are printed on
+// the org chart, and the consequence here is worse than a disclosure:
+//
+//   auth_url    embeds the code in the OAuth `state`, and the GET callback reads the trainer
+//               straight back out of that state without checking it against anybody. So minting
+//               a consent URL with SOMEBODY ELSE'S code and then completing Google consent with
+//               your own account wrote a google_connections row for THEM pointing at YOUR
+//               calendar — and their bookable availability is computed from those busy times.
+//               Verified live before the fix: a consent URL carrying another agent's code was
+//               issued on request.
+//   disconnect  removed anyone's Google connection AND stripped their google busy blocks out of
+//               cft_availability, so their real commitments stopped blocking bookings.
+//   status      returned the Google address linked to any named trainer.
+//   sync        ran as them, and on failure flagged THEIR connection as errored.
+//
+// Identity is now the session minted at PIN entry, or an Operations token. sync_all was already
+// Operations-only and is unchanged. No client change: calendar.html loads session.js.
+//
 // google-oauth v2 — one-click Google Calendar connect for trainers.
 // Flow: auth_url -> Google consent -> callback (exchange code, store refresh token in Vault,
 // upsert google_connections) -> sync free/busy into cft_availability busy blocks {date,s,e} (Pacific).
@@ -34,6 +54,16 @@ async function cfg() { const ex = await fetch(`${SUPA}/rest/v1/app_settings?key=
 async function rpc(fn: string, args: Record<string, unknown>) { const ex = await fetch(`${SUPA}/rest/v1/rpc/${fn}`, { method: "POST", headers: DBH, body: JSON.stringify(args) }); if (!ex.ok) throw new Error(`rpc ${fn}: ${await ex.text()}`); return await ex.json(); }
 // A live Operations session (ops-auth). Legacy token still honoured centrally until every caller cuts over.
 async function opsAuthorized(token: unknown) { try { const r = await rpc("ops_authorize", { p_token: String(token ?? "") }); return !!(r && r.ok); } catch (_) { return false; } }
+/* Proof of identity. A typed code here was an ACCOUNT-LINKING vector: auth_url embeds the code
+   in the OAuth `state`, and the callback trusts whatever comes back in it, so minting a consent
+   URL with somebody else's code and completing it with your own Google account attached YOUR
+   calendar to THEIR trainer record — and their availability is computed from it. */
+async function sessionCode(session: unknown): Promise<string> {
+  const v = String(session ?? "").trim().slice(0, 120);
+  if (!v) return "";
+  try { const got = await rpc("agent_session_code", { p_token: v }); return (typeof got === "string") ? norm(got) : ""; }
+  catch (_) { return ""; }
+}
 
 // ---- PT helpers ----
 function ptParts(d: Date) { const f = new Intl.DateTimeFormat("en-CA", { timeZone: PT, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false }); const p: Record<string, string> = {}; f.formatToParts(d).forEach((x) => { p[x.type] = x.value; }); const hh = Number(p.hour) % 24; return { date: `${p.year}-${p.month}-${p.day}`, min: hh * 60 + Number(p.minute) }; }
@@ -135,25 +165,31 @@ Deno.serve(async (req) => {
     // ----- JSON API (POST) -----
     const body = (req.method === "POST") ? (await req.json().catch(() => ({}))) : {};
     const action = (body.action as string) || url.searchParams.get("action") || "";
-    const code = norm(body.code || url.searchParams.get("code"));
     const token = (body.token as string) || "";
+    /* WHOSE CALENDAR. Operations may name a trainer, which support needs; everybody else is
+       themselves. A typed `code` is no longer read for any of the four actions below. */
+    const isOps = await opsAuthorized(token);
+    const code = isOps
+      ? norm(body.code || url.searchParams.get("code"))
+      : await sessionCode(body.session || url.searchParams.get("session"));
+    const NEEDS = () => json({ ok: false, needs_session: true, error: "Please sign in again." }, 401);
 
     if (action === "auth_url") {
-      if (!code) return json({ ok: false, error: "code required" }, 400);
+      if (!code) return NEEDS();
       const state = b64url(JSON.stringify({ code, t: Date.now() }));
       const p = new URLSearchParams({ client_id: String(c.client_id), redirect_uri: String(c.redirect_uri), response_type: "code", scope: SCOPE, access_type: "offline", prompt: "consent", include_granted_scopes: "true", state });
       return json({ ok: true, url: `https://accounts.google.com/o/oauth2/v2/auth?${p.toString()}` });
     }
 
     if (action === "status") {
-      if (!code) return json({ ok: false, error: "code required" }, 400);
+      if (!code) return NEEDS();
       const conn = await getConn(code);
       if (!conn) return json({ ok: true, connected: false });
       return json({ ok: true, connected: conn.status === "connected", email: conn.google_email || "", last_sync_at: conn.last_sync_at || null, status: conn.status || "", last_error: conn.last_error || null });
     }
 
     if (action === "sync") {
-      if (!code) return json({ ok: false, error: "code required" }, 400);
+      if (!code) return NEEDS();
       const conn = await getConn(code); if (!conn) return json({ ok: false, error: "not connected" }, 404);
       try { const r = await syncBusy(c, conn); return json({ ok: true, ...r }); }
       catch (e) { await fetch(`${SUPA}/rest/v1/google_connections?trainer_code=eq.${encodeURIComponent(code)}`, { method: "PATCH", headers: { ...DBH, Prefer: "return=minimal" }, body: JSON.stringify({ last_error: String(e), status: "error", updated_at: new Date().toISOString() }) }); return json({ ok: false, error: String(e) }, 500); }
@@ -167,7 +203,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === "disconnect") {
-      if (!code) return json({ ok: false, error: "code required" }, 400);
+      if (!code) return NEEDS();
       const conn = await getConn(code);
       if (conn) {
         // strip google busy blocks from cft_availability

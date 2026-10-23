@@ -1,4 +1,4 @@
-// cal-feed v6 (2026-10-21) — company-wide calendar feed (Dashboard + week + Clients).
+// cal-feed v7 (2026-10-22) — company-wide calendar feed (Dashboard + week + Clients).
 // Read-only. Includes client fields for the Clients tab. v4 also returns
 // starts_at/ends_at/timezone (+title/color) so the scheduler can render every event in the
 // VIEWER's own time zone from its true instant.
@@ -14,7 +14,26 @@
 // calendar file". It does not — the name misleads; it returns JSON. So the session never arrived,
 // and the function was written to make do with a code.
 //
-// v6 IS A TRANSITION SHIM, AND IT EXISTS BECAUSE v5 BROKE THE LIVE SITE FOR A FEW MINUTES.
+// v7 (2026-10-22) REPLACES THE SHIM WITH A REAL DISTINCTION, now that session.js is live and
+// serving cal-feed in its GETFIX list (verified against tsfg.app, not just against the push).
+//
+// The shim answered empty-and-successful to EVERY caller without a session, which also silenced
+// the genuine case of an expired session — that person saw an empty calendar instead of being
+// asked to sign in. The two cases are distinguishable and always were:
+//
+//   no `session` key at all   -> a client running the OLD session.js, which did not send one.
+//                                Empty and successful: no data, and critically no bounce, because
+//                                a 401 here clears tsfg_code and throws them to the sign-in
+//                                screen. GitHub Pages serves .js with max-age=600, so such
+//                                clients can exist for ten minutes after any deploy.
+//   `session` sent but bad    -> a CURRENT client whose session really has expired. That is what
+//                                needs_session is for, and bouncing them is correct.
+//
+// This is no longer a temporary measure to rip out: it is the right behaviour permanently,
+// because the stale-client window reopens on every future deploy.
+//
+// THE ORIGINAL SHIM NOTE, kept because the lesson is the point:
+// v6 EXISTED BECAUSE v5 BROKE THE LIVE SITE FOR A FEW MINUTES.
 // The other half of this fix is adding cal-feed to the GETFIX list in session.js — but session.js
 // is a CLIENT file served from GitHub Pages, and the live site runs whatever was last pushed. v5
 // required a session the live client does not yet send, so every request answered 401 with
@@ -22,10 +41,8 @@
 // redirecting to the sign-in screen. The effect on a signed-in agent opening the Scheduler was to
 // be silently signed out — far worse than the leak it was closing.
 //
-// So: a caller with no session gets an EMPTY, SUCCESSFUL answer instead of a 401. No needs_session
-// key, so nobody is bounced; no rows, so no client data leaves. REMOVE THE SHIM once the
-// session.js change is live, so a genuinely missing session is reported honestly rather than
-// looking like an empty calendar.
+// v6 did so for EVERY sessionless caller; v7 narrows that to callers that sent no session key.
+// Nobody is bounced and no rows leave either way.
 //
 // STILL BROAD, AND FLAGGED RATHER THAN CHANGED: every signed-in agent still receives every
 // baseshop's bookings with the client contact fields, and calendar.html filters to the caller's
@@ -66,15 +83,20 @@ Deno.serve(async (req) => {
   if (action === "company_events") {
     /* A real signed-in member, or Operations. `code` is no longer consulted for access at all —
        it was the entire gate, and it accepted anything. */
+    const sentSession = (body.session || url.searchParams.get("session")) ? true : false;
     const me = await sessionCode(body.session || url.searchParams.get("session"));
     const isOps = me ? false : await opsAuthorized(body.token || url.searchParams.get("token"));
     if (!me && !isOps) {
-      /* THE SHIM — see the v6 note at the top. Empty and successful, never a 401, because a 401
-         here signs the person out of the whole app. Remove once session.js is pushed. */
-      return json({
-        ok: true, events: [], stale_client: true,
-        note: "This calendar needs the updated app to load company events. Reload the page; if it persists the site update is still pending.",
-      });
+      /* Sent nothing: an old client. Empty, successful, and NOT a 401 — a 401 here clears
+         tsfg_code and throws the person to the sign-in screen. */
+      if (!sentSession) {
+        return json({
+          ok: true, events: [], stale_client: true,
+          note: "This calendar needs the updated app to load company events. Reload the page; if it persists the site update is still pending.",
+        });
+      }
+      /* Sent a session that did not resolve: genuinely expired, on a current client. Say so. */
+      return json({ ok: false, needs_session: true, error: "Please sign in again." }, 401);
     }
     const from = clean(body.from || url.searchParams.get("from"));
     const to   = clean(body.to   || url.searchParams.get("to"));

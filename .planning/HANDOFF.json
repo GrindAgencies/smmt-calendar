@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-10-23T01:28:52.663Z",
+  "timestamp": "2026-10-23T02:10:24.199Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -22,13 +22,21 @@
     },
     {
       "status": "M",
-      "path": "supabase/functions/hub-groups/index.ts"
+      "path": "ops/verify-ops-endpoints.sh"
     },
     {
       "status": "M",
-      "path": "teamhub.html"
+      "path": "supabase/functions/cal-feed/index.ts"
+    },
+    {
+      "status": "M",
+      "path": "supabase/functions/google-oauth/index.ts"
+    },
+    {
+      "status": "M",
+      "path": "supabase/functions/ops-bot/index.ts"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\nb92f9fd Team Hub: circular pinned conversations above recent chats\nfe24095 Close three more unauthenticated endpoints; add a scanner for the whole class\nb8830c1 roadmap-outcome v5: close an unauthenticated write to any agent's progress\n7cae817 All 106 edge functions backed up, and the backup audited\nfc5d9a6 Edge-function backups: 97 of 106"
+  "context_notes": "Recent commits:\ncc0f2a9 calendly-sync v15: a typed code could repoint someone's booking link\n8cc01ed bots-cron v9: a typed code could rewrite what the bots say to every team\n84eda57 coaching v5: private feedback was readable, and bylines were forgeable\n96c37d6 booking-purge v5: typed-code deletion, and a preview nobody had to sign in for\n499cc78 Record the handoff audit: what was already done, what is left"
 }

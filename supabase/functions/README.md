@@ -324,3 +324,41 @@ logs people out.
   with client contact fields; calendar.html filters client-side. Scoping it changes
   what the dashboard shows, so it needs a decision.
 - **11 OPS-ONLY rows** from the scanner, unreviewed.
+
+## The identity sweep is finished (2026-10-22)
+
+`ops/scan-identity.py` started at 5 OPEN / 12 OPS-ONLY. Every row is now resolved:
+
+**Closed** — each verified open before the change and refused after, with the data checked
+afterwards to confirm the probes wrote and deleted nothing:
+
+| function | what a typed code bought you |
+|---|---|
+| i18n-api v4 | rewrite any UI label, for every Spanish-speaking agent |
+| ops-import v4 | replace an Ops seat's whole ticket board |
+| ops-bot v6→v7 | the whole book of business; create tasks; kill automations |
+| roadmap-outcome v5 | read any broker's history; slide their tracker backwards |
+| book-manual v2 | plant appointments on anyone's calendar, and block their slots |
+| cal-feed v6→v7 | 2000 company bookings incl. client emails and phones |
+| booking-purge v5 | permanently delete anyone's appointment; read any appointment |
+| coaching v5 | read anyone's private feedback; write under a trainer's byline |
+| bots-cron v9 | rewrite what the bots post into every team's channel |
+| calendly-sync v15 | **repoint someone's public booking link at your own calendar** |
+| google-oauth v5 | **link your Google account to someone else's trainer record** |
+
+**Reviewed and correct, left as they are** — the scanner flags these because they read a
+request identifier somewhere, not because it is trusted:
+
+- `cancel-followups`, `ft-tally`, `ops-tracker` — one `ops_authorize` gate at the top, before
+  anything. The identifiers they read afterwards are internal, not callers.
+- `push-api` — only `health` is open, and it reveals just whether push is configured.
+- `ops-platform` — only `login` is open. It is an enumeration oracle and the file now says so,
+  but a seat code opens nothing any more, so what it leaks is a label rather than a key.
+- `avatar` — unauthenticated by design: an `<img src>` cannot carry a token and the response is
+  one profile photo. The reasoning is in the file and expires if it ever returns more.
+
+### Two of these had never been used
+`coaching_notes` and `google_connections` are both empty. Those holes were real and live, but
+nothing had flowed through them — they were closed before the features were used. Say that
+plainly rather than counting them alongside cal-feed, which was leaking real client contact
+details at the moment it was found.

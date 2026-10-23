@@ -56,6 +56,14 @@ Deno.serve(async (req) => {
     const cfg = await loadBases();
     const list: Record<string, unknown>[] = (cfg && Array.isArray(cfg.bases)) ? cfg.bases : [];
 
+    /* REVIEWED 2026-10-22 and left open, with the trade-off stated.
+       `login` resolves a four-digit seat code to its baseshop and scope WITHOUT a PIN, which
+       makes it an enumeration oracle: ten thousand guesses identify all six real seat codes and
+       which one is master. It stays because the sign-in screen genuinely needs to resolve the
+       code a person just typed in order to show them the right seat, and because a seat code no
+       longer opens anything on its own — ops-bot v6/v7 and ops-import v4 closed the last
+       endpoints that accepted one, so what an enumerator learns is now a label, not a key.
+       The PIN is the gate. It already withholds the owner's NAME for the same reason. */
     if (action === "login") {
       const code = clean(body.code || url.searchParams.get("code"));
       if (!/^\d{4}$/.test(code)) return json({ ok: false, error: "Enter a 4-digit baseshop Ops code." });

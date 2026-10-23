@@ -68,5 +68,8 @@ case "$(curl -s -X POST "$U/calendly-sync" -H 'Content-Type: application/json' -
   *'"ok":true'*) echo "  calendly public_link    ok (still open — public booking works)" ;;
   *)             echo "  calendly public_link    *** PUBLIC BOOKING BROKEN ***" ;;
 esac
+chk "google-oauth auth_url " "$(curl -s -X POST "$U/google-oauth" -H 'Content-Type: application/json' -d '{"action":"auth_url","code":"GFI20"}')" 'needs_session'
+chk "google-oauth disconnect" "$(curl -s -X POST "$U/google-oauth" -H 'Content-Type: application/json' -d '{"action":"disconnect","code":"C1991"}')" 'needs_session'
+chk "ops-bot leader code    " "$(curl -s -X POST "$U/ops-bot" -H 'Content-Type: application/json' -d '{"action":"get_knowledge","code":"GFI20"}')" 'Operations only'
 # i18n-api's content override must stay Ops-only.
 chk "i18n-api set_override  " "$(curl -s -X POST "$U/i18n-api" -H 'Content-Type: application/json' -d '{"action":"set_override","token":"2026","en":"x","es":"y"}')" 'unauthorized'

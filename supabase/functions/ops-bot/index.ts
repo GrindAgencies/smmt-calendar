@@ -1,4 +1,4 @@
-// ops-bot v6 (2026-10-21) — Claude-backed Operations Assistant. Data-aware, can create tasks & toggle
+// ops-bot v7 (2026-10-22) — Claude-backed Operations Assistant. Data-aware, can create tasks & toggle
 // automations, carries an editable knowledge base to debrief new Ops staff. High token ceiling.
 //
 // v6: THE SEAT-CODE DOOR IS CLOSED. v3's comment said a four-digit code "must be a REAL Operations
@@ -10,13 +10,14 @@
 // token on every ops-role call since the September cutover, and a restored tab without a live
 // session is already bounced to the PIN prompt rather than running tokenless.
 //
-// STILL OPEN, DELIBERATELY, PENDING A DECISION: the leader branch below still accepts a typed
-// agent code for a baseshop owner or anyone whose contract_level reads EMD/NVP/SEVP, and those
-// codes are printed on the org chart. It is left in place because it is the same code-as-identity
-// login that ops.html itself offers leaders (code + name, no PIN), so closing it here alone would
-// lock MD/EMDs out of the assistant while leaving the rest of the page open — a worse, more
-// confusing state. Closing it properly means leaders sign in with a PIN like everybody else,
-// which is Christopher's call, not a change to make quietly at 4am.
+// v7 (2026-10-22): THE LEADER BRANCH IS CLOSED TOO. v6 left it open pending a decision, because
+// closing it looked like it would lock MD/EMDs out. It does not: ops.html loads session.js, which
+// injects the signed-in agent's session into this very request, so a leader who has signed into
+// the app with their PIN is recognised without typing anything. What stops working is the thing
+// that should: asserting you are an EMD by typing an EMD's code off the org chart.
+//
+// The rank test is unchanged — a baseshop owner, or a contract_level of EMD/NVP/SEVP. Only where
+// the CODE comes from changed, from the request body to the verified session.
 //
 // v3 (2026-09-02) fixes two ways in. Authorisation was the literal "2026", which shipped
 // inside ops.html for anyone to read; it is now an Operations session from ops-auth.
@@ -57,18 +58,28 @@ async function callClaude(sys: string, messages: any[], maxTokens: number): Prom
   return { txt: "", err: lastErr };
 }
 
+/* Proof of identity for a member. ops.html loads session.js, so this arrives on its own. */
+async function sessionCode(session: unknown): Promise<string> {
+  const v = String(session ?? "").trim().slice(0, 120);
+  if (!v) return "";
+  const got = await rpc("agent_session_code", { p_token: v });
+  return (typeof got === "string") ? norm(got) : "";
+}
 async function opsAuth(body: any): Promise<{ ok: boolean; name: string }> {
   if (await opsAuthorized(body.token)) return { ok: true, name: clean(body.name) || "Operations" };
-  const code = norm(body.code); if (!code) return { ok: false, name: "" };
-  /* A seat code is NOT a credential. It is four digits, there are six of them, and staff type
-     theirs on the sign-in screen every morning — so this used to be the cheapest way into the
-     whole book of business on the platform. An Operations seat presents its session token or it
-     does not get in; there is no code fallback. */
+  /* The leader branch. The code is the VERIFIED one now, never the typed one: a code off the
+     org chart is not a claim to rank. A seat code is not a credential either — there are six of
+     them and staff type theirs every morning — so there is no code fallback at all. */
+  const code = await sessionCode(body.session); if (!code) return { ok: false, name: "" };
   if (/^\d{4}$/.test(code)) return { ok: false, name: "" };
   const bs = await loadKey("baseshops"); const list = (bs && Array.isArray(bs.bases)) ? bs.bases : [];
-  if (list.some((b: any) => norm(b.owner_code) === code)) return { ok: true, name: clean(body.name) || code };
+  /* The roster is read once and the NAME comes from it either way. It used to come from the
+     request on the owner branch, and that name is stamped on every task this assistant creates
+     and on every line it writes into the shared knowledge base. */
   const a = (await getJSON(`tracker_agents?code=eq.${encodeURIComponent(code)}&select=first_name,last_name,contract_level&limit=1`))[0];
-  if (a && /emd|executive|nvp|national vice|sevp/.test(low(a.contract_level))) return { ok: true, name: `${a.first_name || ""} ${a.last_name || ""}`.trim() };
+  const who = a ? `${a.first_name || ""} ${a.last_name || ""}`.trim() : "";
+  if (list.some((b: any) => norm(b.owner_code) === code)) return { ok: true, name: who || code };
+  if (a && /emd|executive|nvp|national vice|sevp/.test(low(a.contract_level))) return { ok: true, name: who };
   return { ok: false, name: "" };
 }
 
