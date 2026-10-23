@@ -1697,7 +1697,10 @@ function purgeBk(id){
    .then(function(yes){
      if(!yes)return;
      return fetch(BP,{method:'POST',headers:{'Content-Type':'application/json'},
-       body:JSON.stringify({action:'delete',id:id,code:CODE,by:(NAME||CODE||'broker')})})
+       /* No code and no `by`: the server reads neither, and stopped in v5. Sending them made a
+          destructive call look as though it were identified by a typed string, which is the
+          bug this endpoint had. The session that session.js injects is the identity. */
+       body:JSON.stringify({action:'delete',id:id})})
       .then(function(r){return r.json();})
       .then(function(d){
         if(!d||!d.ok){toast((d&&d.error)||'Could not delete');return;}
