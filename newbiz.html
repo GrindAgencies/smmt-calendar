@@ -293,9 +293,22 @@
            under the annualized summary so the two read as related but clearly separate. -->
       <div class="tsfg-field" id="f_target_w">
         <label>Target premium <span class="opt">optional</span></label>
-        <input id="f_target" type="number" inputmode="decimal" step="0.01" min="0" placeholder="Leave blank if not applicable">
+        <input id="f_target" type="number" inputmode="decimal" step="0.01" min="0"
+               disabled placeholder="Available once the ledger update ships">
         <div class="err">Enter a target premium of $0 or more.</div>
-        <div class="hint">The actual target premium for this application. It can differ from the annualized figure above, and nothing recalculates it.</div>
+        <!-- DISABLED ON PURPOSE, AND THIS IS THE HONEST STATE.
+             policies.target_premium exists and the form is wired, but newbiz-api cannot store
+             it yet: newbiz_add inserts exactly what mapRow() returns, and newbiz_update builds
+             its patch with hasOwnProperty.call(full, k) where full = mapRow(merged) -- so a
+             column mapRow does not name is dropped by BOTH paths. Measured against the live
+             endpoint: newbiz_update with target_premium returned ok:true and bumped updated_at,
+             and the column stayed NULL. A silent discard that reports success.
+             The one-line fix is already in supabase/functions/newbiz-api/index.ts (mapRow) and
+             ships with the next deploy of that function. An enabled field that eats what you
+             type is worse than a disabled one that says so -- "a button drawn on screen is not
+             a completed feature" cuts both ways.
+             TO FINISH: deploy newbiz-api, then remove `disabled` and this placeholder. -->
+        <div class="hint">Being wired up — the ledger needs one update before this can save. It will accept an amount that differs from the annualized figure, and nothing will recalculate it.</div>
       </div>
       <div class="tsfg-field" id="f_cov_w">
         <label>Coverage amount <span class="req">*</span></label>
@@ -994,6 +1007,7 @@ function submitApp(){
       '<div class="tsfg-muted" style="font-size:12.5px;margin-bottom:8px">'+esc(BIZ==='annuity'?'Annuity Business':'Life Business')+'</div>'+
       row('Status','Pending underwriting') +
       row('Annualized premium', money2(annualized())) +
+      (targetPremium()!==null ? row('Target premium', money2(targetPremium())) : '') +
       row('Coverage', money(Number($('f_cov').value)||0)) +
       row('Application date', $('f_date').value);
     goStep(4);

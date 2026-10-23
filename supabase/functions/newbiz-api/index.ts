@@ -226,6 +226,17 @@ function mapRow(body: Record<string, unknown>) {
     policy_number: clean(body.policy_number), carrier_code: clean(body.carrier_code),
     coverage: numOr(body.coverage, 0) || 0, annual_premium: prem,
     monthly_contribution: numOr(body.monthly_contribution, null), lump_sum_contribution: numOr(body.lump_sum_contribution, null),
+    /* Target premium (handoff 2026-10-23 section 6B): manually entered, saved independently of
+       annual_premium, monthly_contribution and lump_sum_contribution, and never derived from
+       them. null when not provided, which the brief requires to stay distinct from an entered 0.
+       It has to be named HERE and nowhere else: newbiz_add inserts exactly what mapRow returns,
+       and newbiz_update builds its patch with
+           for (const k of sent) if (hasOwnProperty.call(full, k)) patch[k] = full[k]
+       where full = mapRow(merged) -- so a column mapRow does not know is dropped from BOTH
+       paths. Measured before this line existed: newbiz_update with target_premium returned
+       ok:true, bumped updated_at, and left the column NULL. A silent discard that reported
+       success. */
+    target_premium: numOr(body.target_premium, null),
     contract_pct: contract, advance_pct: advance,
     // expected_commission is set after the partner's rate is resolved — see finishRow()
     expected_commission: null,

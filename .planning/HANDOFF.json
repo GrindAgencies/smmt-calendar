@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-10-23T22:19:23.784Z",
+  "timestamp": "2026-10-23T22:26:34.565Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -23,8 +23,12 @@
     {
       "status": "M",
       "path": "newbiz.html"
+    },
+    {
+      "status": "M",
+      "path": "supabase/functions/newbiz-api/index.ts"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\nc7de39c Road to EMD: the emblem stops eating the screen\n107f11c Home highlights: an uncaptioned slide no longer labels itself \"Team highlights\"\nf892e0f Home highlights: Manage sits beside the artwork instead of on top of it\n6299943 Home: the real transparent mark, and the profile gear section 3 asked for\nc7e3e70 Policy form: the date field fits, and the footer stops covering the premium"
+  "context_notes": "Recent commits:\nc9d2dc3 Target premium: column, field, validation and review — create path still pending\nc7de39c Road to EMD: the emblem stops eating the screen\n107f11c Home highlights: an uncaptioned slide no longer labels itself \"Team highlights\"\nf892e0f Home highlights: Manage sits beside the artwork instead of on top of it\n6299943 Home: the real transparent mark, and the profile gear section 3 asked for"
 }
