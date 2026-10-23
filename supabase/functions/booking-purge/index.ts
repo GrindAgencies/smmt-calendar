@@ -1,4 +1,25 @@
-// booking-purge v2 — delete an appointment and have it stay deleted, everywhere.
+// booking-purge v5 (2026-10-22) — delete an appointment and have it stay deleted, everywhere.
+//
+// v5: THE IDENTITY WAS STILL TYPED, AND PREVIEW WAS NEVER GATED AT ALL.
+//
+//   mayDelete() read `body.code || body.by_code` straight from the request. Agent codes are
+//   printed on the org chart, so typing the code of the agent or trainer on an appointment
+//   permanently deleted it, and typing ANY MD's or EMD's code permanently deleted ANYBODY's.
+//   v2 closed the no-authorisation hole and then decided who you were from a string you sent.
+//
+//   The v2 note below says preview "stays open to any signed-in caller". It was not open to
+//   signed-in callers; it was open to everyone — the early `return` for preview sits above every
+//   check. Measured: one credential-free request returned the agent's name, the trainer's name,
+//   the category, the date and the time. A comment describing a control is not a control.
+//
+//   Both now resolve identity from the session token minted at PIN entry, or an Operations
+//   token. `deleted_by` on the tombstone records that verified identity instead of whatever
+//   name the caller claimed — an audit trail that stores a self-reported name is not one.
+//
+// STILL BROAD, FLAGGED NOT CHANGED: any MD or EMD may delete any appointment in the company,
+// not only one belonging to their own team. The rule above this function says "their
+// leadership", and is_in_downline() exists to express exactly that. Narrowing it would refuse
+// deletions that work today, so it is a product decision rather than a quiet edit.
 //
 // Cancelling only set status='cancelled', and the two existing deletes each covered a single
 // source ("this only removes it from your calendar"). Neither actually removed the appointment
@@ -25,8 +46,9 @@
 // of this appointment.
 //
 // Actions:
-//   preview { id }                                   -> what deleting this would clear
-//   delete  { id, code | token, by, reason? }
+//   preview { id, session | token }                  -> what deleting this would clear
+//   delete  { id, session | token, reason? }         -> `by` is no longer read; the tombstone
+//                                                       records the VERIFIED caller
 //   restore { calendly_event_uuid, token }           -> lift a tombstone (Ops)
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
@@ -51,12 +73,25 @@ async function countRows(path: string) {
   } catch (_) { return 0; }
 }
 
+/* Proof of identity. A session token is proof; a typed code is not — and here a typed code was
+   a permanent, irreversible deletion of somebody else's appointment. */
+async function sessionCode(session: unknown): Promise<string> {
+  const v = String(session ?? "").trim().slice(0, 120);
+  if (!v) return "";
+  const got = await rpc("agent_session_code", { p_token: v });
+  return (typeof got === "string") ? norm(got) : "";
+}
+/* Resolved ONCE per request: Operations by token, or a member by their session. */
+async function whoIs(body: Record<string, unknown>): Promise<{ ops: boolean; code: string }> {
+  const az = await rpc("ops_authorize", { p_token: String(body.token ?? "") });
+  if (az && az.ok) return { ops: true, code: norm(az.code) };
+  return { ops: false, code: await sessionCode(body.session) };
+}
 /* Who may permanently delete this appointment? The people it actually belongs to, their
    leadership, or Operations. Nobody else — this cannot be undone. */
-async function mayDelete(b: any, body: Record<string, unknown>): Promise<boolean> {
-  const az = await rpc("ops_authorize", { p_token: String(body.token ?? "") });
-  if (az && az.ok) return true;
-  const code = norm(body.code || body.by_code);
+async function mayDelete(b: any, me: { ops: boolean; code: string }): Promise<boolean> {
+  if (me.ops) return true;
+  const code = me.code;                       /* verified, never from the request body */
   if (!code) return false;
   if (code === norm(b.agent_code) || code === norm(b.trainer_code)) return true;
   const a = (await getJSON(`tracker_agents?code=eq.${enc(code)}&select=contract_level,platform_admin`))[0];
@@ -79,6 +114,13 @@ Deno.serve(async (req) => {
       if (!uuid) return json({ ok: false, error: "calendly_event_uuid required" }, 400);
       const d = await fetch(`${SUPA}/rest/v1/booking_deletions?calendly_event_uuid=eq.${enc(uuid)}`, { method: "DELETE", headers: { ...DBH, Prefer: "return=minimal" } });
       return json({ ok: d.ok, restored: uuid, note: "The next Calendly sync may bring this appointment back." });
+    }
+
+    /* Everything below reads or destroys a real person's appointment, so it needs a real
+       caller. Resolved before the id is even looked at. */
+    const me = await whoIs(body);
+    if (!me.ops && !me.code) {
+      return json({ ok: false, needs_session: true, error: "Please sign in again." }, 401);
     }
 
     const id = clean(body.id, 60);
@@ -113,7 +155,7 @@ Deno.serve(async (req) => {
     if (action === "preview") return json({ ok: true, ...summary });
     if (action !== "delete") return json({ ok: false, error: "unknown action" }, 400);
 
-    if (!(await mayDelete(b, body))) {
+    if (!(await mayDelete(b, me))) {
       return json({ ok: false, error: "Only the agent, the trainer, their leader or Operations can delete this appointment." }, 401);
     }
 
@@ -126,7 +168,8 @@ Deno.serve(async (req) => {
         body: JSON.stringify({
           booking_id: id, calendly_event_uuid: b.calendly_event_uuid,
           agent_name: b.agent_name, trainer_name: b.trainer_name, category: b.category,
-          starts_at: b.starts_at, deleted_by: clean(body.by, 60) || "broker",
+          /* The verified caller, not a claimed name. */
+          starts_at: b.starts_at, deleted_by: (me.ops ? ("Operations:" + (me.code || "")) : me.code) || "unknown",
           reason: clean(body.reason, 200),
         }),
       });
