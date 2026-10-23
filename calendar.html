@@ -1319,7 +1319,7 @@ function aptRow(b){var col=avColor(b.trainer_name);
   else if(b.status==='booked'||b.status==='confirmed')right='<button class="x can" style="margin-left:auto" onclick="cancelBk(\''+b.id+'\')">Cancel</button><button class="x del" style="margin-left:8px" onclick="purgeBk(\''+b.id+'\')">Delete</button>';
   else right='<span class="conf" style="margin-left:auto">'+esc(bkStatus(b.status))+'</span>';
   var ck=aptClientKey(b);
-  var who=ck?('<button onclick="event.stopPropagation();openClient(\''+esc(ck)+'\')" title="Open this client" style="border:none;background:none;padding:0;font:inherit;font-size:12.5px;font-weight:700;color:var(--accent);cursor:pointer">'+esc(b.agent_name||'Client')+' →</button>'):'';
+  var who=ck?('<button onclick="event.stopPropagation();openClient(\''+escJs(ck)+'\')" title="Open this client" style="border:none;background:none;padding:0;font:inherit;font-size:12.5px;font-weight:700;color:var(--accent);cursor:pointer">'+esc(b.agent_name||'Client')+' →</button>'):'';
   return '<div class="apt"><div class="tav" style="width:42px;height:42px;font-size:14px;background:'+col+'">'+initials(b.trainer_name)+'</div><div style="min-width:0"><div style="font-weight:700;font-size:14.5px">'+esc(b.trainer_name)+' · '+esc(b.category||'Training')+(b.status==='confirmed'?' <span style="color:var(--green);font-weight:800">✓</span>':'')+'</div><div style="font-size:12.5px;color:var(--ink3)">'+prettyDate(dispDate(b))+' · '+esc(dispTime(b))+tzTag()+' <span class="conf">· '+esc(b.conf||'')+'</span></div>'+(who?('<div style="margin-top:3px">'+who+'</div>'):'')+'</div>'+right+'</div>';}
 /* ===== Book a trainer — ONE booking, made in Calendly =====
    Christopher, 2026-09-29: "books straight to the calendly account attached ... i do not want for
@@ -1942,6 +1942,13 @@ function paintMsgQueue(){
 }
 // === Clients tab (Phase 3d) — a trainer's clients + history, from their own feed ===
 function clientBookings(){var myname=(NAME||'').trim().toLowerCase();return COMPANY_EV.filter(function(b){return (b.trainer_name||'').trim().toLowerCase()===myname&&(b.client_email||b.client_id||b.agent_name);});}
+/* The key falls back to the AGENT/CLIENT NAME when there is no email or phone — 44 of the
+   client rows resolve that way today. A name can contain an apostrophe (Nick O'Kelly is in
+   this data), and this key is interpolated into an onclick, so both call sites use escJs()
+   rather than esc(): esc() escapes & < > " and NOT the apostrophe, which would end the JS
+   string early and throw "missing ) after argument list" when the handler is compiled.
+   Latent rather than live — O'Kelly's two bookings happen to carry an email, so their key is
+   the address — but one such booking arriving without one breaks that row. */
 function clientKey(b){return (b.client_email||b.client_phone||b.agent_name||'').toString().toLowerCase();}
 function clientList(q){
   var map={};
@@ -1958,7 +1965,7 @@ function clientList(q){
   return arr;
 }
 function clientRow(c){var col=avColor(c.name||c.key);
-  return '<div class="apt" onclick="openClient(\''+esc(c.key)+'\')" style="cursor:pointer"><div class="tav" style="width:42px;height:42px;font-size:14px;background:'+col+'">'+initials(c.name||'?')+'</div><div><div style="font-weight:700;font-size:14.5px">'+esc(c.name||'Client')+'</div><div style="font-size:12.5px;color:var(--ink3)">'+esc(c.email||c.phone||'')+' · '+c.total+' appt'+(c.total===1?'':'s')+(c.noshows?' · '+c.noshows+' no-show':'')+'</div></div><span class="conf" style="margin-left:auto">'+(c.upcoming?c.upcoming+' upcoming':'—')+'</span></div>';}
+  return '<div class="apt" onclick="openClient(\''+escJs(c.key)+'\')" style="cursor:pointer"><div class="tav" style="width:42px;height:42px;font-size:14px;background:'+col+'">'+initials(c.name||'?')+'</div><div><div style="font-weight:700;font-size:14.5px">'+esc(c.name||'Client')+'</div><div style="font-size:12.5px;color:var(--ink3)">'+esc(c.email||c.phone||'')+' · '+c.total+' appt'+(c.total===1?'':'s')+(c.noshows?' · '+c.noshows+' no-show':'')+'</div></div><span class="conf" style="margin-left:auto">'+(c.upcoming?c.upcoming+' upcoming':'—')+'</span></div>';}
 function renderClients(){
   var me=myTrainerProfile();
   if(!me){$('view').innerHTML='<div class="empty">The client list is for trainers. Sign in with your trainer profile to see it.</div>';return;}
