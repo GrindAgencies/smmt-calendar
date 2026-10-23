@@ -599,14 +599,38 @@ function initTabReorder(){
 }
 
 /* ---- overview ---- */
+/* THE DENOMINATOR INCLUDES PEOPLE WHO HAVE NEVER SIGNED IN. ops-directory's overview counts
+   everyone who is not 'quit' -- the variable is even called `active` -- so after the 2026-10-23
+   tidy archived 87 agents, "137 agents" and "55 / 137 licensed" silently counted 87 people who
+   have not set up an account. The number was not wrong, it had just stopped meaning what a
+   reader assumes it means.
+   Rather than change what the server counts, which is a product decision about who belongs on
+   the roster, the split is shown underneath. ROWS already carries `status` for every agent, so
+   this needs no extra request and no server change -- and when ROWS has not loaded yet the line
+   simply does not appear. */
+function rosterSplit(){
+  if(!ROWS||!ROWS.length)return null;
+  var arch=0;
+  ROWS.forEach(function(r){ if(String(r.status||'').toLowerCase()==='archived')arch++; });
+  return { total:ROWS.length, archived:arch, set_up:ROWS.length-arch };
+}
 function loadOverview(){
   api(auth({action:'overview'})).then(function(r){
     if(!r||!r.ok)return;var o=r.overview||{};
     var bases=Object.keys(o.by_base||{}).map(function(b){return b+' '+o.by_base[b];}).join(' · ');
-    $('statGrid').innerHTML=st(o.agents,'Agents')+st(o.licensed+' / '+o.agents,'Licensed')+st(o.complete+' / '+o.agents,'Profiles Complete')+st(money2(o.month_ap||0),'AP Submitted · MTD')+st(bases||'—','By Baseshop',1);
+    var sp=rosterSplit();
+    var agentsCell=sp
+      ? (String(o.agents)+'<div style="font-size:11px;font-weight:700;color:var(--ink3);margin-top:4px;letter-spacing:0">'
+         +sp.set_up+' set up · '+sp.archived+' archived</div>')
+      : String(o.agents);
+    $('statGrid').innerHTML=stRaw(agentsCell,'Agents')+st(o.licensed+' / '+o.agents,'Licensed')+st(o.complete+' / '+o.agents,'Profiles Complete')+st(money2(o.month_ap||0),'AP Submitted · MTD')+st(bases||'—','By Baseshop',1);
   });
 }
 function st(n,l,sm){return '<div class="stat"><div class="n"'+(sm?' style="font-size:13px;line-height:1.45"':'')+'>'+esc(String(n))+'</div><div class="l">'+esc(l)+'</div></div>';}
+/* Same tile, but the value is already-built markup rather than text. Kept separate from st()
+   so st() keeps escaping everything it is given -- one unescaped tile is a deliberate choice,
+   an unescaped st() would be an accident waiting to happen. */
+function stRaw(html,l){return '<div class="stat"><div class="n">'+html+'</div><div class="l">'+esc(l)+'</div></div>';}
 
 /* ---- column model ---- */
 /* The agent cell carries two things the list could not show before, and both were costing
@@ -692,7 +716,10 @@ function resetCols(){try{localStorage.removeItem(colOrderKey(TAB));}catch(e){}to
 function loadTracker(){
   api(auth({action:'tracker'})).then(function(r){
     if(!r||!r.ok){$('tableHost').innerHTML='<div class="empty">Could not load the tracker.</div>';return;}
-    ROWS=r.rows||[];CUSTOMCOLS=r.custom_columns||[];COLCOLORS=(r.col_colors&&typeof r.col_colors==='object')?r.col_colors:{};STATUSCOLORS=(r.status_colors&&typeof r.status_colors==='object')?r.status_colors:{};setLicStatuses(r.license_statuses);renderReqBanner(r.pending_requests||0);renderTab();
+    ROWS=r.rows||[];
+    /* The tiles may have rendered before ROWS arrived; now that the split is knowable, redraw. */
+    try{ if(typeof loadOverview==='function' && document.getElementById('statGrid') && document.getElementById('statGrid').innerHTML) loadOverview(); }catch(e){}
+    CUSTOMCOLS=r.custom_columns||[];COLCOLORS=(r.col_colors&&typeof r.col_colors==='object')?r.col_colors:{};STATUSCOLORS=(r.status_colors&&typeof r.status_colors==='object')?r.status_colors:{};setLicStatuses(r.license_statuses);renderReqBanner(r.pending_requests||0);renderTab();
   }).catch(function(){$('tableHost').innerHTML='<div class="empty">Could not load the tracker.</div>';});
 }
 function renderReqBanner(n){var host=$('reqBanner');if(!host)return;host.innerHTML=(canEdit()&&n>0)?('<div class="reqbanner">✏️ '+n+' edit request'+(n===1?'':'s')+' from leaders awaiting review<button onclick="openRequests()">Review requests</button></div>'):'';}
@@ -2299,13 +2326,19 @@ function removeAgentMenu(code){var nm=agName(code);
   var box=document.createElement('div');box.id='rmMenu';
   box.style.cssText='background:var(--panel);border:1px solid var(--line2);border-radius:14px;padding:14px;margin-top:12px;box-shadow:0 6px 24px rgba(0,0,0,.10)';
   box.innerHTML='<div style="font-weight:800;margin-bottom:2px">Remove '+esc(nm)+'?</div><div class="sub" style="margin-bottom:11px">Choose how to remove this agent.</div>'+
-    '<button class="dbtn" style="width:100%;margin-bottom:8px;text-align:left" onclick="markQuit(\''+esc(code)+'\')">🗄 <b>Mark as quit</b> — archive &amp; hide (for agents who may return; reactivate anytime)</button>'+
+    '<button class="dbtn" style="width:100%;margin-bottom:8px;text-align:left" onclick="markQuit(\''+esc(code)+'\')">🗄 <b>Mark as quit</b> — they have left; hides them and shows them as Alumni on the org chart (reactivate anytime)</button>'+
     '<button class="dbtn" style="width:100%;margin-bottom:8px;background:var(--red);text-align:left" onclick="deleteAgentPerm(\''+esc(code)+'\')">🗑 <b>Delete permanently</b> — remove the agent and their data entirely</button>'+
     '<button class="dbtn ghost" style="width:100%" onclick="var e=document.getElementById(\'rmMenu\');if(e)e.remove();">Cancel</button>';
   db.appendChild(box);box.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
+/* THIS SETS status='quit', WHICH MEANS DEPARTED. org-api's isDeparted() tests for 'quit', so
+   it is what puts somebody on the family tree as Alumni. It used to call itself "archive" in
+   its button text and both of its messages -- and since 2026-10-23 the roster also shows an
+   `archived` marker for a completely different state (no PIN yet, still here, signing in brings
+   them back). Two states, one word, and the destructive one was borrowing the harmless one's
+   name. The wording now matches what each actually does. */
 function markQuit(code){var nm=agName(code);
-  api(auth({action:'set_status',code:code,status:'quit'})).then(function(r){if(!r||!r.ok){toast((r&&r.error)||'Could not archive');return;}toast('Archived '+(r.name||nm)+' — hidden until reactivated');closeDrawer();loadTracker();});
+  api(auth({action:'set_status',code:code,status:'quit'})).then(function(r){if(!r||!r.ok){toast((r&&r.error)||'Could not mark as quit');return;}toast('Marked '+(r.name||nm)+' as quit — hidden until reactivated');closeDrawer();loadTracker();});
 }
 function deleteAgentPerm(code){var nm=agName(code);
   if(!confirm('Permanently delete '+nm+' ('+code+')? This removes the agent and their data entirely and cannot be undone.'))return;
