@@ -174,7 +174,7 @@ h1.big{margin:4px 0 0;font-size:26px;letter-spacing:-.01em;font-weight:800}
 .rank-visual{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;
   border:1px solid rgba(215,174,84,.1);border-radius:24px;
   background:radial-gradient(circle,rgba(215,174,84,.08),transparent 55%)}
-.rank-visual svg{width:min(300px,78%);height:auto;filter:drop-shadow(0 18px 24px rgba(0,0,0,.42));
+.rank-visual svg{width:min(200px,62%);height:auto;filter:drop-shadow(0 18px 24px rgba(0,0,0,.42));
   transition:transform .25s ease,filter .25s ease}
 .rank-visual:hover svg{transform:scale(1.035);filter:drop-shadow(0 20px 32px rgba(215,174,84,.18))}
 .rank-visual p{margin:0;font-size:11px;letter-spacing:.2em;text-transform:uppercase;
@@ -342,7 +342,10 @@ h1.big{margin:4px 0 0;font-size:26px;letter-spacing:-.01em;font-weight:800}
   .rank-card > *{ min-width:0; }
   .rank-req header{ gap:10px; }
   .rank-req header .cnt{ flex:0 0 auto; }
-  .rank-visual{min-height:280px}
+  /* Was min-height:280px, which reserved a block taller than the emblem now is and kept the
+     requirements below the fold even after the artwork shrank. The emblem sizes itself; the
+     container only needs to not collapse. */
+  .rank-visual{min-height:0;padding:14px 0}
   .mini svg{width:24px;height:24px}
 
   /* Previous/next sat either side of the card in a nowrap flex row, so on a 386px phone the
@@ -600,6 +603,18 @@ function rankBadgeSVG(level,state,size,prestige){
    404 and a blank square, levels past the artwork are drawn with the generated emblem that
    already exists as the fallback for every other level. Raise this the day art 20 lands. */
 var RANK_ART_MAX=19;
+/* HOW BIG THE HERO EMBLEM IS. It was a hard 290px, which is what screenshot H of the
+   2026-10-23 handoff means by "the large emblem consumes most of the remaining viewport":
+   on a 390pt phone that is three quarters of the content width before a single requirement
+   is visible. Section 10 asks for "around 140-180 logical points on a standard portrait
+   phone, adapting to space".
+   So it scales with the viewport and is clamped into that band, with a little more allowed on
+   larger screens where there is room. 390pt lands at 179, 320pt at 147, and anything desktop
+   stops at 200 rather than growing without limit. */
+function heroEmblemSize(){
+  var w = window.innerWidth || 390;
+  return Math.round(Math.max(140, Math.min(200, w * 0.46)));
+}
 function rankBadge(level,state,size,prestige){
   level=Math.max(1,Math.min(STAGE_COUNT,level|0)); size=size||120;
   /* Past EMD the emblem grows on CASHFLOW, not promotion. The artwork is fixed, so each level Eli
@@ -1655,8 +1670,8 @@ function renderRoad(){
     +'<div class="stagewrap">'
     +'<button class="arrow" onclick="goStep('+(STEP-1)+')"'+(STEP===0?' disabled':'')+' aria-label="Previous stage">\u2039</button>'
     +'<div class="rank-card">'
-    +'<div class="rank-visual">'+rankBadge(STEP+1,stageComplete(LADDER,STEP)?'complete':'current',290,cashOf(LADDER).prestige)
-    +'<p>Level '+(STEP<9?('0'+(STEP+1)):(STEP+1))+' emblem</p><small>Summit progression badge</small></div>'
+    +'<div class="rank-visual">'+rankBadge(STEP+1,stageComplete(LADDER,STEP)?'complete':'current',heroEmblemSize(),cashOf(LADDER).prestige)
+    +'<p>Level '+(STEP<9?('0'+(STEP+1)):(STEP+1))+' emblem</p><small>Progression badge</small></div>'
     +'<div class="rank-req"><header><div><div class="eyebrow">Progression step</div>'
     +'<h2>'+esc(STAGES[STEP])+'</h2>'
     +(ROAD[STEP].meaning?('<div class="stmean">'+esc(ROAD[STEP].meaning)+'</div>'):'')
