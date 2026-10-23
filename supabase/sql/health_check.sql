@@ -22,3 +22,18 @@
 --
 -- Also present and earning its keep: org_orphans, which is the check that would have
 -- caught Gregory Carter's dangling upline.
+--
+-- ONE CHECK ADDED 2026-10-23: org_cycles (alert), sitting next to org_orphans.
+--   org_orphans  an agent points at an upline that does NOT EXIST  -> they fall off the chart
+--   org_cycles   direct_to loops back on itself                    -> queries recurse forever
+-- Nothing used to stop a loop being created: profile-api lets an agent set their own upline and
+-- the resolver excluded only themselves, not their descendants. prevent_upline_cycle_trg now
+-- refuses it (see prevent_upline_cycle.sql) and is_in_downline() no longer hangs on one (see
+-- is_in_downline.sql). org_cycles is the alarm for the case where that trigger is dropped, or a
+-- loop arrives by another route — a bulk import, a direct SQL edit. Its own walk carries a
+-- visited-path guard, so the check cannot hang on the thing it is looking for.
+-- Reads 0 on the live roster; deepest chain is 6.
+--
+-- NOTE ON WHY THERE IS NO FUNCTION BODY BELOW. This file is deliberately a header, not a copy.
+-- The body is ~150 lines and changes a check at a time; a duplicated copy drifts silently and a
+-- stale copy is worse than a pointer. Fetch the live body with the query above.
