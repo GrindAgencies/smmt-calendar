@@ -1,0 +1,24 @@
+-- health_check() — the Watchtower's checks, applied to Supabase 2026-10-23.
+-- Kept in the repo because these live only in the database, and a check nobody can read
+-- is a check nobody maintains. The deployed definition is the source of truth; this is
+-- the readable copy. Fetch it back with:
+--   select pg_get_functiondef(p.oid) from pg_proc p
+--     join pg_namespace n on n.oid = p.pronamespace
+--    where n.nspname = 'public' and p.proname = 'health_check';
+--
+-- TWO CHANGES ON 2026-10-23, both from things that actually happened:
+--
+-- 1. ops_no_master (NEW, alert). Seat 0000's PIN was cleared on 2026-10-22, leaving both
+--    master seats (0000, C1991) unable to sign in while the only signable seats were not
+--    master. Nobody could open first-PIN setup for anyone and the only exit was direct
+--    database access. The monitor had been counting `ops_pins_set` as a metric the whole
+--    time and never said a word: a count without a threshold never speaks.
+--
+-- 2. queue_not_empty (REPLACES queue_growing). The old check warned that client email/SMS
+--    was piling up "with no provider wired". Calendly owns client correspondence
+--    permanently as of 2026-10-23 and trg_outbound_calendly_only diverts email/sms to
+--    inapp, so nothing can be queued and that warning could never fire again. Inverted:
+--    a row in `queued` now means the guard was dropped or bypassed.
+--
+-- Also present and earning its keep: org_orphans, which is the check that would have
+-- caught Gregory Carter's dangling upline.

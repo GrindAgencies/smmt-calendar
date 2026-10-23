@@ -12,8 +12,22 @@
 //
 // ALERTING RULE, learned the hard way: only announce a finding the FIRST time it appears.
 // A monitor that repeats the same warning every 15 minutes is a spammer, and spammers get
-// muted — which is worse than no monitor at all. Standing known conditions (the client
-// email queue with no provider wired) are reported as metrics, never as alerts.
+// muted — which is worse than no monitor at all. Standing known conditions are reported as
+// metrics, never as alerts.
+//
+// THE COROLLARY, learned on 2026-10-23: a metric nobody reads is not a check. health_check()
+// had counted `ops_pins_set` for weeks while BOTH master Operations seats sat with no PIN —
+// so nobody could open first-PIN setup for anyone, the Operations Master seat was stranded,
+// and the only way out was direct database access. The number was right there in every
+// snapshot and said nothing, because a count without a threshold never speaks. It is now the
+// `ops_no_master` alert. When a condition would need a human to act, give it a threshold and
+// let it shout; keep metrics for the things that are only context.
+//
+// The queue check moved the other way in the same pass. It used to warn that client email/SMS
+// was piling up with no provider wired; Calendly now owns client correspondence permanently
+// and a trigger makes queueing impossible, so that warning could never fire again. Rather than
+// leave dead code carrying a sentence that is no longer true, it was inverted: anything in
+// `queued` now means the guard was dropped, and that is an alert.
 //
 // v2 (2026-10-15): `status` is the DEFAULT action and answered anonymously, so the platform's
 // own health report — every open finding, with detail — was readable by anyone who posted an
