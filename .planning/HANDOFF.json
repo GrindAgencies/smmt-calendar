@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-10-23T02:38:55.409Z",
+  "timestamp": "2026-10-23T02:43:58.034Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -22,9 +22,9 @@
     },
     {
       "status": "M",
-      "path": "supabase/functions/booking-purge/index.ts"
+      "path": "supabase/functions/email-sender/index.ts"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\n7b497d9 cal-feed v8: scope the company calendar by baseshop, and stop shipping client contact details on other people's rows\n7d30bad Close the last identity holes: Google account-linking, and the ops-bot leader branch\ncc0f2a9 calendly-sync v15: a typed code could repoint someone's booking link\n8cc01ed bots-cron v9: a typed code could rewrite what the bots say to every team\n84eda57 coaching v5: private feedback was readable, and bylines were forgeable"
+  "context_notes": "Recent commits:\nd9e4109 calendar.html: stop sending code/by on the delete call\nd239bd4 booking-purge v6: a leader may delete their own team's appointments, not the whole company -- and preview is gated at all\n7b497d9 cal-feed v8: scope the company calendar by baseshop, and stop shipping client contact details on other people's rows\n7d30bad Close the last identity holes: Google account-linking, and the ops-bot leader branch\ncc0f2a9 calendly-sync v15: a typed code could repoint someone's booking link"
 }

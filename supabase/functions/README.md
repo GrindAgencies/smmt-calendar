@@ -460,3 +460,50 @@ Verified live with `preview` only, never `delete`:
 Afterwards: 1,653 bookings still present, 1 tombstone (the historical one), the probe target
 intact, every minted verification session deleted. A probe against a destructive endpoint has to
 prove it destroyed nothing.
+
+### email-sender v5 — the queue was a loaded gun aimed at clients
+
+Appointment email/SMS has been "queued until a provider is wired" since July. The queue was not
+dormant, it was **rotting**, and `email-sender` sent whatever was `queued`, oldest first, with no
+check that the message was still true. Setting `RESEND_API_KEY` was the only thing standing
+between real clients and a mailshot about meetings that already happened.
+
+Measured on 2026-10-22, 28 messages queued:
+
+| messages | what they say | reality |
+|---|---|---|
+| 7 | "your appointment is tomorrow" | appointment already past |
+| 7 | "your appointment is in an hour" | appointment already past |
+| 8 | confirmations | appointment already past |
+| 2 | more reminders | appointment already past |
+| 4 | still in the future | **the booking was CANCELLED** |
+
+The last row is the one a time check alone would have missed, and it is the worst: two of those
+four are "your appointment is tomorrow" reminders for a meeting that was called off, which would
+have arrived next to the cancellation notice for the same meeting. **Of 28 queued messages the
+correct number to send is 2** — the two cancellation notices.
+
+So v5 adds a staleness guard, which runs *before* the provider is consulted and therefore applies
+on the very first drain:
+
+- appointment already started → `stale`
+- appointment cancelled / declined / no-showed → `stale` (matched on both `cancelled` and
+  `canceled`, because this table spells it with one L and trusting one spelling is how this class
+  of bug survives)
+- no appointment attached and older than 7 days → `stale`
+- **cancellations are exempt from all of it** — "that meeting is off" does not expire the way "it
+  is tomorrow" does, and it is the one message a cancelled booking *should* still send
+
+Marked, not deleted: the next person needs to see that 26 messages were suppressed and why, which
+an empty table would not tell them. `isStale()` takes a message rather than being inlined, because
+the SMS sender that does not exist yet needs this same test and must not reinvent it.
+
+`{"action":"status"}` now reports the split before anything is sent, verified live:
+
+```
+queued 28  ·  email 21 / sms 7  ·  stale 26  ·  would_send 2
+"26 of 28 queued messages are no longer true and would be marked stale, not sent."
+```
+
+Still true, and still the blocker: **this function is on no cron schedule**, so the queue is never
+drained even once the key exists. Both halves are needed, and the header says exactly how.
