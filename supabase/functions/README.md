@@ -507,3 +507,58 @@ queued 28  ·  email 21 / sms 7  ·  stale 26  ·  would_send 2
 
 Still true, and still the blocker: **this function is on no cron schedule**, so the queue is never
 drained even once the key exists. Both halves are needed, and the header says exactly how.
+
+### Calendly owns client correspondence, permanently (2026-10-23)
+
+Christopher: *"as for the email correspondance disregard and completely integrate calendly. and
+all callendly links. we will forever use calendly moving forward."*
+
+This reverses the direction of the `email-sender` v5 work from the previous day. v5 made the
+queue **safe to drain**; this makes it **never drain**, which is the better answer — every booking
+is made in Calendly, and Calendly already emails the invitee the confirmation, the reminders, the
+reschedule and the cancellation. Our queue was a second, competing channel with no sender
+attached. Two systems telling a client about the same appointment is worse than one even when
+both work; with only one of them wired it was just a silent backlog.
+
+Three things hold the line, deliberately layered, because a retired sender with a live drain path
+is one edit away from firing:
+
+1. **`email-sender` v6** — the drain is gone. `status` is the only action left; everything else,
+   `drain` included, returns **410 Gone** with the reason rather than silently doing nothing.
+   `RESEND_API_KEY` no longer enables anything.
+2. **`trg_outbound_calendly_only`** — a BEFORE INSERT trigger on `outbound_messages` that diverts
+   any `email`/`sms` row to `inapp` and strips `to_email`/`to_phone`. It **diverts rather than
+   raising**: a hard error inside the booking path would fail a real booking over a message
+   nobody was going to send. This is the floor, and it covers every writer, present and future —
+   verified by inserting a real-looking email row and watching it come back as `inapp` with the
+   address nulled.
+3. **The 28-message backlog** is marked `superseded`, not deleted, so the record of what was
+   suppressed survives. The 240 `inapp` rows are untouched: `alreadyQueued()` in atlas-api
+   matches `booking_id + kind` and is status-agnostic, and those rows are the dedupe key for the
+   24h/1h reminders and the no-show follow-up. Dropping them would have re-created the
+   reminder-spam bug.
+
+**atlas-api was deliberately NOT redeployed for this.** The local v20 edit (which writes one
+`inapp` audit row instead of composing client email) was reverted so the repo matches the
+deployed v19 exactly. Reason: there is no Supabase CLI or access token in this environment, so
+the only way to deploy is to hand-retype 55KB of the booking API — the function that handles
+public booking, approvals and transfers — into the MCP tool, on a launch night, for a change the
+trigger already enforces identically. The risk was not worth a comment. When atlas-api is next
+deployed for a functional reason, fold the `queueClientMsg` change in then.
+
+### What "completely integrate Calendly" turned up
+
+The booking path was already correct: `calendly-book`'s `trainers` action returns only CFTs that
+have a Calendly **token**, plus a separate `awaiting_connection` list, and `calendar.html` already
+names the unconnected ones instead of silently dropping them. No dead ends exist. The real gaps
+are account-level, not code:
+
+| finding | detail |
+|---|---|
+| 3 visible CFTs have no Calendly at all | Abbey Coker, Edrian Parafina, Michael Bachelor — correctly excluded from booking, and named in the UI. They need to connect. (Cesar Coss is also unconnected but already hidden.) |
+| 4 connections cannot have webhooks | `register_webhooks` returns **403 "Please upgrade your Calendly account to Standard"** for Edgar Zavala, Yonatan Kenzo and two others. Webhooks are a paid Calendly feature. |
+| 8 connections have live webhooks | real-time booking sync |
+
+Consequence of the second row, worth stating plainly: for those four, bookings reach the platform
+only on the 15-minute `calendly-sync` poll, so their appointments can appear up to 15 minutes
+late. That is a billing decision, not a bug, and no code change can fix it.

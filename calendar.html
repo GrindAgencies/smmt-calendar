@@ -1366,7 +1366,6 @@ function cbLoadTrainers(){
 function cbPickTrainer(code){
   CBSEL=CBTR.filter(function(t){return t.code===code;})[0]||null;
   CBTYPE=null;CBSLOT=null;CBSLOTS=[];
-  cbLoadTrainers===null;
   var host=$('cbTr');
   if(host)Array.prototype.slice.call(host.querySelectorAll('.cat')).forEach(function(b){b.classList.toggle('on',b.getAttribute('onclick').indexOf("'"+code+"'")>=0);});
   $('cbTypeStep').style.display='';
