@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-08-28T16:41:02.325Z",
+  "timestamp": "2026-10-23T01:28:52.663Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -19,8 +19,16 @@
     {
       "status": "M",
       "path": ".planning/HANDOFF.json"
+    },
+    {
+      "status": "M",
+      "path": "supabase/functions/hub-groups/index.ts"
+    },
+    {
+      "status": "M",
+      "path": "teamhub.html"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\n9e5816d Privacy Policy: visible English/Español toggle at top\n4335194 Platform-wide English/Spanish toggle\n6efedd8 Ops tracker: auto-archive completed tickets + editable Paid Out date\n8ca815b Scheduler approvals: fix truncated trainer feed + simple ✓/✕ buttons\n454dd49 Scheduler: 'Requests to approve' section — pending bookings can always be approved"
+  "context_notes": "Recent commits:\nb92f9fd Team Hub: circular pinned conversations above recent chats\nfe24095 Close three more unauthenticated endpoints; add a scanner for the whole class\nb8830c1 roadmap-outcome v5: close an unauthenticated write to any agent's progress\n7cae817 All 106 edge functions backed up, and the backup audited\nfc5d9a6 Edge-function backups: 97 of 106"
 }
