@@ -422,7 +422,13 @@
       return '<div class="hl-slide" role="group" aria-label="Highlight '+(i+1)+' of '+HL.length+'">'+
         (CANEDIT ? '<button class="rm" title="Remove this highlight" onclick="removeHighlight(event,\''+h.id+'\')">&times;</button>' : '')+
         '<img src="'+esc(h.url)+'" alt="'+esc(h.caption||('Team highlight '+(i+1)))+'" loading="lazy">'+
-        '<div class="cap">'+esc(h.caption || 'Team highlights')+'</div>'+
+        /* NO CAPTION, NO CAPTION BAR. An uncaptioned highlight used to fall back to the words
+           "Team highlights", which the section header above the rail now says anyway -- so the
+           slide carried a dark gradient and a duplicate label across the bottom of its own
+           artwork for no information. On the current highlight that band sits over the
+           qualification figures. The alt text keeps its descriptive fallback, because an empty
+           alt would tell a screen reader nothing. */
+        (h.caption ? ('<div class="cap">'+esc(h.caption)+'</div>') : '')+
       '</div>';
     }).join('');
     paintDots();

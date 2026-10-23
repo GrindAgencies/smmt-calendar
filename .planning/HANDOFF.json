@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-10-23T22:03:01.410Z",
+  "timestamp": "2026-10-23T22:04:23.674Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -15,16 +15,7 @@
   "blockers": [],
   "human_actions_pending": [],
   "decisions": [],
-  "uncommitted_files": [
-    {
-      "status": "M",
-      "path": ".planning/HANDOFF.json"
-    },
-    {
-      "status": "M",
-      "path": "app.html"
-    }
-  ],
+  "uncommitted_files": [],
   "next_action": null,
-  "context_notes": "Recent commits:\n6299943 Home: the real transparent mark, and the profile gear section 3 asked for\nc7e3e70 Policy form: the date field fits, and the footer stops covering the premium\n009b620 Hub: add a New group action to the header, replacing nothing\n7e5d93d Road to EMD: section 10 header, without deleting the Org Chart\ne73c116 Home logo: the black box was baked into the asset, not the CSS"
+  "context_notes": "Recent commits:\nf892e0f Home highlights: Manage sits beside the artwork instead of on top of it\n6299943 Home: the real transparent mark, and the profile gear section 3 asked for\nc7e3e70 Policy form: the date field fits, and the footer stops covering the premium\n009b620 Hub: add a New group action to the header, replacing nothing\n7e5d93d Road to EMD: section 10 header, without deleting the Org Chart"
 }
