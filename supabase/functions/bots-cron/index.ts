@@ -1,3 +1,17 @@
+// bots-cron v9 (2026-10-22) — WHO MAY CONFIGURE THE BOTS.
+//
+// v9: `get` and `set` decided what you could edit from `body.code`, a typed string. Agent codes
+// are printed on the org chart, so sending the platform builder's code answered
+// is_builder:true, is_ops:true, hierarchy_editable:true and every baseshop as editable —
+// measured, not supposed. `set` used the same path, so anyone could rewrite what Stuart posts
+// into EVERY baseshop's announcements channel: the reminder offsets, the quiet hours, and the
+// daily highlight lines that get posted to teams. That is content injection into the company's
+// own channels, and it needed nothing but a code anyone can read off the chart.
+//
+// Identity is now the session minted at PIN entry, or an Operations token. `run` is unchanged —
+// it is the cron and already required Operations. No client change: teamhub.html and
+// profile.html, the only two callers, both load session.js.
+//
 // bots-cron v8 (2026-09-29) — announcements land in a BASESHOP's own channel. Never the company
 // chat, never Operations.
 //
@@ -38,6 +52,14 @@ async function loadKey(k: string) { const r = await fetch(`${SUPA}/rest/v1/app_s
 async function saveKey(k: string, value: unknown) { await fetch(`${SUPA}/rest/v1/app_settings?on_conflict=key`, { method: "POST", headers: { ...DBH, Prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify({ key: k, value, updated_at: new Date().toISOString() }) }); }
 async function rpc(fn: string, args: Record<string, unknown>) { try { const r = await fetch(`${SUPA}/rest/v1/rpc/${fn}`, { method: "POST", headers: DBH, body: JSON.stringify(args) }); return await r.json(); } catch (_) { return null; } }
 async function opsAuthorized(token: unknown) { const r = await rpc("ops_authorize", { p_token: String(token ?? "") }); return !!(r && r.ok); }
+/* Proof of identity. A session token is proof; a typed code is not — and here a typed code was
+   edit rights over what the bots say to every team. */
+async function sessionCode(session: unknown): Promise<string> {
+  const v = String(session ?? "").trim().slice(0, 120);
+  if (!v) return "";
+  const got = await rpc("agent_session_code", { p_token: v });
+  return (typeof got === "string") ? norm(got) : "";
+}
 async function isBuilder(code: string) { if (!code) return false; return (await rpc("is_platform_admin", { p_code: code })) === true; }
 async function agent(code: string) { const r = await fetch(`${SUPA}/rest/v1/tracker_agents?code=eq.${encodeURIComponent(code)}&select=first_name,last_name,contract_level,baseshop,title`, { headers: DBH }); const j = await r.json(); return (j && j[0]) ? j[0] : null; }
 async function post(channel: string, code: string, name: string, bodyTxt: string) { await fetch(`${SUPA}/rest/v1/hub_messages`, { method: "POST", headers: { ...DBH, Prefer: "return=minimal" }, body: JSON.stringify({ channel, author_code: code, author_name: name, body: bodyTxt, kind: "announce", attach: { source: "Team Calendar" }, reactions: {} }) }); }
@@ -89,8 +111,11 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   let body: any = {}; try { body = req.method === "POST" ? await req.json() : {}; } catch (_) { body = {}; }
   const action = String(body.action || "run");
-  const builder = await isBuilder(norm(body.code));
-  const isOps = (await opsAuthorized(body.token)) || builder;
+  /* WHO IS ASKING — resolved once, from proof. `body.code` is never consulted again. */
+  const opsTok = await opsAuthorized(body.token);
+  const me = opsTok ? "" : await sessionCode(body.session);
+  const builder = me ? await isBuilder(me) : false;
+  const isOps = opsTok || builder;
 
   async function editableBases(code: string) {
     const bases = await loadBases(); const out: string[] = [];
@@ -103,13 +128,15 @@ Deno.serve(async (req) => {
   }
 
   if (action === "get") {
-    const ed = await editableBases(norm(body.code));
+    if (!opsTok && !me) return json({ ok: false, needs_session: true, error: "Please sign in again." }, 401);
+    const ed = await editableBases(me);
     const cfg = await loadCfg();
     return json({ ok: true, editable: ed.bases, is_ops: ed.all, is_builder: builder, hierarchy_editable: ed.all, config: cfg.bases || {}, hierarchy: cfg.hierarchy || { announce: true } });
   }
 
   if (action === "set") {
-    const code = norm(body.code); const base = String(body.baseshop || "");
+    if (!opsTok && !me) return json({ ok: false, needs_session: true, error: "Please sign in again." }, 401);
+    const code = me; const base = String(body.baseshop || "");
     const ed = await editableBases(code);
     if (base === "__hierarchy__") { if (!ed.all) return json({ ok: false, error: "Operations only" }, 403); }
     else if (!ed.all && ed.bases.map(low).indexOf(low(base)) < 0) return json({ ok: false, error: "You can only edit your own baseshop" }, 403);
