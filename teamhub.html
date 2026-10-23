@@ -341,6 +341,13 @@ html, body{ overflow-x: hidden; }
   <div class="rooms">
     <div class="hsearch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input id="hq" placeholder="Search messages…" onkeydown="if(event.key==='Enter')doSearch()"></div>
     <div class="rsec">Channels <button onclick="openNewChannel()" title="New channel">＋</button></div>
+    <!-- Pinned conversations as circles, above recent chats. Elijah confirmed this against the
+         Messages reference. The tiles carry the SAME data-* attributes as a list row so one
+         filter decides both, and a pin can never bypass Unread or DMs. -->
+    <div id="pinWrap" class="pinwrap" hidden>
+      <div class="pinwrap-h">Pinned</div>
+      <div id="pinRail" class="pinrail" role="list"></div>
+    </div>
     <div id="chanList"></div>
     <div class="rsec">Direct Messages</div>
     <div id="dmList"></div>
@@ -682,7 +689,10 @@ function hideRow(){
    open behind the sheet. */
 (function(){
   var t=null, sx=0, sy=0, fired=false;
-  function rowOf(e){ var el=e.target; while(el && el!==document.body){ if(el.classList && el.classList.contains('cv')) return el; el=el.parentNode; } return null; }
+  /* '.pt' is the pinned circle. Accepting it here means long press, right click and the
+     click-swallow all work on a tile exactly as on a row, so Unpin and the other personal
+     actions come from the one menu rather than a second implementation. */
+  function rowOf(e){ var el=e.target; while(el && el!==document.body){ if(el.classList && (el.classList.contains('cv')||el.classList.contains('pt'))) return el; el=el.parentNode; } return null; }
   function start(e){
     var row=rowOf(e); if(!row) return;
     var p=(e.touches&&e.touches[0])||e; sx=p.clientX; sy=p.clientY; fired=false;
@@ -782,6 +792,27 @@ function convRowHtml(r){
     '<button class="sr-only cv-more" onclick="event.stopPropagation();openRowMenu(\''+r.id+'\')">More options for '+esc(r.label)+'</button>'+
     '</div>';
 }
+/* A pinned conversation as a circle. Deliberately built from the SAME row object and the
+   SAME data-* attributes as convRowHtml, so applyConvFilter can judge a tile and a row with
+   one predicate — that is what stops a pin bypassing the Unread or DMs filter. */
+function pinTileHtml(r){
+  if(!r.dm){ var gn = groupNameOf(r.id, r.label); if(gn) r.label = gn; }
+  var gav = r.dm ? '' : groupAvatarOf(r.id);
+  /* Spans, not divs: the tile is a <button>, which may only contain phrasing content. */
+  var inner = r.dm ? '<span class="pt-av">'+esc(initials(MEMBERS[r.other]||r.label))+'</span>'
+                   : (gav ? '<img class="pt-av" src="'+esc(gav)+'" alt="">'
+                          : '<span class="pt-av ch">'+(r.icon||'#')+'</span>');
+  /* Always the same wrapper, whether the avatar is an img, initials or a channel glyph. The
+     dot is positioned against this box, so it lands identically in all three cases. */
+  var av = '<span class="pt-box">'+inner+(r.unread?'<span class="pt-dot" aria-hidden="true"></span>':'')+'</span>';
+  var hay = (r.label+' '+(r.preview||'')).toLowerCase();
+  return '<button type="button" class="pt'+(CHAN===r.id?' on':'')+'" role="listitem"'+
+    ' data-q="'+esc(hay)+'" data-unread="'+(r.unread?1:0)+'"'+
+    ' data-kind="'+(r.dm?'dm':'group')+'" data-ch="'+esc(r.id)+'" data-pin="1"'+
+    ' aria-label="'+esc(r.label)+(r.unread?', unread':'')+'"'+
+    ' onclick="openChan(\''+r.id+'\')">'+
+    av+'<span class="pt-name">'+esc(r.label)+'</span></button>';
+}
 function renderRooms(){
   if(OPSMODE){
     $('chanList').innerHTML='';
@@ -792,7 +823,13 @@ function renderRooms(){
       }).join('');
     return;
   }
-  $('chanList').innerHTML = convRows().map(convRowHtml).join('') || '<div class="cv-empty">No conversations yet.</div>';
+  var rows = convRows();
+  /* Both surfaces are rendered from the same rows, every time. The pinned rows are NOT split
+     out of the list here: phone/desktop is a CSS-media decision that changes on rotation, and
+     a JS split would desync the moment someone turned the phone. applyConvFilter is the one
+     place that decides what is visible, so it can be re-run on resize instead. */
+  $('chanList').innerHTML = rows.map(convRowHtml).join('') || '<div class="cv-empty">No conversations yet.</div>';
+  $('pinRail').innerHTML = rows.filter(function(r){ return !!PINNED[r.id]; }).map(pinTileHtml).join('');
   $('dmList').innerHTML = dmPicker();
   applyConvFilter();
 }
@@ -848,9 +885,27 @@ function convFilterOk(el){
 }
 function applyConvFilter(){
   var any=false;
+  /* The rail only exists in the phone layout, which is also the only layout the .cv list is
+     styled for. When it is showing, a pinned conversation appears as a circle and must NOT
+     also appear as a row below — the brief is explicit that the same conversation must not
+     read twice in one filter result. */
+  var onPhone = document.body.classList.contains('phone');
+  var pinsShown = 0;
+  Array.prototype.forEach.call(document.querySelectorAll('#pinRail .pt'),function(el){
+    var okQ=!CVQ||(el.getAttribute('data-q')||'').indexOf(CVQ)>=0;
+    /* convFilterOk judges the tile by the same data attributes as a row, so a pinned DM stays
+       out of Group chats and a read pin stays out of Unread. A pin is a personal ordering
+       preference, never an exemption from the filter. */
+    var show=onPhone&&convFilterOk(el)&&okQ;
+    el.style.display=show?'':'none'; if(show)pinsShown++;
+  });
+  var pw=document.getElementById('pinWrap');
+  if(pw) pw.hidden = (pinsShown===0);
   Array.prototype.forEach.call(document.querySelectorAll('#chanList .cv'),function(el){
     var okQ=!CVQ||(el.getAttribute('data-q')||'').indexOf(CVQ)>=0;
-    var show=convFilterOk(el)&&okQ; el.style.display=show?'':'none'; if(show)any=true;
+    var dup=onPhone&&pinsShown>0&&el.getAttribute('data-pin')==='1';
+    var show=convFilterOk(el)&&okQ&&!dup; el.style.display=show?'':'none';
+    if(show||dup)any=true;   /* a pin shown as a circle still counts as content */
   });
   var n=document.getElementById('cvNone');
   if(n){
@@ -2077,6 +2132,50 @@ body.phone .msg.me .rx{ text-align:right; }
 /* A run of messages from the same person only needs the name once. */
 body.phone .msg.cont .mhead{ display:none; }
 
+/* ---- Pinned conversations rail (phone) --------------------------------------------
+   Scoped to body.phone for the same reason the .cv list is: this flat conversation list IS
+   the phone layout. The desktop Hub is deliberately untouched.
+   A bounded, horizontally scrollable rail rather than a wrapping grid, so any number of pins
+   stays reachable without pushing the actual conversation list off the screen. No maximum
+   pin count is invented here. */
+body.phone .pinwrap{ padding:10px 0 4px; box-shadow:inset 0 -1px 0 var(--line); }
+body.phone .pinwrap[hidden]{ display:none; }
+body.phone .pinwrap-h{
+  font-size:11px; font-weight:800; letter-spacing:.12em; text-transform:uppercase;
+  color:var(--ink3,#8e8e93); padding:0 14px 8px;
+}
+body.phone .pinrail{
+  display:flex; gap:14px; overflow-x:auto; padding:2px 14px 10px;
+  scrollbar-width:none; -webkit-overflow-scrolling:touch;
+}
+body.phone .pinrail::-webkit-scrollbar{ display:none; }
+body.phone .pt{
+  flex:0 0 auto; width:64px; display:flex; flex-direction:column; align-items:center; gap:6px;
+  cursor:pointer; background:none; border:0; padding:0; font-family:inherit;
+  -webkit-tap-highlight-color:transparent;
+}
+body.phone .pt-box{ position:relative; display:block; width:54px; height:54px; }
+body.phone .pt-av{
+  display:block; width:54px; height:54px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-weight:800; font-size:18px; background:var(--panel2); color:var(--ink2);
+  border:1.5px solid var(--cvgold,#e6c25a); object-fit:cover; box-sizing:border-box;
+}
+body.phone .pt-av.ch{ background:linear-gradient(145deg,var(--cvgold-br,#f2d17a),var(--cvgold,#e6c25a)); color:#17120a; font-size:22px; }
+body.phone .pt.on .pt-av{ box-shadow:0 0 0 2px var(--cvgold,#e6c25a); }
+body.phone .pt:active .pt-av{ transform:scale(.96); }
+/* Unobtrusive, per the brief: presence of unread, not a count competing with the list badges. */
+body.phone .pt-dot{
+  position:absolute; top:-1px; right:-1px; width:13px; height:13px; border-radius:50%;
+  background:var(--cvgold,#e6c25a); border:2px solid var(--panel,#000);
+}
+/* The full name stays in the DOM for search and screen readers; only the display is clipped. */
+body.phone .pt-name{
+  max-width:64px; font-size:11px; font-weight:600; color:var(--ink2); text-align:center;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+@media (prefers-reduced-motion:reduce){ body.phone .pt:active .pt-av{ transform:none; } }
+
 /* composer */
 body.phone .composer{ padding:8px 12px calc(10px + env(safe-area-inset-bottom)) !important; }
 body.phone .composer textarea{ border-radius:21px !important; padding:11px 15px !important; font-size:16px !important; }
@@ -2159,6 +2258,11 @@ body.phone .composer textarea{ border-radius:21px !important; padding:11px 15px 
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', init); else init();
   setTimeout(init,500); setTimeout(init,1500);
   window.addEventListener('resize', syncPhone);
+  /* syncPhone only toggles the class. The pinned rail exists on phone and not on desktop, and
+     whether a pinned row is a duplicate depends on that, so the one decider has to re-run. */
+  window.addEventListener('resize', function(){
+    if(typeof applyConvFilter === 'function') applyConvFilter();
+  });
 })();
 </script>
 </body>
