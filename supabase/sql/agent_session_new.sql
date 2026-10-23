@@ -1,0 +1,30 @@
+-- agent_session_new() — the single place an agent session is minted, applied 2026-10-23.
+-- `verify` and the successful end of `set` both call it; nothing else does. That makes it the
+-- one honest place to record "this person is really here".
+--
+-- Kept in the repo because it lives only in the database. The deployed definition is the source
+-- of truth; fetch it with:
+--   select pg_get_functiondef(p.oid) from pg_proc p
+--     join pg_namespace n on n.oid = p.pronamespace
+--    where n.nspname='public' and p.proname='agent_session_new';
+--
+-- SIGNING IN BRINGS YOU BACK, AND LEAVES A TRACE.
+--
+--  1. UN-ARCHIVE. Archiving never blocked sign-in -- no sign-in function reads `status`, only
+--     access_status='denied' -- so an archived agent could always still sign in and the flag
+--     silently disagreed with reality the moment they did. Christopher asked for archive-then-
+--     reactivate-on-sign-in; this is the reactivate half, and it had to exist BEFORE anything
+--     was archived.
+--
+--  2. STAMP THE SIGNAL, which is the root cause of a bug that bit twice. Nothing anywhere wrote
+--     last_seen or login_count on sign-in: login_count was 0 for all 203 agents while 34 had
+--     genuinely signed in. dormancy-sweep-daily archives anyone whose last_seen/last_activity
+--     is over 90 days old, so without a stamp a real user drifts straight back into the sweep.
+--     That is exactly what archived Christian Monaghan on 2026-09-21 and again on 2026-10-20:
+--     his only signal was his creation date.
+--
+-- access_status is deliberately untouched: 'denied' is a decision somebody made, is refused
+-- earlier in the function, and is not something a sign-in should quietly undo.
+--
+-- The bookkeeping is wrapped in its own exception block: a failure there must never cost
+-- somebody the sign-in they came for.
