@@ -189,14 +189,45 @@
   }
   .toast.on{ opacity:1; }
 
+  /* The gear sits over the centred header rather than in its flow, so the wordmark stays
+     optically centred and the bell (notif.js, upper right) balances it. 24px glyph, 44px tap
+     target, clear of the safe area. */
+  .tsfg-brand{ position:relative; }
+  .brand-gear{
+    position:absolute; left:4px; top:calc(10px + env(safe-area-inset-top));
+    width:44px; height:44px; display:flex; align-items:center; justify-content:center;
+    color:var(--tsfg-gold-dim); text-decoration:none; border-radius:50%;
+  }
+  .brand-gear svg{ width:23px; height:23px; }
+  .brand-gear:active{ background:rgba(201,154,46,.14); }
+
 </style>
 </head>
 <body class="tsfg">
 
 <div class="tsfg-wrap">
 
+  <!-- THE MARK, AND THE GEAR.
+       The header used to render apple-touch-icon.png. That file is the iOS home-screen icon:
+       180x180, RGB, with the black ground baked in and no alpha -- which is the black square
+       behind the logo in screenshot G of the 2026-10-23 handoff. It is pointed at logo.png
+       instead, which now carries real transparency.
+       apple-touch-icon.png is deliberately NOT altered: iOS composites the home-screen icon
+       onto an opaque tile and does not honour transparency there, so making it transparent
+       would fix a header nobody complained about twice and damage the installed app icon.
+       Different jobs, different files.
+
+       The gear is section 3's requested upper-left entry to Profile & Settings. The bell stays
+       where it is -- notif.js owns it, upper right -- so the two side actions balance and the
+       wordmark stays optically centred. -->
   <header class="tsfg-brand">
-    <img src="apple-touch-icon.png" alt="" onerror="this.style.display='none'">
+    <a class="brand-gear" href="profile.html" aria-label="Profile and settings" title="Profile &amp; Settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="3.1"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+    </a>
+    <img src="logo.png" alt="" onerror="this.style.display='none'">
     <h1>THE STANDARD</h1>
     <div class="sub">Financial Group</div>
   </header>

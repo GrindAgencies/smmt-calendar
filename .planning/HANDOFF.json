@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-10-23T21:43:27.610Z",
+  "timestamp": "2026-10-23T21:52:41.091Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -19,8 +19,12 @@
     {
       "status": "M",
       "path": ".planning/HANDOFF.json"
+    },
+    {
+      "status": "M",
+      "path": "app.html"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\n009b620 Hub: add a New group action to the header, replacing nothing\n7e5d93d Road to EMD: section 10 header, without deleting the Org Chart\ne73c116 Home logo: the black box was baked into the asset, not the CSS\n54a5bf9 Make the roster numbers honest, and stop two different states both calling themselves \"archived\"\n04d9d68 Notes: write down why, and make the record visible"
+  "context_notes": "Recent commits:\nc7e3e70 Policy form: the date field fits, and the footer stops covering the premium\n009b620 Hub: add a New group action to the header, replacing nothing\n7e5d93d Road to EMD: section 10 header, without deleting the Org Chart\ne73c116 Home logo: the black box was baked into the asset, not the CSS\n54a5bf9 Make the roster numbers honest, and stop two different states both calling themselves \"archived\""
 }
