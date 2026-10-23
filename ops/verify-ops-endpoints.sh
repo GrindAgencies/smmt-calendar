@@ -56,5 +56,9 @@ case "$CF" in
   *'needs_session'*) echo "  cal-feed company_events  *** WRONG SHAPE — a 401 here signs agents out ***" ;;
   *) echo "  cal-feed company_events  unexpected: $CF" ;;
 esac
+chk "booking-purge preview " "$(curl -s -X POST "$U/booking-purge" -H 'Content-Type: application/json' -d '{"action":"preview","id":"85c1cba7-67c0-4fe6-9cf4-fbb4302aa7ba"}')" 'needs_session'
+chk "booking-purge delete  " "$(curl -s -X POST "$U/booking-purge" -H 'Content-Type: application/json' -d '{"action":"delete","id":"85c1cba7-67c0-4fe6-9cf4-fbb4302aa7ba","code":"C1991"}')" 'needs_session'
+chk "coaching list         " "$(curl -s -X POST "$U/coaching" -H 'Content-Type: application/json' -d '{"action":"list","code":"GFI20"}')" 'needs_session'
+chk "coaching add          " "$(curl -s -X POST "$U/coaching" -H 'Content-Type: application/json' -d '{"action":"add","by_code":"GFI20","trainee_code":"C1991","body":"x"}')" 'needs_session'
 # i18n-api's content override must stay Ops-only.
 chk "i18n-api set_override  " "$(curl -s -X POST "$U/i18n-api" -H 'Content-Type: application/json' -d '{"action":"set_override","token":"2026","en":"x","es":"y"}')" 'unauthorized'
