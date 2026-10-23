@@ -214,6 +214,9 @@ td:has(>select.statuscell){white-space:nowrap}
 .dbtn.blue{background:var(--accent)}
 .polrow{border:1px solid var(--line);border-radius:11px;padding:11px 13px;margin-bottom:9px;background:var(--panel2)}
 .polrow .pt{font-weight:800;font-size:13.5px}.polrow .pm{font-size:12px;color:var(--ink3);margin-top:3px;display:flex;gap:10px;flex-wrap:wrap}
+.rmark{display:inline-block;margin-left:6px;padding:1px 6px;border-radius:999px;font-size:10px;font-weight:800;letter-spacing:.02em;vertical-align:1px}
+.rmark.arch{background:var(--line2);color:var(--ink3)}
+.rmark.note{background:var(--gold-soft,rgba(214,158,46,.16));color:var(--gold)}
 /* notes log */
 .note{border-left:3px solid var(--gold);background:var(--panel2);border-radius:0 10px 10px 0;padding:10px 13px;margin-bottom:9px}
 .note.leader{border-left-color:var(--accent)}
@@ -606,7 +609,25 @@ function loadOverview(){
 function st(n,l,sm){return '<div class="stat"><div class="n"'+(sm?' style="font-size:13px;line-height:1.45"':'')+'>'+esc(String(n))+'</div><div class="l">'+esc(l)+'</div></div>';}
 
 /* ---- column model ---- */
-function nameCell(r){return '<button class="namebtn" onclick="openAgent(\''+esc(r.code)+'\')">'+esc(r.name||'—')+'</button><div class="sub">'+esc(r.contract_level||'')+'</div>';}
+/* The agent cell carries two things the list could not show before, and both were costing
+   people time:
+     ARCHIVED — the roster had no way to tell an archived row from an active one. After the
+                2026-10-23 tidy that is 87 rows of 129 looking exactly like the 42 real ones.
+     NOTES    — notes_count has been returned by the server for every agent all along and was
+                never rendered anywhere, so the Ops contact record ("Sent check in",
+                "Rescheduled exam") was only discoverable by opening each person one at a time.
+   Both values were already in the row payload; this is rendering, not new data. */
+function nameCell(r){
+  var marks='';
+  if(String(r.status||'').toLowerCase()==='archived')
+    marks+='<span class="rmark arch" title="Archived — not removed. They can still sign in, and signing in makes them active again.">archived</span>';
+  var n=Number(r.notes_count)||0;
+  if(n>0) marks+='<span class="rmark note" title="'+n+' note'+(n===1?'':'s')+' on this record — open the agent to read them">\u{1F5D2} '+n+'</span>';
+  /* The markers sit on the NAME line, not in .sub: .sub is nowrap with an ellipsis, so
+     anything appended there is the first thing clipped on a narrow column. */
+  return '<button class="namebtn" onclick="openAgent(\''+esc(r.code)+'\')">'+esc(r.name||'—')+'</button>'+marks
+        +'<div class="sub">'+esc(r.contract_level||'')+'</div>';
+}
 function optVal(o){return (o&&typeof o==='object'&&o.value!=null)?o.value:o;}
 function optCol(o){return (o&&typeof o==='object'&&o.color)?o.color:'#8e8e93';}
 function optColorFor(opts,v){var c=null;(opts||[]).forEach(function(o){if(optVal(o)===v)c=optCol(o);});return c;}
