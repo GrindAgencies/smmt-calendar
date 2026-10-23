@@ -35,6 +35,20 @@ button{cursor:pointer;border:none;background:none}
   background:rgba(9,8,6,.88);backdrop-filter:saturate(160%) blur(18px);
   border-bottom:1px solid var(--summit-line)}
 .brand{display:flex;align-items:center;gap:11px;min-width:0}
+/* The brand sits centred between the two side slots rather than hard-left, so the wordmark is
+   optically centred regardless of which side controls are showing. */
+.top{justify-content:space-between}
+.top .brand{position:absolute;left:50%;transform:translateX(-50%);pointer-events:none}
+.top .iconbtn{flex:0 0 auto}
+/* 38px is the drawn control; the tap target is padded out to the 44pt minimum. */
+.top .iconbtn.back{font-size:26px;line-height:1;text-decoration:none;display:flex;align-items:center;justify-content:center}
+.top .iconbtn.back::after{content:'';position:absolute;inset:-4px}
+.top .iconbtn{position:relative}
+/* ROAD VIEW: section 10's simplified composition. No hamburger, no per-view title, no tab bar. */
+body.road-view .top .ptitle,
+body.road-view .top .iconbtn.menu,
+body.road-view .tabs{display:none}
+body.road-view .top{justify-content:flex-start}
 .brand .mk{width:34px;height:34px;flex:0 0 auto}
 .brand b{font-size:15px;letter-spacing:.14em;text-transform:uppercase;color:var(--summit-ivory)}
 .brand small{display:block;font-size:9.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--summit-muted)}
@@ -379,7 +393,8 @@ h1.big{margin:4px 0 0;font-size:26px;letter-spacing:-.01em;font-weight:800}
      page had finished rendering. Two consecutive branded intros, the second of them stalling
      on content that was already built. Elijah asked for the duplicate to go.
      What is left is a quiet progress line that leaves the moment the organization is on
-     screen. The header keeps its normal Summit branding — that was never the complaint. -->
+     screen. The header carries the real Standard logo and wordmark as of 2026-10-23; the
+     hand-drawn Summit mountain that used to sit there was a substitute mark. -->
 <div id="curtain" role="status" aria-live="polite">
   <svg width="54" height="54" viewBox="0 0 64 64" aria-hidden="true">
     <path d="M6 50 L24 20 L34 36 L42 26 L58 50 Z" fill="none" stroke="#d7ae54" stroke-width="2" stroke-linejoin="round"/>
@@ -389,16 +404,29 @@ h1.big{margin:4px 0 0;font-size:26px;letter-spacing:-.01em;font-weight:800}
   <div class="t3">Building the organization</div>
 </div>
 
+<!-- HEADER, per the 2026-10-23 handoff section 10: back chevron on the FAR LEFT, the actual
+     Standard logo and wordmark CENTRED, no hamburger and no right-side back on the Road screen.
+     The mountain/triangle "Summit" mark it replaced was a hand-drawn substitute, which section 3
+     explicitly forbids standing in for the real artwork.
+
+     WHY THE MENU AND TABS SURVIVE ON THE OTHER TWO VIEWS. This file is not the Road screen; it
+     is three screens. TAB is one of map (Org Chart), perf (Top Performers) and road, and it
+     DEFAULTS to map -- summit.html?tab=map is the org chart, and it is linked from twelve
+     files including the main navigation and app-wide search. The hamburger is not duplicate
+     navigation either: it carries Manage tags, Reset map layout and Cashflow levels, which
+     belong to the map. Deleting either outright would remove two features and strand twelve
+     entry points, which section 10 expressly does not authorise ("Removing these local
+     navigation items does not authorize deleting organization data or unrelated routes").
+     So the simplification is applied TO THE ROAD VIEW: body.road-view hides the menu button,
+     the per-view title and the tab bar, and nothing changes for map or perf. -->
 <header class="top">
+  <a class="iconbtn back" href="index.html" title="Back" aria-label="Back to home">&#8249;</a>
   <div class="brand">
-    <svg class="mk" viewBox="0 0 64 64" aria-hidden="true">
-      <path d="M6 50 L24 20 L34 36 L42 26 L58 50 Z" fill="none" stroke="#d7ae54" stroke-width="3" stroke-linejoin="round"/>
-    </svg>
-    <div><b>Summit</b><small>The Standard</small></div>
+    <img class="mk" src="logo.png" alt="" onerror="this.style.display='none'">
+    <div><b>The Standard</b><small>Financial Group</small></div>
   </div>
   <div class="ptitle" id="ptitle">Org Chart</div>
-  <button class="iconbtn" onclick="openMenu()" title="Menu" aria-label="Menu">☰</button>
-  <a class="iconbtn" href="dashboard.html" title="Back to dashboard" aria-label="Back to dashboard" style="text-decoration:none">←</a>
+  <button class="iconbtn menu" onclick="openMenu()" title="Menu" aria-label="Menu">&#9776;</button>
 </header>
 
 <div class="wrap">
@@ -868,7 +896,7 @@ function boot(){
     NODES.forEach(function(n){if(depthOf(n.code)>=2&&(KIDS[n.code]||[]).length)COLLAPSED[n.code]=true;});
     LADDER=CODE;
     STEP=firstOpenStage(LADDER);
-    ['map','perf','road'].forEach(function(k){var b=$('tab_'+k);if(b)b.classList.toggle('on',k===TAB);});
+    applyTabChrome(TAB);
     $('ptitle').textContent=(TAB==='map')?'Org Chart':(TAB==='perf')?'Top Performers':'Road to EMD';
     render();
     /* Was a 900ms setTimeout AFTER render() — a deliberate wait on content that was already
@@ -889,10 +917,18 @@ function depthOf(code,guard){
 }
 
 /* ===== tabs ===================================================================== */
+/* Which chrome belongs to the current tab. Shared by boot() and setTab() deliberately: boot
+   paints through render() and never called setTab(), so opening summit.html?tab=road directly
+   would otherwise arrive with the map's header -- hamburger, per-view title and tab bar intact
+   -- while an in-page switch to the same tab looked correct. */
+function applyTabChrome(t){
+  ['map','perf','road'].forEach(function(k){var b=$('tab_'+k);if(b)b.classList.toggle('on',k===t);});
+  var pt=$('ptitle'); if(pt)pt.textContent=(t==='map')?'Org Chart':(t==='perf')?'Top Performers':'Road to EMD';
+  document.body.classList.toggle('road-view', t==='road');
+}
 function setTab(t){
   TAB=t;
-  ['map','perf','road'].forEach(function(k){var b=$('tab_'+k);if(b)b.classList.toggle('on',k===t);});
-  $('ptitle').textContent=(t==='map')?'Org Chart':(t==='perf')?'Top Performers':'Road to EMD';
+  applyTabChrome(t);
   render();
 }
 function render(){
