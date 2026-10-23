@@ -781,6 +781,7 @@ function convRows(){
   rows.forEach(function(r){
     if(!r.at) r.at=previewAt(r.id);
     if(!r.preview) r.preview=previewOf(r.id);
+    r.preview=plainText(r.preview);
   });
   /* Task 4: a conversation this person has hidden is simply not in their list. Nobody
      else's view changes, and the row is still here the moment the server resurfaces it. */
@@ -1338,6 +1339,20 @@ function markRead(ch,id){if(!ch||!id)return;var m=readMap();if((m[ch]||0)<id){m[
    does. hub-unread returns `last` as a message ID — useful for read tracking, useless as a
    preview — so v6 of that function added `preview`, which is what this reads. Getting those
    two confused is what made every row say "No messages yet". */
+/* Message snippets in the conversation list are plain text, one line. The AI bots answer in
+   markdown, so a row could read "**Monday** at 7" with the asterisks showing. This strips the
+   paired delimiters for DISPLAY ONLY — the stored message is untouched, and the message bubble
+   still shows exactly what was sent. Narrow on purpose: only paired ** __ and backticks, so a
+   lone asterisk somebody actually typed survives. Both preview sources (hub-unread's `preview`
+   and a DM thread's last_body) pass through here, which is also what finally collapses the
+   newlines a DM preview used to keep. */
+function plainText(t){
+  return String(t==null?'':t)
+    .replace(/\*\*([^*]+)\*\*/g,'$1')
+    .replace(/__([^_]+)__/g,'$1')
+    .replace(/`([^`]+)`/g,'$1')
+    .replace(/\s+/g,' ').trim();
+}
 var PREVIEW={};
 function previewOf(id){
   var l=PREVIEW[id]; if(!l) return '';
@@ -2321,7 +2336,11 @@ body.phone .pt-dot{
 /* The full name stays in the DOM for search and screen readers; only the display is clipped. */
 body.phone .pt-name{
   max-width:64px; font-size:11px; font-weight:600; color:var(--ink2); text-align:center;
-  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  /* Two lines, not one. A pinned "Company Announcements" used to read "Compan…", which
+     identifies nothing. The rail is a flex row with the default stretch, so the tallest tile
+     sets the height for all of them and the avatars stay on one line. */
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+  white-space:normal; word-break:break-word; line-height:1.25; overflow:hidden;
 }
 @media (prefers-reduced-motion:reduce){ body.phone .pt:active .pt-av{ transform:none; } }
 
@@ -2360,7 +2379,7 @@ body.phone .composer textarea{ border-radius:21px !important; padding:11px 15px 
         '</button>'+
       '</div>'+
       '<div class="cv-search"><span class="mg">⌕</span>'+
-        '<input type="search" placeholder="Search the hub" oninput="onConvSearch(this.value)"></div>'+
+        '<input type="search" placeholder="Search chats" oninput="onConvSearch(this.value)"></div>'+
       '<div class="cv-pills" role="tablist" aria-label="Filter conversations">'+
         '<button class="cv-pill" data-f="group"  role="tab" onclick="setConvFilter(\'group\')">Group chats</button>'+
         '<button class="cv-pill" data-f="unread" role="tab" onclick="setConvFilter(\'unread\')">Unread</button>'+
