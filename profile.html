@@ -73,6 +73,24 @@ input.in[readonly]{background:var(--panel2);color:var(--ink2)}
 .dact .can,.dact .x{padding:12px 16px;border-radius:12px;font-weight:800;font-size:14px;border:1px solid var(--line2);background:var(--panel);color:var(--ink2);cursor:pointer;font-family:inherit}
 .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);background:#1d1d1f;color:#fff;padding:12px 20px;border-radius:12px;font-weight:700;font-size:14px;opacity:0;pointer-events:none;transition:.25s;z-index:80}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+/* A real in-app modal. profile.html had none: it used browser prompt()/confirm() for three
+   things, including pasting a Calendly API token — a system dialog is the worst possible place
+   to paste a long secret on a phone, and the platform rule is real modals, never browser
+   dialogs. Carries the safe-area insets like every other pinned surface. */
+.pmo{position:fixed;inset:0;z-index:4000;background:rgba(0,0,0,.5);display:none;align-items:flex-end;justify-content:center;padding:0}
+.pmo.on{display:flex}
+.pmo-c{width:100%;max-width:480px;background:var(--panel);color:var(--ink);border-radius:18px 18px 0 0;
+  box-shadow:var(--shadow-lg);max-height:calc(92vh - env(safe-area-inset-top));overflow-y:auto;
+  padding:18px 18px calc(18px + env(safe-area-inset-bottom))}
+.pmo-h{display:flex;align-items:flex-start;gap:10px;margin-bottom:4px}
+.pmo-h h3{font-size:17px;font-weight:800;margin:0;letter-spacing:-.01em;flex:1}
+.pmo-x{border:none;background:none;font-size:24px;line-height:1;color:var(--ink3);cursor:pointer;min-width:40px;min-height:40px}
+.pmo-sub{font-size:13px;color:var(--ink2);line-height:1.5;margin:0 0 14px}
+.pmo-steps{margin:0 0 14px;padding-left:20px;font-size:13px;color:var(--ink2);line-height:1.65}
+.pmo-steps b{color:var(--ink)}
+.pmo-err{color:var(--red);font-size:13px;font-weight:700;min-height:18px;margin-top:9px}
+.pmo-act{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+@media(min-width:560px){.pmo{align-items:center;padding:20px}.pmo-c{border-radius:18px}}
 .gate{max-width:400px;margin:12vh auto;text-align:center;padding:0 20px}
 .gate h2{font-size:20px;font-weight:800}
 .gate p{color:var(--ink2);font-size:14px}
@@ -153,6 +171,32 @@ input.in[readonly]{background:var(--panel2);color:var(--ink2)}
 </div>
 
 <div class="ov" id="bkOv"><div class="drawer" id="bkDrawer"></div></div>
+<div class="pmo" id="calOvl" onclick="if(event.target===this)closeCalModal()">
+  <div class="pmo-c" role="dialog" aria-modal="true" aria-labelledby="calMoTitle">
+    <div class="pmo-h">
+      <h3 id="calMoTitle">Connect your Calendly</h3>
+      <button class="pmo-x" onclick="closeCalModal()" aria-label="Close">&times;</button>
+    </div>
+    <p class="pmo-sub">This publishes your public booking link and syncs every booking you take
+      into the app. Every appointment on this platform is booked in Calendly, so this is what
+      makes you bookable.</p>
+    <ol class="pmo-steps">
+      <li>Open <b>calendly.com</b> and sign in.</li>
+      <li>Go to <b>Integrations &rarr; API &amp; webhooks</b>.</li>
+      <li>Under <b>Personal access tokens</b>, tap <b>Create&nbsp;token</b>, name it <b>TSFG</b>.</li>
+      <li>Copy it, come back here and paste it below.</li>
+    </ol>
+    <label class="lbl" for="calTok">Personal access token</label>
+    <input class="in" id="calTok" type="text" inputmode="text" autocomplete="off"
+           autocapitalize="off" autocorrect="off" spellcheck="false"
+           placeholder="eyJraWQiOiIx..." style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px">
+    <div class="pmo-err" id="calMoErr"></div>
+    <div class="pmo-act">
+      <button class="btn" id="calMoGo" onclick="saveCalendlyToken()">Connect Calendly</button>
+      <button class="btn ghost" onclick="closeCalModal()">Cancel</button>
+    </div>
+  </div>
+</div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -874,14 +918,49 @@ function loadCalendlyStatus(){
     el.style.color='var(--green)';
   }).catch(function(){});
 }
+/* Opens the real modal. This used to be a browser prompt(), which asked the person to paste a
+   long API token into a system dialog with no instructions, no validation and no way to see
+   what they had pasted — on a phone, where they also had to leave the app to fetch the token.
+   The steps now live next to the field. */
 function connectCalendly(){
-  var t=prompt('Paste your Calendly Personal Access Token\n(Calendly → Integrations → API & webhooks → Personal access tokens → Create):');
-  if(t===null)return;t=(t||'').trim();if(!t){toast('Paste your token');return;}
-  var el=$('calendlyStatus');if(el){el.textContent='Validating with Calendly…';el.style.color='var(--ink3)';}
-  fetch(CALS,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'save_token',code:CODE,token:t})}).then(function(r){return r.json();}).then(function(r){
-    if(!r||!r.ok){toast((r&&r.error)||'Could not connect');loadCalendlyStatus();return;}
-    PROFILE_P.calendly=r.scheduling_url||PROFILE_P.calendly;toast('Calendly connected ✓ — '+(r.synced||0)+' bookings synced');loadCalendlyStatus();
-  }).catch(function(){toast('Network error');loadCalendlyStatus();});
+  var e=$('calMoErr'); if(e)e.textContent='';
+  var i=$('calTok'); if(i)i.value='';
+  var g=$('calMoGo'); if(g){g.disabled=false;g.textContent='Connect Calendly';}
+  $('calOvl').classList.add('on');
+  /* Focus, but not on a phone keyboard-first: let them read the steps before it springs up. */
+  if(i&&window.matchMedia&&window.matchMedia('(min-width:560px)').matches)setTimeout(function(){i.focus();},60);
+}
+function closeCalModal(){var o=$('calOvl');if(o)o.classList.remove('on');}
+function saveCalendlyToken(){
+  var i=$('calTok'),e=$('calMoErr'),g=$('calMoGo');
+  var t=((i&&i.value)||'').trim();
+  if(!t){if(e)e.textContent='Paste the token from Calendly first.';if(i)i.focus();return;}
+  if(e)e.textContent='';
+  if(g){g.disabled=true;g.textContent='Checking with Calendly…';}
+  /* `code` is deliberately not sent: calendly-sync takes the caller from the session. Sending a
+     code here is what once let somebody attach their Calendly to another agent's account. */
+  fetch(CALS,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'save_token',token:t})})
+   .then(function(r){return r.json();}).then(function(r){
+    if(!r||!r.ok){
+      if(g){g.disabled=false;g.textContent='Connect Calendly';}
+      if(e)e.textContent=(r&&r.error)||'Could not connect. Check you copied the whole token.';
+      return;
+    }
+    PROFILE_P.calendly=r.scheduling_url||PROFILE_P.calendly;
+    closeCalModal();
+    /* A missing webhook is NOT a failure — webhooks need a paid Calendly plan, and four of the
+       accounts on this platform are on the free one. Say what it means instead of going quiet. */
+    var msg='Calendly connected ✓ — '+(r.synced||0)+' booking'+((r.synced===1)?'':'s')+' synced';
+    toast(msg);
+    if(r.webhook===false){
+      var st=$('calendlyStatus');
+      if(st){st.innerHTML='🟢 Connected — but real-time alerts need a paid Calendly plan, so new bookings will appear here within 15 minutes instead of instantly.';st.style.color='var(--gold)';}
+      setTimeout(loadCalendlyStatus,6000);
+    } else { loadCalendlyStatus(); }
+  }).catch(function(){
+    if(g){g.disabled=false;g.textContent='Connect Calendly';}
+    if(e)e.textContent='Network error — check your connection and try again.';
+  });
 }
 function calendlySyncNow(){var el=$('calendlyStatus');if(el)el.textContent='Syncing…';fetch(CALS,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'sync',code:CODE})}).then(function(r){return r.json();}).then(function(r){if(!r||!r.ok){toast((r&&r.error)||'Connect Calendly first');}else toast('Synced '+(r.count||0)+' bookings');loadCalendlyStatus();}).catch(function(){toast('Network error');});}
 function copyCalLink(u){try{navigator.clipboard.writeText(u);toast('Link copied');}catch(e){toast(u);}}
