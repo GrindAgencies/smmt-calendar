@@ -129,6 +129,11 @@
     login:    function(code, pin){ return call({ action:'login',code:code, pin:pin }); },
     check:    function(){ var t = get(); return t ? call({ action:'check', token:t }) : Promise.resolve({ ok:false }); },
     logout:   function(){ var t = get(); put(''); return t ? call({ action:'logout', token:t }) : Promise.resolve({ ok:true }); },
+    /* A master seat opens first-PIN setup for another seat. The server checks master against
+       THIS session, so the authority is the caller's, not anything the page claims.
+       This is NOT a timeout of any kind: it opens a window for an unclaimed seat to choose its
+       first PIN, and has no bearing on how long anyone stays signed in. */
+    enroll:   function(code, minutes){ return call({ action:'enroll', token:get(), code:code, minutes:minutes||60 }); },
     /* Sign in and keep the token. Returns {ok} or {ok:false,error} or {needs_pin:true}. */
     signIn: function(code, pin){
       return window.tsfgOps.login(code, pin).then(function(r){

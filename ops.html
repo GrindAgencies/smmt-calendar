@@ -312,6 +312,7 @@ th.lockedcol{background:rgba(201,154,46,.14)!important;box-shadow:inset 0 -2px 0
     <div class="bdot">🛡️</div>
     <div><h1>Operations Tracker</h1><div class="who" id="whoLbl"></div></div>
     <span id="roleChip"></span>
+    <button class="signout hide" id="seatSetupBtn" onclick="openSeatSetup()" title="Open first-time PIN setup for an Operations seat">🔑 Seat setup</button>
     <a class="signout" href="index.html" title="Back to Dashboard" style="text-decoration:none;display:inline-flex;align-items:center;gap:5px;margin-left:auto">← Dashboard</a>
     <a class="signout" href="tasks.html" title="Task Management" style="text-decoration:none;display:inline-flex;align-items:center;gap:5px">✅ Tasks</a>
     <a class="signout" href="roadmap-builder.html" title="Roadmap Level Builder — build the broker journey" style="text-decoration:none;display:inline-flex;align-items:center;gap:5px">🗺️ Roadmap Builder</a>
@@ -527,6 +528,13 @@ function showApp(){
     '<a class="tile" href="index.html"><div class="ti">🏆</div><div class="tt">Leaderboard</div><div class="td">Company standings</div></a>'+
     '<a class="tile" href="calendar.html"><div class="ti">🗓️</div><div class="tt">Scheduler</div><div class="td">Bookings & availability</div></a>'+'</div>'):'';
   loadOverview();loadTracker();setupNotif();renderAccessBanner();renderVerifyBanner();initTabReorder();
+  /* Master is read back from the live session rather than from OPS in localStorage, which is
+     only ever what this browser last remembered. Seat setup hands out the master seat, so the
+     one thing it must not trust is the client's own idea of who it is. */
+  if(window.tsfgOps&&tsfgOps.check){tsfgOps.check().then(function(c){
+    OPSMASTER=!!(c&&c.ok&&c.master);
+    var b=$('seatSetupBtn');if(b)b.classList.toggle('hide',!OPSMASTER);
+  });}
   var fab=$('obotFab');if(fab)fab.classList.toggle('hide',!canEdit());
 }
 /* ===== Ops Assistant (Claude-backed) ===== */
@@ -1774,6 +1782,69 @@ function openAgent(code){
   api(auth({action:'agent_get',code:code})).then(function(r){if(!r||!r.ok){$('drawer').innerHTML='<div class="dbody"><div class="empty">Could not load agent.</div></div>';return;}CUR=r;paintAgent(r);});
 }
 function closeDrawer(){$('ov').classList.remove('on');CUR=null;}
+
+/* ===== Seat setup =========================================================
+   A seat whose PIN has been cleared cannot sign in, and ops_pin_set() refuses a first PIN
+   unless a short window is open. ops_pin_enroll() opens that window and has always been
+   master-gated in the database -- but nothing in the app ever called it, so the only way to
+   open one was direct database access, while the sign-in screen told the locked-out person
+   "Ask Operations to open setup for it". This is the missing half of that instruction.
+
+   NOT A TIMEOUT. The window governs how long an UNCLAIMED seat may choose its first PIN. It
+   does not sign anyone out and does not shorten anybody's day: an Operations session slides
+   its own expiry forward 12 hours every time it is used, so a tracker left open all day keeps
+   renewing itself.
+
+   Short on purpose: while a window is open, the first person to type that seat code claims it,
+   and 0000 sees every baseshop. The server caps it at 240 minutes regardless of what is asked
+   for here. */
+var OPSMASTER=false;
+var OPS_SEATS=['0000','0001','0002','0003','0004','0005']; /* the seeded Operations seats */
+function openSeatSetup(){
+  if(!OPSMASTER){toast('Only a master Operations seat can open setup.');return;}
+  $('drawer').innerHTML='<div style="padding:20px"><h2 style="margin:0 0 6px;font-size:18px">Seat setup</h2>'
+    +'<div style="font-size:13px;color:var(--ink3);line-height:1.5">Loading seats…</div></div>';
+  $('ov').classList.add('on');
+  paintSeatSetup();
+}
+function paintSeatSetup(){
+  Promise.all(OPS_SEATS.map(function(c){
+    return tsfgOps.status(c).then(function(r){return {code:c,r:r||{}};})
+                            .catch(function(){return {code:c,r:{}};});
+  })).then(function(rows){
+    var body=rows.map(function(x){
+      var r=x.r||{},state,act='';
+      if(!r.ok){ state='<span style="color:var(--ink3)">not registered</span>'; }
+      else if(r.has_pin){ state='<span style="color:var(--green)">✓ set up</span>'
+             +(r.locked?' <span style="color:var(--red)">· locked right now</span>':''); }
+      else if(r.can_enroll){ state='<span style="color:var(--gold)">setup open now</span>';
+             act='<button class="signout" onclick="doSeatEnroll(\''+x.code+'\')">Extend</button>'; }
+      else { state='<span style="color:var(--red)">no PIN — cannot sign in</span>';
+             act='<button class="signout" onclick="doSeatEnroll(\''+x.code+'\')">Open setup</button>'; }
+      return '<div style="display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--line)">'
+        +'<div style="flex:1;min-width:0"><div style="font-weight:800;font-size:14px">'+esc(r.label||('Seat '+x.code))+'</div>'
+        +'<div style="font-size:12.5px;color:var(--ink3);margin-top:2px">'+x.code+' · '+state+'</div></div>'+act+'</div>';
+    }).join('');
+    $('drawer').innerHTML='<div style="padding:20px">'
+      +'<div style="display:flex;align-items:flex-start;gap:10px"><h2 style="margin:0;font-size:18px;flex:1">Seat setup</h2>'
+      +'<button class="signout" onclick="closeDrawer()">Close</button></div>'
+      +'<p style="font-size:13px;color:var(--ink3);line-height:1.55;margin:8px 0 4px">Opening setup lets that seat choose its first 6-digit PIN. '
+      +'Only do it when the person is ready: while it is open, whoever types that seat code claims it. '
+      +'It closes on its own and never signs anyone out.</p>'
+      +body
+      +'<div id="seatMsg" style="font-size:13px;font-weight:700;margin-top:12px;min-height:18px"></div></div>';
+  });
+}
+function doSeatEnroll(code){
+  var m=$('seatMsg'); if(m){m.style.color='var(--ink3)';m.textContent='Opening setup for '+code+'…';}
+  tsfgOps.enroll(code,60).then(function(r){
+    if(!r||!r.ok){ if(m){m.style.color='var(--red)';m.textContent=(r&&r.error)||'Could not open setup.';} return; }
+    toast('Setup open for '+code+' — they can choose a PIN now');
+    paintSeatSetup();
+    setTimeout(function(){var m2=$('seatMsg');if(m2){m2.style.color='var(--green)';
+      m2.textContent='Open for '+(r.minutes||60)+' minutes. They sign in with '+code+' and pick a 6-digit PIN.';}},60);
+  });
+}
 
 /* ---- Import an existing Google Sheet onto THIS seat's board (2026-09-03) ----------
    The new baseshop Operations staff each run their book out of a spreadsheet. Retyping

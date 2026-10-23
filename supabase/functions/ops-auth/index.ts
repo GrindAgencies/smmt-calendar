@@ -1,4 +1,4 @@
-// ops-auth v1 — sign-in for the Operations platform.
+// ops-auth v2 — sign-in for the Operations platform.
 //
 // Until now a 4-digit platform code WAS the whole credential, and every admin call
 // then carried the literal string "2026" as its authorisation. Both are readable by
@@ -16,6 +16,23 @@
 //   login  { code, pin }        -> verify and mint a session token
 //   check  { token }            -> is this session still good? (who does it belong to?)
 //   logout { token }            -> end it now
+//   enroll { token, code, minutes } -> a MASTER seat opens first-PIN setup for another seat
+//
+// v2 (2026-10-23) ADDS `enroll`, AND IT CLOSES A DEAD END RATHER THAN ADDING A FEATURE.
+//
+// ops_pin_set() refuses a first PIN unless a short enrollment window is open, which is right:
+// without it, whoever typed a seat code first owned that seat. ops_pin_enroll() exists in the
+// database to open that window and is correctly master-gated.
+//
+// Nothing ever called it. There was no action here and no UI anywhere, so the only way to open
+// a window was direct database access. Meanwhile the sign-in screen told the locked-out person
+// "Ask Operations to open setup for it" -- an instruction Operations had no way to carry out.
+// A seat whose PIN had been cleared was therefore unrecoverable by the people who own the
+// platform, which is how the Operations MASTER seat came to be stranded.
+//
+// The window stays capped at 240 minutes here as well as in the function. That cap is the
+// whole safety property: while a window is open on a seat, the first person to type that code
+// claims it, and the master seat sees every baseshop.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const SUPA = Deno.env.get("SUPABASE_URL")!;
@@ -52,6 +69,18 @@ Deno.serve(async (req) => {
       return json(await rpc("ops_login", {
         p_code: clean(body.code, 8), p_pin: pin,
         p_ua: clean(req.headers.get("user-agent") || "", 300),
+      }));
+    }
+
+    /* A master seat opens first-PIN setup for another seat. Authority is the CALLER'S OWN
+       session token, and ops_pin_enroll() checks master itself and refuses a seat that already
+       has a PIN -- this adds no new trust, it just makes the existing one reachable. */
+    if (action === "enroll") {
+      const mins = Math.max(5, Math.min(Number(body.minutes) || 60, 240));
+      return json(await rpc("ops_pin_enroll", {
+        p_token: clean(body.token, 80),
+        p_code: clean(body.code, 8),
+        p_minutes: mins,
       }));
     }
 
