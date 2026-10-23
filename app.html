@@ -155,15 +155,22 @@
   }
   body.can-post .hl-slide .rm{ display:flex; }
 
+  /* The row only takes space when there is something in it: the title is always useful, but
+     Manage belongs to the authorised account only, which body.can-post still governs. */
+  .hl-head{ display:flex; align-items:center; gap:10px; margin:0 2px 8px; min-height:30px; }
+  .hl-head-t{
+    font-size:12px; font-weight:800; letter-spacing:.09em; text-transform:uppercase;
+    color:var(--tsfg-ink-3); flex:1 1 auto; min-width:0;
+  }
   .hl-up{
-    position:absolute; top:10px; right:10px; z-index:3;
+    flex:0 0 auto;
     display:none; align-items:center; gap:7px;
-    padding:8px 13px; border-radius:var(--tsfg-r-pill);
-    background:rgba(0,0,0,.66); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px);
-    border:1px solid rgba(255,255,255,.16); color:#fff;
+    padding:7px 12px; border-radius:var(--tsfg-r-pill);
+    background:var(--tsfg-raise-2); border:1px solid var(--tsfg-line); color:var(--tsfg-ink);
     font-family:inherit; font-size:12.5px; font-weight:700; cursor:pointer;
   }
-  body.can-post .hl-up{ display:flex; }
+  .hl-up:active{ background:var(--tsfg-raise); }
+  body.can-post .hl-up{ display:inline-flex; }
   .hl-up svg{ width:15px; height:15px; stroke:currentColor; fill:none; stroke-width:1.8; }
 
   .hl-dots{ display:flex; gap:6px; justify-content:center; margin-top:9px; min-height:6px; }
@@ -234,14 +241,26 @@
 
   <!-- ======================= team highlights ======================= -->
   <section class="hl" aria-label="Team highlights">
-    <button class="hl-up" onclick="openManage()" aria-label="Manage team highlights">
+    <!-- MANAGE SITS BESIDE THE ARTWORK, NOT ON IT. It was an absolutely positioned pill at the
+         top-right of the image, and on the current highlight it lands straight across the
+         headline. Section 3 of the 2026-10-23 handoff: the preview's pill "is a placement
+         reference, not permission to cover real headline content", and names the preferred
+         refinement -- "a compact title/action row adjacent to the image, leaving the image
+         itself clear". This is that row.
+         Everything else about highlights is untouched: the carousel, the dots, the per-slide
+         remove control, the uploads, and the body.can-post rule that keeps management to the
+         authorised account. -->
+    <div class="hl-head">
+      <span class="hl-head-t">Team highlights</span>
+      <button class="hl-up" onclick="openManage()" aria-label="Manage team highlights">
       <svg viewBox="0 0 24 24"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5"/><path d="M4 16v2.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V16"/></svg>
       Manage
-    </button>
+      </button>
+    </div>
     <div class="hl-rail" id="rail">
       <div class="hl-none" id="hlNone">
         <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10.5" r="1.5"/><path d="m21 15-4.5-4.5L7 20"/></svg>
-        <b>Team highlights</b>
+        <b>No highlights yet</b>
         <span id="hlNoneSub">Loading…</span>
       </div>
     </div>
@@ -390,7 +409,9 @@
       rail.innerHTML =
         '<div class="hl-none" id="hlNone">'+
           '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10.5" r="1.5"/><path d="m21 15-4.5-4.5L7 20"/></svg>'+
-          '<b>Team highlights</b>'+
+          /* The section is named once now, by .hl-head above the rail. Repeating it inside the
+             empty frame read as a duplicate, so this says what the state is instead. */
+          '<b>No highlights yet</b>'+
           '<span id="hlNoneSub">'+(CANEDIT
             ? 'Add photos of the team \u2014 everyone will see them here.'
             : 'Elijah adds photos of the team here.')+'</span>'+
