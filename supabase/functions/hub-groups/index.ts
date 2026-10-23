@@ -1,5 +1,20 @@
-// hub-groups v2 (2026-10-21) — a group chat's own name and photo, who may change them, and
+// hub-groups v3 (2026-10-22) — a group chat's own name and photo, who may change them, and
 // who may post in the organisation-wide Announcements channel.
+//
+// v3: THE PERSON WHO CREATES A GROUP CAN NOW NAME AND PHOTOGRAPH IT. v2 recognised exactly two
+// kinds of editor — the owner allow-list, and whoever an owner had explicitly named in
+// hub_group_admins — so the ordinary case of "I made this group, let me set its picture" was
+// refused. The iPhone handoff asks for a creation flow with a photo, and is explicit about the
+// rule to apply: "Scope the creator's rights to the created group, without automatically
+// granting announcements posting or company-wide administrator access."
+//
+// That is resolvable from data the app already keeps rather than a new permission: every custom
+// channel in app_settings.hub_channels records `byCode`, the code of whoever created it. A
+// caller who matches it is treated as an admin OF THAT ONE CHANNEL.
+//
+// Deliberately NOT widened: isOwner() is untouched, so designating group admins, managing the
+// announcer list and every other owner power stay with the allow-list. Creating a group grants
+// authority over that group and nothing else.
 //
 // v2 adds the announcer allow-list. Elijah asked for an Announcements chat everyone can read
 // and only designated leadership can post in, managed from Settings. The WRITE restriction is
@@ -17,7 +32,7 @@
 // access, and equally that EMD rank by itself confers nothing until somebody is designated:
 //
 //   OWNER          may designate and revoke group admins, for any group, AND may designate
-//                  announcers. An explicit allow-list of agent codes in
+//                  announcers. An explicit allow-list of agent CODES in
 //                  app_settings.hub_group_owners - GFI20 (Elijah) and C1991 (Christopher,
 //                  added at his request). Not a rank, not platform_admin, not Operations.
 //   GROUP ADMIN    may rename and re-photograph THE GROUPS THEY ARE NAMED ON, and nothing else.
@@ -63,10 +78,22 @@ async function owners(): Promise<string[]> {
   return codes.length ? codes : OWNER_FALLBACK;
 }
 async function isOwner(code: string) { return (await owners()).indexOf(code) >= 0; }
+/* Did this person create this channel? Read from the channel registry the hub already keeps,
+   so there is one source of truth for who made a group and no second place to keep in step. */
+async function isChannelCreator(code: string, channel: string) {
+  if (!code || !channel || channel.indexOf("c_") !== 0) return false;
+  const rows = await getJSON(`app_settings?key=eq.hub_channels&select=value`);
+  const v = rows[0] && rows[0].value;
+  const list = (v && Array.isArray(v.channels)) ? v.channels : [];
+  const c = list.find((x: any) => String(x && x.id) === channel);
+  return !!(c && norm(c.byCode) === norm(code));
+}
 async function isGroupAdmin(code: string, channel: string) {
   if (!code || !channel) return false;
   const r = await getJSON(`hub_group_admins?channel=eq.${enc(channel)}&code=eq.${enc(code)}&select=code&limit=1`);
-  return r.length > 0;
+  if (r.length > 0) return true;
+  /* The creator of this group, and only for this group. */
+  return await isChannelCreator(code, channel);
 }
 
 /* The announcer allow-list. Read straight from app_settings so this and the database trigger

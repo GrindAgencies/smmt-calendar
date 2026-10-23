@@ -389,11 +389,27 @@ html, body{ overflow-x: hidden; }
 </div></div>
 <!-- new channel modal -->
 <div class="ov" id="chOv"><div class="modal">
-  <h3>New channel</h3>
-  <div class="fg"><label>Channel name</label><input id="chName" placeholder="e.g. Regional — West"></div>
-  <label class="fg" style="display:flex;align-items:center;gap:9px;font-weight:600"><input type="checkbox" id="chPriv" style="width:auto" onchange="document.getElementById('chMembersWrap').style.display=this.checked?'block':'none'"> Private channel (invite only)</label>
-  <div class="fg" id="chMembersWrap" style="display:none"><label>Invite members</label><div id="chMembers" class="mempick"></div></div>
-  <div class="mact2"><button onclick="document.getElementById('chOv').classList.remove('on')">Cancel</button><button class="go" onclick="createChannel()">Create</button></div>
+  <h3>New group</h3>
+  <!-- Photo first, the way every messaging app does it. The picture is staged in the browser
+       and only uploaded once the group actually exists, so a cancelled creation leaves nothing
+       behind. -->
+  <div class="ngphoto">
+    <button type="button" class="ngav" id="ngAv" onclick="document.getElementById('ngFile').click()"
+            aria-label="Add a group photo"><span class="ngav-i">＋</span></button>
+    <input type="file" id="ngFile" accept="image/*" style="display:none" onchange="stageGroupPhoto(event)">
+    <div class="ngphoto-t">
+      <button type="button" class="lnk" onclick="document.getElementById('ngFile').click()">Add group photo</button>
+      <button type="button" class="lnk sub" id="ngClear" style="display:none" onclick="clearGroupPhoto()">Remove</button>
+    </div>
+  </div>
+  <div class="fg"><label>Group name</label><input id="chName" placeholder="e.g. Regional — West" maxlength="60"></div>
+  <label class="fg" style="display:flex;align-items:center;gap:9px;font-weight:600"><input type="checkbox" id="chPriv" style="width:auto" onchange="document.getElementById('chMembersWrap').style.display=this.checked?'block':'none'"> Private group (invite only)</label>
+  <div class="fg" id="chMembersWrap" style="display:none">
+    <label>Add members <span class="ngcount" id="ngCount">None selected</span></label>
+    <input id="ngSearch" class="ngsearch" placeholder="Search team members…" oninput="filterMembers(this.value)">
+    <div id="chMembers" class="mempick"></div>
+  </div>
+  <div class="mact2"><button onclick="document.getElementById('chOv').classList.remove('on')">Cancel</button><button class="go" id="ngGo" onclick="createChannel()">Create group</button></div>
 </div></div>
 <div class="ov" id="botOv"><div class="modal" style="max-width:540px">
   <h3>🤖 Baseshop Bot Settings</h3>
@@ -1757,7 +1773,60 @@ function sendRecognition(){
 }
 
 /* channels */
-function openNewChannel(){$('chName').value='';$('chPriv').checked=false;$('chMembersWrap').style.display='none';fillMembers();$('chOv').classList.add('on');}
+function openNewChannel(){
+  $('chName').value=''; $('chPriv').checked=false; $('chMembersWrap').style.display='none';
+  clearGroupPhoto(); var q=$('ngSearch'); if(q)q.value='';
+  fillMembers(); updateMemberCount(); setCreating(false);
+  $('chOv').classList.add('on');
+}
+/* The chosen photo lives here until the group exists. Nothing is uploaded on cancel. */
+var NEWGRP_PHOTO='';
+function clearGroupPhoto(){
+  NEWGRP_PHOTO='';
+  var a=$('ngAv'); if(a){ a.classList.remove('has'); a.style.backgroundImage=''; }
+  var c=$('ngClear'); if(c)c.style.display='none';
+}
+/* Same resize the profile and group-photo pickers already use: a 256px centre-cropped square
+   at JPEG 0.82, which lands far under hub-groups' 300KB ceiling whatever the phone produced. */
+function stageGroupPhoto(ev){
+  var f=(ev.target.files||[])[0]; ev.target.value='';
+  if(!f) return;
+  var rd=new FileReader();
+  rd.onload=function(){
+    var img=new Image();
+    img.onerror=function(){ toast('That file is not an image'); };
+    img.onload=function(){
+      var S=256,c=document.createElement('canvas');c.width=S;c.height=S;
+      var sq=Math.min(img.width,img.height);
+      c.getContext('2d').drawImage(img,(img.width-sq)/2,(img.height-sq)/2,sq,sq,0,0,S,S);
+      NEWGRP_PHOTO=c.toDataURL('image/jpeg',0.82);
+      var a=$('ngAv'); if(a){ a.classList.add('has'); a.style.backgroundImage='url("'+NEWGRP_PHOTO+'")'; }
+      var x=$('ngClear'); if(x)x.style.display='';
+    };
+    img.src=rd.result;
+  };
+  rd.readAsDataURL(f);
+}
+function filterMembers(q){
+  q=(q||'').trim().toLowerCase();
+  var rows=document.querySelectorAll('#chMembers .memrow'), shown=0;
+  Array.prototype.forEach.call(rows,function(el){
+    var hit=!q||(el.getAttribute('data-q')||'').indexOf(q)>=0;
+    el.classList.toggle('hid',!hit); if(hit)shown++;
+  });
+  var none=document.getElementById('memNone');
+  if(none) none.style.display=(shown===0&&rows.length)?'':'none';
+}
+/* "Show selected members and a clear completion action" — the count is what tells someone the
+   tick they just made actually registered, especially once a search has hidden the row. */
+function updateMemberCount(){
+  var n=document.querySelectorAll('#chMembers input:checked').length;
+  var el=$('ngCount'); if(el) el.textContent = n? (n+' selected') : 'None selected';
+}
+function setCreating(on){
+  var b=$('ngGo'); if(!b)return;
+  b.disabled=!!on; b.textContent = on? 'Creating…' : 'Create group';
+}
 function syncBotBtn(){var b=document.getElementById('botCfgBtn');if(!b)return;var ok=ACC&&(ACC.role==='ops'||ACC.scope==='super'||ACC.scope==='base_owner');b.style.display=ok?'':'none';}
 function openBotCfg(){var ov=document.getElementById('botOv');if(!ov)return;ov.classList.add('on');document.getElementById('botCfgBody').innerHTML='<div class="spin">Loading…</div>';fetch(BOTS,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'get',code:CODE,token:MODTOKEN})}).then(function(r){return r.json();}).then(renderBotCfg).catch(function(){document.getElementById('botCfgBody').textContent='Could not load bot settings.';});}
 function renderBotCfg(r){if(!r||!r.ok){document.getElementById('botCfgBody').textContent='Could not load.';return;}var cfg=r.config||{};var bases=r.editable||[];var h='';
@@ -1773,8 +1842,53 @@ function renderBotCfg(r){if(!r||!r.ok){document.getElementById('botCfgBody').tex
   document.getElementById('botCfgBody').innerHTML=h;}
 function saveBot(base,patch){fetch(BOTS,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'set',code:CODE,token:MODTOKEN,baseshop:base,config:patch})}).then(function(r){return r.json();}).then(function(r){toast((r&&r.ok)?'Saved':((r&&r.error)||'Save failed'));}).catch(function(){toast('Network error');});}
 function saveHighlights(base,lb){var el=document.getElementById('hl_'+lb);var arr=((el&&el.value)||'').split('\n').map(function(x){return x.trim();}).filter(Boolean);saveBot(base,{highlights:arr});}
-function fillMembers(){var host=$('chMembers');if(!host)return;var list=ROSTER.filter(function(m){return m.code!==CODE;});host.innerHTML=list.length?list.map(function(m){return '<label class="memrow"><input type="checkbox" value="'+m.code+'"> '+esc(m.name)+' <span style="color:var(--ink3)">('+m.code+')</span></label>';}).join(''):'<div style="color:var(--ink3);font-size:12px;padding:6px">No teammates found yet.</div>';}
-function createChannel(){var n=$('chName').value.trim();if(!n){toast('Name it');return;}var priv=$('chPriv').checked;var mem=[].slice.call(document.querySelectorAll('#chMembers input:checked')).map(function(x){return x.value;});h({action:'hub_createchannel',name:n,private:priv,members:mem,code:CODE,by:NAME}).then(function(r){if(r&&r.ok){$('chOv').classList.remove('on');$('chName').value='';$('chPriv').checked=false;$('chMembersWrap').style.display='none';loadChannels();toast(priv?'Private channel created \ud83d\udd12':'Channel created');if(r.id){CHAN=r.id;renderHead();loadMsgs(true);}}else toast((r&&r.error)||'Could not create');});}
+function fillMembers(){
+  var host=$('chMembers'); if(!host)return;
+  var list=ROSTER.filter(function(m){return m.code!==CODE;});
+  host.innerHTML = list.length
+    ? list.map(function(m){
+        return '<label class="memrow" data-q="'+esc((m.name+' '+m.code).toLowerCase())+'">'+
+               '<input type="checkbox" value="'+esc(m.code)+'" onchange="updateMemberCount()"> '+
+               esc(m.name)+' <span style="color:var(--ink3)">('+esc(m.code)+')</span></label>';
+      }).join('') + '<div class="noneleft" id="memNone" style="display:none">Nobody matches that.</div>'
+    : '<div style="color:var(--ink3);font-size:12px;padding:6px">No teammates found yet.</div>';
+}
+/* One in-flight creation at a time. The brief is explicit that "a retry or double tap must not
+   create duplicate groups", and nothing server-side dedupes this: every call appends a new
+   channel with a fresh random id, so two taps really would make two groups. */
+var CREATING=false;
+function createChannel(){
+  if(CREATING) return;
+  var n=$('chName').value.trim(); if(!n){toast('Name it');return;}
+  var priv=$('chPriv').checked;
+  var mem=[].slice.call(document.querySelectorAll('#chMembers input:checked')).map(function(x){return x.value;});
+  var photo=NEWGRP_PHOTO;
+  CREATING=true; setCreating(true);
+  h({action:'hub_createchannel',name:n,private:priv,members:mem,code:CODE,by:NAME}).then(function(r){
+    if(!r||!r.ok){ CREATING=false; setCreating(false); toast((r&&r.error)||'Could not create'); return; }
+    /* The group exists from here on. The photo is a SEPARATE call to hub-groups, so it is
+       reported separately too — a photo that fails must not read as a failed group. */
+    var done=function(){
+      CREATING=false; setCreating(false);
+      $('chOv').classList.remove('on');
+      $('chName').value=''; $('chPriv').checked=false; $('chMembersWrap').style.display='none';
+      clearGroupPhoto();
+      loadChannels();
+      if(r.id){ CHAN=r.id; renderHead(); loadMsgs(true); }
+    };
+    if(!photo || !r.id){ toast(priv?'Private group created \ud83d\udd12':'Group created'); done(); return; }
+    gdApi({action:'set_photo', channel:r.id, avatar:photo}).then(function(p){
+      if(p&&p.ok){
+        GROUPMETA[r.id]={name:null, avatar:p.avatar};
+        toast(priv?'Private group created \ud83d\udd12':'Group created');
+      }else{
+        /* Honest: the group is real, the picture is not. Do not claim both worked. */
+        toast('Group created \u2014 the photo did not save. Add it from the group details.');
+      }
+      done();
+    }).catch(function(){ toast('Group created \u2014 the photo did not save.'); done(); });
+  }).catch(function(){ CREATING=false; setCreating(false); toast('Network error \u2014 the group was not created.'); });
+}
 /* profile settings + roster */
 var ROSTER=[];
 /* The DM directory, the channel-member picker and the upline picker all read ROSTER. hub-api's
@@ -2131,6 +2245,27 @@ body.phone .msg.me .seenby,
 body.phone .msg.me .rx{ text-align:right; }
 /* A run of messages from the same person only needs the name once. */
 body.phone .msg.cont .mhead{ display:none; }
+
+/* ---- New group dialog ------------------------------------------------------------- */
+.ngphoto{ display:flex; align-items:center; gap:14px; margin-bottom:16px; }
+.ngav{
+  width:72px; height:72px; border-radius:50%; flex:0 0 auto; cursor:pointer; padding:0;
+  border:2px dashed var(--line2); background:var(--panel2); color:var(--ink3);
+  display:flex; align-items:center; justify-content:center; overflow:hidden;
+  background-size:cover; background-position:center; font-family:inherit;
+}
+.ngav.has{ border-style:solid; border-color:var(--cvgold,#e6c25a); }
+.ngav.has .ngav-i{ display:none; }
+.ngav-i{ font-size:26px; font-weight:300; line-height:1; }
+.ngphoto-t{ display:flex; flex-direction:column; align-items:flex-start; gap:3px; }
+.lnk{ background:none; border:0; padding:0; font-family:inherit; font-size:13.5px; font-weight:700;
+      color:var(--cvgold,#e6c25a); cursor:pointer; }
+.lnk.sub{ font-size:12px; font-weight:600; color:var(--ink3); }
+.ngcount{ float:right; font-weight:600; font-size:11.5px; color:var(--ink3); text-transform:none; letter-spacing:0; }
+.ngsearch{ width:100%; margin:0 0 8px; padding:9px 11px; border-radius:10px; border:1px solid var(--line2);
+           background:var(--panel); color:var(--ink); font-family:inherit; font-size:13.5px; box-sizing:border-box; }
+.memrow.hid{ display:none; }
+.mempick .noneleft{ color:var(--ink3); font-size:12px; padding:6px; }
 
 /* ---- Pinned conversations rail (phone) --------------------------------------------
    Scoped to body.phone for the same reason the .cv list is: this flat conversation list IS
