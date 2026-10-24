@@ -101,6 +101,40 @@
   .derived .v{ font-size:21px; font-weight:800; letter-spacing:-.02em; margin:2px 0 1px; }
   .derived .n{ font-size:11.5px; color:var(--tsfg-ink-3); }
 
+  /* Application credit (handoff 6C). Its own surface so it reads as a section, not one more
+     money field — the brief asks for a distinct charcoal block below the premium figures. */
+  .credit{
+    background:var(--tsfg-raise-2); border:1px solid var(--tsfg-line);
+    border-radius:var(--tsfg-r-sm); padding:13px 14px; margin:2px 0 13px;
+  }
+  .credit-h{
+    font-size:11.5px; font-weight:800; letter-spacing:.07em; text-transform:uppercase;
+    color:var(--tsfg-ink-2); margin-bottom:8px;
+  }
+  .credit-line{ font-size:13.5px; line-height:1.5; color:var(--tsfg-ink-2); }
+  .credit-line b{ color:var(--tsfg-ink); }
+  .credit-btn{
+    margin-top:10px; border:1px solid var(--tsfg-line); background:transparent;
+    color:var(--tsfg-gold); font:inherit; font-size:13px; font-weight:700;
+    padding:8px 12px; border-radius:var(--tsfg-r-sm); cursor:pointer;
+  }
+  .credit-btn.danger{ color:var(--tsfg-bad); }
+  .credit-break{ font-size:13.5px; line-height:1.6; color:var(--tsfg-ink-2); margin-top:2px; }
+  .credit-break b{ color:var(--tsfg-ink); }
+  .credit-break .tot{ display:block; margin-top:3px; font-size:12px; color:var(--tsfg-ink-3); }
+  .credit-break.bad b{ color:var(--tsfg-bad); }
+  /* The percent suffix the brief asks for, inside the field rather than in the label. */
+  .pctwrap{ position:relative; }
+  .pctwrap .pcts{
+    position:absolute; right:12px; top:50%; transform:translateY(-50%);
+    color:var(--tsfg-ink-3); font-size:14px; pointer-events:none;
+  }
+  .pctwrap input{ padding-right:30px; }
+  .splitmatch{ font-size:12.5px; line-height:1.45; margin-top:5px; color:var(--tsfg-ink-3); }
+  .splitmatch.ok{ color:var(--tsfg-good); }
+  .splitmatch.warn{ color:var(--tsfg-warn); }
+  .splitmatch.bad{ color:var(--tsfg-bad); }
+
   .done-ic{
     width:92px; height:92px; border-radius:50%; margin:26px auto 18px;
     border:2px solid var(--tsfg-good); display:flex; align-items:center; justify-content:center;
@@ -285,6 +319,17 @@
         <div class="v" id="apOut">$0.00</div>
         <div class="n" id="apNote">Calculated from the premium &times; 12</div>
       </div>
+      <!-- LUMP SUM (handoff section 6A). Deliberately placed AFTER the annualized summary, not
+           before it: above the summary it would read as one of the inputs that feeds the x12
+           calculation, and 6A is explicit that a lump sum is never multiplied by twelve and
+           never folded into the annualized premium. It is stored on its own column exactly as
+           typed, and the recurring premium above is untouched. -->
+      <div class="tsfg-field" id="f_lump_w">
+        <label>Lump sum amount <span class="opt">optional</span></label>
+        <input id="f_lump" type="number" inputmode="decimal" step="0.01" min="0" placeholder="e.g. 25000">
+        <div class="err">Enter a lump sum of $0 or more.</div>
+        <div class="hint">A one-time amount, when the application has one. Stored exactly as typed — it is not multiplied by twelve and never added to the annualized premium above.</div>
+      </div>
       <!-- TARGET PREMIUM (handoff section 6B, confirmed by Elijah). Manually entered, saved
            independently of Premium amount, Lump sum and Annualized premium -- it is not another
            name for any of them. Deliberately NOT required and NOT auto-filled: the brief says
@@ -319,6 +364,43 @@
         <label>Your contract % <span class="opt">(from your level)</span></label>
         <input id="f_contract" type="number" inputmode="decimal" placeholder="—" oninput="calcAP()">
         <div class="hint" id="contractNote">Filled in from your contract level. Change it only if this policy is written at a different rate.</div>
+      </div>
+      <!-- APPLICATION CREDIT (handoff section 6C).
+           ONE WARNING FOR WHOEVER EDITS THIS NEXT. The stored column `split_pct` is the
+           WRITER's share — newbiz-api gives the partner `100 - split_pct`, and the older
+           newbusiness.html form labels its box "You keep X%". This section follows the brief
+           instead: the input here is the OTHER agent's share, so 30 typed here means they get
+           30 and you keep 70. The conversion happens in exactly one place, payload(), and
+           nowhere else. Both people are named with their own percentage on screen precisely so
+           the two forms can never be read as saying the same thing about a different number.
+           No partner contract % is sent: newbiz-api resolves the partner's own rate from their
+           contract level, which is what stops a partner being paid at the writer's rate. -->
+      <div class="credit">
+        <div class="credit-h">Application credit</div>
+        <div id="creditSolo" class="credit-line"></div>
+        <button type="button" id="creditAdd" class="credit-btn" onclick="splitOn(true)">+ Add split agent</button>
+        <div id="creditSplit" hidden>
+          <div class="tsfg-field" id="f_split_w" style="margin:4px 0 10px">
+            <label>Split agent</label>
+            <input id="f_split" list="tsfgAgents" autocomplete="off" placeholder="Start typing a name"
+                   oninput="splitLookup()" onchange="splitLookup(true)" onblur="splitLookup(true)">
+            <datalist id="tsfgAgents"></datalist>
+            <input type="hidden" id="f_split_code">
+            <div class="err">Choose an agent from the list.</div>
+            <div id="splitMatch" class="splitmatch"></div>
+          </div>
+          <div class="tsfg-field" id="f_splitpct_w">
+            <label>Split percentage <span class="opt">their share</span></label>
+            <div class="pctwrap">
+              <input id="f_splitpct" type="number" inputmode="decimal" step="0.01" min="0" max="100"
+                     placeholder="30" oninput="paintCredit()">
+              <span class="pcts">%</span>
+            </div>
+            <div class="err">Enter a share from 0 to 100.</div>
+          </div>
+          <div id="creditBreak" class="credit-break"></div>
+          <button type="button" class="credit-btn danger" onclick="splitOn(false)">Remove split</button>
+        </div>
       </div>
       <div class="tsfg-field">
         <label>How did it come to you? <span class="opt">(optional)</span></label>
@@ -720,6 +802,24 @@ function openApp(id){
   V('f_prem', p.annual_premium);
   /* Blank stays blank. V() with null would print "null" into a money field. */
   V('f_target', (p.target_premium===null||p.target_premium===undefined) ? '' : p.target_premium);
+  V('f_lump',   (p.lump_sum_contribution===null||p.lump_sum_contribution===undefined) ? '' : p.lump_sum_contribution);
+
+  /* EXISTING SPLITS ARE REUSED, NEVER OVERWRITTEN WITH THE NEW 100% DEFAULT (6C).
+     Converting back out of storage: split_pct is the WRITER's share, the field shows the
+     partner's, so the box gets 100 - split_pct. Opening a split application and saving it
+     untouched therefore stores exactly the number it started with. */
+  if(p.split_flag){
+    splitOn(true);
+    var sc = String(p.split_agent_code||'').toUpperCase();
+    V('f_split', p.split_agent || sc);
+    if($('f_split_code')) $('f_split_code').value = sc;
+    var mine = (p.split_pct===null||p.split_pct===undefined) ? 100 : Number(p.split_pct);
+    V('f_splitpct', Math.round((100-mine)*100)/100);
+    loadAgentRoster().then(function(){ try{ splitLookup(true); }catch(e){} });
+  } else {
+    splitOn(false);
+  }
+  paintCredit();
   try{ calcAP(); }catch(e){}
 
   setWizChrome();
@@ -777,7 +877,8 @@ function doDeleteApp(){
 function closeWiz(){ EDIT_APP=null; $('wiz').classList.remove('on'); load(); }
 
 function resetWiz(){
-  ['f_first','f_last','f_state','f_email','f_phone','f_carrier','f_prem','f_cov','f_polnum','f_source'].forEach(function(i){ $(i).value=''; });
+  ['f_first','f_last','f_state','f_email','f_phone','f_carrier','f_prem','f_cov','f_polnum','f_source','f_target','f_lump'].forEach(function(i){ var e=$(i); if(e) e.value=''; });
+  splitOn(false);
   $('f_product').value=''; $('f_freq').value='12';
   $('f_date').value = new Date().toISOString().slice(0,10);
   $('f_contract').value = (MYRATE!=null?MYRATE:'');
@@ -853,6 +954,22 @@ function validate(step){
     ok = bad('f_target',  (function(){ var r=String($('f_target').value||'').trim();
                                        return !!r && !(isFinite(Number(r)) && Number(r)>=0); })()) && ok;
     ok = bad('f_polnum',  !$('f_polnum').value.trim())  && ok;
+    /* Lump sum: optional, same rule as the target. Present means a real number >= 0. */
+    ok = bad('f_lump',    (function(){ var r=String($('f_lump').value||'').trim();
+                                       return !!r && !(isFinite(Number(r)) && Number(r)>=0); })()) && ok;
+    /* A split must be COMPLETE or absent — 6C: "submission must reject an unresolved
+       recipient/percentage pair". A zero share is treated as no split rather than an error,
+       which the brief allows, but it must not name a recipient who is credited nothing. */
+    if(SPLIT_ON){
+      var sp = splitPct();
+      var hasAgent = !!$('f_split_code').value;
+      ok = bad('f_split', !hasAgent) && ok;
+      ok = bad('f_splitpct', sp===null) && ok;
+      if(hasAgent && sp!==null && sp>0){
+        /* Belt and braces on the thing that decides money: the pair must total exactly 100. */
+        ok = bad('f_splitpct', Math.round((primaryPct()+sp)*100)/100 !== 100) && ok;
+      }
+    }
   }
   $('wizErr').style.display = ok?'none':'flex';
   if(!ok){
@@ -903,10 +1020,31 @@ function fillReview(){
     /* Section 6B: show it on Review, and show "not provided" cleanly rather than letting a
        blank read as a computed $0.00. */
     row('Target premium', (targetPremium()===null ? 'Not provided' : money2(targetPremium()))) +
+    row('Lump sum amount', (lumpSum()===null ? 'Not provided' : money2(lumpSum()))) +
     row('Coverage amount', money(Number($('f_cov').value)||0)) +
     row('Policy number', $('f_polnum').value.trim()) +
+    creditRows() +
     (rate?row('Your contract %', rate+'%'):'') +
-    (rate?row('Expected commission', money(annualized()*rate/100)):'');
+    /* YOUR commission, not the policy's. Before splits existed on this form these were the
+       same number; with a split they are not, and showing the undivided figure would promise
+       an agent money that is going to their partner. The canonical rule is
+       premium x contract% x YOUR SHARE — the same one newbiz-api and the leaderboard apply. */
+    (rate?row(sharePct()===100 ? 'Expected commission' : 'Your expected commission',
+              money(annualized()*rate/100*sharePct()/100)):'');
+}
+
+/* The writer's share as a plain number, 100 when there is no usable split. One definition,
+   used by the review line and the confirmation card, so they cannot disagree. */
+function sharePct(){
+  var sp=splitPct();
+  return (SPLIT_ON && $('f_split_code') && $('f_split_code').value && sp!==null && sp>0) ? primaryPct() : 100;
+}
+/* Named credit breakdown on Review — 6C asks for both shares by name, not just a percentage. */
+function creditRows(){
+  if(sharePct()===100) return row('Application credit', '100% \u2014 no split');
+  var other = ($('f_split') && $('f_split').value.trim()) || $('f_split_code').value;
+  var mine  = (EDIT_APP && EDIT_APP.agent_name) ? EDIT_APP.agent_name : (MYNAME || 'You');
+  return row('Application credit', esc(mine)+' '+sharePct()+'% \u00b7 '+esc(other)+' '+splitPct()+'%');
 }
 
 function payload(status){
@@ -925,6 +1063,16 @@ function payload(status){
     /* Sent as null when blank, never 0: the brief requires "not provided" to stay
        distinguishable from an explicitly entered zero. */
     target_premium: targetPremium(),
+    /* Its own column, exactly as typed. Never added to annual_premium. */
+    lump_sum_contribution: lumpSum(),
+    /* THE ONE PLACE the brief's percentage is converted to the stored one. The field asks for
+       the OTHER agent's share; `split_pct` is the WRITER's. Sending the typed number straight
+       through would pay the wrong person — on a 70/30 it would silently invert the money.
+       partner_contract_pct is deliberately NOT sent: newbiz-api fills the partner's own rate
+       from their contract level, and a missing one must never fall back to the writer's. */
+    split_flag:  !!(SPLIT_ON && $('f_split_code').value && splitPct()!==null && splitPct()>0),
+    split_agent: (SPLIT_ON && $('f_split_code').value) ? $('f_split_code').value : '',
+    split_pct:   (SPLIT_ON && $('f_split_code').value && splitPct()!==null && splitPct()>0) ? primaryPct() : null,
     coverage: Number($('f_cov').value)||0,
     contract_pct: Number($('f_contract').value)||null,
     submitted_date: $('f_date').value,
@@ -942,6 +1090,172 @@ function targetPremium(){
   if(!raw) return null;
   var n=Number(raw);
   return (isFinite(n) && n>=0) ? n : null;
+}
+
+/* Lump sum reads exactly like the target: blank means NOT PROVIDED and is sent as null, so it
+   stays distinguishable from a deliberately entered 0. Never folded into the annualised figure. */
+function lumpSum(){
+  var el=$('f_lump'); if(!el) return null;
+  var raw=String(el.value||'').trim();
+  if(!raw) return null;
+  var n=Number(raw);
+  return (isFinite(n) && n>=0) ? n : null;
+}
+
+/* ===== application credit ==========================================================
+   The roster comes from org-api's tree, which already answers only with people this caller is
+   allowed to see — so the picker cannot be used to enumerate other branches. Resolution is the
+   same shape the older form uses: a code, a "Name · CODE" pick from the datalist, an exact
+   name, or a unique partial. Anything ambiguous REFUSES to guess and offers the candidates. */
+var ORGAPI = 'https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/org-api';
+var SPLIT_ON = false, TSFG_AGENTS = [], TSFG_AGENTS_BY = null;
+
+function splitNorm(x){ return (x||'').toString().trim().toLowerCase().replace(/\s+/g,' '); }
+
+function loadAgentRoster(){
+  if(TSFG_AGENTS.length) return Promise.resolve(TSFG_AGENTS);
+  return fetch(ORGAPI,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'tree',code:(CODE||'')})})
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      var nodes=(d&&d.nodes)||[];
+      TSFG_AGENTS = nodes.filter(function(n){ return n && n.code && n.name; })
+        .map(function(n){ return {code:String(n.code).toUpperCase(), name:String(n.name).trim(),
+                                  title:n.title||n.level||'', baseshop:n.baseshop||''}; })
+        .sort(function(a,b){ return a.name.localeCompare(b.name); });
+      TSFG_AGENTS_BY={byCode:{},byName:{}};
+      TSFG_AGENTS.forEach(function(a){
+        TSFG_AGENTS_BY.byCode[a.code]=a;
+        (TSFG_AGENTS_BY.byName[splitNorm(a.name)] = TSFG_AGENTS_BY.byName[splitNorm(a.name)]||[]).push(a);
+      });
+      var dl=$('tsfgAgents');
+      if(dl) dl.innerHTML = TSFG_AGENTS.map(function(a){
+        return '<option value="'+esc(a.name)+' \u00b7 '+esc(a.code)+'">'+esc(a.title||'')+(a.baseshop?(' \u00b7 '+esc(a.baseshop)):'')+'</option>';
+      }).join('');
+      return TSFG_AGENTS;
+    }).catch(function(){ return TSFG_AGENTS; });
+}
+
+function splitResolve(raw){
+  var q=splitNorm(raw);
+  if(!q || !TSFG_AGENTS_BY) return {state:'empty'};
+  var dot=raw.lastIndexOf('\u00b7');
+  if(dot>=0){ var c=raw.slice(dot+1).trim().toUpperCase();
+    if(TSFG_AGENTS_BY.byCode[c]) return {state:'ok',agent:TSFG_AGENTS_BY.byCode[c]}; }
+  var up=raw.trim().toUpperCase();
+  if(TSFG_AGENTS_BY.byCode[up]) return {state:'ok',agent:TSFG_AGENTS_BY.byCode[up]};
+  var exact=TSFG_AGENTS_BY.byName[q];
+  if(exact && exact.length===1) return {state:'ok',agent:exact[0]};
+  if(exact && exact.length>1)   return {state:'ambiguous',matches:exact};
+  var parts=q.split(' ').filter(Boolean);
+  var hits=TSFG_AGENTS.filter(function(a){ var n=splitNorm(a.name);
+    return parts.every(function(pp){ return n.indexOf(pp)>=0; }); });
+  if(hits.length===1) return {state:'ok',agent:hits[0]};
+  if(hits.length>1 && hits.length<=6) return {state:'ambiguous',matches:hits};
+  if(hits.length>6) return {state:'typing'};
+  return {state:'none'};
+}
+
+function splitLookup(commit){
+  var el=$('f_split'), out=$('splitMatch'), hid=$('f_split_code');
+  if(!el||!out) return;
+  if(!TSFG_AGENTS.length){ loadAgentRoster().then(function(){ splitLookup(commit); }); return; }
+  var res=splitResolve(el.value);
+  if(res.state==='ok'){
+    /* 6C: you cannot split with yourself. Caught here rather than at submit so the person
+       finds out while they are still looking at the field. */
+    if(CODE && res.agent.code===String(CODE).toUpperCase()){
+      if(hid) hid.value='';
+      out.className='splitmatch bad';
+      out.textContent='That is you \u2014 a split needs a second person.';
+    } else {
+      if(hid) hid.value=res.agent.code;
+      if(commit) el.value=res.agent.name;
+      out.className='splitmatch ok';
+      out.textContent='\u2713 '+res.agent.name+' \u00b7 '+res.agent.code+(res.agent.title?(' \u00b7 '+res.agent.title):'');
+    }
+  } else if(res.state==='ambiguous'){
+    if(hid) hid.value='';
+    out.className='splitmatch warn';
+    out.textContent='Which one? '+res.matches.slice(0,4).map(function(a){ return a.name+' ('+a.code+')'; }).join(' \u00b7 ');
+  } else if(res.state==='none'){
+    if(hid) hid.value='';
+    out.className='splitmatch bad';
+    out.textContent='No match on the roster. Check the spelling, or pick from the list.';
+  } else {
+    if(hid) hid.value='';
+    out.className='splitmatch';
+    out.textContent = res.state==='typing' ? 'Keep typing\u2026' : '';
+  }
+  paintCredit();
+}
+
+/* The OTHER agent's share, as typed. null when blank or unusable. */
+function splitPct(){
+  var el=$('f_splitpct'); if(!el) return null;
+  var raw=String(el.value||'').trim();
+  if(!raw) return null;
+  var n=Number(raw);
+  return (isFinite(n) && n>=0 && n<=100) ? n : null;
+}
+/* The writer's remainder, which is what actually gets stored. Fixed to 2dp and recombined so
+   the pair totals exactly 100 — 6C asks for that explicitly, and floating point does not give
+   it for free on a value like 33.33. */
+function primaryPct(){
+  var o=splitPct(); if(o===null) return 100;
+  return Math.round((100-o)*100)/100;
+}
+
+function splitOn(on){
+  SPLIT_ON=!!on;
+  var w=$('creditSplit'), b=$('creditAdd');
+  if(w) w.hidden=!SPLIT_ON;
+  if(b) b.hidden=SPLIT_ON;
+  if(SPLIT_ON){ loadAgentRoster(); }
+  else {
+    /* Removing a split restores the primary to 100% and clears the old selection, so nothing
+       stale can be submitted. */
+    if($('f_split'))     $('f_split').value='';
+    if($('f_split_code'))$('f_split_code').value='';
+    if($('f_splitpct'))  $('f_splitpct').value='';
+    if($('splitMatch')){ $('splitMatch').className='splitmatch'; $('splitMatch').textContent=''; }
+    ['f_split_w','f_splitpct_w'].forEach(function(i){ var e=$(i); if(e) e.classList.remove('bad'); });
+  }
+  paintCredit();
+  try{ syncFootSpace(); }catch(e){}
+}
+
+/* Both names, both percentages, and the total — always visible, never implied. When Operations
+   is editing somebody else's application the primary is named rather than called "You", because
+   the credit is not the editor's. */
+function paintCredit(){
+  var meLabel = (EDIT_APP && EDIT_APP.agent_name) ? String(EDIT_APP.agent_name)
+              : (MYNAME || 'You');
+  var isMe = !(EDIT_APP && EDIT_APP.agent_name && MYNAME && EDIT_APP.agent_name!==MYNAME);
+  var solo=$('creditSolo');
+  if(solo){
+    solo.innerHTML = esc(isMe ? 'You' : meLabel) + ' keep' + (isMe?'':'s') +
+      ' <b>100%</b> of the credit for this application.';
+    solo.hidden = SPLIT_ON;
+  }
+  var br=$('creditBreak'); if(!br) return;
+  if(!SPLIT_ON){ br.textContent=''; return; }
+  var other = $('f_split_code') && $('f_split_code').value
+            ? (($('f_split')&&$('f_split').value.trim()) || $('f_split_code').value)
+            : 'the split agent';
+  var o=splitPct();
+  if(o===null){
+    br.className='credit-break';
+    br.innerHTML='Enter their share to see the split.';
+    return;
+  }
+  var mine=primaryPct();
+  var total=Math.round((mine+o)*100)/100;
+  br.className='credit-break' + (total===100 ? '' : ' bad');
+  br.innerHTML = esc(isMe ? 'You' : meLabel) + ': <b>'+mine+'%</b><br>' +
+                 esc(other) + ': <b>'+o+'%</b>' +
+                 '<span class="tot">Total application credit <b>'+total+'%</b>' +
+                 (total===100 ? '' : ' \u2014 this must be exactly 100%.') + '</span>';
 }
 function send(body){
   return fetch(NB,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
@@ -1003,6 +1317,8 @@ function submitApp(){
       row('Status','Pending underwriting') +
       row('Annualized premium', money2(annualized())) +
       (targetPremium()!==null ? row('Target premium', money2(targetPremium())) : '') +
+      (lumpSum()!==null ? row('Lump sum', money2(lumpSum())) : '') +
+      (sharePct()!==100 ? row('Your credit', sharePct()+'%') : '') +
       row('Coverage', money(Number($('f_cov').value)||0)) +
       row('Application date', $('f_date').value);
     goStep(4);
