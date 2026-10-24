@@ -1,3 +1,12 @@
+// summit-api v8 (2026-10-24) — A TICK IS A REQUEST UNTIL AN EMD APPROVES IT. Handoff §9: ordinary
+//     agents must not be able to promote themselves. Before v8 every one of the 124 ticks had been
+//     set by the agent on their own ladder. Christopher chose "agent requests, EMD approves":
+//     summit_checks.status is 'pending' or 'approved', only approved counts toward a stage, an
+//     EMD in scope / Operations / the platform admin approves (never their own ladder), and every
+//     request, approval, rejection, withdrawal and clear is written to summit_check_events.
+//     New actions: `approvals` (the review queue) and `check_review` (approve/reject, batched).
+//     The 124 pre-existing ticks were kept as approved — nobody lost progress.
+//
 // summit-api v7 (2026-10-20) — the Road is now TWENTY stages with stable requirement ids.
 //     Completion moved from summit_progress(agent, stage_index, bool[]) to
 //     summit_checks(agent, req_key) because the old shape stored ticks by ARRAY POSITION: a
@@ -105,6 +114,31 @@ async function scopeOf(code: string, ops: boolean): Promise<{ all: boolean; code
   return { all: false, codes, shops: bases };
 }
 
+/* v8: who may APPROVE a tick. Operations; the platform admin; or an EMD (by the server-set
+   contract level / title, never anything typed) for someone in their own downline. Never
+   yourself — an EMD's own ladder goes to the EMD above them, so nobody promotes themselves. */
+async function mayApprove(viewer: string, target: string, ops: boolean, me: any): Promise<boolean> {
+  if (ops) return true;
+  if (!viewer || norm(viewer) === norm(target)) return false;
+  if (me && me.platform_admin === true) return true;
+  if (!isEMD(me)) return false;
+  return (await rpc("is_in_downline", { p_leader: norm(viewer), p_target: norm(target) })) === true;
+}
+/* The set of agents this viewer can approve for, used for the board and the review queue. */
+async function approvableCodes(viewer: string, ops: boolean, me: any): Promise<{ all: boolean; codes: Set<string> }> {
+  if (ops || (me && me.platform_admin === true)) return { all: true, codes: new Set() };
+  if (!viewer || !isEMD(me)) return { all: false, codes: new Set() };
+  const rows = await rpc("nb_scope_codes", { p_leader: norm(viewer) });
+  const codes = new Set<string>((Array.isArray(rows) ? rows : []).map((r: any) => norm(r.code)));
+  codes.delete(norm(viewer));
+  return { all: false, codes };
+}
+async function logCheck(agent: string, key: string, event: string, actor: string) {
+  await db(`summit_check_events`, { method: "POST", headers: { Prefer: "return=minimal" },
+    body: JSON.stringify({ agent_code: agent, req_key: key, event, actor: actor || "ops" }) });
+}
+
+/* Who may REQUEST a tick: yourself, or an upline for someone below them (the old edit rule). */
 async function mayEditLadder(viewer: string, target: string, ops: boolean): Promise<boolean> {
   if (ops) return true;
   if (!viewer) return false;
@@ -166,7 +200,7 @@ Deno.serve(async (req) => {
       const tags = await dbGet(`summit_tags?select=id,label,color&order=label.asc`);
       const links = await dbGet(`summit_agent_tags?select=agent_code,tag_id&limit=20000`);
       const prog = await dbGet(`summit_progress?select=agent_code,stage_index,checks&limit=20000`);
-      const checkRows = await dbGet(`summit_checks?select=agent_code,req_key,done&done=is.true&limit=50000`);
+      const checkRows = await dbGet(`summit_checks?select=agent_code,req_key,done,status&done=is.true&limit=50000`);
       const reqs = await dbGet(`summit_requirements?select=baseshop,stage_index,labels&limit=5000`);
       const lay = (await dbGet(`summit_layout?viewer_code=eq.${enc(code)}&select=positions,zoom`))[0] || null;
 
@@ -179,12 +213,17 @@ Deno.serve(async (req) => {
         (progress[c] = progress[c] || {})[String(p.stage_index)] = Array.isArray(p.checks) ? p.checks : [];
       }
 
-      /* Completion against stable requirement ids. */
+      /* Completion against stable requirement ids. Only APPROVED ticks count; a pending one is
+         returned separately so the page can show it as awaiting the EMD without counting it. */
       const checks: Record<string, Record<string, boolean>> = {};
+      const pending: Record<string, Record<string, boolean>> = {};
       for (const r of checkRows) {
         const c = norm(r.agent_code); if (!inScope(c)) continue;
-        (checks[c] = checks[c] || {})[String(r.req_key)] = true;
+        const bucket = r.status === "pending" ? pending : checks;
+        (bucket[c] = bucket[c] || {})[String(r.req_key)] = true;
       }
+      const appr = await approvableCodes(code, ops, me);
+      const approvable = appr.all ? "all" : Array.from(appr.codes).filter((c) => inScope(c));
 
       /* What the platform can already prove, per agent: the stage their awarded rank reaches,
          and the requirements the licensing board evidences. A rank clears up to its OWN
@@ -226,7 +265,8 @@ Deno.serve(async (req) => {
         can_set_levels: await ownsLevels(code, ops),
         tiers: await tiersOf(),
         my_baseshop: me ? (me.baseshop || "") : "",
-        tags, agent_tags: agentTags, progress, checks, derived, production, stages, cash, requirements,
+        approvable,
+        tags, agent_tags: agentTags, progress, checks, pending, derived, production, stages, cash, requirements,
         signals: signals || {},
         layout: lay ? (lay.positions || {}) : {}, zoom: lay ? lay.zoom : null,
       });
@@ -262,25 +302,81 @@ Deno.serve(async (req) => {
       if (!target || !/^[a-z0-9_]+\.[a-z0-9_]+(\.[a-z0-9_]+)?$/.test(key)) {
         return json({ ok: false, error: "agent and requirement required" }, 400);
       }
-      if (!(await mayEditLadder(code, target, ops))) {
+      /* v8: an EMD in scope (or Operations) writes an approved tick; anyone else who may edit
+         this ladder — the agent, or an upline — files a REQUEST that does not count yet. */
+      const approver = await mayApprove(code, target, ops, me);
+      if (!approver && !(await mayEditLadder(code, target, ops))) {
         return json({ ok: false, error: "You can only update your own ladder, or someone on your team." }, 403);
       }
+      const actor = code || "ops";
+      const now = new Date().toISOString();
+      const row = (await dbGet(`summit_checks?agent_code=eq.${enc(target)}&req_key=eq.${enc(key)}&select=status`))[0] || null;
       if (body.done === false) {
+        if (!row) return json({ ok: true, agent_code: target, req_key: key, done: false, status: null });
+        /* A requester can withdraw their own pending request, never an approved requirement. */
+        if (row.status === "approved" && !approver) {
+          return json({ ok: false, error: "This requirement was approved by your EMD. Ask them to clear it." }, 403);
+        }
         const d = await db(`summit_checks?agent_code=eq.${enc(target)}&req_key=eq.${enc(key)}`, { method: "DELETE", headers: { Prefer: "return=minimal" } });
-        return json({ ok: d.ok, agent_code: target, req_key: key, done: false });
+        if (d.ok) await logCheck(target, key, row.status === "approved" ? "cleared" : (approver && norm(code) !== target ? "rejected" : "withdrawn"), actor);
+        return json({ ok: d.ok, agent_code: target, req_key: key, done: false, status: null });
       }
+      if (row && row.status === "approved") return json({ ok: true, agent_code: target, req_key: key, done: true, status: "approved" });
+      const status = approver ? "approved" : "pending";
       const up = await db(`summit_checks?on_conflict=agent_code,req_key`, {
         method: "POST", headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
-        body: JSON.stringify({ agent_code: target, req_key: key, done: true, updated_at: new Date().toISOString(), updated_by: code || "ops" }),
+        body: JSON.stringify({ agent_code: target, req_key: key, done: true, status, updated_at: now, updated_by: actor,
+          approved_by: approver ? actor : null, approved_at: approver ? now : null }),
       });
-      return json({ ok: up.ok, agent_code: target, req_key: key, done: true });
+      if (up.ok) await logCheck(target, key, approver ? "approved" : "requested", actor);
+      return json({ ok: up.ok, agent_code: target, req_key: key, done: true, status });
     }
 
+    /* ---------------- the EMD's review queue ---------------- */
+    if (action === "approvals") {
+      const appr = await approvableCodes(code, ops, me);
+      if (!appr.all && !appr.codes.size) return json({ ok: true, items: [] });
+      const rows = await dbGet(`summit_checks?status=eq.pending&select=agent_code,req_key,updated_at,updated_by&order=updated_at.asc&limit=2000`);
+      const items = rows.filter((r: any) => appr.all ? norm(r.agent_code) !== norm(code) : appr.codes.has(norm(r.agent_code)));
+      const who = Array.from(new Set(items.flatMap((r: any) => [norm(r.agent_code), norm(r.updated_by)])));
+      const names: Record<string, string> = {};
+      if (who.length) {
+        for (const a of await dbGet(`tracker_agents?code=in.(${who.map(enc).join(",")})&select=code,first_name,last_name`)) {
+          names[norm(a.code)] = `${a.first_name || ""} ${a.last_name || ""}`.trim();
+        }
+      }
+      return json({ ok: true, items: items.map((r: any) => ({ agent_code: norm(r.agent_code), agent_name: names[norm(r.agent_code)] || norm(r.agent_code),
+        req_key: r.req_key, requested_at: r.updated_at, requested_by: norm(r.updated_by), requested_by_name: names[norm(r.updated_by)] || "" })) });
+    }
+
+    /* Approve or reject one or many pending requests. Each item is re-checked on its own. */
+    if (action === "check_review") {
+      const decision = body.decision === "approve" ? "approve" : (body.decision === "reject" ? "reject" : "");
+      const list = (Array.isArray(body.items) ? body.items : [{ agent_code: body.agent_code, req_key: body.req_key }]).slice(0, 200);
+      if (!decision || !list.length) return json({ ok: false, error: "decision and items required" }, 400);
+      const actor = code || "ops";
+      let done = 0, refused = 0;
+      for (const it of list as any[]) {
+        const target = norm(it && it.agent_code); const key = clean(it && it.req_key, 80);
+        if (!target || !key || !(await mayApprove(code, target, ops, me))) { refused++; continue; }
+        const q = `summit_checks?agent_code=eq.${enc(target)}&req_key=eq.${enc(key)}&status=eq.pending`;
+        const r = decision === "approve"
+          ? await db(q, { method: "PATCH", headers: { Prefer: "return=representation" },
+              body: JSON.stringify({ status: "approved", approved_by: actor, approved_at: new Date().toISOString() }) })
+          : await db(q, { method: "DELETE", headers: { Prefer: "return=representation" } });
+        const changed = r.ok ? ((await r.json()) || []).length : 0;
+        if (changed) { done++; await logCheck(target, key, decision === "approve" ? "approved" : "rejected", actor); }
+      }
+      return json({ ok: true, decision, done, refused });
+    }
+
+    /* Legacy array-position progress. The page no longer calls it; v8 keeps it only for approvers
+       so it cannot be used as a side door around the approval rule. */
     if (action === "progress_set") {
       const target = norm(body.agent_code);
       const idx = Number(body.stage_index);
       if (!target || !(idx >= 0 && idx <= 18)) return json({ ok: false, error: "agent and stage required" }, 400);
-      if (!(await mayEditLadder(code, target, ops))) return json({ ok: false, error: "You can only update your own ladder, or someone on your team." }, 403);
+      if (!(await mayApprove(code, target, ops, me))) return json({ ok: false, error: "Only an EMD or Operations can change progression." }, 403);
       const raw = Array.isArray(body.checks) ? body.checks : [];
       const checks = raw.slice(0, 8).map((x: unknown) => x === true);
       const up = await db(`summit_progress?on_conflict=agent_code,stage_index`, {

@@ -210,6 +210,24 @@ h1.big{margin:4px 0 0;font-size:26px;letter-spacing:-.01em;font-weight:800}
 .reqrow strong{display:block;font-size:13.5px;font-weight:700}
 .reqrow small{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--summit-muted);font-weight:800}
 .reqrow.checked small{color:var(--summit-gold)}
+/* A tick awaiting the EMD: outlined, not filled, so it never reads as complete. */
+.reqrow.pending{border-color:var(--summit-line2);border-style:dashed}
+.reqrow.pending .ck{border-style:dashed;border-color:var(--summit-gold);color:var(--summit-gold)}
+.reqrow.pending small{color:var(--summit-gold)}
+.reqbtn{display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:0 14px;border-radius:999px;
+  border:1px solid var(--summit-line);background:rgba(215,174,84,.1);color:var(--summit-bright);
+  font-weight:800;font-size:12.5px;cursor:pointer}
+.reqbtn b{background:var(--summit-gold);color:#1d1405;border-radius:999px;padding:1px 8px;font-size:11.5px}
+.apgrp{border:1px solid var(--summit-line);border-radius:13px;padding:12px;margin:0 0 12px}
+.apgrp h4{margin:0 0 8px;font-size:14px;display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap}
+.aprow{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;padding:8px 0;border-top:1px solid rgba(215,174,84,.1)}
+.aprow:first-of-type{border-top:0}
+.aprow div{min-width:0;flex:1}.aprow strong{display:block;font-size:13px;overflow-wrap:anywhere}
+.aprow small{color:var(--summit-muted);font-size:11px}
+.apact{display:flex;gap:6px;flex:0 0 auto}
+.apact button{min-height:36px;min-width:44px;padding:0 10px;border-radius:9px;border:1px solid var(--summit-line);
+  background:transparent;color:var(--ink2);font-weight:800;font-size:12px;cursor:pointer}
+.apact button.ok{background:linear-gradient(140deg,var(--summit-bright),var(--summit-gold));color:#1d1405;border-color:transparent}
 .stepbar{height:6px;border-radius:999px;background:rgba(215,174,84,.13);margin-top:18px;overflow:hidden}
 .stepbar span{display:block;height:100%;border-radius:999px;
   background:linear-gradient(90deg,var(--summit-gold),var(--summit-bright));transition:width .3s ease}
@@ -1492,6 +1510,24 @@ function reqLabels(code,i){
   return canon;
 }
 function checkMap(code){ return (BOARD.checks||{})[code]||{}; }
+/* summit-api v8: a tick from anyone but an EMD in scope is a request. Pending never counts. */
+function pendMap(code){ return (BOARD.pending||{})[code]||{}; }
+function canApprove(code){
+  var a=BOARD.approvable;
+  if(a==='all')return code!==CODE;
+  return !!(a&&a.indexOf&&a.indexOf(code)>=0);
+}
+function pendingForMe(){
+  var n=0,p=BOARD.pending||{};
+  Object.keys(p).forEach(function(c){ if(canApprove(c)) n+=Object.keys(p[c]).length; });
+  return n;
+}
+/* Turn a stored id back into the words on screen, using the agent's shop wording if any. */
+function reqLabelByKey(code,key){
+  var sid=String(key).split('.')[0], i=stageIndexById(sid); if(i<0)return key;
+  var hit=reqLabels(code,i).filter(function(r){return r.key===key;})[0];
+  return (i+1)+'. '+STAGES[i]+' — '+(hit?(hit.pathName?hit.pathName+': ':'')+hit.label:key);
+}
 function reqDone(code,i,key){
   if(isDerived(code,i))return true;
   var d=derivedReqs(code); if(d[key])return true;
@@ -1570,9 +1606,12 @@ function roadHeader(){
     +'<button class="rvb'+(ROADVIEW==='mine'?' on':'')+'" onclick="ROADVIEW=\'mine\';renderRoad()">My ladder</button>'
     +'<button class="rvb'+(ROADVIEW==='team'?' on':'')+'" onclick="ROADVIEW=\'team\';renderRoad()">My team ('+team.length+')</button>'
     +'</div>'):'';
+  var nreq=pendingForMe();
+  var reqBtn=(BOARD.approvable==='all'||(BOARD.approvable&&BOARD.approvable.length))
+    ?('<button class="reqbtn" onclick="openApprovals()">Requests'+(nreq?(' <b>'+nreq+'</b>'):'')+'</button>'):'';
   return '<div class="rank-top" style="margin-top:10px">'
     +'<div><div class="eyebrow">The leadership ascent</div><h1 class="big">Road to EMD</h1></div>'
-    +toggle
+    +toggle+reqBtn
     +(ROADVIEW==='mine'?('<label class="agentsel"><small>Viewing agent</small>'
       +'<select onchange="LADDER=this.value;STEP=firstOpenStage(LADDER);renderRoad()">'
       +agents.map(function(a){return '<option value="'+esc(a.code)+'"'+(a.code===LADDER?' selected':'')+'>'+esc(a.name||a.code)+'</option>';}).join('')
@@ -1630,8 +1669,10 @@ function renderRoad(){
   var drv=derivedReqs(LADDER);
   function reqRow(r){
     var on=reqDone(LADDER,STEP,r.key);
-    var why=!on?'Requirement pending':(auto?'Cleared by record':(drv[r.key]?'Cleared by record':'Completed'));
-    return '<label class="reqrow'+(on?' checked':'')+'" onclick="toggleReq(\''+esc(r.key)+'\')">'
+    var pend=!on&&pendMap(LADDER)[r.key]===true;
+    var why=on?(auto?'Cleared by record':(drv[r.key]?'Cleared by record':'Completed'))
+      :(pend?(canApprove(LADDER)?'Requested — tap to approve':'Awaiting EMD approval'):'Not yet complete');
+    return '<label class="reqrow'+(on?' checked':'')+(pend?' pending':'')+'" onclick="toggleReq(\''+esc(r.key)+'\')">'
       +'<span class="ck">\u2713</span>'
       +'<div><strong>'+esc(r.label)+'</strong><small>'+why+'</small></div></label>';
   }
@@ -1774,16 +1815,72 @@ function toggleReq(key){
     return;
   }
   if(!BOARD.checks)BOARD.checks={};
-  if(!BOARD.checks[LADDER])BOARD.checks[LADDER]={};
-  var was=BOARD.checks[LADDER][key]===true, now=!was;
-  if(now)BOARD.checks[LADDER][key]=true; else delete BOARD.checks[LADDER][key];
-  renderRoad();
-  var revert=function(){ if(was)BOARD.checks[LADDER][key]=true; else delete BOARD.checks[LADDER][key]; renderRoad(); };
+  if(!BOARD.pending)BOARD.pending={};
+  var who=LADDER, C=BOARD.checks[who]=BOARD.checks[who]||{}, P=BOARD.pending[who]=BOARD.pending[who]||{};
+  var approver=canApprove(who);
+  var wasOn=C[key]===true, wasPend=P[key]===true;
+  /* An approved requirement belongs to the EMD now; the agent can only withdraw a request. */
+  if(wasOn&&!approver){ toast('Approved by your EMD \u2014 ask them to clear it'); return; }
+  /* An approver tapping a request approves it rather than un-ticking it. */
+  var now=!wasOn&&!(wasPend&&!approver);
+  var set=function(on,pend){ if(on)C[key]=true; else delete C[key]; if(pend)P[key]=true; else delete P[key]; renderRoad(); };
+  if(now) set(approver,!approver); else set(false,false);
+  var revert=function(){ set(wasOn,wasPend); };
   fetch(SUMAPI,{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({action:'check_set',code:CODE,agent_code:LADDER,req_key:key,done:now})})
+    body:JSON.stringify({action:'check_set',code:CODE,agent_code:who,req_key:key,done:now})})
    .then(function(r){return r.json();}).then(function(r){
-     if(!r||!r.ok){ revert(); toast((r&&r.error)||'Could not save'); }
+     if(!r||!r.ok){ revert(); toast((r&&r.error)||'Could not save'); return; }
+     if(now){ set(r.status==='approved',r.status==='pending');
+       if(r.status==='pending')toast('Sent to your EMD for approval'); }
+     else if(wasPend&&approver&&who!==CODE) toast('Request declined');
    }).catch(function(){ revert(); toast('Network error \u2014 not saved'); });
+}
+
+/* ===== the EMD's review queue (summit-api v8) ======================================= */
+function openApprovals(){
+  $('drawer').innerHTML='<h3>Road requests</h3><p class="dsub">Loading\u2026</p>';
+  $('ov').classList.add('on');
+  fetch(SUMAPI,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'approvals',code:CODE})})
+   .then(function(r){return r.json();}).then(function(r){
+     if(!r||!r.ok){ $('drawer').innerHTML='<h3>Road requests</h3><p class="dsub">'+esc((r&&r.error)||'Could not load')+'</p><button class="ghost" onclick="closeDrawer()">Close</button>'; return; }
+     renderApprovals(r.items||[]);
+   }).catch(function(){ $('drawer').innerHTML='<h3>Road requests</h3><p class="dsub">Network error.</p><button class="ghost" onclick="closeDrawer()">Close</button>'; });
+}
+var APITEMS=[];
+function renderApprovals(items){
+  APITEMS=items;
+  var by={},order=[];
+  items.forEach(function(it,i){ if(!by[it.agent_code]){by[it.agent_code]=[];order.push(it.agent_code);} by[it.agent_code].push(i); });
+  var body=order.length?order.map(function(c){
+    var idx=by[c], nm=items[idx[0]].agent_name||c;
+    return '<div class="apgrp"><h4><span>'+esc(nm)+'</span>'
+      +'<span class="apact"><button class="ok" onclick="reviewItems(['+idx.join(',')+'],\'approve\')">Approve all '+idx.length+'</button></span></h4>'
+      +idx.map(function(i){var it=items[i];
+        var by2=(it.requested_by&&it.requested_by!==it.agent_code)?(' \u00b7 requested by '+esc(it.requested_by_name||it.requested_by)):'';
+        return '<div class="aprow"><div><strong>'+esc(reqLabelByKey(it.agent_code,it.req_key))+'</strong>'
+          +'<small>'+esc(String(it.requested_at||'').slice(0,10))+by2+'</small></div>'
+          +'<span class="apact"><button class="ok" aria-label="Approve" onclick="reviewItems(['+i+'],\'approve\')">\u2713</button>'
+          +'<button aria-label="Decline" onclick="reviewItems(['+i+'],\'reject\')">\u2715</button></span></div>';
+      }).join('')+'</div>';
+  }).join(''):'<div class="platform" style="margin:0 0 12px">No requests waiting. You\u2019re all caught up.</div>';
+  $('drawer').innerHTML='<h3>Road requests</h3><p class="dsub">Agents on your team ticked these. They count toward a stage only once you approve.</p>'
+    +body+'<button class="ghost" onclick="closeDrawer()">Close</button>';
+}
+function reviewItems(idx,decision){
+  var list=idx.map(function(i){return APITEMS[i];}).filter(Boolean);
+  if(!list.length)return;
+  fetch(SUMAPI,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'check_review',code:CODE,decision:decision,items:list.map(function(it){return {agent_code:it.agent_code,req_key:it.req_key};})})})
+   .then(function(r){return r.json();}).then(function(r){
+     if(!r||!r.ok)return toast((r&&r.error)||'Could not save');
+     list.forEach(function(it){
+       var P=(BOARD.pending||{})[it.agent_code]; if(P)delete P[it.req_key];
+       if(decision==='approve'){ BOARD.checks=BOARD.checks||{}; (BOARD.checks[it.agent_code]=BOARD.checks[it.agent_code]||{})[it.req_key]=true; }
+     });
+     toast((decision==='approve'?'Approved ':'Declined ')+r.done+(r.refused?(' \u00b7 '+r.refused+' not yours to review'):''));
+     renderApprovals(APITEMS.filter(function(it){return list.indexOf(it)<0;}));
+     renderRoad();
+   }).catch(function(){ toast('Network error \u2014 not saved'); });
 }
 
 /* ===== menu ===================================================================== */
