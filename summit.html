@@ -53,6 +53,9 @@ body.road-view .top{justify-content:flex-start}
 .brand b{font-size:15px;letter-spacing:.14em;text-transform:uppercase;color:var(--summit-ivory)}
 .brand small{display:block;font-size:9.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--summit-muted)}
 .ptitle{margin-left:auto;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--summit-muted)}
+/* On a phone the per-view label collided with the brand ("ORG CHART" drawn over "THE STANDARD"),
+   and the tab bar right beneath already names the view. */
+@media (max-width:560px){ .top .ptitle{display:none} }
 .iconbtn{width:38px;height:38px;border-radius:11px;border:1px solid var(--summit-line);
   background:var(--summit-panel);color:var(--summit-ivory);display:flex;align-items:center;
   justify-content:center;font-size:16px;transition:.16s}
@@ -442,6 +445,9 @@ h1.big{margin:4px 0 0;font-size:26px;letter-spacing:-.01em;font-weight:800}
      the per-view title and the tab bar, and nothing changes for map or perf. -->
 <header class="top">
   <a class="iconbtn back" href="index.html" title="Back" aria-label="Back to home">&#8249;</a>
+  <script>/* On a phone (and in the installed app) home is the tools screen, app.html - the same
+     place the Hub, New Business and Leaderboard return to. Desktop keeps the dashboard. */
+  (function(){try{var b=document.currentScript.previousElementSibling;var standalone=(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone;if(standalone||window.innerWidth<=980)b.setAttribute('href','app.html');}catch(e){}})();</script>
   <div class="brand">
     <img class="mk" src="logo.png" alt="" onerror="this.style.display='none'">
     <div><b>The Standard</b><small>Financial Group</small></div>

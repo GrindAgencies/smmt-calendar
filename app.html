@@ -270,7 +270,20 @@
   </section>
 
   <!-- ========================== your tools ========================= -->
-  <h2 class="tsfg-h">Your tools</h2>
+  <!-- Brief section 3: the chat action must never cover a tool. A floating button covers
+       whichever tile scrolls beneath it, so on Home the Ask entry sits in this heading row and
+       scrolls with the page. It opens exactly the same Ask panel (the hidden floating button). -->
+  <div class="tools-hrow"><h2 class="tsfg-h">Your tools</h2>
+    <button type="button" class="ask-inline" onclick="var f=document.getElementById('askFab');if(f)f.click();" aria-label="Ask a question">💬 Ask</button></div>
+  <style>
+    .tools-hrow{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .tools-hrow .tsfg-h{margin-right:auto}
+    .ask-inline{flex:0 0 auto;min-height:44px;padding:0 16px;border-radius:999px;border:1px solid var(--cvgold,#c99a2e);
+      background:transparent;color:var(--cvgold,#e6c25a);font:700 14px/1 inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+    .ask-inline:active{transform:scale(.97)}
+    #askFab{display:none !important}
+    body.tsfg-hasfab{padding-bottom:max(24px, env(safe-area-inset-bottom)) !important}
+  </style>
   <div class="tsfg-tiles">
     <button class="tsfg-tile" onclick="go('teamhub.html')">
       <svg viewBox="0 0 24 24"><path d="M8.5 15.5H6a2 2 0 0 1-2-2v-6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1"/><path d="M10 19.5h8a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-8a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2Z"/></svg>
@@ -420,7 +433,8 @@
     }
     rail.innerHTML = HL.map(function(h,i){
       return '<div class="hl-slide" role="group" aria-label="Highlight '+(i+1)+' of '+HL.length+'">'+
-        (CANEDIT ? '<button class="rm" title="Remove this highlight" onclick="removeHighlight(event,\''+h.id+'\')">&times;</button>' : '')+
+        /* No remove button on the artwork itself (brief section 3: controls must not cover the
+           image). Removing a highlight lives in Manage, beside each one. */
         '<img src="'+esc(h.url)+'" alt="'+esc(h.caption||('Team highlight '+(i+1)))+'" loading="lazy">'+
         /* NO CAPTION, NO CAPTION BAR. An uncaptioned highlight used to fall back to the words
            "Team highlights", which the section header above the rail now says anyway -- so the

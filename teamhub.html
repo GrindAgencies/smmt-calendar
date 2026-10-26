@@ -2661,6 +2661,8 @@ body.phone .msg.cont .mhead{ display:none; }
 .fg .memrow input{ width:20px; height:20px; flex:0 0 auto; margin:0; accent-color:var(--cvgold,#e6c25a); }
 .fg .memrow.hid{ display:none; }
 .ngmodal .mempick{ max-height:240px; }
+/* The count reads as its own line under the label, not a float that wraps into the input. */
+.ngmodal .ngcount{ float:none; display:block; margin-top:3px; font-size:12px; }
 .nghead{ display:grid; grid-template-columns:44px 1fr 44px; align-items:center; margin:-6px -6px 12px; }
 .nghead h3{ margin:0; text-align:center; }
 .ngx{ width:44px; height:44px; border:0; background:none; color:var(--ink2); font-size:28px; line-height:1; cursor:pointer; }
