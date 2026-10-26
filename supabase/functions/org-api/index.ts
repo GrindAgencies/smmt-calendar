@@ -310,7 +310,7 @@ Deno.serve(async (req) => {
         if (!g.byCode[newUp]) return json({ ok: false, error: "That upline code doesn't exist." }, 400);
       }
       const upName = newUp ? await (async () => { const r = await fetch(`${SUPA}/rest/v1/tracker_agents?code=eq.${encodeURIComponent(newUp)}&select=first_name,last_name`, { headers: DBH }); const u = ((await r.json()) || [])[0]; return u ? fullName(u) : ""; })() : "";
-      const up = await fetch(`${SUPA}/rest/v1/tracker_agents?code=eq.${encodeURIComponent(code)}`, { method: "PATCH", headers: { ...DBH, Prefer: "return=minimal" }, body: JSON.stringify({ direct_to: newUp || null, direct_to_name: upName || null, updated_at: new Date().toISOString() }) });
+      const up = await fetch(`${SUPA}/rest/v1/tracker_agents?code=eq.${encodeURIComponent(code)}`, { method: "PATCH", headers: { ...DBH, Prefer: "return=minimal" }, body: JSON.stringify({ direct_to: newUp || null, direct_to_name: upName || null, upline_set_by: by || "Operations", updated_at: new Date().toISOString() }) });
       return json({ ok: up.ok, code, direct_to: newUp, direct_to_name: upName, by: by || "Operations" });
     }
 

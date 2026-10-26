@@ -1,5 +1,12 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
+// mktg-team v8 (2026-10-26) — A WARM MARKET IS SEEN DOWN THE TREE, NEVER ACROSS OR UP IT. "all"
+//   returned every warm-market list in the caller's whole baseshop: an MD's leads were readable by
+//   the CFTs below them, and one branch could read another's. Brief section 8: hierarchy reveals
+//   your own tree, and never an upline's or a sibling branch's private contacts. The list is now
+//   the caller plus their recursive downline (nb_scope_codes); the root of the tree and
+//   Operations keep the full view.
+//
 // mktg-team v7 (2026-10-18) — the leadership view now carries WHY a lead is being called.
 //
 // Each lead already had an `apptType` ("appointment" or "hiring") but it was set through a
@@ -54,7 +61,7 @@ async function whoIsCalling(body: Record<string, unknown>, q: URLSearchParams): 
 }
 
 /* Which baseshops may this caller see? One definition, shared by every tab. */
-type Scope = { ok: boolean; code: string; name: string; baseshop: string; all: boolean; bases: string[] };
+type Scope = { ok: boolean; code: string; name: string; baseshop: string; all: boolean; bases: string[]; codes?: string[] };
 async function agentScope(code: string): Promise<Scope> {
   const r = await rpc("agent_scope", { p_code: norm(code) });
   if (!r || r.ok !== true) return { ok: false, code: norm(code), name: "", baseshop: "", all: false, bases: [] };
@@ -102,7 +109,10 @@ async function cftPlus(code: string): Promise<{ ok: boolean; via: string; name: 
    `bases` empty with all=false means an unplaced agent: they get nothing but their own list. */
 async function allLeads(scope: Scope): Promise<Record<string, unknown>[]> {
   let path = `tracker_agents?select=code,first_name,last_name,emd,md,status,baseshop,warm_market&order=updated_at.desc`;
-  if (!scope.all) {
+  if (!scope.all && Array.isArray(scope.codes)) {
+    const list = scope.codes.filter((c) => /^[A-Za-z0-9_.-]+$/.test(c)).map((c) => `"${c}"`).join(",");
+    path += `&code=in.(${encodeURIComponent(list || `"${norm(scope.code)}"`)})`;
+  } else if (!scope.all) {
     const bases = (scope.bases || []).filter(Boolean);
     if (!bases.length) {
       path += `&code=eq.${encodeURIComponent(norm(scope.code))}`;
@@ -315,8 +325,12 @@ Deno.serve(async (req) => {
       if (!r.ok) return json({ ok: false, error: "Backend access is limited to CFTs and above." }, 403);
       const s = await agentScope(me.code);
       if (!s.ok) return json({ ok: false, error: "We couldn't find your record — sign in again." }, 403);
-      const leads = await allLeads(s);
-      return json({ ok: true, count: leads.length, by: r.name || me.code, scope: s.all ? "all" : "baseshop", baseshop: s.baseshop, bases: s.bases, leads });
+      /* v8: you and everyone beneath you. nb_scope_codes returns the whole company only for the
+         configured root of the tree. */
+      const tree = await rpc("nb_scope_codes", { p_leader: me.code });
+      const codes = Array.isArray(tree) ? tree.map((t: Record<string, unknown>) => String((t && t.code) ?? t ?? "").trim()).filter(Boolean) : [me.code];
+      const leads = await allLeads({ ...s, all: false, codes: codes.length ? codes : [me.code] });
+      return json({ ok: true, count: leads.length, by: r.name || me.code, scope: "hierarchy", baseshop: s.baseshop, bases: s.bases, leads });
     }
 
     // AI Growth Plan — the SIGNED-IN broker's own list, full stop. A `code` in the body is ignored,

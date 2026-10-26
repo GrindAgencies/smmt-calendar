@@ -1,3 +1,5 @@
+// ai-api v17 (2026-10-26) — pfr_outcome let any signed-in agent overwrite the outcome on ANY review;
+//   it now only updates rows belonging to the caller (Operations unchanged).
 // ai-api v16 (2026-09-07)
 // v16: the PFR is a document a FAMILY reads, so it gets the quality model first (Sonnet, with
 //      Haiku only as fallback) and enough room to finish its sentences. v15 answers were being
@@ -172,7 +174,8 @@ Deno.serve(async (req) => {
       const pid = clean(body.pfr_id); if (!pid) return json({ ok: false, error: "pfr_id required" });
       const oc = clean(body.outcome).toLowerCase();
       if (["submitted", "declined", "no_action"].indexOf(oc) < 0) return json({ ok: false, error: "outcome must be submitted, declined or no_action" });
-      const r = await fetch(`${SUPA}/rest/v1/pfr_learning?pfr_id=eq.${encodeURIComponent(pid)}`, { method: "PATCH", headers: { ...DBH, Prefer: "return=minimal" }, body: JSON.stringify({ outcome: oc, outcome_ap: Number(body.annual_premium) || null, outcome_at: new Date().toISOString() }) });
+      /* v17: only the review's own agent (or Operations) may record its outcome. */ const own = (await _isOps(body.token)) ? "" : `&agent_code=eq.${encodeURIComponent(String(body.code || ""))}`;
+      const r = await fetch(`${SUPA}/rest/v1/pfr_learning?pfr_id=eq.${encodeURIComponent(pid)}${own}`, { method: "PATCH", headers: { ...DBH, Prefer: "return=minimal" }, body: JSON.stringify({ outcome: oc, outcome_ap: Number(body.annual_premium) || null, outcome_at: new Date().toISOString() }) });
       return json({ ok: r.ok, pfr_id: pid, outcome: oc });
     }
 

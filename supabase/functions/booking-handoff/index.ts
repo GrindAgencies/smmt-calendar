@@ -1,3 +1,7 @@
+// booking-handoff v5 (2026-10-26) — "their leader" now means THEIR leader. Any MD or EMD in the
+//   company could read and reassign any declined booking; a leader must now have the booked agent
+//   or the trainer in their own recursive downline (is_in_downline). Operations and the platform
+//   builder are unchanged.
 // booking-handoff v4 — pass an appointment to another trainer, keeping the client's slot.
 //
 // A declined training used to be the end of it: the agent got "please choose another time or
@@ -177,7 +181,13 @@ Deno.serve(async (req) => {
     if (!isOps && !mine && me) {
       const rows = await getJSON(`tracker_agents?code=eq.${enc(me)}&select=contract_level,platform_admin`);
       const a = rows[0];
-      if (a) isLeader = a.platform_admin === true || ["MD", "EMD"].indexOf(norm(a.contract_level)) >= 0;
+      if (a && a.platform_admin === true) isLeader = true;
+      else if (a && ["MD", "EMD"].indexOf(norm(a.contract_level)) >= 0) {
+        for (const t of [norm(bk.agent_code), norm(bk.trainer_code)]) {
+          if (!t || isLeader) continue;
+          if ((await rpc("is_in_downline", { p_leader: me, p_target: t })) === true) isLeader = true;
+        }
+      }
     }
     if (!isOps && !mine && !isLeader) return json({ ok: false, error: "Only the trainer who was booked, their leader, or Operations, can hand this off." }, 401);
 

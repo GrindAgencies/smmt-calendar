@@ -1,3 +1,15 @@
+// newbiz-api v24 (2026-10-26) — HIERARCHY IS YOUR OWN TREE; NOBODY ELSE'S CLIENTS LEAVE THE SERVER.
+//      Brief section 8. `leader` could name anyone ABOVE the caller, and the page did exactly that:
+//      "View Hierarchy" asked for Elijah's book, which is the root, so every agent received all
+//      237 policies with select=* - client names, phones, DOBs, addresses - and "View Baseshop"
+//      returned the upline's personal book. Now, for an agent:
+//        · leader = themselves  -> their own recursive tree (nb_scope), as "Hierarchy" means;
+//        · leader = an upline   -> BASE SHOP: the shops agent_scope() gives them, the same rule
+//                                  every other tab uses - never "everything under the root";
+//        · and any row whose writer and split partner are both outside the caller's own tree
+//          comes back with the client's identity removed (name, phone, email, DOB, address,
+//          gender, policy number, notes). Totals, statuses and premiums are unchanged.
+//      Operations and the root of the tree keep their full view.
 // newbiz-api v23 (2026-10-23) — mapRow() now carries target_premium, so the New Business form
 //      can actually store it. It is an ALLOWLIST and it is shared by newbiz_add and
 //      newbiz_update, so a column missing from it is silently dropped by both while the
@@ -392,7 +404,35 @@ Deno.serve(async (req) => {
       // `code` is only ever the caller's own from here on.
       const code = (me.ops && !leader) ? myCode : (me.ops ? "" : (useLeader ? "" : me.code));
       let q = `${SUPA}/rest/v1/policies?select=*&order=submitted_date.desc,created_at.desc`;
-      if (useLeader) {
+      /* v24: the caller's own tree, for the privacy line below, and whether the leader they named
+         is themselves (Hierarchy) or someone above them (Base shop). */
+      let ownTree: Set<string> | null = null;   // null = sees everything (Ops / root)
+      let shopMode = false;
+      if (!me.ops) {
+        const mine = await leaderScope(me.code);
+        if (!(mine && mine.root)) ownTree = new Set((mine ? mine.codes : [me.code]).map((c) => norm(c)));
+        if (useLeader && !(mine && mine.root)) {
+          const sr = await fetch(`${SUPA}/rest/v1/tracker_agents?code=eq.${encodeURIComponent(me.code)}&select=first_name,last_name&limit=1`, { headers: DBH });
+          const s0 = (((await sr.json()) || []) as Record<string, unknown>[])[0] || {};
+          const selfName = low(((String(s0.first_name || "")) + " " + (String(s0.last_name || ""))).trim());
+          const selfAsked = low(useLeader) === selfName || norm(useLeader) === me.code;
+          if (!selfAsked) shopMode = true;
+        }
+      }
+      if (shopMode) {
+        /* BASE SHOP: the established definition (agent_scope), not the upline's whole tree. */
+        const sc = await rpc("agent_scope", { p_code: me.code }) as Record<string, unknown> | null;
+        const all = !!(sc && sc.ok === true && sc.all);
+        if (!all) {
+          const bases = (sc && Array.isArray(sc.bases)) ? (sc.bases as unknown[]).map((b) => String(b ?? "").trim()).filter((b) => /^[A-Za-z0-9 _.-]+$/.test(b)) : [];
+          const ex2 = await fetch(`${SUPA}/rest/v1/tracker_agents?select=code${bases.length ? `&baseshop=in.(${bases.map((b) => `"${encodeURIComponent(b)}"`).join(",")})` : `&code=eq.${encodeURIComponent(me.code)}`}`, { headers: DBH });
+          const shopCodes = (((await ex2.json()) || []) as Record<string, unknown>[]).map((r) => String(r.code ?? "").trim()).filter((c) => /^[A-Za-z0-9_.-]+$/.test(c));
+          if (!shopCodes.length) shopCodes.push(me.code);
+          const inList = shopCodes.map((c) => `"${c}"`).join(",");
+          q += `&or=(agent_code.in.(${inList}),split_agent_code.in.(${inList}))`;
+        }
+      }
+      else if (useLeader) {
         const sc = await leaderScope(useLeader);
         if (sc && sc.root) { /* hierarchy lead — the entire book, nothing filtered out */ }
         else if (sc && sc.codes.length) {
@@ -428,7 +468,17 @@ Deno.serve(async (req) => {
         (r as Record<string, unknown>).partner_pct = r.split_flag ? (100 - Number(r.split_pct != null ? r.split_pct : 50)) : null;
         (r as Record<string, unknown>).partner_contract_pct = (r.partner_contract_pct != null) ? Number(r.partner_contract_pct) : null;
       }
-      if (isList) return json({ ok: true, count: rows.length, scope: useLeader || code || "all", policies: rows });
+      /* v24: a client belongs to the agents who wrote the business. Outside the caller's own tree
+         the row keeps its numbers and loses the person. */
+      if (ownTree) {
+        const PRIVATE = ["client_name", "phone", "email", "dob", "client_address", "gender", "policy_number", "notes", "chargeback_note"];
+        for (const r of rows) {
+          if (ownTree.has(norm(r.agent_code)) || (r.split_agent_code && ownTree.has(norm(r.split_agent_code)))) continue;
+          for (const k of PRIVATE) if (k in r) (r as Record<string, unknown>)[k] = k === "client_name" ? "Private client" : null;
+          (r as Record<string, unknown>).redacted = true;
+        }
+      }
+      if (isList) return json({ ok: true, count: rows.length, scope: shopMode ? "baseshop" : (useLeader || code || "all"), policies: rows });
       const wsum = (arr: Record<string, unknown>[], k: string) => arr.reduce((t, r) => t + dnum(r[k]) * (Number(r._share) || 1), 0);
       const msum = (arr: Record<string, unknown>[]) => arr.reduce((t, r) => t + dnum(r.my_commission), 0);
       const inB = (b: string) => rows.filter((r) => bucket(r.status as string) === b);

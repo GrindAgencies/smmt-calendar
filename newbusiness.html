@@ -169,7 +169,7 @@ html, body{ overflow-x: hidden; }
     <div class="tabs" id="tabs"></div>
     <div class="srch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input id="qa" placeholder="Search agents…" oninput="render()"></div>
     <div class="srch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input id="qc" placeholder="Search client by name…" oninput="render()"></div>
-    <select class="viewsel" id="viewsel" onchange="setScope(this.value)"><option value="me">View Personal</option><option value="team">View Team</option><option value="shop">View Baseshop</option><option value="hier">View Hierarchy</option></select>
+    <select class="viewsel" id="viewsel" onchange="setScope(this.value)"><option value="me">View Personal</option><option value="shop">View Base shop</option><option value="team">View Hierarchy</option></select>
     <button class="opsbtn" id="opsBtn" onclick="toggleOps()">🔒 Ops</button>
     <button class="newbtn" onclick="openNew()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>New Sale</button>
   </div>
@@ -392,7 +392,11 @@ function buildSide(){
 function signOut(){try{if(window.tsfgSession)tsfgSession.clear();}catch(e){}try{localStorage.removeItem('tsfg_code');localStorage.removeItem('tsfg_name');}catch(e){}location.href='index.html';}
 
 function setBiz(b){BIZ=b;try{calcAnnuityPremium(true);}catch(e){}$('bLife').classList.toggle('on',b==='life');$('bAnn').classList.toggle('on',b==='annuity');load();}
-function setScope(s){SCOPE=s;load();}
+/* Brief section 8: Personal = your own sales; Hierarchy = you and everyone beneath you through
+   successive recruiter links (the server's nb_scope of YOU, never an upline's book); Base shop = the
+   established baseshop. The old "hier" view asked for the root's book - the whole company - so it
+   folds into Hierarchy. Clients outside your own tree arrive as "Private client". */
+function setScope(s){if(s==='hier')s='team';SCOPE=s;load();}
 /* Widen the view from the empty-search hint, keeping what they typed. */
 function widenScope(s){ var vs=$('viewsel'); if(vs)vs.value=s; setScope(s); }
 function setTab(t){TAB=t;render();}
@@ -590,8 +594,8 @@ function load(){
   if(OPS&&SCOPE==='all'&&opsTok())q.token=opsTok();
   else if(SCOPE==='me')q.code=CODE;
   else if(SCOPE==='team')q.leader=NAME;
-  else if(SCOPE==='hier')q.leader=BASESHOP_LEADER;
-  else q.leader=(MYMD||MYEMD||BASESHOP_LEADER); /* baseshop */
+  else if(SCOPE==='hier')q.leader=NAME;
+  else q.leader=(MYMD||MYEMD||BASESHOP_LEADER); /* baseshop - the server answers with your baseshop (agent_scope) */
   api(q).then(function(r){POLICIES=(r&&r.policies)||[];render();loadRecos();});
 }
 

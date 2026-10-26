@@ -1,3 +1,8 @@
+// ops-metrics v6 (2026-10-26) — A LEADER'S REPORT IS THEIR OWN BASESHOP. MD/EMD/NVP/SEVP sessions
+//   were let in and then scoped with ops_scope(token="", code), which only knows Operations seats,
+//   so it answered "unscoped" and every leader read every baseshop's points, AP, families,
+//   licensing and data-quality list. A leader is now scoped by agent_scope() - the rule every
+//   other tab uses. Operations seats and the platform builder are unchanged.
 // ops-metrics v5 (2026-10-20) — the numbers Operations is asked for, from the data already here.
 //
 // Christopher: "track these metrics based on data in the operations dashboard. pending points
@@ -161,7 +166,11 @@ Deno.serve(async (req) => {
   const meCode = String(az.code || "");
 
   /* Baseshop scope, from the verified identity — same rule as every other Ops tab. */
-  const sc = await rpc("ops_scope", { p_token: String(body.token || ""), p_code: meCode });
+  let sc = await rpc("ops_scope", { p_token: String(body.token || ""), p_code: meCode });
+  if (az.role !== "ops") {
+    const as = await rpc("agent_scope", { p_code: meCode });
+    sc = { scoped: !(as && as.ok === true && as.all), bases: (as && Array.isArray(as.bases)) ? as.bases : [] };
+  }
   const scoped = !!(sc && sc.scoped);
   const allow = new Set<string>(((sc && Array.isArray(sc.bases)) ? sc.bases : []).map((b: string) => low(b)));
 

@@ -1,3 +1,8 @@
+// tracker-api v41 (2026-10-26) — "team" IS YOUR OWN TREE. Any signed-in agent could name ANY leader
+//   and receive that leader's team with streaks, field-training logs and 7-day activity. Brief
+//   section 8: hierarchy is the caller plus their recursive downline, never a sibling or an
+//   upline's team. For anyone but Operations the roster is now nb_scope_codes(caller), and the
+//   leader they typed no longer widens it.
 // tracker-api v40 (2026-09-30) — A TYPED CODE OR A TYPED NAME IS NO LONGER IDENTITY.
 //
 // v37 routed every Operations check through ops_authorize, so the literal "2026" stopped being a
@@ -570,7 +575,14 @@ Deno.serve(async (req) => {
       const ex = await fetch(`${SUPA}/rest/v1/tracker_agents?select=code,first_name,last_name,emd,md,pathway,status,progress,done_count,total,pct,streak,best_streak,last_daily,ft_log,warm_market,activity_log,last_activity,created_at,updated_at&code=neq.POOL`, { headers: DBH });
       const rows = (await ex.json()) || [];
       const today = ptToday();
-      const mine = rows.filter((r: Record<string, unknown>) => r && (r.status || "active") !== "quit" && (low(r.md) === L || low(r.emd) === L));
+      let tree: Set<string> | null = null;
+      if (!isAdmin) {
+        const t = await rpc("nb_scope_codes", { p_leader: me.code });
+        tree = new Set((Array.isArray(t) ? t : []).map((x: Record<string, unknown>) => String((x && x.code) ?? "").trim().toUpperCase()).filter(Boolean));
+        tree.add(String(me.code).toUpperCase());
+      }
+      const mine = rows.filter((r: Record<string, unknown>) => r && (r.status || "active") !== "quit" &&
+        (tree ? (tree.has(String(r.code || "").toUpperCase()) && String(r.code || "").toUpperCase() !== String(me.code).toUpperCase()) : (low(r.md) === L || low(r.emd) === L)));
       const cleanLeads = (wm: unknown) => (Array.isArray(wm) ? wm : []).filter((c) => c).map((c: Record<string, unknown>) => ({ id: c.id || "", name: c.name || "", phone: c.phone || "", email: c.email || "", howKnow: c.howKnow || "", apptDate: c.apptDate || "", traits: c.traits || "", notes: c.notes || "", contacted: !!c.contacted, contactedDate: c.contactedDate || "", status: c.status || "", outcome: c.outcome || "", pooled: !!c.pooled, locked: !!c.locked, seniorOnly: !!c.seniorOnly, date: c.date || "" }));
       const agents = mine.map((r: Record<string, unknown>) => { const e = enrichAgent(r, today); e.relation = (low(r.md) === L) ? "direct" : "org"; if (maySeeLeads) e.leads = cleanLeads(r.warm_market); return e; });
       const buckets = { green: 0, yellow: 0, orange: 0, red: 0 };

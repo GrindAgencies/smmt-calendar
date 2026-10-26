@@ -1,3 +1,11 @@
+// leaderboard-api v25 (2026-10-26) — ONE TREE, AND HIERARCHY MEANS YOURS. Brief section 8.
+//      · The tree came from app_settings.org_structure, a stale copy (92 nodes for 199 agents, five
+//        parents disagreeing with direct_to): Gage Griffin's team read 3 people against a real 11.
+//        parentOf is now tracker_agents.direct_to - the canonical recruiter link every other
+//        screen uses - with the old copy only as a fallback for someone who has no direct_to.
+//      · board scope=hierarchy ranked the whole company for everyone. It now ranks the caller and
+//        their recursive downline; the root of the tree and the company-wide (super) seats keep the
+//        whole company. snapshot.company follows the same rule.
 // leaderboard-api v24 — STANDARD leaderboard + spotlight + emblem ledger + calling-cards + dashboard snapshot.
 // v24 (2026-10-20): ALL TIME MEANS ALL OF IT, UNDATED BUSINESS INCLUDED. v23 implemented 'all'
 //      as a window starting 1900-01-01, which is correct arithmetic and still the wrong answer:
@@ -169,7 +177,10 @@ async function buildContext(period: string, from?: string, to?: string) {
   const nodes = Array.isArray(org.nodes) ? org.nodes : [];
   const parentOf: Record<string, string> = {}; nodes.forEach((n: any) => parentOf[norm(n.id)] = norm(n.parent || ""));
   const brokerEmb = (await loadKey("broker_emblems")) || {};
-  const agents = await getJSON("tracker_agents?select=code,first_name,last_name,baseshop,created_at,md,emd,status,license_status,system_account&limit=2000");
+  const agents = await getJSON("tracker_agents?select=code,first_name,last_name,baseshop,created_at,md,emd,status,license_status,system_account,direct_to&limit=2000");
+  /* v25: the canonical recruiter link wins; org_structure only fills a gap. */
+  agents.forEach((a: any) => { const c = norm(a.code), d = norm(a.direct_to); if (c && d && d !== c) parentOf[c] = d; });
+  const orgRoot = norm(org.root || "");
   const byCode: Record<string, any> = {}; const nameToCode: Record<string, string> = {};
   agents.forEach((a: any) => { const c = norm(a.code); byCode[c] = { code: a.code, name: full(a), baseshop: a.baseshop || root, created_at: a.created_at, md: a.md || "", emd: a.emd || "", status: a.status || "active", system: !!a.system_account }; if (full(a)) nameToCode[low(full(a))] = c; });
 
@@ -259,7 +270,7 @@ async function buildContext(period: string, from?: string, to?: string) {
     const cr = (a.created_at || "").toString().slice(0, 10); if (inWin(cr)) recruits[rc] = (recruits[rc] || 0) + 1;
   });
 
-  return { P, start, end, noDateTest, bases, root, baseList, parentOf, byCode, nameToCode, brokerEmb, countable, paid_undated, trainings_attended, famSets, maps: { recruiter: recruits, premium, points_paid, trainings_ran, net_licenses: netLic, licensed, families } as Record<string, Record<string, number>> };
+  return { P, start, end, noDateTest, bases, root, orgRoot, baseList, parentOf, byCode, nameToCode, brokerEmb, countable, paid_undated, trainings_attended, famSets, maps: { recruiter: recruits, premium, points_paid, trainings_ran, net_licenses: netLic, licensed, families } as Record<string, Record<string, number>> };
 }
 function embOf(ctx: any, code: string) { const sel = ctx.brokerEmb[norm(code)] || ctx.brokerEmb[code]; const id = Array.isArray(sel) ? sel[0] : null; if (id && EMBLEM_META[id]) return { icon: EMBLEM_META[id][0], tier: EMBLEM_META[id][1] }; return null; }
 
@@ -339,7 +350,8 @@ Deno.serve(async (req) => {
     const teamCodes = [code, ...Array.from(descendantsOf(ctx.parentOf, code))];
     const ran = M.trainings_ran[code] || 0;
     const personal = { partners: M.recruiter[code] || 0, premium: M.premium[code] || 0, trainings_ran: ran, trainings_attended: TA[code] || 0, trainings: ran, families: M.families[code] || 0, points_paid: M.points_paid[code] || 0 };
-    return json({ ok: true, month: ctx.P.label, month_start: ctx.P.ymd, base: myBase, personal, team: sumOver(teamCodes), shop: sumOver(baseCodes), company: sumOver(allCodes) });
+    const wholeCo = (code === ctx.orgRoot) || ctx.baseList.some((b: any) => b.super && norm(b.owner_code) === code);
+    return json({ ok: true, month: ctx.P.label, month_start: ctx.P.ymd, base: myBase, personal, team: sumOver(teamCodes), shop: sumOver(baseCodes), company: sumOver(wholeCo ? allCodes : teamCodes), company_scope: wholeCo ? "company" : "hierarchy" });
   }
 
   if (action === "board") {
@@ -372,7 +384,9 @@ Deno.serve(async (req) => {
         // Team rolls each person's downline into their number; the other scopes stay individual.
         // Families roll up as a UNION of households, everything else as a sum.
         const useMap = (scope === "team") ? (k === "families" ? rollUpFam(ctx, team) : rollUp(ctx, map, team)) : map;
-        const only = (scope === "team") ? team : undefined;
+        /* v25: Hierarchy is the caller's own tree unless they are the root or a company-wide seat. */
+        const wholeCo = (code === ctx.orgRoot) || !!superOwn;
+        const only = (scope === "team" || (scope === "hierarchy" && !wholeCo)) ? team : undefined;
         const rows = ranked(ctx, useMap, scope === "baseshop" ? targetBase : null, { includeZeros: true, only });
         const scored = rows.filter((r) => r.value > 0).length;
         boards[k] = { top: rows.slice(0, BOARD_SIZE).map((r, i) => ({ ...r, rank: i + 1 })), me: meIn(rows), total: rows.length, scored, rolled: scope === "team" };

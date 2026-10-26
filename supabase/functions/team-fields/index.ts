@@ -1,3 +1,5 @@
+// team-fields v3 (2026-10-26) — list returned custom values for every agent in the company; it now
+//   returns the caller's own tree only. Writes were already gated by is_in_downline.
 // team-fields v2 (2026-09-30) — custom fields on the My Team chart.
 //
 // Christopher: "on the my team chart. please allow for us to add custom fields to the mix.
@@ -105,7 +107,15 @@ Deno.serve(async (req) => {
     const values: Record<string, Record<string, unknown>> = {};
     if (fields.length) {
       // One request for the whole team rather than one per person.
-      const rows = await getJSON(`tracker_agents?select=code,custom&custom=not.is.null&limit=5000`);
+      /* v3: values for the caller's own tree only (self + recursive downline), never the whole
+         company. Operations / the org root / the platform builder keep everything. */
+      let only = "";
+      if (!admin && me) {
+        const t = await rpc("nb_scope_codes", { p_leader: me });
+        const codes = (Array.isArray(t) ? t : []).map((x: any) => String((x && x.code) ?? "").trim()).filter((c: string) => /^[A-Za-z0-9_.-]+$/.test(c));
+        only = `&code=in.(${encodeURIComponent((codes.length ? codes : [me]).map((c: string) => `"${c}"`).join(","))})`;
+      }
+      const rows = await getJSON(`tracker_agents?select=code,custom&custom=not.is.null${only}&limit=5000`);
       const keys = new Set(fields.map((f) => String(f.key)));
       for (const r of rows) {
         const c = (r.custom && typeof r.custom === "object") ? r.custom : {};

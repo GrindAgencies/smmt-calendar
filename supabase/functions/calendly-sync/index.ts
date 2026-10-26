@@ -1,3 +1,9 @@
+// calendly-sync v16 (2026-10-26) — THE LAST BARE SEAT-CODE DOOR. analytics / bookings / list_all /
+//   alerts handed the TYPED `code` to ops_scope(), and ops_scope treats any code that matches an
+//   Operations seat as that seat. So {"action":"list_all","code":"0000"} with no token and no
+//   session returned every Calendly booking - 3,520 rows, 1,348 with client emails. scopeOf() now
+//   only ever receives an identity this function has verified: a valid Ops token (ops_scope answers
+//   from the token) or the signed-in agent's own session code. Nothing a request types.
 // calendly-sync v15 (2026-10-22) — per-agent Calendly PAT + analytics + public-link routing +
 // WEBHOOK auto-register.
 //
@@ -278,7 +284,7 @@ Deno.serve(async (req) => {
   }
 
   if (action === "analytics") {
-    const { scoped, seat } = await scopeOf(body.token, body.code);
+    const { scoped, seat } = await scopeOf(body.token, isAdmin ? "" : meCode);
     if (!isAdmin && !seat && !meCode) return json({ ok: false, needs_session: true, error: "Please sign in again." }, 401);
     // A baseshop seat does not get company-wide analytics. The page recomputes them
     // from the bookings it is allowed to see, which are scoped below.
@@ -288,7 +294,7 @@ Deno.serve(async (req) => {
     return json({ ok: true, scope: agent || "company", analytics: a || {} });
   }
   if (action === "bookings" || action === "list_all" || action === "list") {
-    const { scoped, seat, allow } = await scopeOf(body.token, body.code);
+    const { scoped, seat, allow } = await scopeOf(body.token, isAdmin ? "" : meCode);
     const adminRead = isAdmin || seat;
     if (action === "list_all") { if (!adminRead) return json({ ok: false, error: "unauthorized" }, 401); }
     else if (!meCode && !adminRead) { return json({ ok: false, needs_session: true, error: "Please sign in again." }, 401); }
@@ -301,7 +307,7 @@ Deno.serve(async (req) => {
     return json({ ok: true, scoped, events: rows || [] });
   }
   if (action === "alerts") {
-    const { scoped, seat, allow } = await scopeOf(body.token, body.code);
+    const { scoped, seat, allow } = await scopeOf(body.token, isAdmin ? "" : meCode);
     const adminRead = isAdmin || seat;
     if (!adminRead && !meCode) return json({ ok: false, needs_session: true, error: "Please sign in again." }, 401);
     const agent = adminRead ? null : (meCode || null);

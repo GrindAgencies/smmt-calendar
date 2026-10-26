@@ -1,3 +1,5 @@
+// atlas-api v21 (2026-10-26): atlas_trainer returned ANY trainer's bookings (client email, phone,
+//   notes, intake) to anyone signed in. An agent now only ever receives their own trainer book.
 // atlas-api v20 (2026-10-26): Operations can staff-book without an agent code (atlas_staff_book).
 // atlas-api v19 (2026-10-21): notification bodies no longer print "null". See the compose
 //   helpers above Deno.serve. 5 bookings have no confirmation code and 20 no trainer name,
@@ -290,7 +292,7 @@ Deno.serve(async (req) => {
 
     if (action === "atlas_day") { const date = clean(body.date || url.searchParams.get("date")); if (!date) return json({ ok: false, error: "no date" }); const ex = await fetch(`${SUPA}/rest/v1/bookings?date=eq.${encodeURIComponent(date)}&status=in.(booked,confirmed,pending)&select=trainer_name,trainer_code,time,starts_at,ends_at,agent_name,agent_code,category,status`, { headers: DBH }); return json({ ok: true, bookings: (await ex.json()) || [] }); }
 
-    if (action === "atlas_trainer") { const trainerName = clean(body.trainer_name || url.searchParams.get("trainer_name")); const trainerCode = clean(body.trainer_code || url.searchParams.get("trainer_code")); if (!trainerName && !trainerCode) return json({ ok: false, error: "no trainer" }); const filter = trainerCode ? `trainer_code=eq.${encodeURIComponent(trainerCode)}` : `trainer_name=eq.${encodeURIComponent(trainerName)}`; const ex = await fetch(`${SUPA}/rest/v1/bookings?${filter}&order=starts_at.asc&select=*`, { headers: DBH }); return json({ ok: true, bookings: (await ex.json()) || [] }); }
+    if (action === "atlas_trainer") { const trainerName = clean(body.trainer_name || url.searchParams.get("trainer_name")); const trainerCode = clean(body.trainer_code || url.searchParams.get("trainer_code")); if (!trainerName && !trainerCode && isAdmin) return json({ ok: false, error: "no trainer" }); /* v21: a trainer's book holds clients' emails, phones and notes. Anyone but Operations gets their OWN book only, whatever trainer the request names (body.code is the verified caller). */ const filter = !isAdmin ? `trainer_code=eq.${encodeURIComponent(norm(body.code))}` : (trainerCode ? `trainer_code=eq.${encodeURIComponent(trainerCode)}` : `trainer_name=eq.${encodeURIComponent(trainerName)}`); const ex = await fetch(`${SUPA}/rest/v1/bookings?${filter}&order=starts_at.asc&select=*`, { headers: DBH }); return json({ ok: true, bookings: (await ex.json()) || [] }); }
 
     if (action === "atlas_upcoming") { const ex = await fetch(`${SUPA}/rest/v1/bookings?status=in.(booked,confirmed)&order=starts_at.asc&select=trainer_name,trainer_code,starts_at,ends_at,agent_name,agent_code,category&limit=500`, { headers: DBH }); return json({ ok: true, bookings: (await ex.json()) || [] }); }
 

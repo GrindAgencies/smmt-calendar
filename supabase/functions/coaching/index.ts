@@ -1,3 +1,8 @@
+// coaching v7 (2026-10-26) — a coach reads notes about THEIR OWN TREE. "list" and "booking" let any
+//   coach (CFT and up) read anyone's coaching notes company-wide by code or booking id. Brief
+//   section 8: no reading across branches. A coach now sees all notes for themselves and their
+//   recursive downline (is_in_downline), and for anyone else only the notes they wrote personally.
+//   Operations keeps the full view.
 // coaching v6 (2026-10-26; v5 2026-10-22) — the notes a trainer leaves for a trainee after a field training.
 //
 // v5: EVERY ACTION TRUSTED A TYPED CODE, AND TWO OF THEM CHECKED NOTHING AT ALL.
@@ -145,7 +150,12 @@ Deno.serve(async (req) => {
       if (!isOps && !meIsCoach && asked && asked !== me) {
         return json({ ok: false, error: "Those notes are not yours." }, 403);
       }
-      const ex = await fetch(`${SUPA}/rest/v1/coaching_notes?trainee_code=eq.${encodeURIComponent(code)}&order=created_at.desc&limit=300`, { headers: DBH });
+      let only = "";
+      if (!isOps && code !== me) {
+        const down = await fetch(`${SUPA}/rest/v1/rpc/is_in_downline`, { method: "POST", headers: DBH, body: JSON.stringify({ p_leader: me, p_target: code }) }).then((r) => r.json()).catch(() => false);
+        if (down !== true) only = `&by_code=eq.${encodeURIComponent(me)}`;   // outside your tree: only what you wrote
+      }
+      const ex = await fetch(`${SUPA}/rest/v1/coaching_notes?trainee_code=eq.${encodeURIComponent(code)}${only}&order=created_at.desc&limit=300`, { headers: DBH });
       return json({ ok: true, notes: (await ex.json()) || [] });
     }
 
@@ -153,12 +163,20 @@ Deno.serve(async (req) => {
       const bid = clean(body.booking_id || url.searchParams.get("booking_id"));
       if (!bid) return json({ ok: true, notes: [] });
       /* Notes about an appointment belong to the two people on it. */
-      if (!isOps && !meIsCoach) {
+      let only = "";
+      if (!isOps) {
         const bk = ((await (await fetch(`${SUPA}/rest/v1/bookings?id=eq.${encodeURIComponent(bid)}&select=agent_code,trainer_code&limit=1`, { headers: DBH })).json()) || [])[0];
         const mine = bk && (norm(bk.agent_code) === me || norm(bk.trainer_code) === me);
-        if (!mine) return json({ ok: false, error: "That appointment is not yours." }, 403);
+        let down = false;
+        if (!mine && meIsCoach && bk && bk.agent_code) {
+          down = (await fetch(`${SUPA}/rest/v1/rpc/is_in_downline`, { method: "POST", headers: DBH, body: JSON.stringify({ p_leader: me, p_target: norm(bk.agent_code) }) }).then((r) => r.json()).catch(() => false)) === true;
+        }
+        if (!mine && !down) {
+          if (!meIsCoach) return json({ ok: false, error: "That appointment is not yours." }, 403);
+          only = `&by_code=eq.${encodeURIComponent(me)}`;
+        }
       }
-      const ex = await fetch(`${SUPA}/rest/v1/coaching_notes?booking_id=eq.${encodeURIComponent(bid)}&order=created_at.desc`, { headers: DBH });
+      const ex = await fetch(`${SUPA}/rest/v1/coaching_notes?booking_id=eq.${encodeURIComponent(bid)}${only}&order=created_at.desc`, { headers: DBH });
       return json({ ok: true, notes: (await ex.json()) || [] });
     }
 
