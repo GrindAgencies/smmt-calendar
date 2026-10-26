@@ -1,3 +1,7 @@
+// cal-feed v9 (2026-10-26) — someone else's event no longer shows its TITLE. A title is free text:
+//   personal blocks carried things like appointments and family plans, and a booking title can name
+//   a client. Rows that are not yours keep their time, category and trainer (that is the coverage
+//   view) and read their category, or "Busy", as the title.
 // cal-feed v8 (2026-10-22) — company-wide calendar feed (Dashboard + week + Clients).
 // Read-only. Includes client fields for the Clients tab. v4 also returns
 // starts_at/ends_at/timezone (+title/color) so the scheduler can render every event in the
@@ -171,7 +175,8 @@ Deno.serve(async (req) => {
       if (scope.all || party(b)) return b;
       /* Not yours: the client's contact details are not yours either. */
       const { client_email: _e, client_phone: _p, ...rest } = b as Record<string, unknown>;
-      return rest;
+      const cat = String(rest.category || "").trim();
+      return { ...rest, title: (cat && low(cat) !== "personal") ? cat : "Busy", client_id: null };
     });
     return json({ ok: true, scoped: !scope.all, events });
   }

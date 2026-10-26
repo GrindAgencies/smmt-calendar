@@ -1,3 +1,4 @@
+// ops-metrics v7 (2026-10-26) — leader check accepts spelled-out ranks ("National Vice President").
 // ops-metrics v6 (2026-10-26) — A LEADER'S REPORT IS THEIR OWN BASESHOP. MD/EMD/NVP/SEVP sessions
 //   were let in and then scoped with ops_scope(token="", code), which only knows Operations seats,
 //   so it answered "unscoped" and every leader read every baseshop's points, AP, families,
@@ -121,7 +122,11 @@ async function authOf(body: any): Promise<Auth> {
   const rows = await getJSON(`tracker_agents?code=eq.${enc(code)}&select=contract_level,platform_admin`);
   if (rows[0] && rows[0].platform_admin === true) return { ok: true, role: "ops", code };
   const lvl = norm(rows[0] && rows[0].contract_level);
-  if (lvl === "MD" || lvl === "EMD" || lvl === "NVP" || lvl === "SEVP") return { ok: true, role: lvl.toLowerCase(), code };
+  /* v7: ranks are stored both abbreviated and spelled out - Elijah's reads "National Vice
+     President" - so the long forms count too. Scope still comes from agent_scope below. */
+  const LONG: Record<string, string> = { "MARKETING DIRECTOR": "MD", "EXECUTIVE MARKETING DIRECTOR": "EMD", "NATIONAL VICE PRESIDENT": "NVP", "SENIOR EXECUTIVE VICE PRESIDENT": "SEVP" };
+  const short = LONG[lvl] || lvl;
+  if (short === "MD" || short === "EMD" || short === "NVP" || short === "SEVP") return { ok: true, role: short.toLowerCase(), code };
   return { ok: false, error: "Reports are for Operations and team leaders." };
 }
 

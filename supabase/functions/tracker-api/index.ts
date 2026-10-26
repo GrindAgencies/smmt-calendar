@@ -1,3 +1,4 @@
+// tracker-api v42 (2026-10-26) — cftavail needs a sign-in (trainer contact + busy times).
 // tracker-api v41 (2026-10-26) — "team" IS YOUR OWN TREE. Any signed-in agent could name ANY leader
 //   and receive that leader's team with streaks, field-training logs and 7-day activity. Brief
 //   section 8: hierarchy is the caller plus their recursive downline, never a sibling or an
@@ -149,6 +150,9 @@ Deno.serve(async (req) => {
     const myCode = me.ops ? norm(body.code || url.searchParams.get("code")) : me.code;
 
     if (action === "cftavail") {
+      /* v42: trainers' work email, phone and busy times are for signed-in staff, not the open web.
+         The Scheduler (its only caller) already sends the session via session.js. */
+      if (!isAdmin && !me.code) return needSession();
       const ex = await fetch(`${SUPA}/rest/v1/app_settings?key=eq.cft_availability&select=value,updated_at`, { headers: DBH });
       const rows = await ex.json();
       const row = rows && rows[0] ? rows[0] : null;

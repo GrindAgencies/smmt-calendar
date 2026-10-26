@@ -327,7 +327,7 @@ function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){retu
 function toast(m){var t=$('toast');t.textContent=m;t.classList.add('on');setTimeout(function(){t.classList.remove('on');},2000);}
 function drawer(on){document.body.classList.toggle('drawer',on===undefined?!document.body.classList.contains('drawer'):on);}
 function toggleTheme(){var d=document.documentElement.getAttribute('data-theme')==='dark';document.documentElement.setAttribute('data-theme',d?'light':'dark');try{localStorage.setItem('gfi_theme',d?'light':'dark');}catch(e){}}
-(function(){try{document.documentElement.setAttribute('data-theme',localStorage.getItem('gfi_theme')||'light');}catch(e){}})();
+(function(){try{document.documentElement.setAttribute('data-theme',localStorage.getItem('gfi_theme')||((function(){try{return (window.matchMedia&&(matchMedia('(display-mode: standalone)').matches||matchMedia('(max-width: 980px)').matches))||navigator.standalone===true;}catch(e){return false;}})()?'dark':'light'));}catch(e){}})();
 function ptToday(){return new Intl.DateTimeFormat('en-CA',{timeZone:'America/Los_Angeles'}).format(new Date());}
 
 /* status model (granular -> bucket) */

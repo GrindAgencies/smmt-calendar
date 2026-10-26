@@ -7,7 +7,14 @@
    ========================================================================== */
 (function () {
   try {
+    /* 2026-10-26: the phone app (installed, or any screen up to tablet width) opens dark by
+       default, matching Elijah's design. A saved choice always wins; desktop keeps its default. */
     var t = localStorage.getItem('gfi_theme');
+    if (!t) {
+      var phone = false;
+      try { phone = (window.matchMedia && (matchMedia('(display-mode: standalone)').matches || matchMedia('(max-width: 980px)').matches)) || navigator.standalone === true; } catch (e2) {}
+      if (phone) t = 'dark';
+    }
     if (t === 'dark' || t === 'light') {
       document.documentElement.setAttribute('data-theme', t);
     }

@@ -1,3 +1,7 @@
+// atlas-api v22 (2026-10-26): atlas_day / atlas_upcoming named the AGENT on every booking in the
+//   company. Trainer names and times stay (that is how people find a free trainer), but an agent's
+//   name now shows only for the caller, their downline, or bookings the caller is training;
+//   everyone else reads "Booked". atlas_transfer_history follows the same rule.
 // atlas-api v21 (2026-10-26): atlas_trainer returned ANY trainer's bookings (client email, phone,
 //   notes, intake) to anyone signed in. An agent now only ever receives their own trainer book.
 // atlas-api v20 (2026-10-26): Operations can staff-book without an agent code (atlas_staff_book).
@@ -290,11 +294,20 @@ Deno.serve(async (req) => {
 
     if (action === "atlas_my") { const code = norm(body.code || url.searchParams.get("code")); if (!code) return json({ ok: false, error: "no code" }); const ex = await fetch(`${SUPA}/rest/v1/bookings?agent_code=eq.${encodeURIComponent(code)}&order=starts_at.asc&select=*`, { headers: DBH }); return json({ ok: true, bookings: (await ex.json()) || [] }); }
 
-    if (action === "atlas_day") { const date = clean(body.date || url.searchParams.get("date")); if (!date) return json({ ok: false, error: "no date" }); const ex = await fetch(`${SUPA}/rest/v1/bookings?date=eq.${encodeURIComponent(date)}&status=in.(booked,confirmed,pending)&select=trainer_name,trainer_code,time,starts_at,ends_at,agent_name,agent_code,category,status`, { headers: DBH }); return json({ ok: true, bookings: (await ex.json()) || [] }); }
+    /* v22: whose names may this caller see on someone else's booking? */
+    const _treeOf = async (): Promise<Set<string> | null> => {
+      if (isAdmin) return null;
+      const t = await _rpc("nb_scope_codes", { p_leader: norm(body.code) });
+      const set = new Set<string>((Array.isArray(t) ? t : []).map((x: any) => norm(x && x.code)).filter(Boolean));
+      set.add(norm(body.code)); return set;
+    };
+    const _mask = (rows: any[], tree: Set<string> | null) => !tree ? rows : (rows || []).map((b: any) =>
+      (tree.has(norm(b.agent_code)) || tree.has(norm(b.trainer_code))) ? b : { ...b, agent_name: "Booked", agent_code: "" });
+    if (action === "atlas_day") { const date = clean(body.date || url.searchParams.get("date")); if (!date) return json({ ok: false, error: "no date" }); const ex = await fetch(`${SUPA}/rest/v1/bookings?date=eq.${encodeURIComponent(date)}&status=in.(booked,confirmed,pending)&select=trainer_name,trainer_code,time,starts_at,ends_at,agent_name,agent_code,category,status`, { headers: DBH }); return json({ ok: true, bookings: _mask((await ex.json()) || [], await _treeOf()) }); }
 
     if (action === "atlas_trainer") { const trainerName = clean(body.trainer_name || url.searchParams.get("trainer_name")); const trainerCode = clean(body.trainer_code || url.searchParams.get("trainer_code")); if (!trainerName && !trainerCode && isAdmin) return json({ ok: false, error: "no trainer" }); /* v21: a trainer's book holds clients' emails, phones and notes. Anyone but Operations gets their OWN book only, whatever trainer the request names (body.code is the verified caller). */ const filter = !isAdmin ? `trainer_code=eq.${encodeURIComponent(norm(body.code))}` : (trainerCode ? `trainer_code=eq.${encodeURIComponent(trainerCode)}` : `trainer_name=eq.${encodeURIComponent(trainerName)}`); const ex = await fetch(`${SUPA}/rest/v1/bookings?${filter}&order=starts_at.asc&select=*`, { headers: DBH }); return json({ ok: true, bookings: (await ex.json()) || [] }); }
 
-    if (action === "atlas_upcoming") { const ex = await fetch(`${SUPA}/rest/v1/bookings?status=in.(booked,confirmed)&order=starts_at.asc&select=trainer_name,trainer_code,starts_at,ends_at,agent_name,agent_code,category&limit=500`, { headers: DBH }); return json({ ok: true, bookings: (await ex.json()) || [] }); }
+    if (action === "atlas_upcoming") { const ex = await fetch(`${SUPA}/rest/v1/bookings?status=in.(booked,confirmed)&order=starts_at.asc&select=trainer_name,trainer_code,starts_at,ends_at,agent_name,agent_code,category&limit=500`, { headers: DBH }); return json({ ok: true, bookings: _mask((await ex.json()) || [], await _treeOf()) }); }
 
     if (action === "atlas_manage_upcoming") { const authCode = norm(body.code || url.searchParams.get("code")); const avail = await loadCftAvail(); const callerRole = (isAdmin) ? "OPS" : await roleOfCode(authCode, avail); if (!isAdmin && callerRole !== "EMD") return json({ ok: false, error: "Only an EMD or Ops can view the transfer queue." }, 401); const ex = await fetch(`${SUPA}/rest/v1/bookings?status=in.(booked,confirmed)&order=starts_at.asc&select=id,conf,agent_name,agent_code,trainer_name,trainer_code,category,date,time,status,starts_at&limit=500`, { headers: DBH }); return json({ ok: true, bookings: (await ex.json()) || [] }); }
 
@@ -361,7 +374,13 @@ Deno.serve(async (req) => {
       return json({ ok: true, booking: moved, from: fromName, to: toName });
     }
 
-    if (action === "atlas_transfer_history") { const id = clean(body.id || url.searchParams.get("id")); const q = id ? `${SUPA}/rest/v1/booking_transfers?booking_id=eq.${encodeURIComponent(id)}&select=*&order=created_at.desc` : `${SUPA}/rest/v1/booking_transfers?select=*&order=created_at.desc&limit=200`; const ex = await fetch(q, { headers: DBH }); return json({ ok: true, transfers: (await ex.json()) || [] }); }
+    if (action === "atlas_transfer_history") { const id = clean(body.id || url.searchParams.get("id"));
+      if (!isAdmin) {
+        if (!id) return json({ ok: true, transfers: [] });
+        const bk = ((await (await fetch(`${SUPA}/rest/v1/bookings?id=eq.${encodeURIComponent(id)}&select=agent_code,trainer_code&limit=1`, { headers: DBH })).json()) || [])[0];
+        const tree = await _treeOf();
+        if (!bk || !tree || !(tree.has(norm(bk.agent_code)) || tree.has(norm(bk.trainer_code)))) return json({ ok: false, error: "That appointment is not yours." }, 403);
+      } const q = id ? `${SUPA}/rest/v1/booking_transfers?booking_id=eq.${encodeURIComponent(id)}&select=*&order=created_at.desc` : `${SUPA}/rest/v1/booking_transfers?select=*&order=created_at.desc&limit=200`; const ex = await fetch(q, { headers: DBH }); return json({ ok: true, transfers: (await ex.json()) || [] }); }
 
     if (action === "atlas_lock") {
       const trainerName = clean(body.trainer_name); const trainerCode = clean(body.trainer_code); const at = clean(body.action_type); const authCode = norm(body.code);

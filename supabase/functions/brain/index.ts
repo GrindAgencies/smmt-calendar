@@ -1,3 +1,4 @@
+// brain v8 (2026-10-26) — 'leaders' (everyone's app-usage counts) is Operations-only.
 // brain v7 — the Data Brain: usage tracking, real last-seen, dormancy sweep,
 // and Coach's next-level nudges.
 //
@@ -172,6 +173,8 @@ Deno.serve(async (req) => {
     }
 
     if (action === "leaders") {
+      /* v8: company-wide usage counts per person are an Operations view; no page calls this. */
+      if (!(await opsAuthorized(body.token))) return json({ ok: false, error: "Operations only." }, 401);
       const days = Math.min(365, Math.max(1, Number(body.days) || 30));
       const since = new Date(Date.now() - days * 86400000).toISOString();
       const ex = await fetch(`${SUPA}/rest/v1/app_events?created_at=gte.${enc(since)}&select=code,name,kind,created_at&limit=20000`, { headers: DBH });

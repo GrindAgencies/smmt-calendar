@@ -377,7 +377,7 @@ var AVCOL=['#5b6cff','#34c759','#ff9f0a','#af52de','#ff2d55','#0a84ff','#c99a2e'
 function avColor(s){var h=0;s=s||'';for(var i=0;i<s.length;i++)h=s.charCodeAt(i)+((h<<5)-h);return AVCOL[Math.abs(h)%AVCOL.length];}
 
 /* theme follow */
-try{var th=localStorage.getItem('gfi_theme');if(th==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}
+try{var th=localStorage.getItem('gfi_theme')||((function(){try{return (window.matchMedia&&(matchMedia('(display-mode: standalone)').matches||matchMedia('(max-width: 980px)').matches))||navigator.standalone===true;}catch(e){return false;}})()?'dark':'');if(th==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}
 
 var NAVI=[['home','Home','index.html','M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z'],
 ['hub','Team Hub','teamhub.html','M21 15a2 2 0 0 1-2 2H8l-4 4V5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z'],

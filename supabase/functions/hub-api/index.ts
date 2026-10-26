@@ -1,3 +1,7 @@
+// hub-api v28 (2026-10-26): hub_profile gave anyone signed in another person's email, phone and
+//   booking link across every baseshop. Contact details now come back only when the person is in
+//   the caller's own baseshop scope (agent_scope) or is the caller; Operations sees all. Name,
+//   title, baseshop and presence are unchanged - the directory still works company-wide.
 // hub-api v27 (2026-10-26): WHO MAY SEE AND MODERATE WHAT. Christopher: "private groups are
 //   only to be moderated by those involved and Operations ... only if there is a question or
 //   contestation should she be pinged on a private group message. also those MDs can only
@@ -581,7 +585,13 @@ Deno.serve(async (req) => {
       const a = await agentRow(code); const acc = await accessOf(code);
       const pex = await fetch(`${SUPA}/rest/v1/hub_presence?code=eq.${encodeURIComponent(code)}&select=last_seen,status,channel`, { headers: DBH });
       const prow = ((await pex.json()) || [])[0] || null;
-      return json({ ok: true, profile: { code, name: acc.name, email: (a && a.email) || "", phone: (a && a.phone) || "", cal_link: (a && a.cal_link) || "", title: (a && a.title) || "", direct_to: (a && a.direct_to) || "", direct_to_name: (a && a.direct_to_name) || "", role: acc.role, baseshop: acc.baseshop, last_seen: prow ? prow.last_seen : "", pres_status: prow ? prow.status : "", pres_channel: prow ? prow.channel : "" } });
+      let contact = isAdmin || norm(code) === norm(CALLER);
+      if (!contact && CALLER) {
+        const sc = await rpc("agent_scope", { p_code: norm(CALLER) });
+        const bases = (sc && Array.isArray(sc.bases)) ? sc.bases.map((b: unknown) => norm(b)) : [];
+        contact = !!(sc && sc.ok === true && (sc.all || bases.indexOf(norm(a && a.baseshop)) >= 0));
+      }
+      return json({ ok: true, profile: { code, name: acc.name, email: contact ? ((a && a.email) || "") : "", phone: contact ? ((a && a.phone) || "") : "", cal_link: contact ? ((a && a.cal_link) || "") : "", contact_hidden: !contact, title: (a && a.title) || "", direct_to: (a && a.direct_to) || "", direct_to_name: (a && a.direct_to_name) || "", role: acc.role, baseshop: acc.baseshop, last_seen: prow ? prow.last_seen : "", pres_status: prow ? prow.status : "", pres_channel: prow ? prow.channel : "" } });
     }
 
     if (action === "hub_setprofile") {

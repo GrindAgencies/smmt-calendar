@@ -657,7 +657,7 @@ function toast(m){var t=$('toast');t.textContent=m;t.classList.add('on');setTime
 function toggleRooms(){if(window.innerWidth<=980){document.body.classList.toggle('rooms-open');}else{document.body.classList.toggle('rooms-collapsed');}}
 function drawer(on){document.body.classList.toggle('drawer',on===undefined?!document.body.classList.contains('drawer'):on);}
 function toggleTheme(){var d=document.documentElement.getAttribute('data-theme')==='dark';document.documentElement.setAttribute('data-theme',d?'light':'dark');try{localStorage.setItem('gfi_theme',d?'light':'dark');}catch(e){}}
-(function(){try{document.documentElement.setAttribute('data-theme',localStorage.getItem('gfi_theme')||'light');}catch(e){}})();
+(function(){try{document.documentElement.setAttribute('data-theme',localStorage.getItem('gfi_theme')||((function(){try{return (window.matchMedia&&(matchMedia('(display-mode: standalone)').matches||matchMedia('(max-width: 980px)').matches))||navigator.standalone===true;}catch(e){return false;}})()?'dark':'light'));}catch(e){}})();
 function tstr(iso){try{var d=new Date(iso);return new Intl.DateTimeFormat('en-US',{hour:'numeric',minute:'2-digit'}).format(d);}catch(e){return '';}}
 
 /* sidebar */
@@ -900,7 +900,17 @@ function pinTileHtml(r){
     ' data-kind="'+(r.dm?'dm':'group')+'" data-ch="'+esc(r.id)+'" data-pin="1"'+
     ' aria-label="'+esc(r.label)+(r.unread?', unread':'')+'"'+
     ' onclick="openChan(\''+r.id+'\')">'+
-    av+'<span class="pt-name">'+esc(r.label)+'</span></button>';
+    av+'<span class="pt-name">'+esc(r.label)+'</span>'+memberCountHtml(r)+'</button>';
+}
+/* Brief section 4: a real member count, only where one exists. A created PRIVATE group has an
+   actual member list (its audience); built-in rooms and open groups are reached by rank and
+   shop, so a number there would be invented. Singular and plural are both handled. */
+function memberCountHtml(r){
+  if(r.dm || String(r.id).indexOf('c_')!==0) return '';
+  var c=(CHANNELS||[]).filter(function(x){return x.id===r.id;})[0];
+  if(!c || !c.private || !Array.isArray(c.members)) return '';
+  var n=c.members.length; if(!n) return '';
+  return '<span class="pt-count">'+n+(n===1?' member':' members')+'</span>';
 }
 function renderRooms(){
   if(OPSMODE){
@@ -2732,6 +2742,7 @@ body.phone .pt-name{
   white-space:normal; word-break:break-word; line-height:1.25; overflow:hidden;
 }
 @media (prefers-reduced-motion:reduce){ body.phone .pt:active .pt-av{ transform:none; } }
+body.phone .pt-count{ font-size:10.5px; color:var(--ink3); margin-top:-3px; }
 
 /* composer */
 body.phone .composer{ padding:8px 12px calc(10px + env(safe-area-inset-bottom)) !important; }

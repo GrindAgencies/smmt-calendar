@@ -253,7 +253,7 @@ function doDeleteAccount(){
    .catch(function(){btn.disabled=false;btn.textContent='Delete permanently';err.textContent='Network error — try again.';});
 }
 function signOut(){try{if(window.tsfgSession)tsfgSession.clear();}catch(e){}try{localStorage.removeItem('tsfg_code');localStorage.removeItem('tsfg_name');}catch(e){}location.href='index.html';}
-(function(){try{var t=localStorage.getItem('gfi_theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
+(function(){try{var t=localStorage.getItem('gfi_theme')||((function(){try{return (window.matchMedia&&(matchMedia('(display-mode: standalone)').matches||matchMedia('(max-width: 980px)').matches))||navigator.standalone===true;}catch(e){return false;}})()?'dark':'');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
 
 // ---- boot ----
 (function boot(){

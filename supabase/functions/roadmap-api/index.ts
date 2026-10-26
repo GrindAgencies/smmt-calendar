@@ -1,3 +1,4 @@
+// roadmap-api v13 (2026-10-26) — leaderboard / nearby rank within the caller's base shop, not the whole company.
 // roadmap-api v12 — progression engine + Ops config CRUD + team tokens + rank ladder + Ops cashflow + MILESTONE VERIFICATION.
 // v11: key challenges (config.verify_challenges) only count toward completion/XP once Ops verifies them (tracker_agents.verify).
 // v12 (2026-09-03): the four Operations-only actions — save_config, set_cashflow, verify and
@@ -246,7 +247,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === "nearby" || action === "leaderboard" || action === "team") {
-      const sel = (action === "team") ? "code,first_name,last_name,progress,verify,pathway,streak,cashflow,direct_to" : "code,first_name,last_name,progress,verify,pathway,streak,cashflow";
+      const sel = (action === "team") ? "code,first_name,last_name,progress,verify,pathway,streak,cashflow,direct_to" : "code,first_name,last_name,progress,verify,pathway,streak,cashflow,baseshop";
       const r = await fetch(`${SUPA}/rest/v1/tracker_agents?status=neq.quit&select=${sel}`, { headers: DBH });
       const agents: Record<string, unknown>[] = (await r.json()) || [];
       const photos = await photoSet();
@@ -264,7 +265,17 @@ Deno.serve(async (req) => {
         return json({ ok: true, me, team, team_tokens: total, team_count: team.length });
       }
 
-      const states = agents.filter((a) => norm(a.code) && norm(a.code) !== "POOL").map((a) => lite(a, config, photos, keys));
+      /* v13: XP, streak and progress ranks are scoped to the caller's base shop (agent_scope), the
+         same rule as every other base-shop view, instead of the whole company. Ops sees all. */
+      let pool = agents;
+      if (!(await opsAuthorized(body.token))) {
+        const sc = await rpc("agent_scope", { p_code: norm(body.code) });
+        if (!(sc && sc.ok === true && sc.all)) {
+          const bases = new Set<string>(((sc && Array.isArray(sc.bases)) ? sc.bases : []).map((b: unknown) => norm(b)));
+          pool = agents.filter((a) => norm(a.code) === norm(body.code) || bases.has(norm(a.baseshop)));
+        }
+      }
+      const states = pool.filter((a) => norm(a.code) && norm(a.code) !== "POOL").map((a) => lite(a, config, photos, keys));
       if (action === "nearby") {
         const code = norm(body.code); if (!code) return json({ ok: false, error: "not found" }, 404);
         const me = states.find((s) => s.code === code); if (!me) return json({ ok: false, error: "not found" }, 404);
