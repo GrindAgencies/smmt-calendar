@@ -253,6 +253,11 @@ input[type=range]{width:100%;accent-color:var(--accent);height:6px;}
 .nadd .nrow{display:flex;gap:10px;justify-content:flex-end;}
 .nadd button{border-radius:10px;padding:9px 16px;font-weight:700;font-size:13px;cursor:pointer;border:1px solid var(--line2);background:var(--panel);color:var(--ink2);}
 .nadd button.nsave{background:var(--gold);border-color:var(--gold);color:#1a1400;}
+/* Ops: assign a new review to an agent */
+.apick-q{margin:0 22px 10px;border:1px solid var(--line2);border-radius:12px;padding:11px 12px;font-family:inherit;font-size:14px;background:var(--panel2);color:var(--ink);}
+.apick-row{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;text-align:left;border:none;border-bottom:1px solid var(--line);background:none;padding:11px 2px;cursor:pointer;color:var(--ink);font:inherit;font-size:14px;}
+.apick-row:hover{background:var(--panel2);}
+.apick-row small{color:var(--ink3);font-size:11.5px;white-space:nowrap;}
 /* internal notes block on report */
 .internal{border:1px dashed var(--gold)!important;background:var(--gold-soft)!important;}
 .internal .lock{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--gold);margin-bottom:8px;}
@@ -341,6 +346,16 @@ html, body{ overflow-x: hidden; }
   </div>
 </div>
 
+<div class="nov" id="apov" onclick="if(event.target===this)closeAgentPick()">
+  <div class="npanel">
+    <h3>Who is this review for?</h3>
+    <div class="nsub">Operations: choose the agent this client belongs to. It will appear in their PFR Builder.</div>
+    <input class="apick-q" id="apq" placeholder="Search by name or code…" oninput="renderAgentPick()" autocomplete="off">
+    <div class="nlist" id="aplist"><div class="nempty">Loading agents…</div></div>
+    <div class="nadd"><div class="nrow"><button onclick="closeAgentPick()">Cancel</button></div></div>
+  </div>
+</div>
+
 <!-- SUMMARY / REPORT -->
 <div class="rep hide" id="summary"></div>
 
@@ -403,6 +418,8 @@ function signOut(){try{if(window.tsfgSession)tsfgSession.clear();}catch(e){}try{
      sheet in front of an agent who came here to work on their own clients. */
   else if(OT&&window.tsfgOps)tsfgOps.check().then(function(c){if(c&&c.ok){OPS=true;loadPFRs();}}).catch(function(){});
   buildSide();loadPFRs();
+  /* An Ops-only seat has no agent profile to look up; asking would only come back 'sign in'. */
+  if(OPS&&/^\d{4}$/.test(CODE))AGENT={name:NAME};else
   fetch('https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/hub-api?action=hub_profile&code='+encodeURIComponent(CODE)).then(function(r){return r.json();}).then(function(r){var pf=(r&&r.profile)||{};AGENT={name:pf.name||NAME,email:pf.email||'',phone:pf.phone||'',cal:pf.cal_link||''};}).catch(function(){AGENT={name:NAME};});
 })();
 
@@ -530,10 +547,29 @@ function calc(d){
 
 /* ===== flow control ===== */
 var STEPS=['welcome','household','coverage','import','vision','income','lifestyle','confidence','snapshot','cashflow','gap','priorities','reflection','advisor'];
-function startNew(){CUR={id:null,data:blank(),status:'draft'};STEP=0;openFlow();}
+function startNew(){if(OPS){openAgentPick();return;}CUR={id:null,data:blank(),status:'draft'};STEP=0;openFlow();}
+/* ASSIGN A NEW REVIEW TO AN AGENT (Operations, 2026-10-26). A review always belongs to an agent;
+   an Ops seat is not one, so pfr-api refused a new Ops review ("Choose which agent this review
+   belongs to"). The roster comes from ops-directory on the same Ops session, so a baseshop seat
+   only ever sees and assigns its own shop. */
+var APAGENTS=null;
+function openAgentPick(){$('apov').classList.add('on');$('apq').value='';setTimeout(function(){$('apq').focus();},60);
+  if(APAGENTS){renderAgentPick();return;}
+  fetch('https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/ops-directory',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'directory',token:opsTok()})})
+    .then(function(r){return r.json();}).then(function(r){
+      if(!r||!r.ok){$('aplist').innerHTML='<div class="nempty">'+esc((r&&r.error)||'Could not load agents.')+'</div>';return;}
+      APAGENTS=(r.people||[]).filter(function(a){return a.code&&!/^000\d$/.test(a.code);}).sort(function(x,y){return (x.name||'').localeCompare(y.name||'');});
+      renderAgentPick();
+    }).catch(function(){$('aplist').innerHTML='<div class="nempty">Network error — close and try again.</div>';});}
+function closeAgentPick(){$('apov').classList.remove('on');}
+function renderAgentPick(){if(!APAGENTS)return;var q=($('apq').value||'').trim().toLowerCase();
+  var list=APAGENTS.filter(function(a){return !q||(a.name||'').toLowerCase().indexOf(q)>=0||(a.code||'').toLowerCase().indexOf(q)>=0;}).slice(0,80);
+  $('aplist').innerHTML=list.length?list.map(function(a){return '<button class="apick-row" onclick="pickAgent(\''+esc(a.code)+'\')"><span><b>'+esc(a.name||a.code)+'</b> · '+esc(a.code)+'</span><small>'+esc([a.contract_level,a.baseshop].filter(Boolean).join(' · '))+'</small></button>';}).join(''):'<div class="nempty">No agent matches “'+esc(q)+'”.</div>';}
+function pickAgent(code){var a=(APAGENTS||[]).filter(function(x){return x.code===code;})[0];if(!a)return;closeAgentPick();
+  CUR={id:null,agent_code:a.code,agent_name:a.name||'',data:blank(),status:'draft'};STEP=0;openFlow();toast('New review for '+(a.name||a.code));}
 function openPFR(id,toReport){togglePop&&document.querySelectorAll('.pop').forEach(function(x){x.classList.add('hide');});
   api({action:'pfr_get',id:id}).then(function(r){var p=r&&r.pfr;if(!p){toast('Could not load');return;}
-    CUR={id:p.id,agent_code:p.agent_code||'',data:Object.assign(blank(),p.data||{}),status:p.status||'draft'};
+    CUR={id:p.id,agent_code:p.agent_code||'',agent_name:p.agent_name||'',data:Object.assign(blank(),p.data||{}),status:p.status||'draft'};
     // deep-merge nested defaults
     var b=blank();for(var k in b){if(typeof b[k]==='object'&&!Array.isArray(b[k])){CUR.data[k]=Object.assign({},b[k],CUR.data[k]||{});}}
     if(toReport){showSummary();}else{STEP=0;openFlow();}
@@ -596,7 +632,10 @@ function saveNow(silent){
     var _s=buildStrategy(c,_sd);
     if(_s&&_s.recs&&_s.recs[0]){p.recommended_carrier=_s.recs[0].carrier||'';p.recommended_product=_s.recs[0].label||'';p.recommended_strategy=_s.headline||'';}
   }catch(e){}
-  if(OPS&&opsTok()){p.token=opsTok();/* Ops editing someone else's client keeps that agent's name on it */if(CUR.id&&CUR.agent_code&&String(CUR.agent_code).toUpperCase()!==CODE)delete p.agent_name;}
+  if(OPS&&opsTok()){p.token=opsTok();
+    /* Ops always names the review's own agent, so an edit never moves a client onto the Ops
+       seat (or the platform builder's own code) and a new review lands with the agent picked. */
+    if(CUR.agent_code){p.code=CUR.agent_code;p.agent_name=CUR.agent_name||'';}}
   setSaveLbl('Saving…','');
   api(p).then(function(r){if(!r||!r.ok){setSaveLbl((r&&r.error)||'Save failed — retry','dirty');if(!silent)toast((r&&r.error)||'Could not save');return;}if(r.pfr&&r.pfr.id){CUR.id=r.pfr.id;}
     var t=new Date().toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});

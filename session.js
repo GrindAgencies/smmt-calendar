@@ -40,6 +40,11 @@
      where they were so they land back on it. Never loop: index.html is the sign-in page. */
   function needSignIn() {
     if (bouncing) return;
+    /* An Operations-only sign-in (Anais, seat 0000) has an Ops session and no broker code, so it
+       has no agent session to give. A background call that wants one (a profile lookup, say) must
+       not throw her out of the page she is working in — Home cannot sign her in as an agent
+       anyway. Her Ops calls carry their own token and ops-session.js handles those. */
+    try { if (!code() && localStorage.getItem('tsfg_ops_token')) return; } catch (e) {}
     bouncing = true;
     set('');
     /* The code has to go too. Home decides whether to draw the app or the sign-in gate by looking
