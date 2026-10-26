@@ -354,7 +354,10 @@ function toast(t){var e=$('toast');e.textContent=t;e.classList.add('on');clearTi
 function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
 function money(n){n=Math.round(Number(n)||0);return '$'+n.toLocaleString('en-US');}
 function initials(nm){nm=(nm||'').trim();if(!nm)return '?';var p=nm.split(/\s+/);return ((p[0]||'')[0]||'')+((p[1]||'')[0]||'');}
-function api(p){return fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)}).then(function(r){return r.json();});}
+/* Every pfr-api call carries the Ops session when in the Ops view — opening a client (pfr_get)
+   and deleting one used to go without it, so Operations could see a client card but not open it. */
+function opsTok(){try{return (window.tsfgOps?tsfgOps.token():'')||'';}catch(e){return '';}}
+function api(p){if(OPS&&opsTok()&&!p.token)p.token=opsTok();return fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)}).then(function(r){return r.json();});}
 var AVCOL=['#5b6cff','#34c759','#ff9f0a','#af52de','#ff2d55','#0a84ff','#c99a2e','#30b0c7'];
 function avColor(s){var h=0;s=s||'';for(var i=0;i<s.length;i++)h=s.charCodeAt(i)+((h<<5)-h);return AVCOL[Math.abs(h)%AVCOL.length];}
 
@@ -380,14 +383,25 @@ function signOut(){try{if(window.tsfgSession)tsfgSession.clear();}catch(e){}try{
 /* ===== auth ===== */
 (function(){
   try{CODE=localStorage.getItem('tsfg_code');NAME=localStorage.getItem('tsfg_name')||'';}catch(e){}
-  if(!CODE){location.href='index.html';return;}
-  CODE=CODE.toUpperCase();
 /* This granted itself Operations rights from a localStorage flag anyone could
    set. The flag still selects the Ops VIEW, but the authority behind the calls
    is now a signed-in session. */
-function opsTok(){try{return (window.tsfgOps?tsfgOps.token():'')||'';}catch(e){return '';}}
-  try{OPS=(localStorage.getItem('tsfg_ops')==='1');}catch(e){}
+  /* OPERATIONS OPENS EVERY CLIENT'S REVIEW (2026-10-26). The Ops view used to switch on only when
+     tsfg_ops was the string '1', a value the Ops portal stopped writing long ago (it stores the seat
+     as JSON now), so Ops never got its view; and an Ops seat with no broker code was sent straight
+     back to Home. A live Operations session is now what turns the view on, and an Ops-only sign-in
+     works on the seat it holds. pfr-api still checks that token on every call. */
+  var OT=opsTok();
+  if(OT&&!CODE){OPS=true;
+    try{CODE=localStorage.getItem('tsfg_ops_seat')||'';var oj=JSON.parse(localStorage.getItem('tsfg_ops')||'null');NAME=(oj&&oj.name)||NAME||'Operations';}catch(e){}
+  }
+  if(!CODE){location.href='index.html';return;}
+  CODE=CODE.toUpperCase();
   if(OPS&&window.tsfgOps)tsfgOps.ensure();
+  /* Someone with BOTH a broker code and an Ops session (the platform builder) gets the Ops view
+     only once the session proves live — a stale token left in the browser must never put a PIN
+     sheet in front of an agent who came here to work on their own clients. */
+  else if(OT&&window.tsfgOps)tsfgOps.check().then(function(c){if(c&&c.ok){OPS=true;loadPFRs();}}).catch(function(){});
   buildSide();loadPFRs();
   fetch('https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/hub-api?action=hub_profile&code='+encodeURIComponent(CODE)).then(function(r){return r.json();}).then(function(r){var pf=(r&&r.profile)||{};AGENT={name:pf.name||NAME,email:pf.email||'',phone:pf.phone||'',cal:pf.cal_link||''};}).catch(function(){AGENT={name:NAME};});
 })();
@@ -428,7 +442,7 @@ function pfrNoteCount(x){return pfrNotesArr(x).length;}
 function renderGallery(){
   paintPrivBtn();
   var q=($('gq').value||'').toLowerCase();
-  var list=PFRS.filter(function(x){return !q||((x.client_name||'').toLowerCase().indexOf(q)>=0)||(pfrNotesText(x).indexOf(q)>=0);});
+  var list=PFRS.filter(function(x){return !q||((x.client_name||'').toLowerCase().indexOf(q)>=0)||(pfrNotesText(x).indexOf(q)>=0)||(OPS&&(x.agent_name||'').toLowerCase().indexOf(q)>=0);});
   if(!list.length){
     $('cards').innerHTML='<div class="empty" style="grid-column:1/-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 12h6M9 16h6M9 8h6"/><rect x="4" y="3" width="16" height="18" rx="2.5"/></svg><div style="font-weight:700;color:var(--ink2);font-size:16px">No reviews yet</div><div style="margin-top:6px">Click <b>New PFR</b> to build your first Personal Financial Review.</div></div>';
     return;
@@ -446,7 +460,7 @@ function renderGallery(){
         '<button onclick="openPFR(\''+x.id+'\')">Open / Edit</button>'+
         '<button class="del" onclick="delPFR(\''+x.id+'\')">Delete</button>'+
       '</div>'+
-      '<div class="ch"><div class="cav" style="background:'+col+'">'+esc(initials(nm)).toUpperCase()+'</div><div><div class="cn">'+esc(nm)+'</div><div class="cp">'+esc(x.client_phone||'')+'</div></div></div>'+
+      '<div class="ch"><div class="cav" style="background:'+col+'">'+esc(initials(nm)).toUpperCase()+'</div><div><div class="cn">'+esc(nm)+'</div><div class="cp">'+esc(x.client_phone||'')+'</div>'+(OPS&&x.agent_name?'<div class="cp">Agent: '+esc(x.agent_name)+'</div>':'')+'</div></div>'+
       '<div class="cneed">'+money(x.insurable_need)+'</div><div class="cl">Insurable Need</div>'+
       (done?'<button class="viewsum" onclick="event.stopPropagation();openPFR(\''+x.id+'\',true)">📄 View Summary →</button>':'')+
       '<div class="cfoot"><span>Updated '+fmtDate(x.updated_at)+(pfrNoteCount(x)?(' · 🔒 '+pfrNoteCount(x)+' note'+(pfrNoteCount(x)>1?'s':'')):'')+'</span><span class="badge '+st+'">'+st+'</span></div>'+
@@ -519,7 +533,7 @@ var STEPS=['welcome','household','coverage','import','vision','income','lifestyl
 function startNew(){CUR={id:null,data:blank(),status:'draft'};STEP=0;openFlow();}
 function openPFR(id,toReport){togglePop&&document.querySelectorAll('.pop').forEach(function(x){x.classList.add('hide');});
   api({action:'pfr_get',id:id}).then(function(r){var p=r&&r.pfr;if(!p){toast('Could not load');return;}
-    CUR={id:p.id,data:Object.assign(blank(),p.data||{}),status:p.status||'draft'};
+    CUR={id:p.id,agent_code:p.agent_code||'',data:Object.assign(blank(),p.data||{}),status:p.status||'draft'};
     // deep-merge nested defaults
     var b=blank();for(var k in b){if(typeof b[k]==='object'&&!Array.isArray(b[k])){CUR.data[k]=Object.assign({},b[k],CUR.data[k]||{});}}
     if(toReport){showSummary();}else{STEP=0;openFlow();}
@@ -569,7 +583,7 @@ function renderNotesList(){
 }
 function addNote(){
   var el=$('nnew'); if(!el)return; var t=(el.value||'').trim(); if(!t)return;
-  pnotes().push({t:t, a:(AGENT&&AGENT.name)||NAME||'Producer', ts:new Date().toISOString()});
+  pnotes().push({t:t, a:OPS?((NAME||'Operations')+' · Operations'):((AGENT&&AGENT.name)||NAME||'Producer'), ts:new Date().toISOString()});
   el.value=''; renderNotesList(); refreshNoteBadge(); clearTimeout(saveTimer); saveNow(); toast('Note added ✓');
 }
 function delNote(i){ var arr=pnotes(); if(i<0||i>=arr.length)return; if(!confirm('Delete this note?'))return; arr.splice(i,1); renderNotesList(); refreshNoteBadge(); clearTimeout(saveTimer); saveNow(); }
@@ -582,9 +596,9 @@ function saveNow(silent){
     var _s=buildStrategy(c,_sd);
     if(_s&&_s.recs&&_s.recs[0]){p.recommended_carrier=_s.recs[0].carrier||'';p.recommended_product=_s.recs[0].label||'';p.recommended_strategy=_s.headline||'';}
   }catch(e){}
-  if(OPS&&opsTok())p.token=opsTok();
+  if(OPS&&opsTok()){p.token=opsTok();/* Ops editing someone else's client keeps that agent's name on it */if(CUR.id&&CUR.agent_code&&String(CUR.agent_code).toUpperCase()!==CODE)delete p.agent_name;}
   setSaveLbl('Saving…','');
-  api(p).then(function(r){if(r&&r.pfr&&r.pfr.id){CUR.id=r.pfr.id;}
+  api(p).then(function(r){if(!r||!r.ok){setSaveLbl((r&&r.error)||'Save failed — retry','dirty');if(!silent)toast((r&&r.error)||'Could not save');return;}if(r.pfr&&r.pfr.id){CUR.id=r.pfr.id;}
     var t=new Date().toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
     setSaveLbl('Saved ✓ · '+t,'saved');
   }).catch(function(){setSaveLbl('Save failed — retry','dirty');});

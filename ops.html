@@ -2425,9 +2425,12 @@ function openArchived(){
   });
 }
 function reactivate(code){api(auth({action:'set_status',code:code,status:'active'})).then(function(r){if(!r||!r.ok){toast((r&&r.error)||'Could not reactivate');return;}toast('Reactivated '+(r.name||code));openArchived();loadTracker();});}
+/* Notes carry the Ops session like every other tracker write (2026-10-26). These two calls were
+   the last ones sending only a typed by_code, which ops-directory stopped trusting on 15 Oct, so
+   Operations could read an agent's notes but every new one was refused. */
 function addNote(code){
   var ta=$('noteInput');var text=(ta.value||'').trim();if(!text){toast('Write a note first');return;}
-  api({action:'add_note',by_code:OPS.code,by_name:OPS.name,code:code,text:text}).then(function(r){
+  api(auth({action:'add_note',by_name:OPS.name,code:code,text:text})).then(function(r){
     if(!r||!r.ok){toast((r&&r.error)||'Could not add note');return;}
     ta.value='';if(CUR)CUR.notes=r.notes;$('notesList').innerHTML=notesHtml(r.notes||[]);toast('Note added ✓');
   }).catch(function(){toast('Network error');});
@@ -2435,7 +2438,7 @@ function addNote(code){
 function requestEdit(code){
   var field=prompt('Which field needs updating? (e.g. State, License type, Phone)');if(field===null)return;
   var note=prompt('What should it be changed to / what’s the request?');if(note===null)return;
-  api({action:'edit_request',by_code:OPS.code,by_name:OPS.name,code:code,field:field,note:note}).then(function(r){if(!r||!r.ok){toast((r&&r.error)||'Could not send');return;}toast('Edit request sent to Operations ✓');});
+  api(auth({action:'edit_request',by_name:OPS.name,code:code,field:field,note:note})).then(function(r){if(!r||!r.ok){toast((r&&r.error)||'Could not send');return;}toast('Edit request sent to Operations ✓');});
 }
 
 /* ---- requests queue (ops) ---- */
