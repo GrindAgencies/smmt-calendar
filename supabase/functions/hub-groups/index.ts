@@ -1,3 +1,12 @@
+// hub-groups v6 (2026-10-26) — members of a created group can be viewed and managed after
+//   creation (brief §5: "Authorized group admins can later ... manage members under existing
+//   rules"). Before this a private group was frozen with whoever was ticked on day one.
+//   · members         any member may see who is in the group.
+//   · member_add      owner / this group's admin. An agent admin may only add people inside
+//     member_remove   their own agent_scope() - the same rule the people picker (hub-roster)
+//                     uses - so the server, not the picker, keeps a group inside its shop.
+//   The creator is always a member and cannot be removed. Built-in channels have no member
+//   list (their access is rank/baseshop based) and are refused.
 // hub-groups v5 (2026-10-26) — a group can carry a short description (brief §5: "Save the
 //   optional description with the group; do not draw a field that discards its content").
 //   Same editors as the name and photo: the group's creator, its designated admins, owners.
@@ -156,6 +165,28 @@ const okChannel = (s: unknown) => {
   return v.length > 0 && v.length <= 120 && /^[A-Za-z0-9_.-]+$/.test(v);   // groups only, never dm:
 };
 
+async function channelRegistry(): Promise<any> {
+  const rows = await getJSON(`app_settings?key=eq.hub_channels&select=value`);
+  const v = (rows[0] && rows[0].value) || { channels: [] };
+  if (!Array.isArray(v.channels)) v.channels = [];
+  return v;
+}
+async function saveRegistry(v: any) {
+  const r = await fetch(`${SUPA}/rest/v1/app_settings?on_conflict=key`, {
+    method: "POST", headers: { ...DBH, Prefer: "resolution=merge-duplicates,return=minimal" },
+    body: JSON.stringify({ key: "hub_channels", value: v, updated_at: new Date().toISOString() }),
+  });
+  return r.ok;
+}
+async function peopleByCode(codes: string[]) {
+  const list = codes.map(norm).filter((c) => /^[A-Z0-9]{2,12}$/.test(c));
+  if (!list.length) return {} as Record<string, any>;
+  const rows = await getJSON(`tracker_agents?code=in.(${enc(list.join(","))})&select=code,first_name,last_name,baseshop,status`);
+  const out: Record<string, any> = {};
+  for (const a of rows) out[norm(a.code)] = { code: norm(a.code), name: `${a.first_name || ""} ${a.last_name || ""}`.trim() || norm(a.code), baseshop: a.baseshop || "", status: a.status || "active" };
+  return out;
+}
+
 async function nameOf(code: string) {
   const a = (await getJSON(`tracker_agents?code=eq.${enc(code)}&select=first_name,last_name`))[0];
   return a ? `${a.first_name || ""} ${a.last_name || ""}`.trim() : code;
@@ -293,6 +324,50 @@ Deno.serve(async (req) => {
     if (!r.ok) return json({ ok: false, error: "Could not save that." }, 500);
     const saved = (await r.json())[0] || {};
     return json({ ok: true, channel, name: saved.name || null, avatar: saved.avatar || null, description: saved.description || null });
+  }
+
+  /* ---------------------------------------------------------------- members ---- */
+  if (action === "members" || action === "member_add" || action === "member_remove") {
+    if (channel.indexOf("c_") !== 0) return json({ ok: false, error: "This channel's membership comes from rank and baseshop, not a list." }, 400);
+    const reg = await channelRegistry();
+    const ch = reg.channels.find((x: any) => String(x && x.id) === channel);
+    if (!ch) return json({ ok: false, error: "That group no longer exists." }, 404);
+    const creator = norm(ch.byCode);
+    const cur: string[] = Array.isArray(ch.members) ? ch.members.map(norm).filter(Boolean) : [];
+    if (creator && cur.indexOf(creator) < 0) cur.push(creator);
+
+    if (action === "members") {
+      if (!member) return json({ ok: false, error: "You are not in that group." }, 403);
+      const ppl = await peopleByCode(cur);
+      const list = cur.map((c) => ppl[c] || { code: c, name: c, baseshop: "" })
+        .sort((a: any, b: any) => (a.code === creator ? -1 : b.code === creator ? 1 : String(a.name).localeCompare(String(b.name))));
+      return json({ ok: true, channel, private: !!ch.private, creator, members: list, count: list.length, can_manage: owner || admin });
+    }
+
+    if (!(owner || admin)) return json({ ok: false, error: "Only this group's admin can change its members." }, 403);
+    const asked = (Array.isArray(body.who) ? body.who : [body.who]).map(norm).filter(Boolean).slice(0, 50);
+    if (!asked.length) return json({ ok: false, error: "Which account?" }, 400);
+
+    if (action === "member_remove") {
+      if (asked.indexOf(creator) >= 0) return json({ ok: false, error: "The person who created the group stays in it." }, 400);
+      ch.members = cur.filter((c) => asked.indexOf(c) < 0);
+    } else {
+      const ppl = await peopleByCode(asked);
+      const missing = asked.filter((c) => !ppl[c] || low(ppl[c].status) === "quit");
+      if (missing.length) return json({ ok: false, error: `Not an active account: ${missing.join(", ")}` }, 400);
+      /* An owner or the Ops master may add anyone. A group admin only inside their own scope. */
+      if (!owner && !me.startsWith("OPS:")) {
+        const sc = await rpc("agent_scope", { p_code: me });
+        const all = !!(sc && sc.ok === true && sc.all);
+        const bases = (sc && Array.isArray(sc.bases)) ? sc.bases.map(norm) : [];
+        const outside = all ? [] : asked.filter((c) => bases.indexOf(norm(ppl[c].baseshop)) < 0);
+        if (outside.length) return json({ ok: false, error: `Outside your baseshop: ${outside.map((c) => ppl[c].name).join(", ")}` }, 403);
+      }
+      const next = cur.slice(); for (const c of asked) if (next.indexOf(c) < 0) next.push(c);
+      ch.members = next;
+    }
+    if (!(await saveRegistry(reg))) return json({ ok: false, error: "Could not save that." }, 500);
+    return json({ ok: true, channel, members: ch.members, count: ch.members.length });
   }
 
   /* ------------------------------------------------------- designate / revoke ---- */

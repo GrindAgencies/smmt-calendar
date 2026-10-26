@@ -1157,8 +1157,76 @@ function openGroupDetails(){
   gdApi({action:'get', channel:CHAN}).then(function(r){
     if(!r || !r.ok){ ov.innerHTML='<div class="gd"><p class="note">'+esc((r&&r.error)||'Could not load this group.')+'</p></div>'; return; }
     GD=r; GROUPMETA[CHAN]=Object.assign(GROUPMETA[CHAN]||{}, {name:r.name, avatar:r.avatar});
+    GDM=null; GDADD=false;
     paintGroupDetails();
+    loadGroupMembers();
     renderHead(); renderRooms();
+  });
+}
+/* Members of a created group (hub-groups v6). Built-in channels take their audience from rank
+   and baseshop, so they have no list here. */
+var GDM=null, GDADD=false;
+function loadGroupMembers(){
+  if(String(CHAN).indexOf('c_')!==0) return;
+  var ch=CHAN;
+  gdApi({action:'members', channel:ch}).then(function(r){
+    if(ch!==CHAN) return;
+    GDM=(r&&r.ok)?r:{ok:false,error:(r&&r.error)||'Could not load members.'};
+    paintGroupDetails();
+  });
+}
+function groupMembersHtml(){
+  if(String(CHAN).indexOf('c_')!==0) return '';
+  var h='<label style="margin-top:18px">Members'+(GDM&&GDM.ok?(' \u00b7 '+GDM.count):'')+'</label>';
+  if(!GDM) return h+'<p class="note" style="margin-top:2px">Loading\u2026</p>';
+  if(!GDM.ok) return h+'<p class="note" style="margin-top:2px">'+esc(GDM.error)+'</p>';
+  h+=GDM.members.map(function(m){
+    var isCreator=m.code===GDM.creator;
+    return '<div class="grow"><div class="n">'+esc(m.name)+(m.code===CODE?' (you)':'')+'<span>'+esc(m.code)+(isCreator?' \u00b7 created the group':'')+'</span></div>'+
+      (GDM.can_manage&&!isCreator?('<button class="gbtn" onclick="removeGroupMember(\''+esc(m.code)+'\')">Remove</button>'):'')+'</div>';
+  }).join('');
+  if(GDM.can_manage){
+    if(!GDADD){
+      h+='<div style="margin-top:10px"><button class="gbtn go" onclick="GDADD=true;paintGroupDetails();setTimeout(function(){var q=document.getElementById(\'gdAddQ\');if(q)q.focus();},60)">Add people</button></div>';
+    } else {
+      h+='<input type="search" id="gdAddQ" class="ngsearch" style="margin-top:10px" placeholder="Search team members\u2026" oninput="paintAddList()" autocomplete="off">'+
+         '<div id="gdAddList" class="gd-add"></div>'+
+         '<div style="margin-top:8px"><button class="gbtn" onclick="GDADD=false;paintGroupDetails()">Done</button></div>';
+    }
+  }
+  if(GDM.private===false) h+='<p class="note">This group is open: everyone on the team can read it. Members are the people it is for.</p>';
+  return h;
+}
+function paintAddList(){
+  var host=document.getElementById('gdAddList'); if(!host||!GDM) return;
+  var q=((document.getElementById('gdAddQ')||{}).value||'').trim().toLowerCase();
+  var have={}; (GDM.members||[]).forEach(function(m){ have[m.code]=1; });
+  if(!(ROSTER||[]).length){ host.innerHTML='<p class="note">Loading your team\u2026</p>'; hroster().then(function(r){ ROSTER=(r&&r.members)||[]; paintAddList(); }); return; }
+  var seen={}, list=(ROSTER||[]).filter(function(m){
+    var c=String(m.code||'').toUpperCase();
+    if(!c||have[c]||c==='KYLE'||seen[c]) return false; seen[c]=1;
+    return !q || (String(m.name||'')+' '+c).toLowerCase().indexOf(q)>=0;
+  }).sort(function(a,b){ return String(a.name||'').localeCompare(String(b.name||'')); }).slice(0,60);
+  host.innerHTML = list.length ? list.map(function(m){
+    var c=String(m.code).toUpperCase();
+    return '<div class="grow"><div class="n">'+esc(m.name||c)+'<span>'+esc(c)+'</span></div><button class="gbtn go" onclick="addGroupMember(\''+esc(c)+'\',this)">Add</button></div>';
+  }).join('') : '<p class="note">'+(q?'Nobody matches that.':'Everyone on your team is already in this group.')+'</p>';
+}
+function addGroupMember(code,btn){
+  if(btn){ btn.disabled=true; btn.textContent='Adding\u2026'; }
+  gdApi({action:'member_add', channel:CHAN, who:[code]}).then(function(r){
+    if(!r||!r.ok){ toast((r&&r.error)||'Could not add them'); if(btn){btn.disabled=false;btn.textContent='Add';} return; }
+    toast('Added'); var keep=((document.getElementById('gdAddQ')||{}).value||'');
+    gdApi({action:'members', channel:CHAN}).then(function(m){ if(m&&m.ok)GDM=m; paintGroupDetails();
+      var q=document.getElementById('gdAddQ'); if(q){ q.value=keep; paintAddList(); } });
+  });
+}
+function removeGroupMember(code){
+  var m=(GDM&&GDM.members||[]).filter(function(x){return x.code===code;})[0];
+  if(!confirm('Remove '+((m&&m.name)||code)+' from this group?')) return;
+  gdApi({action:'member_remove', channel:CHAN, who:[code]}).then(function(r){
+    if(!r||!r.ok){ toast((r&&r.error)||'Could not remove them'); return; }
+    toast('Removed'); loadGroupMembers();
   });
 }
 function closeGroupDetails(){ var o=document.getElementById('gdOv'); if(o) o.classList.remove('on'); }
@@ -1188,6 +1256,7 @@ function paintGroupDetails(){
     h+='<p class="note">Only this group\u2019s admin can change its name or photo.</p>';
   }
 
+  h+=groupMembersHtml();
   h+='<label style="margin-top:18px">Chat admins</label>';
   if(!(GD.admins||[]).length){
     h+='<p class="note" style="margin-top:2px">Nobody has been designated for this group yet.</p>';
@@ -2379,6 +2448,8 @@ body.phone.chat-open .top .tic.chan-toggle{
 .gd .grow:last-child{ border-bottom:0; }
 .gd .grow .n{ flex:1 1 auto; min-width:0; font-size:14px; }
 .gd .grow .n span{ display:block; font-size:11.5px; color:var(--ink3); }
+.gd .gd-add{ max-height:240px; overflow-y:auto; margin-top:6px; }
+.gd .ngsearch{ font-size:15px; padding:10px 12px; }
 .gd .note{ font-size:12px; color:var(--ink3); line-height:1.5; margin:10px 2px 0; }
 
 /* ---------- attachments (task 8) ---------- */
