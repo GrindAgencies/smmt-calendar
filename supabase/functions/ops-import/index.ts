@@ -1,4 +1,4 @@
-// ops-import v4 (2026-10-21) — bring an Operations person's existing Google Sheet onto their own board.
+// ops-import v5 (2026-10-26; v4 2026-10-21) — bring an Operations person's existing Google Sheet onto their own board.
 //
 // v4: A TYPED SEAT CODE IS NOT A CREDENTIAL. seatOf() took a four-digit string straight out of the
 // request and asked only "is this a row in ops_accounts?" — so `{"code":"0002"}` was a full
@@ -61,7 +61,7 @@ async function rpc(fn: string, args: Record<string, unknown>) {
     return await r.json();
   } catch (_) { return null; }
 }
-async function seatOf(token: unknown): Promise<{ ok: boolean; seat: string | null; name: string; bases: string[] }> {
+async function seatOf(token: unknown, want?: unknown): Promise<{ ok: boolean; seat: string | null; name: string; bases: string[] }> {
   const t = String(token ?? "").trim();
   if (!t) return { ok: false, seat: null, name: "", bases: [] };
   const az = await rpc("ops_authorize", { p_token: t });
@@ -69,13 +69,19 @@ async function seatOf(token: unknown): Promise<{ ok: boolean; seat: string | nul
   const c = String(az.code ?? "").trim();
   /* A seat's private board is keyed by its four-digit code. A master seat, and anything that
      is not a four-digit seat, works the shared board — same rule as ops-newbiz seatOf(). */
-  const seat = (!az.master && /^\d{4}$/.test(c)) ? c : null;
+  let seat = (!az.master && /^\d{4}$/.test(c)) ? c : null;
+  /* v5 (2026-10-26): the master seat may import onto a named seat's board, matching ops-newbiz
+     v13's board_seat, so an import lands on the board the master is actually looking at. */
+  const w = String(want ?? "").trim();
+  if (az.master && /^\d{4}$/.test(w) && w !== "0000") seat = w;
   let bases: string[] = [];
+  let label = String(az.label || "Operations");
   if (seat) {
-    const row = (await getJSON(`ops_accounts?code=eq.${enc(seat)}&select=bases&limit=1`))[0];
+    const row = (await getJSON(`ops_accounts?code=eq.${enc(seat)}&select=bases,label&limit=1`))[0];
     bases = (row && Array.isArray(row.bases)) ? row.bases.map(String) : [];
+    if (az.master && row && row.label) label = String(row.label);
   }
-  return { ok: true, seat, name: String(az.label || "Operations"), bases };
+  return { ok: true, seat, name: label, bases };
 }
 
 /* ---------- Google Sheets ---------- */
@@ -166,7 +172,7 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({})) as Record<string, unknown>;
     const action = clean(body.action, 20) || "preview";
-    const who = await seatOf(body.token);
+    const who = await seatOf(body.token, body.board_seat);
     /* Deliberately NOT needs_session: that flag throws the person out to the AGENT sign-in
        screen, which is the wrong place for an Operations seat whose token simply ran out. */
     if (!who.ok) return json({ ok: false, error: "Sign in to Operations again to import a sheet." }, 401);

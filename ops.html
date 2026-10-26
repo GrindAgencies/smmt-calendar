@@ -1129,7 +1129,12 @@ var NB="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/ops-newbiz";
 var NBFEED="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/ops-nbfeed";
 var IMPORT_URL="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/ops-import";
 var NBT=[],NBCOLS=[],NBEDIT=false,NBSORT={k:'client_name',dir:1},NBCUR=null,NBCOLDRAFT=[],NBBOARD='newbiz',NBARCH=false,NBARCHCOUNT=0,NBIFCOUNT=0,NBLIVE=false;
-function nbApi(body){var b=body||{};b.board=NBBOARD;if(OPS&&OPS.role==='ops'&&opsTok())b.token=opsTok();if(OPS){b.by_code=OPS.code;b.by_name=OPS.name;}return fetch(NBLIVE?NBFEED:NB,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();});}
+/* Which seat's private board the MASTER seat is reading ('' = the shared board). Baseshop seats
+   keep their own boards; until 2026-10-26 the master could never open them. */
+var NBSEAT='';
+function nbSeatPick(v){NBSEAT=v||'';renderNewbiz();}
+function nbSeatSel(){if(BSSCOPE||!OPS||OPS.role!=='ops'||NBLIVE)return '';var seats=[['','Shared board'],['0001','SMMT seat'],['0002','TITANS seat'],['0003','SCAPED seat'],['0004','ELEVATE seat'],['0005','GRIND seat']];return '<select onchange="nbSeatPick(this.value)" title="Open a baseshop seat\'s own board" style="padding:6px 10px;font-size:12.5px;border-radius:10px;border:1px solid var(--line2);background:var(--panel);color:var(--ink);font-weight:700">'+seats.map(function(x){return '<option value="'+x[0]+'"'+(NBSEAT===x[0]?' selected':'')+'>'+x[1]+'</option>';}).join('')+'</select>';}
+function nbApi(body){var b=body||{};b.board=NBBOARD;if(!NBLIVE&&NBSEAT)b.board_seat=NBSEAT;if(OPS&&OPS.role==='ops'&&opsTok())b.token=opsTok();if(OPS){b.by_code=OPS.code;b.by_name=OPS.name;}return fetch(NBLIVE?NBFEED:NB,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();});}
 function nbVal(t,k){return (t.data&&t.data[k]!=null)?t.data[k]:'';}
 function nbFmtMoney(v){v=(v==null?'':String(v)).trim();if(!v)return '';var num=v.replace(/[$,\s]/g,'');if(num!==''&&!isNaN(Number(num)))return '$'+Number(num).toLocaleString('en-US');return v;}
 function nbDash(){return '<span style="color:var(--line2)">—</span>';}
@@ -1388,7 +1393,7 @@ function paintNewbiz(){var host=$('newbizHost');if(!host)return;var rows=nbFilte
      before a big import -- not column by column. */
   var nlk=nbLockCount();
   var lockBtn=NBEDIT?('<button class="dbtn ghost" style="padding:6px 12px;font-size:12.5px'+(nlk?';border-color:var(--gold);color:var(--gold);font-weight:800':'')+'" onclick="nbLockAll('+(nlk?'false':'true')+')" title="'+(nlk?'Unlock every column':'Lock every column so nothing can be changed by accident — use this while importing')+'">'+(nlk?('🔒 '+nlk+' locked — unlock all'):'🔓 Lock columns')+'</button>'):'';
-  var toolbar=NBLIVE?('<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span style="font-size:12px;color:var(--green);font-weight:800">🔄 Live · two-way synced with agents</span>'+ifBtn+liveArchBtn+copyAllBtn+lockBtn+(NBEDIT?'<button class="dbtn ghost" style="padding:6px 12px;font-size:12.5px" onclick="openNbCols()">⚙ Reorder columns</button>':'')+'</div>'):(NBEDIT?('<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="dbtn ghost" style="padding:6px 12px;font-size:12.5px" onclick="openSheetImport()" title="Bring your existing Google Sheet onto this board">📥 Import from Google Sheets</button><button class="dbtn ghost" style="padding:6px 12px;font-size:12.5px'+(NBARCH?';border-color:var(--gold);color:var(--gold)':'')+'" onclick="nbToggleArch()">🗄 '+(NBARCH?'Viewing archive — back to active':'Archived ('+NBARCHCOUNT+')')+'</button><button class="dbtn ghost" style="padding:6px 12px;font-size:12.5px" onclick="openNbCols()">⚙ Edit columns</button>'+lockBtn+'</div>'):'');
+  var toolbar=NBLIVE?('<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span style="font-size:12px;color:var(--green);font-weight:800">🔄 Live · two-way synced with agents</span>'+ifBtn+liveArchBtn+copyAllBtn+lockBtn+(NBEDIT?'<button class="dbtn ghost" style="padding:6px 12px;font-size:12.5px" onclick="openNbCols()">⚙ Reorder columns</button>':'')+'</div>'):(NBEDIT?('<div style="display:flex;gap:8px;flex-wrap:wrap">'+nbSeatSel()+'<button class="dbtn ghost" style="padding:6px 12px;font-size:12.5px" onclick="openSheetImport()" title="Bring your existing Google Sheet onto this board">📥 Import from Google Sheets</button><button class="dbtn ghost" style="padding:6px 12px;font-size:12.5px'+(NBARCH?';border-color:var(--gold);color:var(--gold)':'')+'" onclick="nbToggleArch()">🗄 '+(NBARCH?'Viewing archive — back to active':'Archived ('+NBARCHCOUNT+')')+'</button><button class="dbtn ghost" style="padding:6px 12px;font-size:12.5px" onclick="openNbCols()">⚙ Edit columns</button>'+lockBtn+'</div>'):'');
   host.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin:0 0 10px;flex-wrap:wrap"><div style="font-size:12.5px;color:var(--ink3,#8e8e93)">'+rows.length+' '+(NBARCH?'archived ':'')+(rows.length===1?noun:nouns)+stateLegend(rows)+' · click the first cell to open '+(NBLIVE?'notes &amp; history':(NBBOARD==='gfi'?'the ticket &amp; update history':'notes'))+(NBEDIT&&!NBARCH?(NBLIVE?' · every field edits inline &amp; syncs to the agent side (Writing Agent &amp; Baseshop are derived)':' · cells edit inline'):'')+'</div>'+toolbar+'</div>'+
     '<div class="tablewrap" style="overflow-x:auto"><table class="ptable" style="min-width:1200px"><thead><tr>'+head+'</tr></thead><tbody>'+body+'</tbody></table></div>';}
 function nbSet(id,field,val){nbApi({action:'nb_update',id:id,field:field,value:val}).then(function(r){if(!r||!r.ok){toast((r&&r.error)||'Save failed');return;}var t=NBT.filter(function(x){return x.id===id;})[0];if(t){t.data=t.data||{};t.data[field]=val;}if(r.moved){NBT=NBT.filter(function(x){return x.id!==id;});closeDrawer();if(r.moved==='inforce'){NBIFCOUNT++;toast('🟢 In force — still tracked, now on the In Force tab');}else{NBARCHCOUNT++;toast('🗄 Closed — moved to Archived');}paintNewbiz();return;}paintNewbiz();if(field!=='_color')toast('Saved ✓');});}
@@ -1400,7 +1405,7 @@ function openTicket(id){var t=NBT.filter(function(x){return x.id===id;})[0];if(!
   var frows='';for(var i=0;i<fs.length;i+=2){frows+='<div class="frow">'+fs[i]+(fs[i+1]||'')+'</div>';}
   var rowcolor=NBEDIT?('<div class="fg" style="margin-top:2px"><label>Row highlight color</label><div style="display:flex;align-items:center;gap:10px"><input type="color" value="'+((t.data&&t.data._color)||'#ffffff')+'" oninput="nbSet(\''+id+'\',\'_color\',this.value)" style="width:46px;height:32px;border:1px solid var(--line);border-radius:8px;cursor:pointer;padding:2px"><span onclick="nbSet(\''+id+'\',\'_color\',\'\')" style="cursor:pointer;color:var(--ink3);font-size:13px">Clear</span></div></div>'):'';
   var notes=(t.notes||[]).map(function(n){var mine=OPS&&n.by_code&&String(n.by_code).toUpperCase()===String(OPS.code).toUpperCase();var canDel=NBEDIT||mine;
-    return '<div style="border-left:3px solid var(--gold);background:var(--panel2,#fbfbfd);border-radius:0 10px 10px 0;padding:9px 12px;margin-bottom:8px"><div style="font-size:11px;color:var(--ink3,#8e8e93);margin-bottom:3px">'+esc(n.by_name||'')+' · '+esc(fmtTs(n.ts)||'')+(n.edited_at?' · edited':'')+(canDel?(' · <span style="cursor:pointer;color:var(--red)" onclick="nbDelNote(\''+id+'\',\''+n.id+'\')">delete</span>'):'')+'</div><div style="font-size:13px;white-space:pre-wrap;line-height:1.45">'+esc(n.text)+'</div></div>';}).join('')||'<div class="sub">No notes yet.</div>';
+    return '<div style="border-left:3px solid var(--gold);background:var(--panel2,#fbfbfd);border-radius:0 10px 10px 0;padding:9px 12px;margin-bottom:8px"><div style="font-size:11px;color:var(--ink3,#8e8e93);margin-bottom:3px">'+esc(n.by_name||'')+' · '+esc(fmtTs(n.ts)||'')+(n.edited_at?' · edited':'')+(canDel?(' · <span style="cursor:pointer;color:var(--blue,#0a84ff)" onclick="nbEditNote(\''+id+'\',\''+n.id+'\')">edit</span> · <span style="cursor:pointer;color:var(--red)" onclick="nbDelNote(\''+id+'\',\''+n.id+'\')">delete</span>'):'')+'</div><div id="nbn_'+n.id+'" style="font-size:13px;white-space:pre-wrap;line-height:1.45">'+esc(n.text)+'</div></div>';}).join('')||'<div class="sub">No notes yet.</div>';
   var title=nbVal(t,'client_name')||(NBBOARD==='gfi'?'Ticket':'Record');
   var sub=(NBLIVE?'Live policy · Ops tracking & notes':(NBBOARD==='gfi'?'GFI ticket · full update history':'New Business record'));
   var foot='';
@@ -1415,6 +1420,13 @@ function nbArchive(id){nbApi({action:'nb_archive',id:id}).then(function(r){if(!r
 function nbUnarchive(id){nbApi({action:'nb_unarchive',id:id}).then(function(r){if(!r||!r.ok){toast((r&&r.error)||'Failed');return;}toast('Reactivated');closeDrawer();renderNewbiz();});}
 function nbAddNote(id){var el=$('tk_note');var text=(el&&el.value||'').trim();if(!text){toast('Write a note first');return;}
   nbApi({action:'nb_note',id:id,text:text}).then(function(r){if(!r||!r.ok){toast((r&&r.error)||'Failed');return;}var t=NBT.filter(function(x){return x.id===id;})[0];if(t)t.notes=r.notes;openTicket(id);paintNewbiz();});}
+/* Edit a note in place (2026-10-26). Both boards' servers accept nb_note_edit; the drawer simply
+   never offered it, so fixing a typo in a client note meant deleting it and losing its time. */
+function nbEditNote(id,nid){var box=$('nbn_'+nid);if(!box||box.querySelector('textarea'))return;var t=NBT.filter(function(x){return x.id===id;})[0];var n=t&&(t.notes||[]).filter(function(x){return x.id===nid;})[0];if(!n)return;
+  box.innerHTML='<textarea id="nbe_'+nid+'" style="width:100%;min-height:60px"></textarea><div style="display:flex;gap:8px;margin-top:6px"><button class="dbtn blue" style="padding:6px 12px;font-size:12.5px" onclick="nbSaveNote(\''+id+'\',\''+nid+'\')">Save</button><button class="dbtn ghost" style="padding:6px 12px;font-size:12.5px" onclick="openTicket(\''+id+'\')">Cancel</button></div>';
+  var ta=$('nbe_'+nid);ta.value=n.text||'';ta.focus();}
+function nbSaveNote(id,nid){var ta=$('nbe_'+nid);var text=(ta&&ta.value||'').trim();if(!text){toast('A note cannot be empty — delete it instead');return;}
+  nbApi({action:'nb_note_edit',id:id,note_id:nid,text:text}).then(function(r){if(!r||!r.ok){toast((r&&r.error)||'Could not save the note');return;}var t=NBT.filter(function(x){return x.id===id;})[0];if(t)t.notes=r.notes;openTicket(id);paintNewbiz();toast('Note updated');});}
 function nbDelNote(id,nid){if(!confirm('Delete this note?'))return;nbApi({action:'nb_note_del',id:id,note_id:nid}).then(function(r){if(!r||!r.ok){toast((r&&r.error)||'Failed');return;}var t=NBT.filter(function(x){return x.id===id;})[0];if(t)t.notes=r.notes;openTicket(id);paintNewbiz();});}
 function nbDel(id){if(!confirm('Delete this record? This cannot be undone.'))return;nbApi({action:'nb_delete',id:id}).then(function(r){if(!r||!r.ok){toast((r&&r.error)||'Failed');return;}NBT=r.tickets||NBT;toast('Record deleted');closeDrawer();paintNewbiz();});}
 function openAddTicket(){
@@ -1993,6 +2005,7 @@ function impApi(b){b=b||{};b.board=NBBOARD;
      takes the seat from the token: a typed four-digit code used to be enough to replace any
      seat's whole board, and there are only six of them. */
   if(opsTok())b.token=opsTok();
+  if(NBSEAT)b.board_seat=NBSEAT;
 
   return fetch(IMPORT_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();}).catch(function(){return{ok:false,error:'Network error'};});}
 function openSheetImport(){
@@ -2189,13 +2202,14 @@ function paintAgent(r){
   if(canEdit()){
     h+='<div class="dsec" style="margin-top:26px;border-top:1px solid var(--line);padding-top:18px">'
       +'<div style="display:flex;align-items:center;gap:10px;margin:0 0 12px"><label style="font-size:12.5px;font-weight:700;color:var(--ink2)">Row highlight</label><input type="color" value="'+((a.custom&&a.custom.__rowcolor)||'#ffffff')+'" onchange="setRowColor(\''+esc(a.code)+'\',this.value)" style="width:44px;height:30px;border:1px solid var(--line);border-radius:8px;cursor:pointer;padding:2px"><span onclick="setRowColor(\''+esc(a.code)+'\',\'\')" style="cursor:pointer;color:var(--ink3);font-size:12.5px">Clear</span></div>'
-      +'<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><button class="dbtn" onclick="saveAgent(\''+esc(a.code)+'\')">Save field changes</button><button class="dbtn ghost" onclick="closeDrawer()">Close</button><button class="dbtn ghost" onclick="resetPin(\''+esc(a.code)+'\')" title="Clear this sign-in PIN so they can choose a new one">🔑 Reset PIN</button><button class="dbtn" style="background:var(--red);margin-left:auto" onclick="removeAgentMenu(\''+esc(a.code)+'\')">Remove agent…</button></div></div>';
+      +'<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><button class="dbtn" onclick="saveAgent(\''+esc(a.code)+'\')">Save field changes</button><button class="dbtn ghost" onclick="closeDrawer()">Close</button><button class="dbtn ghost" onclick="resetPin(\''+esc(a.code)+'\')" title="Clear this sign-in PIN so they can choose a new one">🔑 Reset PIN</button><span id="lockSlot"></span><button class="dbtn" style="background:var(--red);margin-left:auto" onclick="removeAgentMenu(\''+esc(a.code)+'\')">Remove agent…</button></div></div>';
   } else {
     h+='<div class="dsec" style="margin-top:26px;border-top:1px solid var(--line);padding-top:18px"><button class="dbtn blue" onclick="requestEdit(\''+esc(a.code)+'\')">✏️ Request a field edit</button></div>';
   }
   h+='</div>';$('drawer').innerHTML=h;
   makeAgentSectionsCollapsible();
   if(canEdit())opsCashLoad(a.code);
+  if(canEdit())loadLockState(a.code);
   if(canEdit())loadAgentTracker(a.code);
   agTasksLoad(a.code);
 }
@@ -2320,6 +2334,33 @@ function resetPin(code){
    })
    .catch(function(){toast('Could not reach the server.');});
 }
+
+/* ---- Lock / unlock an account (2026-10-26) ---------------------------------
+   Lock stops someone signing in and ends every session they have open, without deleting
+   anything. Unlock lifts it, and also clears a too-many-wrong-PINs lockout while keeping the
+   PIN they already know. Both are recorded with the seat that did it. */
+var PINFN='https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/pin';
+function pinCall(b){b.token=opsTok();return fetch(PINFN,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();}).catch(function(){return {ok:false,error:'Could not reach the server.'};});}
+function loadLockState(code){var slot=$('lockSlot');if(!slot)return;
+  pinCall({action:'lock_state',code:code}).then(function(r){var el=$('lockSlot');if(!el||!r||!r.ok)return;
+    if(r.locked){el.innerHTML='<button class="dbtn" style="background:var(--green,#34c759)" onclick="unlockAgent(\''+esc(code)+'\')" title="Locked'+(r.locked_by?(' by '+esc(r.locked_by)):'')+(r.reason?(' — '+esc(r.reason)):'')+'">🔓 Unlock account</button>';
+      var b=document.querySelector('#drawer .dhd .sub');if(b&&!$('lockBadge'))b.insertAdjacentHTML('beforeend','<span id="lockBadge" style="margin-left:8px;color:var(--red);font-weight:800">🔒 Locked'+(r.reason?(' · '+esc(r.reason)):'')+'</span>');}
+    else if(r.pin_locked){el.innerHTML='<button class="dbtn ghost" onclick="unlockAgent(\''+esc(code)+'\')" title="Too many wrong PINs — let them try again now, keeping their PIN">🔓 Clear PIN lockout</button> <button class="dbtn ghost" onclick="lockAgentMenu(\''+esc(code)+'\')">🔒 Lock account</button>';}
+    else el.innerHTML='<button class="dbtn ghost" onclick="lockAgentMenu(\''+esc(code)+'\')" title="Stop this person signing in, without deleting anything">🔒 Lock account</button>';});}
+function lockAgentMenu(code){var host=$('drawer');var db=host.querySelector('.dbody')||host;var ex=$('lkMenu');if(ex)ex.remove();
+  var box=document.createElement('div');box.id='lkMenu';
+  box.style.cssText='background:var(--panel);border:1px solid var(--line2);border-radius:14px;padding:14px;margin-top:12px;box-shadow:0 6px 24px rgba(0,0,0,.10)';
+  box.innerHTML='<div style="font-weight:800;margin-bottom:2px">Lock '+esc(agName(code))+'’s account?</div><div class="sub" style="margin-bottom:10px">They are signed out everywhere and cannot sign in until you unlock them. Nothing is deleted.</div>'+
+    '<input id="lkReason" placeholder="Reason (optional, Operations only)" style="width:100%;margin-bottom:10px">'+
+    '<div style="display:flex;gap:8px"><button class="dbtn" style="background:var(--red)" onclick="lockAgent(\''+esc(code)+'\')">🔒 Lock account</button><button class="dbtn ghost" onclick="var e=document.getElementById(\'lkMenu\');if(e)e.remove();">Cancel</button></div>';
+  db.appendChild(box);box.scrollIntoView({behavior:'smooth',block:'nearest'});}
+function lockAgent(code){var rs=$('lkReason');pinCall({action:'lock',code:code,reason:rs?rs.value:''}).then(function(r){
+  if(!r||!r.ok){toast((r&&r.error)||'Could not lock that account.');return;}
+  var m=$('lkMenu');if(m)m.remove();toast('Locked — '+code+' is signed out and cannot sign in.');loadLockState(code);});}
+function unlockAgent(code){pinCall({action:'unlock',code:code}).then(function(r){
+  if(!r||!r.ok){toast((r&&r.error)||'Could not unlock that account.');return;}
+  var b=$('lockBadge');if(b)b.remove();
+  toast(r.was_locked?('Unlocked — '+code+' can sign in again.'):(r.pin_lockout_cleared?'PIN lockout cleared — they can try again now.':'Nothing was locked.'));loadLockState(code);});}
 
 function removeAgentMenu(code){var nm=agName(code);
   var host=$('drawer');var db=host.querySelector('.dbody')||host;var ex=$('rmMenu');if(ex)ex.remove();

@@ -404,8 +404,9 @@ function canEdit(p){return OPS||(p.agent_code===CODE);}
 
 /* OPS unlock */
 function toggleOps(){
+  /* Switching the VIEW off no longer ends the Operations session. It used to call logout(),
+     which signed the seat out of every Ops page at once, mid-work. */
   if(OPS){OPS=false;try{localStorage.removeItem('nb_ops');sessionStorage.removeItem('nb_ops');}catch(e){}
-    if(window.tsfgOps)tsfgOps.logout();
     applyOps();load();toast('Operations mode off');return;}
   if(!window.tsfgOps){toast('Sign-in unavailable — reload the page.');return;}
   /* Already signed in on this tab (Ops Dashboard, say)? Then no need to ask again. */
@@ -698,11 +699,19 @@ $('ov').addEventListener('click',function(e){if(e.target===$('ov'))closeModal();
 /* boot */
 (function(){
   try{CODE=localStorage.getItem('tsfg_code');NAME=localStorage.getItem('tsfg_name')||'';}catch(e){}
+  /* An Operations seat has no GFI code, so this used to bounce Operations straight from the
+     Ops Dashboard's New Business tile back to the agent sign-in. A held Ops session is a way in
+     on its own: open in Operations mode, viewing everything. */
+  if(!CODE&&opsTok()){
+    try{CODE=localStorage.getItem('tsfg_ops_seat')||'OPS';}catch(e){CODE='OPS';}
+    NAME='Operations';OPS=true;SCOPE='all';
+    try{localStorage.setItem('nb_ops','1');}catch(e){}
+  }
   buildSide();
   if(!CODE){location.href='index.html';return;}
   /* Ops mode survives a reload only while the session behind it is still good. */
   try{if(localStorage.getItem('nb_ops')&&opsTok())OPS=true;}catch(e){}
-  applyOps();renderStatusGrid();load();
+  applyOps();if(SCOPE==='all'&&$('viewsel'))$('viewsel').value='all';renderStatusGrid();load();
   fetch(TA,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'load',code:CODE})}).then(function(r){return r.json();}).then(function(d){if(d&&d.ok&&d.agent){MYMD=d.agent.md||'';MYEMD=d.agent.emd||'';}}).catch(function(){});
 })();
 </script>

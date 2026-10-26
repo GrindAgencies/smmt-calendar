@@ -1,4 +1,4 @@
-// goals-api v2 — Snapshot goals, one accountable owner per level.
+// goals-api v3 — Snapshot goals, one accountable owner per level.
 //
 //   personal   → each person sets their own
 //   team       → the Marketing Director who runs that team
@@ -42,11 +42,11 @@ async function getJSON(path: string) { const r = await fetch(`${SUPA}/rest/v1/${
 /* WHO IS ACTUALLY CALLING. A session token is proof; a GFI code is a public fact printed on the
    org chart. Operations keeps its own door via ops_authorize, because Ops screens act on behalf
    of the whole company rather than as one agent. */
-async function callerCode(body: Record<string, unknown>): Promise<{ code: string; ops: boolean }> {
+async function callerCode(body: Record<string, unknown>): Promise<{ code: string; ops: boolean; seat?: string; label?: string }> {
   const t = clean(body.token, 120);
   if (t) {
     const o = await rpc("ops_authorize", { p_token: t });
-    if (o && o.ok) return { code: norm(body.code), ops: true };
+    if (o && o.ok) return { code: norm(body.code), ops: true, seat: String(o.code || ""), label: String(o.label || "Operations") };
   }
   const s = clean(body.session, 120);
   if (s) {
@@ -76,7 +76,9 @@ Deno.serve(async (req) => {
           out[scope] = { owner: null, targets: {}, can_edit: false, why: "No " + LABEL[scope].toLowerCase() + " is set up for you yet." };
           continue;
         }
-        const perm = await rpc("goal_can_edit", { p_code: code, p_scope: scope, p_owner: ownerKey });
+        /* v3 (2026-10-26): Operations sets any goal at any level. It used to be judged as the
+           agent it named, so Ops could only set what that agent could already set themselves. */
+        const perm = who.ops ? { ok: true } : await rpc("goal_can_edit", { p_code: code, p_scope: scope, p_owner: ownerKey });
         const rows = await getJSON(`goals?scope=eq.${scope}&owner=eq.${encodeURIComponent(ownerKey)}&month=eq.${month}&select=metric,target,set_by_name,updated_at`);
         const targets: Record<string, number> = {};
         let setBy = "", setAt = "";
@@ -100,16 +102,18 @@ Deno.serve(async (req) => {
 
       // The real gate. The UI greys out what you cannot edit, but it is only a courtesy —
       // this runs on every write regardless of what the browser sent.
-      const perm = await rpc("goal_can_edit", { p_code: code, p_scope: scope, p_owner: ownerKey });
+      const perm = who.ops ? { ok: true } : await rpc("goal_can_edit", { p_code: code, p_scope: scope, p_owner: ownerKey });
       if (!perm || !perm.ok) return json({ ok: false, error: (perm && perm.why) || "You cannot set that goal." });
 
       const whoRow = await getJSON(`tracker_agents?code=eq.${encodeURIComponent(code)}&select=first_name,last_name&limit=1`);
-      const name = whoRow[0] ? `${whoRow[0].first_name || ""} ${whoRow[0].last_name || ""}`.trim() : code;
+      const name = who.ops ? (who.label || "Operations")
+        : (whoRow[0] ? `${whoRow[0].first_name || ""} ${whoRow[0].last_name || ""}`.trim() : code);
+      const setBy = who.ops ? `OPS:${who.seat || "?"}` : code;
 
       const up = await fetch(`${SUPA}/rest/v1/goals?on_conflict=scope,owner,month,metric`, {
         method: "POST",
         headers: { ...DBH, Prefer: "resolution=merge-duplicates,return=minimal" },
-        body: JSON.stringify({ scope, owner: ownerKey, month, metric, target, set_by: code, set_by_name: name, updated_at: new Date().toISOString() }),
+        body: JSON.stringify({ scope, owner: ownerKey, month, metric, target, set_by: setBy, set_by_name: name, updated_at: new Date().toISOString() }),
       });
       if (!up.ok) { const t = await up.text(); return json({ ok: false, error: "Could not save.", detail: t.slice(0, 160) }); }
       return json({ ok: true, scope, owner: ownerKey, month, metric, target, set_by_name: name });

@@ -1,3 +1,4 @@
+// hub-safety v2 (2026-10-26) — adds Operations list_blocks / clear_block.
 // hub-safety v1 — reporting objectionable content, and blocking a person.
 //
 // App Store Guideline 1.2 requires both of these in any app that carries content one user
@@ -90,6 +91,27 @@ Deno.serve(async (req) => {
         body: JSON.stringify({ status, handled_by: "OPS", handled_at: new Date().toISOString() }),
       });
       return json({ ok: true });
+    }
+
+    /* ---- v2 (2026-10-26): Operations can see and lift blocks --------------- */
+    /* A block was only ever removable by the person who set it, so a block placed in error or
+       in a dispute Operations had resolved could not be undone by anyone who runs the platform.
+       list_blocks { code? } — every block, or those set by / against one person.
+       clear_block { blocker, blocked } — remove one. */
+    if (action === "list_blocks" || action === "clear_block") {
+      if (!(await isOps(body.token))) return json({ ok: false, error: "Operations only" }, 403);
+      if (action === "list_blocks") {
+        const c = norm(body.code);
+        const f = c ? `&or=(blocker.eq.${enc(c)},blocked.eq.${enc(c)})` : "";
+        const rows = await db(`hub_blocks?select=blocker,blocked,created_at&order=created_at.desc&limit=500${f}`);
+        return json({ ok: true, blocks: rows || [] });
+      }
+      const blocker = norm(body.blocker), blocked = norm(body.blocked);
+      if (!blocker || !blocked) return json({ ok: false, error: "blocker and blocked required" }, 400);
+      await db(`hub_blocks?blocker=eq.${enc(blocker)}&blocked=eq.${enc(blocked)}`, {
+        method: "DELETE", headers: { ...DBH, Prefer: "return=minimal" },
+      });
+      return json({ ok: true, cleared: { blocker, blocked } });
     }
 
     /* ---- Everything else is an agent acting for themselves ---------------- */

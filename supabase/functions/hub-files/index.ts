@@ -1,3 +1,4 @@
+// hub-files v3 (2026-10-26) — Operations master may use attachments in any channel or DM.
 // hub-files v2 (2026-10-20) — photos, videos and documents in a conversation.
 //
 // v2 FIXES A DENY-EVERYTHING BUG CAUGHT IN TESTING. v1 asked hub-api "which channels may this
@@ -58,13 +59,18 @@ const ALLOWED: Record<string, string> = {
 async function getJSON(path: string) { try { const r = await fetch(`${SUPA}/rest/v1/${path}`, { headers: DBH }); return (await r.json()) || []; } catch (_) { return []; } }
 async function rpc(fn: string, args: Record<string, unknown>) { try { const r = await fetch(`${SUPA}/rest/v1/rpc/${fn}`, { method: "POST", headers: DBH, body: JSON.stringify(args) }); return await r.json(); } catch (_) { return null; } }
 
-async function whoIs(body: any): Promise<string> {
+/* v3 (2026-10-26): an Operations caller is "OPS:<seat>" from its token, never a code it typed --
+   v2 let Ops name any agent and pass the DM-participant test as them. */
+async function whoIs(body: any): Promise<{ code: string; master: boolean }> {
   const t = String(body.token ?? "").trim();
-  if (t) { const r = await rpc("ops_authorize", { p_token: t }); if (r && r.ok) return norm(body.code) || norm(r.code); }
+  if (t) {
+    const r = await rpc("ops_authorize", { p_token: t });
+    if (r && r.ok) return { code: "OPS:" + norm(r.code), master: r.master === true };
+  }
   const s = String(body.session ?? "").trim().slice(0, 120);
-  if (!s) return "";
+  if (!s) return { code: "", master: false };
   const got = await rpc("agent_session_code", { p_token: s });
-  return (typeof got === "string") ? norm(got) : "";
+  return { code: (typeof got === "string") ? norm(got) : "", master: false };
 }
 
 /* THE one access rule, borrowed rather than rebuilt. A DM is readable by its two participants;
@@ -109,7 +115,8 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   let body: any = {}; try { body = req.method === "POST" ? await req.json() : {}; } catch (_) { body = {}; }
 
-  const me = await whoIs(body);
+  const caller = await whoIs(body);
+  const me = caller.code;
   if (!me) return json({ ok: false, needs_session: true, error: "Please sign in again." }, 401);
 
   const action = String(body.action || "");
@@ -123,7 +130,9 @@ Deno.serve(async (req) => {
   if (!channel) return json({ ok: false, error: "Which conversation?" }, 400);
   const sessTok = String(body.session ?? "").trim().slice(0, 120);
   const opsTok  = String(body.token ?? "").trim();
-  if (!(await mayUse(me, channel, sessTok, opsTok))) {
+  /* The Operations master seat oversees every room and every DM (hub-ops already shows it them),
+     so it may open and send attachments anywhere. */
+  if (!caller.master && !(await mayUse(me, channel, sessTok, opsTok))) {
     return json({ ok: false, error: "You are not in that conversation." }, 403);
   }
 

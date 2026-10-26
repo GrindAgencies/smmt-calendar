@@ -1,4 +1,4 @@
-// pin v13 — 4-digit sign-in PINs for The Standard, and the thing that issues an agent session.
+// pin v14 — 4-digit sign-in PINs for The Standard, and the thing that issues an agent session.
 //
 // v12 (2026-10-23) — ACCOUNT TAKEOVER, CLOSED. `issue_setup_code` decided who was allowed to
 // vouch for somebody's first PIN by reading `by_code` out of the REQUEST BODY and asking
@@ -40,7 +40,7 @@
 // v7 counts a TRANSPOSITION as one edit (Damerau). v5 added middle-name tolerance after seven
 // agents were locked out of their own accounts. v3 closed an earlier takeover on 'reset'.
 //
-// Actions: status | set | verify | reset | needs_setup | issue_setup_code | logout
+// Actions: status | set | verify | reset | needs_setup | issue_setup_code | logout | lock | unlock | lock_state
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const SUPA = Deno.env.get("SUPABASE_URL")!;
@@ -143,6 +143,21 @@ async function whoIsAsking(token: string, session: string): Promise<{ ops: boole
   if (!me) return { ops: false, code: "", admin: false };
   const admin = (await rpc("is_platform_admin", { p_code: me })) === true;
   return { ops: false, code: me, admin };
+}
+
+/* Who may lock or unlock an account: an Operations seat (recorded as "OPS:<seat>") or the
+   platform builder from their own agent session. Never a typed code. */
+async function lockAuthority(token: string, session: string): Promise<string> {
+  if (token) {
+    const r = await rpc("ops_authorize", { p_token: token });
+    if (r && r.ok) return `OPS:${r.code || "?"}`;
+  }
+  const s = (session ?? "").toString().trim().slice(0, 120);
+  if (!s) return "";
+  const got = await rpc("agent_session_code", { p_token: s });
+  const me = (typeof got === "string") ? norm(got) : "";
+  if (me && (await rpc("is_platform_admin", { p_code: me })) === true) return me;
+  return "";
 }
 
 Deno.serve(async (req) => {
@@ -270,6 +285,20 @@ Deno.serve(async (req) => {
       // a reset credential must take its sessions with it
       await rpc("agent_sessions_revoke_all", { p_code: code });
       return json(res);
+    }
+
+    /* LOCK / UNLOCK (v14, 2026-10-26). Operations had Reset PIN and Remove, but nothing in
+       between: no way to stop somebody signing in without deleting them, and no way to lift a
+       too-many-wrong-PINs lockout without wiping a PIN they still remember. Lock blocks sign-in
+       and ends every open session; Unlock lifts it and clears the wrong-PIN counter. */
+    if (action === "lock" || action === "unlock" || action === "lock_state") {
+      const actor = await lockAuthority(clean(body.token, 80), clean(body.session, 120));
+      if (!actor) return json({ ok: false, error: "Only Operations can lock or unlock an account." }, 403);
+      if (action === "lock_state") return json(await rpc("agent_lock_state", { p_code: code }));
+      if (action === "lock") {
+        return json(await rpc("agent_lock", { p_code: code, p_by: actor, p_reason: clean(body.reason, 300) || null }));
+      }
+      return json(await rpc("agent_unlock", { p_code: code, p_by: actor }));
     }
 
     if (action === "issue_setup_code") {

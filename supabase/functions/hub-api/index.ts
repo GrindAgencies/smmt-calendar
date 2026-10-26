@@ -1,3 +1,5 @@
+// hub-api v26 (2026-10-26): Operations is answered with EVERY channel by hub_access/hub_channels
+// (see that branch), so the Operations seat can open, moderate and attach files in every room.
 // hub-api v21 (2026-09-18): #operations is the Operations team's private room — eligible()
 // refuses it to every agent, and the bot trigger refuses it to every bot. Business
 // notifications (sale alerts, Coach's daily report) now go to the TRAINING channel of the
@@ -336,8 +338,18 @@ Deno.serve(async (req) => {
     }
 
     if (action === "hub_access" || action === "hub_channels") {
-      const code = norm(body.code || url.searchParams.get("code"));
       const bases = await loadBases();
+      /* v26 (2026-10-26): OPERATIONS SEES EVERY ROOM. This used to build Ops's list from
+         accessOf(body.code), so the Operations seat -- which has no agent rank -- got #main and
+         little else, and hub-files / hub-groups (which ask this endpoint) refused it attachments
+         and group settings everywhere else. Same answer hub-ops already gives. */
+      if (isAdmin) {
+        const channels = genChannels(bases).concat(await customChannels());
+        const baseshops = (bases.bases || []).filter((b) => low(b.name) !== low(bases.root)).map((b) => ({ id: low(b.name), name: String(b.name), emd: b.owner_name || "" }));
+        const access = { role: "ops", licensed: true, mod: true, name: "Operations", baseshop: bases.root, scope: "super", owns_base: "", accessibleBases: (bases.bases || []).map((b) => String(b.name)) };
+        return json({ ok: true, access, channels, baseshops, ops: true });
+      }
+      const code = norm(body.code || url.searchParams.get("code"));
       const acc: Acc = code ? await accessOf(code) : { role: "agent", licensed: false, mod: false, name: "", baseshop: bases.root, scope: "member", owns_base: "", accessibleBases: [bases.root] };
       const custom = await customChannels();
       const all = genChannels(bases).concat(custom);

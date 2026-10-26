@@ -1,4 +1,4 @@
-// ops-newbiz v12 — MULTI-BOARD column-driven ticket boards. board='newbiz' or 'gfi'.
+// ops-newbiz v13 — MULTI-BOARD column-driven ticket boards. board='newbiz' or 'gfi'.
 // v8: authorisation is an Operations session rather than the literal "2026".
 //
 // v9 (2026-09-03): each Operations seat now runs its OWN board. Until now every seat
@@ -98,8 +98,15 @@ async function authOf(body: any): Promise<Auth> {
 
 /* The seat whose private board this is, taken from the verified identity. null = the
    shared/master board, which is also what a leader reads. */
-function seatOf(az: Auth): string | null {
-  if (az.role !== "ops" || az.master) return null;
+function seatOf(az: Auth, body?: any): string | null {
+  /* v13 (2026-10-26): the MASTER seat can open any seat's private board by naming it in
+     `board_seat`. Before this, 0000 only ever reached the shared board, so tickets and client
+     notes a baseshop seat kept on its own board were invisible to the General Manager. */
+  if (az.role === "ops" && az.master) {
+    const want = String(body?.board_seat ?? "").trim();
+    return /^\d{4}$/.test(want) && want !== "0000" ? want : null;
+  }
+  if (az.role !== "ops") return null;
   const c = String(az.code || "");
   return /^\d{4}$/.test(c) ? c : null;
 }
@@ -134,7 +141,7 @@ Deno.serve(async (req) => {
      agent sign-in screen, which is the wrong place for an Operations seat whose 8-hour
      token simply ran out. Say what is wrong and let them sign in again where they are. */
   if (!az.ok) return json({ ok: false, error: az.error || "unauthorized" }, 401);
-  const seat = seatOf(az);
+  const seat = seatOf(az, body);
   const { KK, KC, KCbase, DEF } = boardOf(body, seat);
   /* Note authorship is the verified identity. It used to be whatever the body claimed. */
   const byName = az.name || "Operations"; const byCode = norm(az.code || "");

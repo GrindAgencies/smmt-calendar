@@ -1,3 +1,4 @@
+// hub-groups v4 (2026-10-26) — Operations master holds owner powers; Ops is never a typed code.
 // hub-groups v3 (2026-10-22) — a group chat's own name and photo, who may change them, and
 // who may post in the organisation-wide Announcements channel.
 //
@@ -61,13 +62,20 @@ const ANNOUNCE_CHANNEL = "announcements";
 async function getJSON(path: string) { try { const r = await fetch(`${SUPA}/rest/v1/${path}`, { headers: DBH }); return (await r.json()) || []; } catch (_) { return []; } }
 async function rpc(fn: string, args: Record<string, unknown>) { try { const r = await fetch(`${SUPA}/rest/v1/rpc/${fn}`, { method: "POST", headers: DBH, body: JSON.stringify(args) }); return await r.json(); } catch (_) { return null; } }
 
-async function whoIs(body: any): Promise<string> {
+/* v4 (2026-10-26): AN OPERATIONS CALLER IS "OPS:<seat>", NEVER A CODE IT TYPED. v3 returned
+   norm(body.code) for any Ops token, so Operations naming code=GFI20 BECAME the owner -- an
+   impersonation, not a grant. The seat comes from the token; `master` says whether it is the
+   all-shops seat, which now holds owner powers in its own right (see ownerMe below). */
+async function whoIs(body: any): Promise<{ code: string; master: boolean }> {
   const t = String(body.token ?? "").trim();
-  if (t) { const r = await rpc("ops_authorize", { p_token: t }); if (r && r.ok) return norm(body.code) || norm(r.code); }
+  if (t) {
+    const r = await rpc("ops_authorize", { p_token: t });
+    if (r && r.ok) return { code: "OPS:" + norm(r.code), master: r.master === true };
+  }
   const s = String(body.session ?? "").trim().slice(0, 120);
-  if (!s) return "";
+  if (!s) return { code: "", master: false };
   const got = await rpc("agent_session_code", { p_token: s });
-  return (typeof got === "string") ? norm(got) : "";
+  return { code: (typeof got === "string") ? norm(got) : "", master: false };
 }
 
 async function owners(): Promise<string[]> {
@@ -153,8 +161,11 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   let body: any = {}; try { body = req.method === "POST" ? await req.json() : {}; } catch (_) { body = {}; }
 
-  const me = await whoIs(body);
+  const caller = await whoIs(body);
+  const me = caller.code;
   if (!me) return json({ ok: false, needs_session: true, error: "Please sign in again." }, 401);
+  /* The Operations master seat holds every owner power alongside the allow-list. */
+  const ownerMe = async () => caller.master || await isOwner(me);
 
   const action = String(body.action || "get");
   const channel = String(body.channel ?? "").trim();
@@ -167,7 +178,7 @@ Deno.serve(async (req) => {
      Elijah's title reads Executive Marketing Director while his contract level reads National
      Vice President. */
   if (action === "eligible") {
-    if (!(await isOwner(me))) return json({ ok: false, error: "Only the owner can manage group admins." }, 403);
+    if (!(await ownerMe())) return json({ ok: false, error: "Only the owner can manage group admins." }, 403);
     const rows = await getJSON(`tracker_agents?select=code,first_name,last_name,baseshop,title,contract_level,status&status=neq.quit&limit=2000`);
     const emds = rows.filter((a: any) => {
       const t = low(a.title), c = low(a.contract_level);
@@ -192,11 +203,11 @@ Deno.serve(async (req) => {
     const people = [];
     for (const c of codes) people.push({ code: c, name: await nameOf(c) });
     return json({ ok: true, channel: ANNOUNCE_CHANNEL, codes, people,
-                  can_post: codes.indexOf(me) >= 0, can_manage: await isOwner(me) });
+                  can_post: codes.indexOf(me) >= 0, can_manage: await ownerMe() });
   }
 
   if (action === "announcer_add" || action === "announcer_remove") {
-    if (!(await isOwner(me))) {
+    if (!(await ownerMe())) {
       return json({ ok: false, error: "Only the owner can decide who posts announcements." }, 403);
     }
     const who = norm(body.who);
@@ -223,7 +234,7 @@ Deno.serve(async (req) => {
 
   if (!okChannel(channel)) return json({ ok: false, error: "Which group?" }, 400);
 
-  const owner = await isOwner(me);
+  const owner = await ownerMe();
   const admin = await isGroupAdmin(me, channel);
   const member = owner || admin || await inChannel(me, channel, sess, opsTok);
 

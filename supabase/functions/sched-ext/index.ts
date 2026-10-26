@@ -1,5 +1,13 @@
-// sched-ext — isolated Scheduler helper (does NOT touch atlas-api).
+// sched-ext v11 — isolated Scheduler helper (does NOT touch atlas-api).
 // actions: emds, create_appt, my_appts, update_appt, delete_appt, staff_appt.
+//
+// v11 (2026-10-26) OPERATIONS CAN RUN THE CALENDAR. Christopher: Operations (Anais, seat 0000)
+// needs full access to edit and create. Every action here took `body.code` as the caller and then
+// demanded an active agent row (create/staff) or booked_by === caller (update/delete). An Ops seat
+// has no agent code, so it could not create, change or remove a single appointment. Now an Ops
+// session with no code acts as Operations itself: it books as "OPS:<seat>", edits and deletes any
+// manual appointment, and sees every shop. An Ops session that names an agent in `code` still acts
+// for that agent, exactly as before.
 //
 // v10 (2026-10-20) A MANUAL EVENT HAS THREE PEOPLE TOO, AND ITS CONTACT DETAILS WERE BEING
 // THROWN AWAY. Christopher: "for all events please make everything fillable. trainee, guests,
@@ -110,11 +118,12 @@ async function baseOwners(): Promise<Record<string, { name: string; root: boolea
 
 function cap(s: string) { return (s || '').replace(/\b\w/g, (c) => c.toUpperCase()); }
 const enc = encodeURIComponent;
-async function ownedBy(id: string, caller: string) {
+async function ownedBy(id: string, caller: string, ops = false) {
   const r = await db(`bookings?select=id,booked_by&id=eq.${enc(id)}&limit=1`);
   const b = Array.isArray(r.data) ? r.data[0] : null;
   if (!b) return { ok: false, code: 404 };
-  if (String(b.booked_by || '').toUpperCase() !== caller) return { ok: false, code: 403 };
+  // Operations may change any appointment; everyone else only their own.
+  if (!ops && String(b.booked_by || '').toUpperCase() !== caller) return { ok: false, code: 403 };
   return { ok: true, booking: b };
 }
 async function activeCaller(caller: string) {
@@ -134,9 +143,10 @@ async function _authRpc(fn: string, args: Record<string, unknown>) {
     return await r.json();
   } catch (_) { return null; }
 }
-async function _isOps(token: unknown): Promise<boolean> {
-  const t = String(token ?? "").trim(); if (!t) return false;
-  const r = await _authRpc("ops_authorize", { p_token: t }); return !!(r && r.ok);
+/* The authorize result itself, not a yes/no: the seat code becomes the booker of record. */
+async function _opsAuth(token: unknown): Promise<{ ok: boolean; code?: string } | null> {
+  const t = String(token ?? "").trim(); if (!t) return null;
+  const r = await _authRpc("ops_authorize", { p_token: t }); return (r && r.ok) ? r : null;
 }
 async function _sessionCode(session: unknown): Promise<string> {
   const s = String(session ?? "").trim().slice(0, 120); if (!s) return "";
@@ -148,8 +158,9 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   let p: any = {}; try { p = await req.json(); } catch { /* */ }
   const action = p.action || '';
+  const OPS = await _opsAuth((p as Record<string, unknown>).token);
     {
-      const _ops = await _isOps((p as Record<string, unknown>).token);
+      const _ops = !!OPS;
       if (!_ops) {
         const _me = await _sessionCode((p as Record<string, unknown>).session);
         if (!_me) return json({ ok: false, needs_session: true, error: "Please sign in again." }, 401);
@@ -157,6 +168,9 @@ Deno.serve(async (req) => {
       }
     }
   const caller = (p.code || '').toString().toUpperCase().trim();
+  /* Operations acting as itself: signed into a seat and not standing in for a named agent. */
+  const opsSelf = !!OPS && !caller;
+  const opsTag = OPS ? `OPS:${OPS.code || '?'}` : '';
 
   /* Both spellings, every time. The quick-add sent client_email/client_phone while this read
      email/phone, and the values vanished in between without either side complaining. */
@@ -164,8 +178,8 @@ Deno.serve(async (req) => {
   const inPhone = TXT(p.phone || p.client_phone);
 
   if (action === 'emds') {
-    if (!caller) return json({ ok: true, emds: [], scope: 'unknown' });
-    const sc = await agentScope(caller);
+    if (!caller && !opsSelf) return json({ ok: true, emds: [], scope: 'unknown' });
+    const sc = opsSelf ? { ok: true, all: true, bases: [] as string[] } : await agentScope(caller);
     if (!sc.ok) return json({ ok: true, emds: [], scope: 'unknown' });
     let path = `tracker_agents?select=code,first_name,last_name,cal_link,contract_level,title,status,baseshop&order=first_name.asc`;
     if (!sc.all) {
@@ -204,21 +218,27 @@ Deno.serve(async (req) => {
   }
 
   if (action === 'my_appts') {
+    if (opsSelf) {
+      const r = await db(`bookings?select=id,title,agent_name,trainer_name,booked_by,date,time,notes,status,duration_minutes,color,client_email,client_phone,guests&source=eq.manual&order=date.desc,time.desc&limit=500`);
+      return json({ ok: true, appts: Array.isArray(r.data) ? r.data : [], scope: 'all' });
+    }
     if (!caller) return json({ ok: false, error: 'missing code' }, 400);
     const r = await db(`bookings?select=id,title,agent_name,date,time,notes,status,duration_minutes,color,client_email,client_phone,guests&source=eq.manual&booked_by=eq.${enc(caller)}&order=date.asc,time.asc`);
     return json({ ok: true, appts: Array.isArray(r.data) ? r.data : [] });
   }
 
   if (action === 'create_appt') {
-    if (!caller) return json({ ok: false, error: 'missing code' }, 400);
+    if (!caller && !opsSelf) return json({ ok: false, error: 'missing code' }, 400);
     if (!p.date || !p.time) return json({ ok: false, error: 'date and time required' }, 400);
-    const me = await activeCaller(caller); if (!me) return json({ ok: false, error: 'unknown/inactive agent' }, 403);
-    const callerName = `${cap(me.first_name || '')} ${cap(me.last_name || '')}`.trim();
+    const me = opsSelf ? null : await activeCaller(caller);
+    if (!opsSelf && !me) return json({ ok: false, error: 'unknown/inactive agent' }, 403);
+    const callerName = me ? `${cap(me.first_name || '')} ${cap(me.last_name || '')}`.trim() : 'Operations';
+    const booker = opsSelf ? opsTag : caller;
     const title = TXT(p.title); const withWho = TXT(p.with || p.client_name);
     const guests = guestList(p.guests, [inEmail]);
-    const row = { agent_code: null, agent_name: withWho || title || 'Appointment', trainer_code: caller, trainer_name: callerName,
+    const row = { agent_code: null, agent_name: withWho || title || 'Appointment', trainer_code: opsSelf ? null : caller, trainer_name: callerName,
       title: title || null, notes: TXT(p.notes) || null, color: TXT(p.color) || null,
-      category: (p.category || 'Appointment').toString(), date: p.date, time: p.time, status: 'confirmed', source: 'manual', booked_by: caller,
+      category: (p.category || 'Appointment').toString(), date: p.date, time: p.time, status: 'confirmed', source: 'manual', booked_by: booker,
       timezone: 'America/Los_Angeles', duration_minutes: Number(p.minutes) || 30,
       client_phone: inPhone || null, client_email: inEmail || null,
       guests: guests.length ? guests.join(', ') : null };
@@ -229,14 +249,15 @@ Deno.serve(async (req) => {
 
   // book a client WITH a chosen trainer (e.g. an EMD) at a manual time
   if (action === 'staff_appt') {
-    if (!caller) return json({ ok: false, error: 'missing code' }, 400);
+    if (!caller && !opsSelf) return json({ ok: false, error: 'missing code' }, 400);
+    const booker = opsSelf ? opsTag : caller;
     const clientName = TXT(p.client_name);
     const traineeName = TXT(p.trainee_name);
     /* Either a client or a trainee is enough to say who this is for. Requiring client_name was
        what pushed the Scheduler into sending the booker's own name as the "client". */
     if (!p.date || !p.time || !(clientName || traineeName) || !TXT(p.trainer_name))
       return json({ ok: false, error: 'trainer, date, time and at least one of trainee or client are required' }, 400);
-    const me = await activeCaller(caller); if (!me) return json({ ok: false, error: 'unknown/inactive agent' }, 403);
+    if (!opsSelf) { const me = await activeCaller(caller); if (!me) return json({ ok: false, error: 'unknown/inactive agent' }, 403); }
     let tcode = UP(p.trainer_code);
     if (!tcode) {
       const parts = TXT(p.trainer_name).split(/\s+/);
@@ -245,7 +266,7 @@ Deno.serve(async (req) => {
       const t = Array.isArray(tr.data) ? tr.data[0] : null; if (t) tcode = t.code;
     }
     // You may only put a booking on the calendar of someone in a shop you can actually see.
-    if (tcode) {
+    if (tcode && !opsSelf) {
       const sc = await agentScope(caller);
       if (sc.ok && !sc.all) {
         const tr2 = await db(`tracker_agents?select=baseshop&code=eq.${enc(tcode)}&limit=1`);
@@ -274,7 +295,7 @@ Deno.serve(async (req) => {
     const row = { agent_code: agentCode, agent_name: agentName, trainer_code: tcode || null,
       trainer_name: trainerDisplay, title: title,
       notes: TXT(p.notes) || null, color: TXT(p.color) || null,
-      category: (p.category || 'Appointment').toString(), date: p.date, time: p.time, status: 'confirmed', source: 'manual', booked_by: caller,
+      category: (p.category || 'Appointment').toString(), date: p.date, time: p.time, status: 'confirmed', source: 'manual', booked_by: booker,
       timezone: 'America/Los_Angeles', duration_minutes: Number(p.minutes) || 30,
       client_phone: inPhone || null, client_email: inEmail || null,
       guests: guests.length ? guests.join(', ') : null };
@@ -288,8 +309,8 @@ Deno.serve(async (req) => {
   }
 
   if (action === 'update_appt') {
-    if (!caller || !p.id) return json({ ok: false, error: 'missing code/id' }, 400);
-    const own = await ownedBy(p.id, caller); if (!own.ok) return json({ ok: false, error: 'not allowed' }, own.code || 403);
+    if ((!caller && !OPS) || !p.id) return json({ ok: false, error: 'missing code/id' }, 400);
+    const own = await ownedBy(p.id, caller, !!OPS); if (!own.ok) return json({ ok: false, error: 'not allowed' }, own.code || 403);
     const patch: any = { updated_at: new Date().toISOString() };
     if (p.title !== undefined) patch.title = TXT(p.title) || null;
     if (p.with !== undefined || p.title !== undefined) patch.agent_name = TXT(p.with || p.title || 'Appointment');
@@ -305,8 +326,8 @@ Deno.serve(async (req) => {
   }
 
   if (action === 'delete_appt') {
-    if (!caller || !p.id) return json({ ok: false, error: 'missing code/id' }, 400);
-    const own = await ownedBy(p.id, caller); if (!own.ok) return json({ ok: false, error: 'not allowed' }, own.code || 403);
+    if ((!caller && !OPS) || !p.id) return json({ ok: false, error: 'missing code/id' }, 400);
+    const own = await ownedBy(p.id, caller, !!OPS); if (!own.ok) return json({ ok: false, error: 'not allowed' }, own.code || 403);
     const del = await db(`bookings?id=eq.${enc(p.id)}`, { method: 'DELETE' });
     if (!del.ok) return json({ ok: false, error: 'delete failed', detail: del.data }, 500);
     return json({ ok: true });

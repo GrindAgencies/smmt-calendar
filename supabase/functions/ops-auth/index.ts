@@ -1,4 +1,4 @@
-// ops-auth v3 — sign-in for the Operations platform.
+// ops-auth v6 — sign-in for the Operations platform.
 //
 // Until now a 4-digit platform code WAS the whole credential, and every admin call
 // then carried the literal string "2026" as its authorisation. Both are readable by
@@ -17,6 +17,7 @@
 //   check  { token }            -> is this session still good? (who does it belong to?)
 //   logout { token }            -> end it now
 //   enroll { token, code, minutes } -> a MASTER seat opens first-PIN setup for another seat
+//   reset  { token|session, code, minutes } -> clear a forgotten seat PIN and reopen setup
 //
 // v2 (2026-10-23) ADDS `enroll`, AND IT CLOSES A DEAD END RATHER THAN ADDING A FEATURE.
 //
@@ -95,6 +96,23 @@ Deno.serve(async (req) => {
         r = await rpc("ops_pin_enroll", { p_token: sess, p_code: code, p_minutes: mins });
       }
       return json(r || { ok: false, error: "Sign in to an Operations seat first." });
+    }
+
+    /* v6 (2026-10-26): THE WAY BACK IN WHEN A PIN IS FORGOTTEN. enroll refuses a seat that
+       already has a PIN, so a forgotten PIN on seat 0000 had no recovery short of database
+       surgery -- the exact surgery that stranded it before. ops_pin_reset() clears the PIN and
+       opens a setup window in one step, ends that seat's sessions, and is the only thing the
+       database guard lets wipe the permanent seat's PIN. Same two credentials as enroll. */
+    if (action === "reset") {
+      const mins = Math.max(5, Math.min(Number(body.minutes) || 60, 240));
+      const code = clean(body.code, 8);
+      const seat = clean(body.token, 80);
+      const sess = clean(body.session, 120);
+      let r: any = seat ? await rpc("ops_pin_reset", { p_token: seat, p_code: code, p_minutes: mins }) : null;
+      if ((!r || r.ok !== true) && sess) {
+        r = await rpc("ops_pin_reset", { p_token: sess, p_code: code, p_minutes: mins });
+      }
+      return json(r || { ok: false, error: "Sign in first." });
     }
 
     if (action === "check")  return json(await rpc("ops_session_ok", { p_token: clean(body.token, 80) }));

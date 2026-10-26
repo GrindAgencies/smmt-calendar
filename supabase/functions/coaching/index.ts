@@ -1,4 +1,4 @@
-// coaching v5 (2026-10-22) — the notes a trainer leaves for a trainee after a field training.
+// coaching v6 (2026-10-26; v5 2026-10-22) — the notes a trainer leaves for a trainee after a field training.
 //
 // v5: EVERY ACTION TRUSTED A TYPED CODE, AND TWO OF THEM CHECKED NOTHING AT ALL.
 //
@@ -126,7 +126,9 @@ Deno.serve(async (req) => {
       const author = byCode ? await rosterName(byCode) : "";
       const row = {
         trainee_code: traineeCode, trainee_name: (await rosterName(traineeCode)) || clean(body.trainee_name),
-        by_code: byCode, by_name: author || clean(body.by_name),
+        /* v6 (2026-10-26): an Operations note with no trainer named used to save with a blank
+           byline. It now says who wrote it. */
+        by_code: byCode || (isOps ? "OPS" : ""), by_name: author || clean(body.by_name) || (isOps ? "Operations" : ""),
         trainer_name: author || clean(body.trainer_name),
         booking_id: clean(body.booking_id) || null, ft_date: clean(body.ft_date) || null, body: text
       };

@@ -1,4 +1,4 @@
-// ops-nbfeed v23 — LIVE, TWO-WAY New Business feed.
+// ops-nbfeed v24 — LIVE, TWO-WAY New Business feed.
 //
 // v23 (2026-10-21) — A PARTNER'S RATE MUST NEVER FALL BACK TO THE WRITER'S.
 //      Found by diffing this function's commission maths against newbiz-api's expCommOf(),
@@ -329,11 +329,18 @@ Deno.serve(async (req) => {
     return json({ ok: true, ignored: true });
   }
 
-  if (action === "nb_note" || action === "nb_note_del") {
+  /* v24 (2026-10-26): notes can be EDITED in place, as on the ticket board (ops-newbiz). Fixing a
+     typo in a client note used to mean deleting it and re-adding it, which lost its timestamp. */
+  if (action === "nb_note" || action === "nb_note_edit" || action === "nb_note_del") {
     const id = String(body.id || ""); const tk = await track(); if (!tk[id] || typeof tk[id] !== "object") tk[id] = {};
     if (!Array.isArray(tk[id].notes)) tk[id].notes = [];
     if (action === "nb_note") { const text = clean(body.text); if (!text) return json({ ok: false, error: "Note is empty." }); tk[id].notes.unshift({ id: uid(), ts: new Date().toISOString(), by_code: byCode, by_name: byName, by_role: az.role, text }); }
-    else { const nid = String(body.note_id || ""); const nt = tk[id].notes.find((x: any) => x.id === nid); if (!nt) return json({ ok: false, error: "Note not found." }, 404); const mine = has(byCode) && norm(nt.by_code) === byCode; if (!az.canEdit && !mine) return json({ ok: false, error: "You can only delete your own notes." }, 403); tk[id].notes = tk[id].notes.filter((x: any) => x.id !== nid); }
+    else {
+      const nid = String(body.note_id || ""); const nt = tk[id].notes.find((x: any) => x.id === nid); if (!nt) return json({ ok: false, error: "Note not found." }, 404);
+      const mine = has(byCode) && norm(nt.by_code) === byCode; if (!az.canEdit && !mine) return json({ ok: false, error: "You can only edit or delete your own notes." }, 403);
+      if (action === "nb_note_del") tk[id].notes = tk[id].notes.filter((x: any) => x.id !== nid);
+      else { const text = clean(body.text); if (!text) return json({ ok: false, error: "Note is empty." }); nt.text = text; nt.edited_at = new Date().toISOString(); nt.edited_by = byName; }
+    }
     await saveKey(KTRACK, tk); return json({ ok: true, notes: tk[id].notes });
   }
   return json({ ok: false, error: "unknown action" }, 400);

@@ -1,4 +1,8 @@
-// calendly-book v4 (2026-10-21) — ONE booking, made in Calendly, mirrored into TSFG.
+// calendly-book v5 (2026-10-26) — ONE booking, made in Calendly, mirrored into TSFG.
+//
+// v5: OPERATIONS CAN BOOK AND CANCEL. An Ops seat has no agent code, so `cancel` refused it with
+//     "Sign in again" before ever reaching its own Ops check, and `book` did the same. Cancel now
+//     works for Ops outright; book asks Ops which agent the booking is for.
 //
 // v4: LONGER CONFIRMATION CODES. The code was five hex characters of the Calendly event UUID —
 //     1,048,576 possibilities. At 1,494 bookings that is not a comfortable margin, it is roughly
@@ -180,8 +184,12 @@ Deno.serve(async (req) => {
   let body: any = {};
   try { body = req.method === "POST" ? await req.json() : Object.fromEntries(new URL(req.url).searchParams); } catch (_) { body = {}; }
   const action = clean(body.action, 40);
+  /* Kept, not discarded: book and cancel need to know an Operations seat is calling, and the
+     seat has no agent code of its own to stand in for it (v5, 2026-10-26). */
+  let callerIsOps = false;
     {
       const _ops = await _isOps((body as Record<string, unknown>).token);
+      callerIsOps = _ops;
       if (!_ops) {
         const _me = await _sessionCode((body as Record<string, unknown>).session);
         if (!_me) return json({ ok: false, needs_session: true, error: "Please sign in again." }, 401);
@@ -251,7 +259,13 @@ Deno.serve(async (req) => {
       if (!trainerCode || !et || !start) return json({ ok: false, error: "missing trainer, meeting type or time" }, 400);
 
       const agent = await agentOf(byCode);
-      if (!agent) return json({ ok: false, error: "Sign in again — we could not find your profile." }, 401);
+      if (!agent) {
+        /* Operations books ON BEHALF of an agent: Calendly needs a real person behind the
+           invite, and an Ops seat is not one. Say so, rather than telling a signed-in seat to
+           sign in again. */
+        if (callerIsOps) return json({ ok: false, needs_agent: true, error: "Choose which agent this booking is for." }, 400);
+        return json({ ok: false, error: "Sign in again — we could not find your profile." }, 401);
+      }
       const bookerName = `${agent.first_name || ""} ${agent.last_name || ""}`.trim() || byCode;
 
       const conn = await connOf(trainerCode);
@@ -444,16 +458,15 @@ Deno.serve(async (req) => {
       const byCode = norm(body.by_code || body.code);
       const uuid = clean(body.event_uuid, 80) || "";
       const id = clean(body.id, 80);
-      if (!byCode) return json({ ok: false, error: "Sign in again." }, 401);
+      /* Operations first. An Ops seat carries no agent code, so testing byCode before isOps
+         turned every Operations cancel into "Sign in again" (fixed v5, 2026-10-26). */
+      const isOps = callerIsOps;
+      if (!byCode && !isOps) return json({ ok: false, error: "Sign in again." }, 401);
       const q = uuid ? `bookings?calendly_event_uuid=eq.${enc(uuid)}&select=*`
                      : `bookings?id=eq.${enc(id)}&select=*`;
       const br = await db(q);
       const bk = Array.isArray(br.body) ? br.body[0] : null;
       if (!bk) return json({ ok: false, error: "That appointment no longer exists." }, 404);
-      const isOps = await (async () => {
-        const r = await fetch(`${SUPA}/rest/v1/rpc/ops_authorize`, { method: "POST", headers: DBH, body: JSON.stringify({ p_token: String(body.token || "") }) });
-        try { const j = await r.json(); return !!(j && j.ok); } catch (_) { return false; }
-      })();
       if (!isOps && norm(bk.agent_code) !== byCode && norm(bk.trainer_code) !== byCode && norm(bk.booked_by) !== byCode) {
         return json({ ok: false, error: "Only the person who booked it or the trainer can cancel it." }, 403);
       }

@@ -1,4 +1,4 @@
-// announce v5 (2026-09-30) — chain of command for hierarchy-wide announcements.
+// announce v6 (2026-10-26; v5 2026-09-30) — chain of command for hierarchy-wide announcements.
 //
 // Anything company-wide used to go straight into #main over every EMD's head.
 // That is how 56 training reminders ended up burying three human messages. Now
@@ -185,7 +185,11 @@ Deno.serve(async (req) => {
 
     /* ---------- approve or decline, for one baseshop ---------- */
     if (action === "decide") {
-      if (!me) return json({ ok: false, error: "Only a baseshop's own EMD can decide this." }, 403);
+      /* 2026-10-26: Operations (Anais, seat 0000) decides too. It could propose and withdraw but
+         not approve or decline, so a target an EMD never got to sat pending forever. An Ops
+         decision is recorded and signed as Operations, never as the EMD. */
+      const actor = me || (opsToken ? { code: "OPSANN", name: "Operations", isEmd: false, baseshop: "" } : null);
+      if (!actor) return json({ ok: false, error: "Only a baseshop's own EMD can decide this." }, 403);
       const targetId = clean(body.target_id, 60);
       const decision = low(body.decision) === "approve" ? "approved" : "declined";
       if (!targetId) return json({ ok: false, error: "target_id required" }, 400);
@@ -195,7 +199,7 @@ Deno.serve(async (req) => {
       if (!t) return json({ ok: false, error: "That announcement is no longer waiting." }, 404);
       if (t.status !== "pending") return json({ ok: false, error: `Already ${t.status}.` }, 409);
 
-      const ownsIt = isOps || norm(t.emd_code) === me.code || (me.isEmd && norm(t.baseshop) === me.baseshop);
+      const ownsIt = isOps || norm(t.emd_code) === actor.code || (actor.isEmd && norm(t.baseshop) === actor.baseshop);
       if (!ownsIt) return json({ ok: false, error: "Only this baseshop's EMD can decide this." }, 403);
 
       const ar = await fetch(`${SUPA}/rest/v1/announcements?id=eq.${enc(String(t.announcement_id))}&select=*&limit=1`, { headers: DBH });
@@ -206,15 +210,15 @@ Deno.serve(async (req) => {
       if (decision === "approved") {
         const channel = low(t.baseshop) + "_announcements";
         const text = "📢 " + ann.title + "\n\n" + ann.body +
-          "\n\n— " + (ann.created_by_name || "Operations") + " · approved for " + t.baseshop + " by " + me.name;
-        await post(channel, me.code, me.name, text);
+          "\n\n— " + (ann.created_by_name || "Operations") + " · approved for " + t.baseshop + " by " + actor.name;
+        await post(channel, actor.code, actor.name, text);
         postedAt = new Date().toISOString();
       }
 
       await fetch(`${SUPA}/rest/v1/announcement_targets?id=eq.${enc(targetId)}`, {
         method: "PATCH", headers: { ...DBH, Prefer: "return=minimal" },
         body: JSON.stringify({
-          status: decision, decided_by: me.name, decided_at: new Date().toISOString(),
+          status: decision, decided_by: actor.name, decided_at: new Date().toISOString(),
           note: clean(body.note, 300), posted_at: postedAt,
         }),
       });

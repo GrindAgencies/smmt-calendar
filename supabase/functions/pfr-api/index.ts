@@ -1,4 +1,4 @@
-// pfr-api v8 (2026-09-30) — Personal Financial Reviews. This holds the most sensitive data in
+// pfr-api v9 (2026-10-26; v8 2026-09-30) — Personal Financial Reviews. This holds the most sensitive data in
 // the platform: 94 reviews, each carrying a client's name, phone, household, health, assets,
 // debt, monthly expenses and their existing policies with cash values. Third-party personal
 // financial data about people who are not users of this app.
@@ -89,7 +89,10 @@ Deno.serve(async (req) => {
     const me = await whoIsCalling(body, url.searchParams);
     if (!me.ops && !me.code) return needSession();
     // Whose reviews these are. Operations may act for a named agent; everyone else is themselves.
-    const mine = me.ops ? norm(body.code || url.searchParams.get("code")) : me.code;
+    /* A four-digit code is an Operations SEAT, never an agent: treat it as "no agent named" so an
+       Ops caller sees everything instead of filtering to a non-existent agent "0000". */
+    const named = me.ops ? norm(body.code || url.searchParams.get("code")) : "";
+    const mine = me.ops ? (/^\d{4}$/.test(named) ? "" : named) : me.code;
 
     if (action === "pfr_list") {
       let q = `${SUPA}/rest/v1/pfrs?select=id,agent_code,agent_name,client_name,client_phone,insurable_need,status,recommended_carrier,recommended_product,recommended_strategy,updated_at,created_at,data&order=updated_at.desc`;
@@ -151,11 +154,22 @@ Deno.serve(async (req) => {
     }
 
     if (action === "pfr_save") {
-      const owner = mine;
-      if (!owner) return json({ ok: false, error: "no agent code" });
       const id = clean(body.id);
+      /* v9 (2026-10-26): OPERATIONS EDITING A CLIENT'S REVIEW KEEPS ITS OWNER. The owner used to
+         be whatever code the request named, so an Ops save with no code failed ("no agent code")
+         and one with the wrong code silently moved the client to another agent. For an existing
+         review Ops now inherits the row's own agent; naming a code is only needed for a new one. */
+      let owner = mine;
+      let keepName = "";
+      if (me.ops && id && !owner) {
+        const cur = await fetch(`${SUPA}/rest/v1/pfrs?id=eq.${enc(id)}&select=agent_code,agent_name`, { headers: DBH });
+        const r0 = ((await cur.json()) || [])[0];
+        if (!r0) return json({ ok: false, error: "That review no longer exists." }, 404);
+        owner = norm(r0.agent_code); keepName = clean(r0.agent_name);
+      }
+      if (!owner) return json({ ok: false, error: me.ops ? "Choose which agent this review belongs to." : "no agent code" });
       const row: Record<string, unknown> = {
-        agent_code: owner, agent_name: clean(body.agent_name),
+        agent_code: owner, agent_name: clean(body.agent_name) || keepName,
         client_name: clean(body.client_name), client_phone: clean(body.client_phone), client_email: clean(body.client_email),
         data: (body.data && typeof body.data === "object") ? body.data : {},
         insurable_need: numOr(body.insurable_need), status: clean(body.status) || "draft",

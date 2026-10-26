@@ -467,6 +467,9 @@ function saveTask(){
       /* A four-digit code is an Operations seat, and an Ops seat must still authenticate
          rather than be waved through on a leftover value — so only a GFI code resumes. */
       if(signedIn && !/^\d{4}$/.test(signedIn)){ $('gCode').value=signedIn; enter(); }
+      /* ...and an Operations seat that is already signed in (the Ops Dashboard's Tasks button)
+         walks straight in instead of retyping its seat code. The session is the authority. */
+      else if(window.tsfgOps && tsfgOps.token()){ $('gCode').value=(localStorage.getItem('tsfg_ops_seat')||'0000'); enter(); }
     }
   }catch(e){}
 })();

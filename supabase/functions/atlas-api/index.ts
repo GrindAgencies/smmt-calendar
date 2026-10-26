@@ -1,3 +1,4 @@
+// atlas-api v20 (2026-10-26): Operations can staff-book without an agent code (atlas_staff_book).
 // atlas-api v19 (2026-10-21): notification bodies no longer print "null". See the compose
 //   helpers above Deno.serve. 5 bookings have no confirmation code and 20 no trainer name,
 //   so raw interpolation was sending "... · null" and "... with null" to real phones.
@@ -240,7 +241,11 @@ Deno.serve(async (req) => {
     }
 
     if (action === "atlas_staff_book") {
-      const bookedBy = norm(body.code); if (!bookedBy) return json({ ok: false, error: "Sign in required." }, 401);
+      /* v20 (2026-10-26): an Operations seat has no agent code, so it was told "Sign in required."
+         It now books as OPS:<seat>, the same booker-of-record sched-ext uses. */
+      let bookedBy = norm(body.code);
+      if (!bookedBy && isAdmin) { const az = await _rpc("ops_authorize", { p_token: String(token ?? "") }); bookedBy = `OPS:${(az && az.code) || "?"}`; }
+      if (!bookedBy) return json({ ok: false, error: "Sign in required." }, 401);
       const trainerName = clean(body.trainer_name); const slug = slugify(body.slug || trainerName); const date = clean(body.date); const time = clean(body.time); const typeKey = clean(body.type);
       const cname = clean(body.client_name); const cemail = clean(body.client_email); const cphone = clean(body.client_phone); const referral = clean(body.referral_source); const notes = clean(body.notes); const consent = body.consent === true || body.consent === "true";
       if (!slug || !date || !time || !typeKey || !cname || (!cemail && !cphone)) return json({ ok: false, error: "Missing required fields (trainer, type, date, time, client name, and email or phone)." });
