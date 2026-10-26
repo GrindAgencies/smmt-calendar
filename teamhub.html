@@ -402,8 +402,8 @@ html, body{ overflow-x: hidden; }
   <div class="mact2"><button onclick="closeRec()">Cancel</button><button class="go" onclick="sendRecognition()">Post Recognition</button></div>
 </div></div>
 <!-- new channel modal -->
-<div class="ov" id="chOv"><div class="modal">
-  <h3>New group</h3>
+<div class="ov" id="chOv" onclick="if(event.target===this)closeNewGroup()"><div class="modal ngmodal">
+  <div class="nghead"><button type="button" class="ngx" onclick="closeNewGroup()" aria-label="Close">&times;</button><h3>New group</h3><span></span></div>
   <!-- Photo first, the way every messaging app does it. The picture is staged in the browser
        and only uploaded once the group actually exists, so a cancelled creation leaves nothing
        behind. -->
@@ -416,14 +416,17 @@ html, body{ overflow-x: hidden; }
       <button type="button" class="lnk sub" id="ngClear" style="display:none" onclick="clearGroupPhoto()">Remove</button>
     </div>
   </div>
-  <div class="fg"><label>Group name</label><input id="chName" placeholder="e.g. Regional — West" maxlength="60"></div>
-  <label class="fg" style="display:flex;align-items:center;gap:9px;font-weight:600"><input type="checkbox" id="chPriv" style="width:auto" onchange="document.getElementById('chMembersWrap').style.display=this.checked?'block':'none'"> Private group (invite only)</label>
-  <div class="fg" id="chMembersWrap" style="display:none">
+  <div class="fg"><label for="chName">Group name</label><input id="chName" placeholder="e.g. Regional — West" maxlength="60"></div>
+  <!-- Brief §5: saved with the group (hub-groups set_description), never a field that drops what you type. -->
+  <div class="fg"><label for="chDesc">Description <span class="ngopt">(optional)</span></label><textarea id="chDesc" class="ngdesc" maxlength="300" rows="2" placeholder="What is this group for?"></textarea></div>
+  <label class="fg" style="display:flex;align-items:center;gap:9px;font-weight:600"><input type="checkbox" id="chPriv" style="width:auto" onchange="ngPrivNote()"> Private group (invite only)</label>
+  <div class="ngprivnote" id="ngPrivNote">Open: everyone on your team can find and read it. The people you add below are its members.</div>
+  <div class="fg" id="chMembersWrap">
     <label>Add members <span class="ngcount" id="ngCount">None selected</span></label>
     <input id="ngSearch" class="ngsearch" placeholder="Search team members…" oninput="filterMembers(this.value)">
     <div id="chMembers" class="mempick"></div>
   </div>
-  <div class="mact2"><button onclick="document.getElementById('chOv').classList.remove('on')">Cancel</button><button class="go" id="ngGo" onclick="createChannel()">Create group</button></div>
+  <div class="mact2"><button onclick="closeNewGroup()">Cancel</button><button class="go" id="ngGo" onclick="createChannel()">Create group</button></div>
 </div></div>
 <div class="ov" id="botOv"><div class="modal" style="max-width:540px">
   <h3>🤖 Baseshop Bot Settings</h3>
@@ -633,7 +636,16 @@ function buildSide(){
 }
 function onAvatar(ev){var f=ev.target.files[0];if(!f)return;var rd=new FileReader();rd.onload=function(){var img=new Image();img.onload=function(){var c=document.createElement('canvas');var S=256;c.width=S;c.height=S;var x=c.getContext('2d');var sq=Math.min(img.width,img.height);x.drawImage(img,(img.width-sq)/2,(img.height-sq)/2,sq,sq,0,0,S,S);var url=c.toDataURL('image/jpeg',0.82);h({action:'hub_setavatar',code:CODE,url:url}).then(function(r){if(r&&r.ok){AVATARS[CODE]=url;renderMsgs(false);renderRooms();var pa=document.getElementById('psAv');if(pa)pa.innerHTML=avatarInner(CODE,NAME,'');toast('Photo updated');}else toast((r&&r.error)||'Could not save photo');});};img.src=rd.result;};rd.readAsDataURL(f);ev.target.value='';}
 function loadAvatars(){h({action:'hub_avatars'}).then(function(r){if(r&&r.avatars){AVATARS=r.avatars;renderMsgs(false);renderRooms();}});}
-function toggleMod(){if(MODTOKEN){MODTOKEN='';$('modBtn').textContent='🔒';toast('Moderator off');renderMsgs(false);return;}if(ACC.mod){toast('You already moderate as Leadership');return;}var pc=prompt('Operations moderator passcode:');if(!pc)return;if(pc==='2026'){MODTOKEN='2026';$('modBtn').textContent='🛡️';toast('Moderator mode — you can remove any message');renderMsgs(false);}else toast('Incorrect passcode');}
+/* The moderator passcode is gone. It compared what you typed against the literal '2026' and
+   then sent that same string as the token, which ops_authorize() stopped honouring once
+   legacy_ops_token_allowed went false: the button lit up with the shield and every delete came
+   back 401, so the page claimed a power it no longer had. Worse, an Operations seat that
+   switched moderation off could only switch it back on through this path, trading its real
+   session token for the dead literal until it reloaded. Ops is therefore checked BEFORE the
+   Leadership branch, so a real seat always gets its real token back. Moderation now comes only
+   from something hub-api will accept: the Operations session, or a Leadership seat it derives
+   from the session itself. */
+function toggleMod(){if(MODTOKEN){MODTOKEN='';$('modBtn').textContent='🔒';toast('Moderator off');renderMsgs(false);return;}if(OPSMODE&&OPSTOKEN){MODTOKEN=OPSTOKEN;$('modBtn').textContent='🛡️';toast('Moderator mode — you can remove any message');renderMsgs(false);return;}if(ACC.mod){toast('You already moderate as Leadership');return;}toast('Moderation is for Operations and Leadership seats.');}
 /* One way out of The Hub, used by the phone list header and the desktop header alike, so the
    two cannot drift. Deliberately an explicit destination rather than history.back(): after a
    login redirect or a cold open from a notification there is nothing useful behind us. */
@@ -859,7 +871,12 @@ function renderRooms(){
      out of the list here: phone/desktop is a CSS-media decision that changes on rotation, and
      a JS split would desync the moment someone turned the phone. applyConvFilter is the one
      place that decides what is visible, so it can be re-run on resize instead. */
-  $('chanList').innerHTML = rows.map(convRowHtml).join('') || '<div class="cv-empty">No conversations yet.</div>';
+  /* Brief §4: a "Recent chats" heading in the Pinned heading's own style, and the rows inside
+     one inset rounded surface. The rows are still .cv children of #chanList, so every selector
+     that finds a row (filters, unread, long press) is unchanged. */
+  $('chanList').innerHTML = rows.length
+    ? '<div class="pinwrap-h cv-rh" id="cvRecentH">Recent chats</div><div class="cv-grp" id="cvGrp">'+rows.map(convRowHtml).join('')+'</div>'
+    : '<div class="cv-empty">No conversations yet.</div>';
   $('pinRail').innerHTML = rows.filter(function(r){ return !!PINNED[r.id]; }).map(pinTileHtml).join('');
   $('dmList').innerHTML = dmPicker();
   applyConvFilter();
@@ -938,6 +955,13 @@ function applyConvFilter(){
     var show=convFilterOk(el)&&okQ&&!dup; el.style.display=show?'':'none';
     if(show||dup)any=true;   /* a pin shown as a circle still counts as content */
   });
+  /* The heading and its surface belong to rows actually on screen: a filter that leaves only
+     pins (or nothing) must not leave an empty rounded box with a title over it. */
+  var rowsShown=0;
+  Array.prototype.forEach.call(document.querySelectorAll('#chanList .cv'),function(el){ if(el.style.display!=='none')rowsShown++; });
+  var rh=document.getElementById('cvRecentH'), rg=document.getElementById('cvGrp');
+  if(rh) rh.style.display=rowsShown?'':'none';
+  if(rg) rg.style.display=rowsShown?'':'none';
   var n=document.getElementById('cvNone');
   if(n){
     n.style.display=any?'none':'block';
@@ -1132,7 +1156,7 @@ function openGroupDetails(){
   ov.classList.add('on');
   gdApi({action:'get', channel:CHAN}).then(function(r){
     if(!r || !r.ok){ ov.innerHTML='<div class="gd"><p class="note">'+esc((r&&r.error)||'Could not load this group.')+'</p></div>'; return; }
-    GD=r; GROUPMETA[CHAN]={name:r.name, avatar:r.avatar};
+    GD=r; GROUPMETA[CHAN]=Object.assign(GROUPMETA[CHAN]||{}, {name:r.name, avatar:r.avatar});
     paintGroupDetails();
     renderHead(); renderRooms();
   });
@@ -1146,6 +1170,7 @@ function paintGroupDetails(){
   var h='<div class="gd">';
   h+='<div class="gav">'+(GD.avatar?('<img src="'+esc(GD.avatar)+'" alt="">'):esc(m.icon||'#'))+'</div>';
   h+='<h3 style="text-align:center">'+esc(nm)+'</h3>';
+  if(GD.description && !GD.can_edit) h+='<p class="gdesc">'+esc(GD.description)+'</p>';
 
   if(GD.can_edit){
     h+='<label for="gdName">Group name</label>'+
@@ -1155,7 +1180,10 @@ function paintGroupDetails(){
          '<button class="gbtn" onclick="document.getElementById(\'gdPhoto\').click()">Change photo</button>'+
          (GD.avatar?'<button class="gbtn" onclick="removeGroupPhoto()">Remove photo</button>':'')+
        '</div>'+
-       '<input type="file" id="gdPhoto" accept="image/*" style="display:none" onchange="onGroupPhoto(event)">';
+       '<input type="file" id="gdPhoto" accept="image/*" style="display:none" onchange="onGroupPhoto(event)">'+
+       '<label for="gdDesc">Description <span style="font-weight:500;color:var(--ink3)">(optional)</span></label>'+
+       '<textarea id="gdDesc" maxlength="300" rows="3" placeholder="What is this group for?">'+esc(GD.description||'')+'</textarea>'+
+       '<div style="margin-top:8px"><button class="gbtn" onclick="saveGroupDesc()">Save description</button></div>';
   } else {
     h+='<p class="note">Only this group\u2019s admin can change its name or photo.</p>';
   }
@@ -1180,6 +1208,13 @@ function paintGroupDetails(){
   ov.innerHTML=h;
 }
 
+function saveGroupDesc(){
+  var v=((document.getElementById('gdDesc')||{}).value||'').trim();
+  gdApi({action:'set_description', channel:CHAN, description:v}).then(function(r){
+    if(!r||!r.ok){ toast((r&&r.error)||'Could not save the description'); return; }
+    GD.description=r.description; paintGroupDetails(); toast(v?'Description saved':'Description cleared');
+  });
+}
 function saveGroupName(){
   var v=(document.getElementById('gdName')||{}).value||'';
   v=v.trim();
@@ -1803,11 +1838,86 @@ function sendRecognition(){
 
 /* channels */
 function openNewChannel(){
-  $('chName').value=''; $('chPriv').checked=false; $('chMembersWrap').style.display='none';
+  closeHubSheet();
+  $('chName').value=''; $('chPriv').checked=false; var d=$('chDesc'); if(d)d.value='';
   clearGroupPhoto(); var q=$('ngSearch'); if(q)q.value='';
-  fillMembers(); updateMemberCount(); setCreating(false);
+  fillMembers(); updateMemberCount(); setCreating(false); ngPrivNote();
   $('chOv').classList.add('on');
+  setTimeout(function(){ try{ $('chName').focus(); }catch(e){} },80);
 }
+function ngPrivNote(){
+  var el=$('ngPrivNote'); if(!el)return;
+  el.textContent = $('chPriv').checked
+    ? 'Private: only the people you add below (and you) can see it.'
+    : 'Open: everyone on your team can find and read it. The people you add below are its members.';
+}
+/* Closing a form with something in it asks first - the app's ordinary discard convention.
+   An empty form just closes. Never while a creation is in flight. */
+function newGroupDirty(){
+  return !!(($('chName').value||'').trim() || (($('chDesc')||{}).value||'').trim() || NEWGRP_PHOTO ||
+            document.querySelectorAll('#chMembers input:checked').length);
+}
+function closeNewGroup(){
+  if(CREATING) return;
+  if(newGroupDirty() && !confirm('Discard this new group?')) return;
+  $('chOv').classList.remove('on'); clearGroupPhoto();
+}
+/* ---- The Hub's plus (brief §4) ------------------------------------------------------
+   A short sheet: New group (the form above), New message (a searchable people list), and the
+   app Menu the old upper-right button opened, so no route is lost. Same .cvm sheet styling as
+   the long-press menu, so it reads as part of this screen. */
+function hubSheet(){
+  var ov=document.getElementById('plusOv');
+  if(!ov){
+    ov=document.createElement('div'); ov.id='plusOv'; ov.className='cvm-ov';
+    ov.addEventListener('click',function(e){ if(e.target===ov) closeHubSheet(); });
+    document.body.appendChild(ov);
+  }
+  return ov;
+}
+function closeHubSheet(){ var o=document.getElementById('plusOv'); if(o) o.classList.remove('on'); }
+function openHubPlus(){
+  var ov=hubSheet();
+  ov.innerHTML='<div class="cvm" role="menu" aria-label="New">'+
+    '<h4>New</h4>'+
+    '<button role="menuitem" onclick="openNewChannel()"><i>\ud83d\udc65</i>New group</button>'+
+    '<button role="menuitem" onclick="openNewDm()"><i>\u2709\ufe0f</i>New message</button>'+
+    '<div class="sep"></div>'+
+    '<button role="menuitem" onclick="closeHubSheet();openAppMenu()"><i>\u2630</i>Menu \u2014 all pages &amp; settings</button>'+
+    '<button role="menuitem" onclick="closeHubSheet()"><i></i>Cancel</button>'+
+  '</div>';
+  ov.classList.add('on');
+}
+/* New message: the same scoped roster the DM picker and member picker use (hub-roster: your
+   own baseshop; Operations sees everyone). Opens the existing DM thread id for that person. */
+function openNewDm(){
+  var ov=hubSheet();
+  ov.innerHTML='<div class="cvm ndm"><h4>New message</h4>'+
+    '<input type="search" id="ndmQ" class="ngsearch" placeholder="Search team members\u2026" oninput="paintNewDm()" autocomplete="off">'+
+    '<div id="ndmList" class="ndm-list"></div>'+
+    '<button onclick="closeHubSheet()"><i></i>Cancel</button></div>';
+  ov.classList.add('on');
+  paintNewDm();
+  if(!(ROSTER||[]).length) hroster().then(function(r){ ROSTER=(r&&r.members)||[]; paintNewDm(); });
+  setTimeout(function(){ try{ document.getElementById('ndmQ').focus(); }catch(e){} },80);
+}
+function paintNewDm(){
+  var host=document.getElementById('ndmList'); if(!host) return;
+  var q=((document.getElementById('ndmQ')||{}).value||'').trim().toLowerCase();
+  var seen={}, list=(ROSTER||[]).filter(function(m){
+    var c=String(m.code||'').toUpperCase();
+    if(!c||c===CODE||c==='KYLE'||seen[c]) return false; seen[c]=1;
+    return !q || (String(m.name||'')+' '+c).toLowerCase().indexOf(q)>=0;
+  }).sort(function(a,b){ return String(a.name||'').localeCompare(String(b.name||'')); });
+  if(!(ROSTER||[]).length){ host.innerHTML='<div class="note">Loading your team\u2026</div>'; return; }
+  host.innerHTML = list.length ? list.slice(0,120).map(function(m){
+    var c=String(m.code).toUpperCase();
+    return '<button onclick="startDm(\''+esc(c)+'\')"><span class="ndm-av">'+esc(initials(m.name||c))+'</span>'+
+      '<span class="ndm-n">'+esc(m.name||c)+'<small>'+esc(c)+'</small></span></button>';
+  }).join('') : '<div class="note">Nobody matches that.</div>';
+}
+function startDm(code){ closeHubSheet(); openChan(dmId(code)); }
+
 /* The chosen photo lives here until the group exists. Nothing is uploaded on cancel. */
 var NEWGRP_PHOTO='';
 function clearGroupPhoto(){
@@ -1850,7 +1960,8 @@ function filterMembers(q){
    tick they just made actually registered, especially once a search has hidden the row. */
 function updateMemberCount(){
   var n=document.querySelectorAll('#chMembers input:checked').length;
-  var el=$('ngCount'); if(el) el.textContent = n? (n+' selected') : 'None selected';
+  /* Counts the people picked here. The creator is a member automatically and is not counted. */
+  var el=$('ngCount'); if(el) el.textContent = (n? (n+' selected') : 'None selected')+' \u00b7 you\u2019re added automatically';
 }
 function setCreating(on){
   var b=$('ngGo'); if(!b)return;
@@ -1888,34 +1999,37 @@ function fillMembers(){
 var CREATING=false;
 function createChannel(){
   if(CREATING) return;
-  var n=$('chName').value.trim(); if(!n){toast('Name it');return;}
+  var n=$('chName').value.trim(); if(!n){toast('Give the group a name');try{$('chName').focus();}catch(e){}return;}
+  if(n.length>60){toast('Keep the name under 60 characters');return;}
+  var desc=(($('chDesc')||{}).value||'').trim();
   var priv=$('chPriv').checked;
   var mem=[].slice.call(document.querySelectorAll('#chMembers input:checked')).map(function(x){return x.value;});
   var photo=NEWGRP_PHOTO;
   CREATING=true; setCreating(true);
   h({action:'hub_createchannel',name:n,private:priv,members:mem,code:CODE,by:NAME}).then(function(r){
     if(!r||!r.ok){ CREATING=false; setCreating(false); toast((r&&r.error)||'Could not create'); return; }
-    /* The group exists from here on. The photo is a SEPARATE call to hub-groups, so it is
-       reported separately too — a photo that fails must not read as a failed group. */
-    var done=function(){
+    /* The group exists from here on. Photo and description are SEPARATE calls to hub-groups, so
+       they are reported separately too - an extra that fails must not read as a failed group,
+       and a group that worked must not claim an extra it does not have. */
+    var extras=[], missed=[];
+    if(r.id && photo) extras.push(gdApi({action:'set_photo', channel:r.id, avatar:photo}).then(function(p){
+      if(p&&p.ok){ GROUPMETA[r.id]=Object.assign(GROUPMETA[r.id]||{}, {avatar:p.avatar}); } else missed.push('photo');
+    },function(){ missed.push('photo'); }));
+    if(r.id && desc) extras.push(gdApi({action:'set_description', channel:r.id, description:desc}).then(function(p){
+      if(!(p&&p.ok)) missed.push('description');
+    },function(){ missed.push('description'); }));
+    Promise.all(extras).then(function(){
       CREATING=false; setCreating(false);
       $('chOv').classList.remove('on');
-      $('chName').value=''; $('chPriv').checked=false; $('chMembersWrap').style.display='none';
+      $('chName').value=''; $('chPriv').checked=false; var d=$('chDesc'); if(d)d.value='';
       clearGroupPhoto();
-      loadChannels();
-      if(r.id){ CHAN=r.id; renderHead(); loadMsgs(true); }
-    };
-    if(!photo || !r.id){ toast(priv?'Private group created \ud83d\udd12':'Group created'); done(); return; }
-    gdApi({action:'set_photo', channel:r.id, avatar:photo}).then(function(p){
-      if(p&&p.ok){
-        GROUPMETA[r.id]={name:null, avatar:p.avatar};
-        toast(priv?'Private group created \ud83d\udd12':'Group created');
-      }else{
-        /* Honest: the group is real, the picture is not. Do not claim both worked. */
-        toast('Group created \u2014 the photo did not save. Add it from the group details.');
-      }
-      done();
-    }).catch(function(){ toast('Group created \u2014 the photo did not save.'); done(); });
+      toast(missed.length
+        ? ('Group created \u2014 the '+missed.join(' and ')+' did not save. Add it from the group details.')
+        : (priv?'Private group created \ud83d\udd12':'Group created'));
+      /* Open it once it is in the list, through openChan, so a phone actually shows the
+         conversation (openChan is what switches the phone from the list to the chat). */
+      loadChannels(function(){ if(r.id && CHANNELS.some(function(c){return c.id===r.id;})) openChan(r.id); });
+    });
   }).catch(function(){ CREATING=false; setCreating(false); toast('Network error \u2014 the group was not created.'); });
 }
 /* profile settings + roster */
@@ -1934,7 +2048,7 @@ function loadRoster(){hroster().then(function(r){ROSTER=(r&&r.members)||[];try{r
 function openProfileSettings(){$('psAv').innerHTML=avatarInner(CODE,NAME,'');$('psName').value=NAME;var open=function(){h({action:'hub_profile',code:CODE}).then(function(r){var pf=(r&&r.profile)||{};$('psTitle').value=pf.title||'';$('psEmail').value=pf.email||'';$('psPhone').value=pf.phone||'';$('psCal').value=pf.cal_link||'';var sel=$('psDirect');sel.innerHTML='<option value="">\u2014 Select your direct upline \u2014</option>'+ROSTER.filter(function(m){return m.code!==CODE;}).map(function(m){return '<option value="'+m.code+'"'+(pf.direct_to===m.code?' selected':'')+'>'+esc(m.name)+' ('+m.code+')</option>';}).join('');});$('psOv').classList.add('on');};if(!ROSTER.length){hroster().then(function(r){ROSTER=(r&&r.members)||[];open();});}else open();}
 function saveProfile(){var sel=$('psDirect');var dc=sel.value;var dn=dc?sel.options[sel.selectedIndex].text.replace(/\s*\([^)]*\)\s*$/,'').trim():'';h({action:'hub_setprofile',code:CODE,title:$('psTitle').value.trim(),email:$('psEmail').value.trim(),phone:$('psPhone').value.trim(),cal_link:$('psCal').value.trim(),direct_to:dc,direct_to_name:dn}).then(function(r){if(r&&r.ok){$('psOv').classList.remove('on');toast('Profile saved \u2713');loadRoster();}else toast((r&&r.error)||'Could not save');});}
 function deleteChannel(){if(CHAN.indexOf('c_')!==0)return;if(!confirm('Delete this channel for everyone? This cannot be undone.'))return;h({action:'hub_deletechannel',id:CHAN,code:CODE,token:MODTOKEN||''}).then(function(r){if(r&&r.ok){toast('Channel deleted');CHAN='main';loadChannels();renderHead();loadMsgs(true);}else toast((r&&r.error)||'Could not delete');});}
-function loadChannels(){var call=OPSMODE?hops({action:'channels',name:NAME}):h({action:'hub_channels',code:CODE});call.then(function(r){CHANNELS=(r&&r.channels)||[];if(r&&r.access){ACC=r.access;}syncBotBtn();if(CHAN.indexOf('dm:')!==0&&!CHANNELS.some(function(c){return c.id===CHAN;})){CHAN='main';renderHead();loadMsgs(true);}renderRooms();});}
+function loadChannels(cb){var call=OPSMODE?hops({action:'channels',name:NAME}):h({action:'hub_channels',code:CODE});call.then(function(r){CHANNELS=(r&&r.channels)||[];if(r&&r.access){ACC=r.access;}syncBotBtn();if(CHAN.indexOf('dm:')!==0&&!CHANNELS.some(function(c){return c.id===CHAN;})){CHAN='main';renderHead();loadMsgs(true);}renderRooms();if(typeof cb==='function')cb();});}
 
 /* search */
 function doSearch(){var q=$('hq').value.trim();if(!q){return;}h({action:'hub_search',q:q}).then(function(r){var arr=(r&&r.messages)||[];if(!arr.length){toast('No matches');return;}MSGS=arr.slice().reverse();$('chead').innerHTML='<div class="ci">🔎</div><div><div class="cn">Search: “'+esc(q)+'”</div><div class="cs">'+arr.length+' results · click a channel to return</div></div>';LASTID=0;renderMsgs(true);});}
@@ -2087,6 +2201,17 @@ body.phone .cv-head .cv-menu svg{ width:22px; height:22px; }
 body:not(.phone) .cv-menu{ display:none; }
 body.phone .cv-head .cv-new{ grid-column:3; justify-self:end; }
 body.phone .cv-new{ width:38px; height:38px; border:0; background:none; color:var(--cvgold); font-size:20px; cursor:pointer; }
+/* Brief §4: the outlined circular gold plus. 36px visible ring inside a 44px hit area. */
+body.phone .cv-head .cv-new{
+  width:44px; height:44px; padding:4px; display:flex; align-items:center; justify-content:center;
+  -webkit-tap-highlight-color:transparent;
+}
+body.phone .cv-head .cv-new svg{
+  width:36px; height:36px; box-sizing:border-box; padding:7px; border-radius:50%;
+  border:1.5px solid var(--cvgold); color:var(--cvgold);
+}
+body.phone .cv-head .cv-new:active svg{ background:rgba(230,194,90,.14); }
+body:not(.phone) .cv-head .cv-new{ display:none; }
 body.phone .cv-search{ position:relative; margin:10px 16px 10px; }
 body.phone .cv-search input{
   width:100%; box-sizing:border-box; font-family:inherit; font-size:15px;
@@ -2141,15 +2266,61 @@ body.phone #chanList{
   flex:1 1 auto; overflow-y:auto; -webkit-overflow-scrolling:touch;
   padding:0 0 calc(62px + env(safe-area-inset-bottom));
 }
-body.phone .cv{ display:flex; align-items:center; gap:11px; padding:11px 14px; cursor:pointer; }
+body.phone .cv{ display:flex; align-items:center; gap:12px; padding:13px 14px; min-height:72px; box-sizing:border-box; cursor:pointer; }
+/* Brief §4: Recent chats sit in one inset, rounded charcoal surface rather than edge-to-edge
+   rows. The heading reuses the Pinned heading's class so the two always match. */
+body.phone .cv-rh{ padding:14px 18px 8px; }
+body.phone .cv-grp{
+  margin:0 14px 14px; border-radius:20px; overflow:hidden;
+  background:linear-gradient(180deg,var(--panel),var(--panel2));
+  border:1px solid var(--line); box-shadow:0 6px 18px rgba(0,0,0,.18);
+}
+body:not(.phone) .cv-rh{ display:none; }
+
+/* ---------- the same conversation list on a desktop/laptop (wider than 980px) ----------
+   The phone redesign built its list (.cv rows, the search, the four filters) with styles
+   scoped to body.phone only, so above 980px - the Operations desk, any laptop - the list
+   rendered as raw unstyled text. These are the desktop equivalents, sized for the 270px
+   column and matching the existing .room / .hsearch look. Phone rules are untouched. */
+body:not(.phone) .cv-head{ padding:0 6px 4px; }
+body:not(.phone) .cv-head h1{ margin:0; font-size:15px; font-weight:800; letter-spacing:.04em; color:var(--ink); }
+body:not(.phone) .cv-search{ display:flex; align-items:center; gap:8px; padding:8px 11px; margin:8px 0;
+  border:1px solid var(--line2); border-radius:11px; background:var(--panel2); }
+body:not(.phone) .cv-search .mg{ color:var(--ink3); font-size:13px; }
+body:not(.phone) .cv-search input{ border:none; background:none; outline:none; color:var(--ink); font-size:13.5px; width:100%; font-family:inherit; }
+body:not(.phone) .cv-pills{ display:flex; flex-wrap:wrap; gap:6px; margin:0 0 6px; }
+body:not(.phone) .cv-pill{ border:1px solid var(--line2); background:var(--panel); color:var(--ink2); font-family:inherit;
+  font-size:12px; font-weight:700; padding:5px 11px; border-radius:999px; cursor:pointer; }
+body:not(.phone) .cv-pill.on{ background:var(--cvgold); border-color:var(--cvgold); color:#17120a; }
+body:not(.phone) .cv{ display:flex; align-items:center; gap:9px; padding:8px 10px; border-radius:10px; cursor:pointer; color:var(--ink2); }
+body:not(.phone) .cv:hover{ background:var(--bg); }
+body:not(.phone) .cv.on{ background:var(--accent-soft); }
+body:not(.phone) .cv-av{ width:32px; height:32px; border-radius:50%; flex:0 0 auto; display:flex; align-items:center; justify-content:center;
+  font-size:12px; font-weight:800; background:var(--panel2); color:var(--ink2); object-fit:cover; box-sizing:border-box; }
+body:not(.phone) .cv-av.ch{ border:1.5px solid var(--cvgold); color:var(--cvgold); font-size:14px; }
+body:not(.phone) .cv-mid{ flex:1 1 auto; min-width:0; }
+body:not(.phone) .cv-top{ display:flex; align-items:baseline; gap:5px; }
+body:not(.phone) .cv-name{ flex:1 1 auto; min-width:0; font-size:13.5px; font-weight:600; color:var(--ink);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+body:not(.phone) .cv-pinmark{ color:var(--cvgold); font-size:9px; flex:0 0 auto; }
+body:not(.phone) .cv-time{ flex:0 0 auto; font-size:11px; color:var(--ink3); }
+body:not(.phone) .cv-prev{ font-size:12px; color:var(--ink3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:1px; }
+body:not(.phone) .cv-mute{ font-style:italic; }
+body:not(.phone) .cv.unread .cv-name{ font-weight:800; }
+body:not(.phone) .cv.unread .cv-prev{ color:var(--ink2); }
+body:not(.phone) .cv-badge{ flex:0 0 auto; min-width:19px; height:19px; border-radius:10px; padding:0 5px; box-sizing:border-box;
+  background:var(--cvgold); color:#17120a; font-size:11px; font-weight:800; display:flex; align-items:center; justify-content:center; }
+body:not(.phone) #cvNone, body:not(.phone) .cv-empty{ padding:14px 10px; color:var(--ink3); font-size:12.5px; }
 body.phone .cv:active{ background:var(--panel2); }
-body.phone .cv + .cv{ box-shadow:inset 0 1px 0 var(--line); }
+/* A hairline that starts after the avatar, the way grouped lists inset their separators. */
+body.phone .cv + .cv{ background-image:linear-gradient(var(--line),var(--line)); background-repeat:no-repeat;
+  background-size:calc(100% - 72px) 1px; background-position:right top; }
 body.phone .cv-av{
   flex:0 0 auto; width:46px; height:46px; border-radius:50%;
   display:flex; align-items:center; justify-content:center;
   font-weight:800; font-size:16px; background:var(--panel2); color:var(--ink2);
 }
-body.phone .cv-av.ch{ background:linear-gradient(145deg,var(--cvgold-br),var(--cvgold)); color:#17120a; font-size:20px; }
+body.phone .cv-av.ch{ background:var(--panel2); color:var(--cvgold); font-size:20px; border:1.5px solid var(--cvgold); box-sizing:border-box; }
 body.phone .cv-mid{ flex:1 1 auto; min-width:0; }
 body.phone .cv-top{ display:flex; align-items:baseline; gap:6px; }
 body.phone .cv-name{ flex:1 1 auto; min-width:0; font-weight:700; font-size:15.5px; color:var(--ink);
@@ -2294,6 +2465,33 @@ body.phone .msg.cont .mhead{ display:none; }
 .ngsearch{ width:100%; margin:0 0 8px; padding:9px 11px; border-radius:10px; border:1px solid var(--line2);
            background:var(--panel); color:var(--ink); font-family:inherit; font-size:13.5px; box-sizing:border-box; }
 .memrow.hid{ display:none; }
+/* Member rows are <label>s inside .fg, so they were picking up the field-label look (tiny,
+   grey, uppercase) and stacking the checkbox on its own line. A row is a person, not a caption. */
+.fg .memrow{ display:flex; align-items:center; gap:10px; margin:0; padding:10px 8px; min-height:44px; box-sizing:border-box;
+  font-size:14.5px; font-weight:500; text-transform:none; letter-spacing:0; color:var(--ink); }
+.fg .memrow input{ width:20px; height:20px; flex:0 0 auto; margin:0; accent-color:var(--cvgold,#e6c25a); }
+.fg .memrow.hid{ display:none; }
+.ngmodal .mempick{ max-height:240px; }
+.nghead{ display:grid; grid-template-columns:44px 1fr 44px; align-items:center; margin:-6px -6px 12px; }
+.nghead h3{ margin:0; text-align:center; }
+.ngx{ width:44px; height:44px; border:0; background:none; color:var(--ink2); font-size:28px; line-height:1; cursor:pointer; }
+.ngmodal .ngphoto{ flex-direction:column; gap:8px; }
+.ngmodal .ngav{ width:112px; height:112px; }
+.ngmodal .ngphoto-t{ align-items:center; }
+.ngopt{ font-weight:500; color:var(--ink3); text-transform:none; letter-spacing:0; }
+.ngdesc{ width:100%; box-sizing:border-box; resize:vertical; min-height:58px; font-family:inherit; font-size:15px;
+         padding:10px 12px; border-radius:12px; border:1px solid var(--line2); background:var(--panel); color:var(--ink); }
+.ngprivnote{ font-size:12px; color:var(--ink3); line-height:1.45; margin:-6px 2px 12px; }
+.ndm .ngsearch{ margin:0 4px 8px; width:calc(100% - 8px); font-size:15px; padding:11px 12px; }
+.ndm-list{ max-height:52vh; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+.ndm-list .note{ padding:10px 12px; }
+.ndm-av{ width:38px; height:38px; border-radius:50%; flex:0 0 auto; display:flex; align-items:center; justify-content:center;
+         background:var(--panel2); border:1.5px solid var(--cvgold,#e6c25a); color:var(--cvgold,#e6c25a); font-size:13px; font-weight:800; }
+.ndm-n{ display:flex; flex-direction:column; min-width:0; }
+.ndm-n small{ font-size:11.5px; color:var(--ink3); }
+.gd textarea{ width:100%; box-sizing:border-box; padding:11px 12px; font:inherit; font-size:15px; resize:vertical;
+  background:var(--panel2); color:var(--ink); border:1px solid var(--line); border-radius:11px; }
+.gd .gdesc{ text-align:center; color:var(--ink2); font-size:14px; line-height:1.45; margin:-4px 8px 12px; white-space:pre-wrap; }
 .mempick .noneleft{ color:var(--ink3); font-size:12px; padding:6px; }
 
 /* ---- Pinned conversations rail (phone) --------------------------------------------
@@ -2314,18 +2512,18 @@ body.phone .pinrail{
 }
 body.phone .pinrail::-webkit-scrollbar{ display:none; }
 body.phone .pt{
-  flex:0 0 auto; width:64px; display:flex; flex-direction:column; align-items:center; gap:6px;
+  flex:0 0 auto; width:76px; display:flex; flex-direction:column; align-items:center; gap:6px;
   cursor:pointer; background:none; border:0; padding:0; font-family:inherit;
   -webkit-tap-highlight-color:transparent;
 }
-body.phone .pt-box{ position:relative; display:block; width:54px; height:54px; }
+body.phone .pt-box{ position:relative; display:block; width:62px; height:62px; }
 body.phone .pt-av{
-  display:block; width:54px; height:54px; border-radius:50%;
+  display:block; width:62px; height:62px; border-radius:50%;
   display:flex; align-items:center; justify-content:center;
   font-weight:800; font-size:18px; background:var(--panel2); color:var(--ink2);
   border:1.5px solid var(--cvgold,#e6c25a); object-fit:cover; box-sizing:border-box;
 }
-body.phone .pt-av.ch{ background:linear-gradient(145deg,var(--cvgold-br,#f2d17a),var(--cvgold,#e6c25a)); color:#17120a; font-size:22px; }
+body.phone .pt-av.ch{ background:var(--panel2); color:var(--cvgold,#e6c25a); font-size:24px; }
 body.phone .pt.on .pt-av{ box-shadow:0 0 0 2px var(--cvgold,#e6c25a); }
 body.phone .pt:active .pt-av{ transform:scale(.96); }
 /* Unobtrusive, per the brief: presence of unread, not a count competing with the list badges. */
@@ -2335,7 +2533,7 @@ body.phone .pt-dot{
 }
 /* The full name stays in the DOM for search and screen readers; only the display is clipped. */
 body.phone .pt-name{
-  max-width:64px; font-size:11px; font-weight:600; color:var(--ink2); text-align:center;
+  max-width:76px; font-size:11.5px; font-weight:600; color:var(--ink2); text-align:center;
   /* Two lines, not one. A pinned "Company Announcements" used to read "Compan…", which
      identifies nothing. The rail is a flex row with the default stretch, so the tallest tile
      sets the height for all of them and the avatars stay on one line. */
@@ -2374,8 +2572,11 @@ body.phone .composer textarea{ border-radius:21px !important; padding:11px 15px 
            Settings and everything else — but that Menu is injected into .top, which this
            screen hides on a phone, so it had a 0x0 box and could not be tapped. Measured it:
            elementFromPoint at its centre returned .cv-head, not the button. */
-        '<button class="cv-menu" onclick="openAppMenu()" aria-label="Menu" title="Menu">'+
-          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>'+
+        /* Brief §4: the upper-right action is a creation plus, not a navigation drawer. The
+           app Menu it used to open is still one tap away, at the foot of the plus sheet, so
+           Profile & Settings never loses its route from this screen. */
+        '<button class="cv-new" onclick="openHubPlus()" aria-label="New group or message" title="New">'+
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 6v12M6 12h12"/></svg>'+
         '</button>'+
       '</div>'+
       '<div class="cv-search"><span class="mg">⌕</span>'+

@@ -1,3 +1,6 @@
+// hub-groups v5 (2026-10-26) — a group can carry a short description (brief §5: "Save the
+//   optional description with the group; do not draw a field that discards its content").
+//   Same editors as the name and photo: the group's creator, its designated admins, owners.
 // hub-groups v4 (2026-10-26) — Operations master holds owner powers; Ops is never a typed code.
 // hub-groups v3 (2026-10-22) — a group chat's own name and photo, who may change them, and
 // who may post in the organisation-wide Announcements channel.
@@ -56,6 +59,7 @@ const enc = encodeURIComponent;
 
 const MAX_AVATAR = 300_000;          // a 256px square JPEG is ~20-40KB; this is generous
 const MAX_NAME = 60;
+const MAX_DESC = 300;                // matches the hub_groups_description_len check
 const OWNER_FALLBACK = ["GFI20"];    // if the setting is ever lost, authority SHRINKS, never opens
 const ANNOUNCE_CHANNEL = "announcements";
 
@@ -241,7 +245,7 @@ Deno.serve(async (req) => {
   /* ------------------------------------------------------------------- read ----- */
   if (action === "get") {
     if (!member) return json({ ok: false, error: "You are not in that group." }, 403);
-    const g = (await getJSON(`hub_groups?channel=eq.${enc(channel)}&select=channel,name,avatar,updated_by,updated_at`))[0] || null;
+    const g = (await getJSON(`hub_groups?channel=eq.${enc(channel)}&select=channel,name,avatar,description,updated_by,updated_at`))[0] || null;
     const admins = await getJSON(`hub_group_admins?channel=eq.${enc(channel)}&select=code,assigned_by,assigned_at&order=assigned_at.asc`);
     const withNames = [];
     for (const a of admins) withNames.push({ code: norm(a.code), name: await nameOf(norm(a.code)), assigned_at: a.assigned_at });
@@ -249,6 +253,7 @@ Deno.serve(async (req) => {
       ok: true, channel,
       name: (g && g.name) || null,            // null = still using the derived name
       avatar: (g && g.avatar) || null,
+      description: (g && g.description) || null,
       can_edit: owner || admin,               // owners can edit too, so a group is never stranded
       can_assign: owner,
       admins: withNames,
@@ -256,7 +261,7 @@ Deno.serve(async (req) => {
   }
 
   /* ------------------------------------------------------------- name / photo ---- */
-  if (action === "set_name" || action === "set_photo") {
+  if (action === "set_name" || action === "set_photo" || action === "set_description") {
     if (!(owner || admin)) {
       return json({ ok: false, error: "Only this group's admin can change it." }, 403);
     }
@@ -266,6 +271,12 @@ Deno.serve(async (req) => {
       if (!nm) return json({ ok: false, error: "Give the group a name." }, 400);
       if (nm.length > MAX_NAME) return json({ ok: false, error: `Keep the name under ${MAX_NAME} characters.` }, 400);
       patch.name = nm;
+    } else if (action === "set_description") {
+      /* Optional: an empty value clears it. Plain text, trimmed, length-checked here AND by the
+         table's own constraint. */
+      const d = String(body.description ?? "").replace(/\r\n/g, "\n").trim();
+      if (d.length > MAX_DESC) return json({ ok: false, error: `Keep the description under ${MAX_DESC} characters.` }, 400);
+      patch.description = d || null;
     } else {
       const url = String(body.avatar ?? "");
       if (url === "") { patch.avatar = null; }      // removing the photo falls back to the group icon
@@ -281,7 +292,7 @@ Deno.serve(async (req) => {
     });
     if (!r.ok) return json({ ok: false, error: "Could not save that." }, 500);
     const saved = (await r.json())[0] || {};
-    return json({ ok: true, channel, name: saved.name || null, avatar: saved.avatar || null });
+    return json({ ok: true, channel, name: saved.name || null, avatar: saved.avatar || null, description: saved.description || null });
   }
 
   /* ------------------------------------------------------- designate / revoke ---- */
