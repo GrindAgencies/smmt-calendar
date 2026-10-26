@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <script src="session.js"></script>
+<script src="road-core.js"></script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>My Profile — The Standard Financial Group</title>
@@ -308,12 +309,20 @@ function paintProfile(p){
     +'<div class="row"><div class="fld"><label class="lbl">First name</label><input id="pf_first" class="in" value="'+esc(p.first_name||'')+'"></div><div class="fld"><label class="lbl">Last name</label><input id="pf_last" class="in" value="'+esc(p.last_name||'')+'"></div></div>'
     +'<div class="row"><div class="fld"><label class="lbl">Mobile phone <span class="hint">· SMS + contact</span></label><input id="pf_phone" class="in" value="'+esc(p.phone||'')+'" placeholder="(555) 555-1234"></div><div class="fld"><label class="lbl">Email / Gmail</label><input id="pf_email" type="email" class="in" value="'+esc(p.email||'')+'" placeholder="you@gmail.com"></div></div>'
     +'<div class="row"><div class="fld"><label class="lbl">State of residence</label><input id="pf_state" class="in" value="'+esc(p.state||'')+'" placeholder="e.g. California" list="statelist"></div><div class="fld"><label class="lbl">Agent code <span class="hint">· assigned</span></label><input class="in" value="'+esc(CODE)+'" readonly></div></div>'
-    +'<div class="row"><div class="fld"><label class="lbl">Direct recruiter — agent code <span class="hint">· who brought you in</span></label><input id="pf_direct" class="in" value="'+esc(p.direct_to||'')+'" placeholder="e.g. C1991" style="text-transform:uppercase"><div style="font-size:11.5px;margin-top:5px">Current: '+recruiter+'</div></div></div>'
+    +'<div class="row"><div class="fld"><label class="lbl">Direct recruiter — agent code <span class="hint">· who brought you in</span></label><input id="pf_direct" class="in" value="'+esc(p.direct_to||'')+'" placeholder="e.g. C1991" style="text-transform:uppercase" oninput="recruiterLookup()" autocomplete="off"><div id="pf_direct_res" style="font-size:11.5px;margin-top:5px">On file: '+recruiter+'</div></div>'
+    /* Contract level is shown, never edited here: it is assigned by Operations (Ops Dashboard ->
+       the person's profile), so nobody can raise their own level from their own form. */
+    +'<div class="fld"><label class="lbl">Contract level <span class="hint">· assigned by Operations</span></label><input class="in" value="'+esc(p.contract_level||'Not assigned yet')+'" readonly></div></div>'
     +'<div class="row"><div class="fld"><label class="lbl">ICA — Independent Contractor Agreement <span class="hint">· signed status / #</span></label><input id="pf_ica" class="in" value="'+esc(p.ica||'')+'" placeholder="Signed / agreement #"></div><div class="fld"><label class="lbl">ICA date <span class="hint">· contract date</span></label><input id="pf_icadate" type="date" class="in" value="'+esc(p.ica_date||'')+'"></div></div>'
     +'<button class="btn" style="margin-top:14px" onclick="saveProfile()">Save details</button></div></div>';
 
   h+='<div class="sec"><div class="sech"><h2>Calendly Booking</h2></div><div class="card">'
     +'<div style="font-size:13px;color:var(--ink2);margin-bottom:12px">Connect your Calendly account so your <b>public booking link</b> and all your bookings sync live into the platform.'+(p.is_trainer?' <b style="color:var(--gold)">Required for Certified Field Trainers.</b>':'')+'</div>'
+    +'<div class="fld" style="margin-bottom:14px"><label class="lbl">Your booking link <span class="hint">· the page clients use to book you</span></label>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap"><input id="pf_cal" class="in" style="flex:1;min-width:200px" value="'+esc(p.calendly||'')+'" placeholder="https://calendly.com/your-name" inputmode="url" autocomplete="off" autocapitalize="off">'
+    +'<button class="btn" id="pf_cal_save" onclick="saveCalLink()">Save link</button>'
+    +'<a class="btn ghost" id="pf_cal_open" target="_blank" rel="noopener noreferrer" style="text-decoration:none'+(p.calendly?'':';display:none')+'" href="'+esc(p.calendly||'#')+'">Open booking page ↗</a></div>'
+    +'<div id="pf_cal_msg" style="font-size:11.5px;margin-top:5px;color:var(--ink3)">'+(p.calendly?'Saved.':'Not set up yet.')+' Saving a link does not connect your account — the token below does that.</div></div>'
     +'<div id="calendlyStatus" style="font-size:13px;font-weight:700;color:var(--ink3);margin-bottom:12px">Checking Calendly…</div>'
     +'<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" onclick="connectCalendly()">🔗 Connect / update Calendly</button><button class="btn ghost" onclick="calendlySyncNow()">↻ Sync now</button></div>'
     +'<div style="font-size:11.5px;color:var(--ink3);margin-top:10px;line-height:1.5">Get your token in Calendly → <b>Integrations → API &amp; webhooks → Personal access tokens → Create</b>. Your token is stored securely on the server and never shown again.</div>'
@@ -322,10 +331,12 @@ function paintProfile(p){
   if(p.is_trainer){
     h+='<div class="sec"><div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap"><div><div style="font-weight:800;font-size:14px">Manage your booking availability</div><div style="font-size:12.5px;color:var(--ink3)">Weekly hours, blackouts & vacations live in the Scheduler.</div></div><a class="btn ghost" style="text-decoration:none" href="calendar.html?tab=avail">Open My Availability →</a></div></div>';
   }
+  h+='<div id="roadSumSec"></div>';
   h+='<div id="notifPrefsSec"></div>';
   h+='<div id="apptMailSec"></div><div id="emdCtrlSec"></div><div id="baseBrandSec"></div><div id="announceSec"></div>';
   $('profBody').innerHTML=h+'<datalist id="statelist">'+US_STATES.map(function(s){return '<option value="'+s+'">';}).join('')+'</datalist>';
   loadNotifPrefs();
+  loadRoadSummary();
   loadCalendlyStatus();
   loadBaseBrand();
   loadEmdControl();
@@ -966,6 +977,82 @@ function calendlySyncNow(){var el=$('calendlyStatus');if(el)el.textContent='Sync
 function copyCalLink(u){try{navigator.clipboard.writeText(u);toast('Link copied');}catch(e){toast(u);}}
 var US_STATES=["Alabama","Alaska","Arizona","Arkansas","California","Colorado","Connecticut","Delaware","Florida","Georgia","Hawaii","Idaho","Illinois","Indiana","Iowa","Kansas","Kentucky","Louisiana","Maine","Maryland","Massachusetts","Michigan","Minnesota","Mississippi","Missouri","Montana","Nebraska","Nevada","New Hampshire","New Jersey","New Mexico","New York","North Carolina","North Dakota","Ohio","Oklahoma","Oregon","Pennsylvania","Rhode Island","South Carolina","South Dakota","Tennessee","Texas","Utah","Vermont","Virginia","Washington","West Virginia","Wisconsin","Wyoming"];
 function val(id){var e=$(id);return e?(e.value||'').trim():'';}
+/* ---- Recruiter: say WHO a code is before it is saved (2026-10-26) -----------------------
+   profile-api resolve_upline returns only name / code / baseshop. Saving still re-resolves on
+   the server, which also refuses yourself and anything that would loop the org chart. */
+var RL_T=null,RL_SEQ=0;
+function recruiterLookup(){
+  var el=$('pf_direct_res'),v=val('pf_direct').toUpperCase().trim();if(!el)return;
+  clearTimeout(RL_T);
+  if(!v){el.innerHTML='<span style="color:var(--ink3)">No recruiter — saving clears it.</span>';return;}
+  if(v.length<2){el.innerHTML='<span style="color:var(--ink3)">Keep typing…</span>';return;}
+  if(v===String(CODE).toUpperCase()){el.innerHTML='<span style="color:var(--red)">That is your own code — your recruiter is the person who brought you in.</span>';return;}
+  el.innerHTML='<span style="color:var(--ink3)">Looking up '+esc(v)+'…</span>';
+  var seq=++RL_SEQ;
+  RL_T=setTimeout(function(){
+    fetch(PA,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'resolve_upline',q:v,code:CODE})})
+     .then(function(r){return r.json();}).then(function(r){
+       if(seq!==RL_SEQ)return;           /* a newer keystroke owns the answer */
+       if(r&&r.ok&&r.code){
+         if(String(r.code).toUpperCase()===String(CODE).toUpperCase()){el.innerHTML='<span style="color:var(--red)">That is your own code — your recruiter is the person who brought you in.</span>';return;}
+         el.innerHTML='<span style="color:var(--green);font-weight:800">✓ '+esc(r.name||'')+' · '+esc(r.code)+(r.baseshop?(' · '+esc(r.baseshop)):'')+'</span> <span style="color:var(--ink3)">— press Save details to keep it</span>';
+       } else {
+         var c=(r&&r.candidates)||[];
+         el.innerHTML='<span style="color:var(--red)">'+esc((r&&r.message)||'No one with that code.')+'</span>'+(c.length?('<div style="color:var(--ink3);margin-top:3px">Did you mean: '+c.map(function(x){return esc(x.name)+' ('+esc(x.code)+')';}).join(', ')+'</div>'):'');
+       }
+     }).catch(function(){ if(seq===RL_SEQ) el.innerHTML='<span style="color:var(--ink3)">Could not check right now — it is checked again when you save.</span>'; });
+  },350);
+}
+
+/* ---- Calendly booking link (2026-10-26) --------------------------------------------------
+   Stored and shown, nothing more: it is the page clients book on. The server only accepts an
+   https Calendly address. A blank link is "not set up", never a pretend connection. */
+var CAL_SAVING=false;
+function saveCalLink(){
+  if(CAL_SAVING)return;
+  var link=val('pf_cal').trim(),msg=$('pf_cal_msg'),b=$('pf_cal_save');
+  if(link&&/^(www\.)?calendly\.com\//i.test(link))link='https://'+link;
+  if(link&&!/^https:\/\/(www\.)?calendly\.com\/[A-Za-z0-9._~\/?=&%-]+$/i.test(link)){
+    if(msg){msg.style.color='var(--red)';msg.textContent='That is not a Calendly booking link. It should look like https://calendly.com/your-name.';}return;}
+  CAL_SAVING=true;if(b){b.disabled=true;b.textContent='Saving…';}
+  fetch(PA,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'save_contact',code:CODE,calendly:link})})
+   .then(function(r){return r.json();}).then(function(r){
+     if(!r||!r.ok){if(msg){msg.style.color='var(--red)';msg.textContent=(r&&r.error)||'Could not save the link.';}return;}
+     PROFILE_P.calendly=link;$('pf_cal').value=link;
+     var o=$('pf_cal_open');if(o){o.href=link||'#';o.style.display=link?'':'none';}
+     if(msg){msg.style.color='var(--green)';msg.textContent=link?'Saved ✓':'Link removed — not set up.';}
+     toast(link?'Booking link saved ✓':'Booking link removed');
+   }).catch(function(){if(msg){msg.style.color='var(--red)';msg.textContent='Network error — not saved.';}})
+   .then(function(){CAL_SAVING=false;if(b){b.disabled=false;b.textContent='Save link';}});
+}
+
+/* ---- Road to EMD: read-only summary (2026-10-26) -----------------------------------------
+   Same ladder and same "is it done" rules as the Road page itself (road-core.js, one copy),
+   fed by the same summit-api board read narrowed to this person (self:true). Nothing here
+   can change progression; that is an EMD's job on the Road page. */
+var SUMMIT='https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/summit-api';
+function loadRoadSummary(){
+  var host=$('roadSumSec');if(!host||typeof ROAD==='undefined')return;
+  fetch(SUMMIT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'board',code:CODE,self:true})})
+   .then(function(r){return r.json();}).then(function(r){
+     var el=$('roadSumSec');if(!el)return;
+     if(!r||!r.ok){el.innerHTML='';return;}
+     window.BOARD=r;window.BYCODE={};
+     var me=String(CODE).toUpperCase(),done=stagesDone(me),i=firstOpenStage(me),cnt=stageCount(me,i);
+     var pend=Object.keys(((r.pending||{})[me])||{}).length;
+     var all=done>=STAGES.length;
+     var pct=Math.round(done/STAGES.length*100);
+     el.innerHTML='<div class="sec"><div class="sech"><h2>Road to EMD</h2><span style="font-size:12px;color:var(--ink3);font-weight:700">Read only</span></div><div class="card">'
+       +'<div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:baseline"><div style="font-weight:800;font-size:15px">'
+       +(all?'All '+STAGES.length+' stages complete':('Stage '+(i+1)+' of '+STAGES.length+': '+esc(STAGES[i])))+'</div>'
+       +'<div style="font-size:12.5px;color:var(--ink3);font-weight:700">'+done+' of '+STAGES.length+' stages done</div></div>'
+       +'<div style="height:8px;border-radius:6px;background:var(--line);margin:10px 0 8px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:var(--accent,#5b6cff)"></div></div>'
+       +(all?'':('<div style="font-size:12.5px;color:var(--ink2)">This stage: <b>'+cnt.done+' of '+cnt.total+'</b> requirements approved'+(pend?(' · <span style="color:var(--gold)">'+pend+' awaiting your EMD</span>'):'')+'</div>'))
+       +'<a class="btn ghost" style="text-decoration:none;margin-top:12px;display:inline-block" href="summit.html">View Road to EMD →</a>'
+       +'</div></div>';
+   }).catch(function(){});
+}
+
 function saveProfile(){
   var first=val('pf_first'),last=val('pf_last');
   if(!first){toast('First name is required');return;}

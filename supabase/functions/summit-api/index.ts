@@ -1,4 +1,4 @@
-// summit-api v8 (2026-10-24) — A TICK IS A REQUEST UNTIL AN EMD APPROVES IT. Handoff §9: ordinary
+// summit-api v9 (2026-10-26: board `self`) · v8 (2026-10-24) — A TICK IS A REQUEST UNTIL AN EMD APPROVES IT. Handoff §9: ordinary
 //     agents must not be able to promote themselves. Before v8 every one of the 124 ticks had been
 //     set by the agent on their own ladder. Christopher chose "agent requests, EMD approves":
 //     summit_checks.status is 'pending' or 'approved', only approved counts toward a stage, an
@@ -193,7 +193,11 @@ Deno.serve(async (req) => {
     if (!code && !ops) return json({ ok: false, error: "sign in required" }, 401);
 
     const scope = await scopeOf(code, ops);
-    const inScope = (c: unknown) => scope.all || scope.codes.has(norm(c));
+    /* v9 (2026-10-26): `self:true` narrows any read to the caller's own record. The Profile page's
+       read-only Road summary needs one person, not the whole team the caller may see. Only ever
+       narrows scope; it can never widen it. */
+    const selfOnly = body.self === true && !!code;
+    const inScope = (c: unknown) => selfOnly ? norm(c) === norm(code) : (scope.all || scope.codes.has(norm(c)));
     const me = code ? await agentRow(code) : null;
 
     if (action === "board") {

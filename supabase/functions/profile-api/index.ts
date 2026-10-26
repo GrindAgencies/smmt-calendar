@@ -1,4 +1,4 @@
-// profile-api v21 — profile + ONBOARDING + NESTED BASESHOP + full profile record.
+// profile-api v22 (2026-10-26: Calendly link validated) · v21 — profile + ONBOARDING + NESTED BASESHOP + full profile record.
 //
 // v21 (2026-09-30): WHO IS CALLING. Every action below took the caller's identity from a typed
 //   `code`, and GFI codes are printed on the org chart. That made this endpoint a set of tools for
@@ -356,7 +356,18 @@ Deno.serve(async (req) => {
     const patch: Record<string, unknown> = {};
     if (body.email     !== undefined) patch.email = clean(body.email);
     if (body.phone     !== undefined) patch.phone = clean(body.phone);
-    if (body.calendly  !== undefined) patch.cal_link = clean(body.calendly);
+    /* v22 (2026-10-26): the Calendly booking link is validated, not just stored. It is rendered
+       as a link on the profile and handed to clients, so only an https Calendly page is accepted;
+       a bare "calendly.com/name" gets its https:// added. Blank clears it, which is an honest
+       "not set up" -- it never claims a connection. */
+    if (body.calendly  !== undefined) {
+      let link = clean(body.calendly);
+      if (link && /^(www\.)?calendly\.com\//i.test(link)) link = "https://" + link;
+      if (link && !/^https:\/\/(www\.)?calendly\.com\/[A-Za-z0-9._~\/?=&%-]+$/i.test(link)) {
+        return json({ ok: false, field: "calendly", error: "That is not a Calendly booking link. It should look like https://calendly.com/your-name." });
+      }
+      patch.cal_link = link;
+    }
     if (body.first_name!== undefined) patch.first_name = clean(body.first_name);
     if (body.last_name !== undefined) patch.last_name = clean(body.last_name);
     if (body.ica       !== undefined) patch.ica = clean(body.ica);
@@ -379,12 +390,26 @@ Deno.serve(async (req) => {
       }
     }
     let ok = true;
-    if (Object.keys(patch).length) { const up = await fetch(`${SUPA}/rest/v1/tracker_agents?code=eq.${encodeURIComponent(code)}`, { method: "PATCH", headers: { ...DBH, Prefer: "return=minimal" }, body: JSON.stringify(patch) }); ok = up.ok; }
+    if (Object.keys(patch).length) {
+      const up = await fetch(`${SUPA}/rest/v1/tracker_agents?code=eq.${encodeURIComponent(code)}`, { method: "PATCH", headers: { ...DBH, Prefer: "return=minimal" }, body: JSON.stringify(patch) });
+      ok = up.ok;
+      /* Say why. The org-chart guard refuses an upline that would put someone under their own
+         team; before this the person only ever saw "Save failed". */
+      if (!ok) {
+        const t = await up.text();
+        const why = /BELOW them|close a loop/i.test(t) ? "That person is already in your own team, so they can't be your recruiter."
+          : /their own upline/i.test(t) ? "You can't be your own recruiter."
+          : /top of the organisation/i.test(t) ? "You're at the top of the organisation, so you have no recruiter."
+          : /does not exist on the roster/i.test(t) ? "That recruiter isn't on the roster yet. Ask Operations to add them first."
+          : "Could not save your details. Try again, or tell Operations.";
+        return json({ ok: false, detail: t.slice(0, 200), error: why });
+      }
+    }
     if (cftIdx >= 0) {
       const t = avail.cfts[cftIdx];
       if (body.phone    !== undefined) t.phone = clean(body.phone);
       if (body.email    !== undefined) t.email = clean(body.email);
-      if (body.calendly !== undefined) t.calendly = clean(body.calendly);
+      if (body.calendly !== undefined) t.calendly = String(patch.cal_link ?? "");
       if (body.first_name !== undefined || body.last_name !== undefined) { const nn = (clean(body.first_name) + " " + clean(body.last_name)).trim(); if (nn) t.name = nn; }
       avail.cfts[cftIdx] = t; await saveCftAvail(avail);
     }
