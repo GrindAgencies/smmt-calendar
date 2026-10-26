@@ -1,3 +1,17 @@
+// hub-api v27 (2026-10-26): WHO MAY SEE AND MODERATE WHAT. Christopher: "private groups are
+//   only to be moderated by those involved and Operations ... only if there is a question or
+//   contestation should she be pinged on a private group message. also those MDs can only
+//   moderate their own baseshop."
+//   · A private group is visible to its members and creator only (Operations reaches every room
+//     through its own token). Being an MD/EMD/exec no longer opens other people's private groups.
+//   · Moderation (removing someone else's message, deleting a group) is decided per ROOM by
+//     mayModerate(): private group -> its creator and designated admins (and Ops); open group ->
+//     those, plus leaders of the creator's own baseshop; a baseshop room -> that shop's leaders;
+//     company-wide rooms -> the company-wide (super) seats. Previously any MD could remove any
+//     message anywhere.
+//   · hub_escalate: a private-group member asks Operations to look (question / dispute). It is
+//     recorded in hub_escalations and posted to #operations by the Help Desk bot. Typing
+//     @Operations in a private group does the same. Nothing else in a private group reaches Ops.
 // hub-api v26 (2026-10-26): Operations is answered with EVERY channel by hub_access/hub_channels
 // (see that branch), so the Operations seat can open, moderate and attach files in every room.
 // hub-api v21 (2026-09-18): #operations is the Operations team's private room — eligible()
@@ -148,10 +162,71 @@ function eligible(id: string, acc: Acc, bases: { root?: string; bases: Record<st
 }
 function canSeeCustom(c: Record<string, unknown>, code: string, acc: { role: string; mod: boolean; name: string }) {
   if (!c.private) return true;
-  if (acc.role === "exec" || acc.mod) return true;
-  if (Array.isArray(c.members) && (c.members as string[]).indexOf(code) >= 0) return true;
+  /* v27: private means the people in it. Rank (MD/EMD/exec) is no longer a key to someone
+     else's private group; Operations reads every room through its own token instead. */
+  if (code && norm(c.byCode) === norm(code)) return true;
+  if (Array.isArray(c.members) && (c.members as string[]).map((x) => norm(x)).indexOf(norm(code)) >= 0) return true;
   if (low(c.by) === low(acc.name)) return true;
   return false;
+}
+/* The shops a leader moderates: their own baseshop, any shop they own, and every shop beneath
+   those. NOT the parents above them - "MDs can only moderate their own baseshop". */
+function ownShops(acc: Acc, bases: { root: string; bases: Record<string, unknown>[] }): string[] {
+  const list = bases.bases || [];
+  const out = new Set<string>();
+  [acc.baseshop, acc.owns_base].filter(Boolean).forEach((b) => out.add(norm(b)));
+  let grew = true, guard = 0;
+  while (grew && guard++ < 20) {
+    grew = false;
+    for (const b of list) { const n = norm(b.name), par = norm(b.parent); if (par && out.has(par) && !out.has(n)) { out.add(n); grew = true; } }
+  }
+  out.delete(norm(bases.root || "STANDARD"));     // the root is company-wide, not a shop to moderate
+  return Array.from(out);
+}
+async function isDesignatedGroupAdmin(code: string, channel: string): Promise<boolean> {
+  if (!code || !channel) return false;
+  try {
+    const ex = await fetch(`${SUPA}/rest/v1/hub_group_admins?channel=eq.${encodeURIComponent(channel)}&code=eq.${encodeURIComponent(code)}&select=code&limit=1`, { headers: DBH });
+    const r = await ex.json(); return Array.isArray(r) && r.length > 0;
+  } catch (_) { return false; }
+}
+/* May this person remove other people's messages in this room? (Their own is always allowed.)
+   Operations is decided by the caller before this is asked. */
+async function mayModerate(code: string, acc: Acc, channel: string, bases: { root: string; bases: Record<string, unknown>[] }, custom?: Record<string, unknown>[]): Promise<boolean> {
+  if (!code || !channel || channel.indexOf("dm:") === 0) return false;
+  if (channel.indexOf("c_") === 0) {
+    const c = (custom || await customChannels()).find((x) => x.id === channel);
+    if (!c) return false;
+    if (norm(c.byCode) === norm(code)) return true;
+    if (await isDesignatedGroupAdmin(norm(code), channel)) return true;
+    if (c.private) return false;                    // those involved, and Operations. Nobody else.
+    if (acc.scope === "super") return true;
+    if (!acc.mod) return false;
+    const creator = c.byCode ? await agentRow(norm(c.byCode)) : null;
+    return !!(creator && creator.baseshop && ownShops(acc, bases).indexOf(norm(creator.baseshop)) >= 0);
+  }
+  const m = /^([a-z0-9]+)_(announcements|training|licensing|cft|chat)$/.exec(channel);
+  if (m) {
+    if (acc.scope === "super") return true;
+    if (!acc.mod) return false;
+    return ownShops(acc, bases).indexOf(norm(m[1])) >= 0;
+  }
+  return acc.scope === "super";                     // #main, leadership and other company-wide rooms
+}
+/* Operations is asked to look at a private group. One row, one Help Desk line in #operations, one
+   short note in the group so its members can see Operations was brought in. */
+async function raiseToOps(channel: string, kind: "question" | "dispute", note: string, byCode: string, byName: string, messageId: number | null, groupName: string) {
+  const ins = await fetch(`${SUPA}/rest/v1/hub_escalations`, { method: "POST", headers: { ...DBH, Prefer: "return=representation" },
+    body: JSON.stringify({ channel, channel_name: groupName, kind, note: note || null, message_id: messageId, raised_by: byCode, raised_by_name: byName }) });
+  const row = ((await ins.json()) || [])[0] || null;
+  const label = kind === "dispute" ? "\u2696\ufe0f Dispute" : "\u2753 Question";
+  const opsLine = `${label} from ${byName || byCode} in the private group \u201c${groupName}\u201d` + (note ? `:\n${note}` : ".") +
+    `\nOpen it from Team Hub \u2192 Questions waiting.`;
+  await fetch(`${SUPA}/rest/v1/hub_messages`, { method: "POST", headers: { ...DBH, Prefer: "return=minimal" },
+    body: JSON.stringify({ channel: "operations", author_code: "HELPDESK", author_name: "Help Desk", body: opsLine, kind: "system", attach: null, reactions: {} }) });
+  await fetch(`${SUPA}/rest/v1/hub_messages`, { method: "POST", headers: { ...DBH, Prefer: "return=minimal" },
+    body: JSON.stringify({ channel, author_code: "OPSNOTE", author_name: "\ud83d\udee1\ufe0f Operations", body: `${byName || byCode} asked Operations to take a look (${kind}).`, kind: "system", attach: null, reactions: {} }) });
+  return row;
 }
 async function customChannels(): Promise<Record<string, unknown>[]> {
   const ex = await fetch(`${SUPA}/rest/v1/app_settings?key=eq.hub_channels&select=value`, { headers: DBH });
@@ -355,7 +430,11 @@ Deno.serve(async (req) => {
       const all = genChannels(bases).concat(custom);
       const chans = all.filter((c: Record<string, unknown>) => (c.id as string).indexOf("c_") === 0 ? canSeeCustom(c, code, acc) : eligible(c.id as string, acc, bases));
       const baseshops = (bases.bases || []).filter((b) => low(b.name) !== low(bases.root)).map((b) => ({ id: low(b.name), name: String(b.name), emd: b.owner_name || "" }));
-      return json({ ok: true, access: acc, channels: chans, baseshops });
+      /* v27: the rooms this person may moderate, so the page offers "remove" only where the
+         server will honour it. */
+      const mod_channels: string[] = [];
+      for (const c of chans) { if (await mayModerate(code, acc, String(c.id), bases, custom)) mod_channels.push(String(c.id)); }
+      return json({ ok: true, access: acc, channels: chans, baseshops, mod_channels });
     }
 
     if (action === "hub_send") {
@@ -386,7 +465,17 @@ Deno.serve(async (req) => {
         const bi = await fetch(`${SUPA}/rest/v1/hub_messages`, { method: "POST", headers: { ...DBH, Prefer: "return=representation" }, body: JSON.stringify(brow) });
         const br = await bi.json(); bot = Array.isArray(br) ? br[0] : br;
       }
-      return json({ ok: ins.ok, message: inserted, bot });
+      /* v27: "@Operations" (or @ops) in a PRIVATE group is how a member asks Ops in. Nothing else
+         said in a private group reaches Operations. */
+      let escalated = false;
+      if (ins.ok && !isAdmin && channel.indexOf("c_") === 0 && /(^|\s)@(operations|ops)\b/i.test(String(row.body || ""))) {
+        const cl = await customChannels(); const cobj = cl.find((x) => x.id === channel);
+        if (cobj && cobj.private) {
+          await raiseToOps(channel, "question", String(row.body || "").slice(0, 1000), code, String(nm || code), inserted && inserted.id ? Number(inserted.id) : null, String(cobj.name || channel));
+          escalated = true;
+        }
+      }
+      return json({ ok: ins.ok, message: inserted, bot, escalated });
     }
 
     if (action === "hub_list") {
@@ -448,7 +537,16 @@ Deno.serve(async (req) => {
       const id = Number(body.id); const code = norm(body.code); const by = norm(body.by);
       if (!id) return json({ ok: false, error: "no id" });
       let modOk = isAdmin;
-      if (!modOk && by) { const acc = await accessOf(by); modOk = acc.mod; }
+      /* v27: moderation is per room. Read the message's room, then ask mayModerate(). */
+      if (!modOk && by) {
+        const mx = await fetch(`${SUPA}/rest/v1/hub_messages?id=eq.${id}&select=channel,author_code`, { headers: DBH });
+        const m0 = ((await mx.json()) || [])[0];
+        if (m0 && norm(m0.author_code) !== norm(code)) {
+          const acc = await accessOf(by); const bases = await loadBases();
+          modOk = await mayModerate(by, acc, String(m0.channel || ""), bases);
+          if (!modOk) return json({ ok: false, error: "You can only remove your own messages in this room." }, 403);
+        }
+      }
       let q = `${SUPA}/rest/v1/hub_messages?id=eq.${id}`;
       if (!modOk) q += `&author_code=eq.${encodeURIComponent(code)}`;
       const up = await fetch(q, { method: "PATCH", headers: { ...DBH, Prefer: "return=minimal" }, body: JSON.stringify({ deleted: true, body: "", attach: null }) });
@@ -531,6 +629,24 @@ Deno.serve(async (req) => {
       return json({ ok: up.ok, id, private: priv, members });
     }
 
+    if (action === "hub_escalate") {
+      if (isAdmin) return json({ ok: false, error: "Operations does not need to escalate to itself." }, 400);
+      const code = norm(body.code); const channel = clean(body.channel);
+      const kind = low(body.kind) === "dispute" ? "dispute" : "question";
+      const note = clean(body.note).slice(0, 1000);
+      if (channel.indexOf("c_") !== 0) return json({ ok: false, error: "Asking Operations from here is for private groups." }, 400);
+      const cl = await customChannels(); const cobj = cl.find((x) => x.id === channel);
+      if (!cobj || !cobj.private) return json({ ok: false, error: "Asking Operations from here is for private groups." }, 400);
+      const acc = await accessOf(code);
+      if (!canSeeCustom(cobj, code, acc)) return json({ ok: false, error: "You are not in that group." }, 403);
+      /* Keeps Ops from being flooded: at most 5 open requests per person. */
+      const op = await fetch(`${SUPA}/rest/v1/hub_escalations?raised_by=eq.${encodeURIComponent(code)}&status=eq.open&select=id`, { headers: DBH });
+      if (((await op.json()) || []).length >= 5) return json({ ok: false, error: "You already have 5 open requests with Operations. They will get to them." }, 429);
+      const mid = Number(body.message_id) || null;
+      const row = await raiseToOps(channel, kind, note, code, acc.name || code, mid, String(cobj.name || channel));
+      return json({ ok: !!row, id: row ? row.id : null });
+    }
+
     if (action === "hub_deletechannel") {
       const id = clean(body.id); const byCode = norm(body.code);
       if (!id || id.indexOf("c_") !== 0) return json({ ok: false, error: "only custom channels can be deleted" });
@@ -541,8 +657,10 @@ Deno.serve(async (req) => {
       const cobj = list.find((x) => x.id === id);
       if (!cobj) return json({ ok: false, error: "channel not found" });
       let allowed = isAdmin || norm(cobj.byCode) === byCode;
-      if (!allowed && byCode) { const acc = await accessOf(byCode); allowed = acc.mod; }
-      if (!allowed) return json({ ok: false, error: "Only the creator or a moderator can delete this channel." }, 403);
+      /* v27: a private group is deleted only by its creator or Operations. An open group also by
+         the leaders who moderate the creator's own baseshop. */
+      if (!allowed && byCode && !cobj.private) { const acc = await accessOf(byCode); allowed = await mayModerate(byCode, acc, id, await loadBases(), list); }
+      if (!allowed) return json({ ok: false, error: cobj.private ? "Only the person who created this private group, or Operations, can delete it." : "Only the creator or a leader of this baseshop can delete this group." }, 403);
       v.channels = list.filter((x) => x.id !== id);
       await fetch(`${SUPA}/rest/v1/app_settings?on_conflict=key`, { method: "POST", headers: { ...DBH, Prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify({ key: "hub_channels", value: v, updated_at: new Date().toISOString() }) });
       await fetch(`${SUPA}/rest/v1/hub_messages?channel=eq.${encodeURIComponent(id)}`, { method: "DELETE", headers: { ...DBH, Prefer: "return=minimal" } });

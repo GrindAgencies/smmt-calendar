@@ -377,6 +377,9 @@ html, body{ overflow-x: hidden; }
         <button class="chip rec" onclick="openRecognize()">🎉 Recognize</button>
         <button class="chip ai" onclick="askInsert()">🤖 Ask Bob</button>
         <button class="chip" onclick="document.getElementById('fileIn').click()" aria-label="Attach a photo, video or file">📎 Attach</button>
+        <!-- Private groups only. Operations does not watch private groups; this is how a member
+             brings them in for a question or a dispute (so is typing @Operations). -->
+        <button class="chip" id="askOpsChip" style="display:none" onclick="openAskOps()">🛡️ Ask Operations</button>
       </div>
       <div class="replybar" id="replybar"></div>
       <div class="mentions" id="mentions"></div>
@@ -473,13 +476,18 @@ var OPSMODE=false,OPSTOKEN='',OPSDMS=[];
 }catch(e){}})();
 function hops(b){b=b||{};b.token=OPSTOKEN;return fetch(HUBOPS,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();}).catch(function(){return{ok:false};});}
 var ACC={mod:false,role:'agent',licensed:false},MODTOKEN='';
+/* Rooms this person may moderate, as hub-api v27 decides them (mod_channels). Being an MD/EMD no
+   longer means "every room": leaders moderate their own baseshop, a private group is moderated by
+   the people in it, and Operations moderates everything. The server re-checks every removal. */
+var MODCH={};
+function canModerate(ch){ return !!(OPSMODE || MODCH[ch]); }
 var AVATARS={},EMB={};
 var EMBAPI="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/emblem-api";
 var EMBTIER={bronze:'#c07f3a',silver:'#aab0bd',gold:'#e6c25a',platinum:'#a9c0e0',rank:'#7c8bff'};
 function miniEmb(code){var e=EMB[(code||'').toUpperCase()];if(!e||!e.icon)return '';var bg=EMBTIER[e.tier]||'#e6c25a';return '<span class="mn-emb" style="background:radial-gradient(circle at 38% 28%,rgba(255,255,255,.75),'+bg+')" title="Active emblem">'+e.icon+'</span>';}
 function loadEmblems(){fetch(EMBAPI,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'all_active'})}).then(function(r){return r.json();}).then(function(r){if(r&&r.emblems){var o={};Object.keys(r.emblems).forEach(function(k){o[k.toUpperCase()]=r.emblems[k];});EMB=o;if(typeof renderMsgs==='function')renderMsgs(false);}}).catch(function(){});}
 var BOT={ai:"<svg viewBox='0 0 40 40' style='width:100%;height:100%;border-radius:50%'><circle cx='20' cy='20' r='20' fill='#f7d94a'/><path d='M0 29 q20 9 40 0 v11 h-40 z' fill='#4a76b8'/><path d='M17 40 v-9 h6 v9' fill='#3a5f9e'/><path d='M18 5 q4 -4 4 1 q0 3 -3 2' stroke='#5a4a2a' stroke-width='1.5' fill='none' stroke-linecap='round'/><rect x='3' y='15.5' width='34' height='4' fill='#3b3b3b'/><circle cx='13.5' cy='17.5' r='6' fill='#d7dbe0' stroke='#3b3b3b' stroke-width='2'/><circle cx='26.5' cy='17.5' r='6' fill='#d7dbe0' stroke='#3b3b3b' stroke-width='2'/><circle cx='13.5' cy='17.5' r='3' fill='#fff'/><circle cx='26.5' cy='17.5' r='3' fill='#fff'/><circle cx='13.8' cy='17.5' r='1.7' fill='#2f8f4e'/><circle cx='26.8' cy='17.5' r='1.7' fill='#4b3a26'/><path d='M14 25 q6 5 12 0 z' fill='#7a3b2a'/></svg>",recognition:"<svg viewBox='0 0 40 40' style='width:100%;height:100%;border-radius:50%'><circle cx='20' cy='20' r='20' fill='#f7d94a'/><path d='M0 29 q20 9 40 0 v11 h-40 z' fill='#4a76b8'/><path d='M17 40 v-9 h6 v9' fill='#3a5f9e'/><path d='M13 5 l1.5 -4 M20 4 l0 -4.5 M27 5 l-1.5 -4' stroke='#5a4a2a' stroke-width='1.4' stroke-linecap='round'/><rect x='3' y='15.5' width='34' height='4' fill='#3b3b3b'/><circle cx='13.5' cy='17.5' r='6' fill='#d7dbe0' stroke='#3b3b3b' stroke-width='2'/><circle cx='26.5' cy='17.5' r='6' fill='#d7dbe0' stroke='#3b3b3b' stroke-width='2'/><circle cx='13.5' cy='17.5' r='3' fill='#fff'/><circle cx='26.5' cy='17.5' r='3' fill='#fff'/><circle cx='13.8' cy='17.5' r='1.6' fill='#4b3a26'/><circle cx='26.8' cy='17.5' r='1.6' fill='#4b3a26'/><path d='M14 26 q6 3.5 12 0' stroke='#6b5836' stroke-width='1.7' fill='none' stroke-linecap='round'/></svg>",announce:"<svg viewBox='0 0 40 40' style='width:100%;height:100%;border-radius:50%'><circle cx='20' cy='20' r='20' fill='#f7d94a'/><path d='M0 29 q20 9 40 0 v11 h-40 z' fill='#4a76b8'/><path d='M17 40 v-9 h6 v9' fill='#3a5f9e'/><path d='M11 6 q9 -5 18 0' stroke='#5a4a2a' stroke-width='2' fill='none' stroke-linecap='round'/><rect x='3' y='16' width='34' height='4' fill='#3b3b3b'/><circle cx='20' cy='18' r='7.5' fill='#d7dbe0' stroke='#3b3b3b' stroke-width='2.2'/><circle cx='20' cy='18' r='3.6' fill='#fff'/><circle cx='20.4' cy='18' r='1.9' fill='#4b3a26'/><path d='M15 27 h10' stroke='#6b5836' stroke-width='1.7' fill='none' stroke-linecap='round'/></svg>"};
-function avatarInner(code,name,kind){if(kind==='coach'||code==='KYLE')return '📣';if(kind==='ai')return BOT.ai;if(kind==='recognition')return BOT.recognition;if(kind==='announce')return BOT.announce;if(AVATARS[code])return '<img src="'+AVATARS[code]+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';return initials(name);}
+function avatarInner(code,name,kind){if(kind==='coach'||code==='KYLE')return '📣';if(kind==='system'||code==='OPSNOTE')return '🛡️';if(kind==='ai')return BOT.ai;if(kind==='recognition')return BOT.recognition;if(kind==='announce')return BOT.announce;if(AVATARS[code])return '<img src="'+AVATARS[code]+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';return initials(name);}
 var TA="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/tracker-api";
 var BASESHOP_LEADER="Elijah Cox";
 var CODE=null,NAME="",CHAN="main",CHANNELS=[],MEMBERS={},ONLINE={},LASTID=0,REPLYTO=null,PENDATTACH=null,RECPICK=null,POLL=null,MENSEL=0,MENITEMS=[];
@@ -596,6 +604,44 @@ function openBlocked(){
     +'<div style="margin-top:16px;text-align:right"><button class="gbtn" onclick="document.getElementById(\'blkOv\').classList.remove(\'on\')">Done</button></div>';
   $('blkOv').classList.add('on');}
 function h(b){if(OPSMODE&&b){if(b.token===undefined)b.token=OPSTOKEN;if(b.by===undefined)b.by=CODE;}return fetch(HUB,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();}).catch(function(){return{ok:false};});}
+/* Questions waiting for Operations: private-group escalations (hub-ops) and reported messages
+   (hub-safety). These are the ONLY things that should draw Ops into a private group. */
+var OPSESC=[], OPSREPORTS=[];
+function loadOpsQueue(){
+  if(!OPSMODE) return;
+  hops({action:'escalations'}).then(function(r){ OPSESC=(r&&r.ok&&r.open)||[]; try{renderRooms();}catch(e){} });
+  fetch(SAFETY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'list_reports',token:OPSTOKEN})})
+    .then(function(r){return r.json();}).then(function(r){
+      OPSREPORTS=((r&&r.reports)||[]).filter(function(x){ return !x.status || x.status==='open'; });
+      try{renderRooms();}catch(e){}
+    }).catch(function(){});
+}
+function opsQueueHtml(){
+  var n=(OPSESC||[]).length+(OPSREPORTS||[]).length;
+  if(!n) return '<div class="bshdr">Questions waiting</div><div class="ops-q-none">Nothing waiting \u2014 nobody has asked Operations into a private group.</div>';
+  var when=function(t){ try{ return new Date(t).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}); }catch(e){ return ''; } };
+  var h='<div class="bshdr">Questions waiting ('+n+')</div>';
+  h+=(OPSESC||[]).map(function(e){
+    return '<div class="ops-q"><div class="ops-q-t">'+(e.kind==='dispute'?'\u2696\ufe0f Dispute':'\u2753 Question')+' \u00b7 '+esc(e.channel_name||e.channel)+'</div>'+
+      '<div class="ops-q-m">'+esc(e.raised_by_name||e.raised_by)+' \u00b7 '+esc(when(e.created_at))+'</div>'+
+      (e.note?'<div class="ops-q-n">'+esc(String(e.note).slice(0,220))+'</div>':'')+
+      '<div class="ops-q-a"><button onclick="openChan(\''+esc(e.channel)+'\')">Open</button><button onclick="resolveEsc('+Number(e.id)+')">Resolved</button></div></div>';
+  }).join('');
+  h+=(OPSREPORTS||[]).map(function(x){
+    return '<div class="ops-q"><div class="ops-q-t">\ud83d\udea9 Reported message'+(x.channel?(' \u00b7 '+esc(x.channel)):'')+'</div>'+
+      '<div class="ops-q-m">'+esc(x.reporter||'')+' \u00b7 '+esc(when(x.created_at))+' \u00b7 '+esc(x.reason||'')+'</div>'+
+      (x.body_excerpt?'<div class="ops-q-n">\u201c'+esc(String(x.body_excerpt).slice(0,220))+'\u201d</div>':'')+
+      '<div class="ops-q-a">'+(x.channel?'<button onclick="openChan(\''+esc(x.channel)+'\')">Open</button>':'')+
+      '<button onclick="resolveReport('+Number(x.id)+',\'actioned\')">Handled</button><button onclick="resolveReport('+Number(x.id)+',\'dismissed\')">Dismiss</button></div></div>';
+  }).join('');
+  return h;
+}
+function resolveEsc(id){ hops({action:'escalation_resolve',id:id}).then(function(r){ if(r&&r.ok){ toast('Marked resolved'); loadOpsQueue(); } else toast('Could not update that'); }); }
+function resolveReport(id,st){
+  fetch(SAFETY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'resolve',id:id,status:st,token:OPSTOKEN})})
+    .then(function(r){return r.json();}).then(function(r){ if(r&&r.ok){ toast(st==='dismissed'?'Report dismissed':'Report marked handled'); loadOpsQueue(); } else toast((r&&r.error)||'Could not update that'); })
+    .catch(function(){ toast('Network error'); });
+}
 function loadOpsDMs(){hops({action:'dms'}).then(function(r){OPSDMS=(r&&r.dms)||[];if(typeof renderRooms==='function')renderRooms();});}
 function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
 /* A value that lands inside a single-quoted JS string inside an HTML attribute has to be
@@ -858,11 +904,32 @@ function pinTileHtml(r){
 }
 function renderRooms(){
   if(OPSMODE){
-    $('chanList').innerHTML='';
-    $('dmList').innerHTML='<div class="bshdr">All conversations ('+OPSDMS.length+')</div>'+
-      OPSDMS.filter(function(dm){return dm.parts.indexOf('KYLE')<0;}).map(function(dm){
-        return '<div class="room'+(CHAN===dm.channel?' on':'')+'" onclick="openChan(\''+dm.channel+'\')">'+
-               '<div class="dmav">'+esc(initials(dm.title||''))+'</div><div class="rn">'+esc(dm.title||dm.channel)+'</div></div>';
+    /* The Operations oversight view. Since the phone redesign this listed direct messages only -
+       no group rooms, not even #operations - and labelled each DM with its raw id (it read
+       dm.title; hub-ops sends dm.label). Rooms are back, grouped, with the questions members
+       have raised at the top. */
+    var room=function(id,icon,label,extra){
+      return '<div class="room'+(CHAN===id?' on':'')+'" onclick="openChan(\''+esc(id)+'\')">'+
+             '<div class="ri">'+icon+'</div><div class="rn">'+esc(label)+'</div>'+(extra||'')+'</div>';
+    };
+    var waiting={}; (OPSESC||[]).forEach(function(e){ waiting[e.channel]=(waiting[e.channel]||0)+1; });
+    var badge=function(id){ return waiting[id]?'<span class="ops-wbadge" title="Questions waiting">'+waiting[id]+'</span>':''; };
+    var ch=CHANNELS||[], h='';
+    h+=opsQueueHtml();
+    var opsRoom=ch.filter(function(c){return c.id==='operations';})[0];
+    if(opsRoom) h+='<div class="bshdr">Operations</div>'+room('operations','\u2699\ufe0f','Operations room');
+    var priv=ch.filter(function(c){return String(c.id).indexOf('c_')===0&&c.private;});
+    var open=ch.filter(function(c){return String(c.id).indexOf('c_')===0&&!c.private;});
+    if(priv.length) h+='<div class="bshdr">Private groups ('+priv.length+')</div>'+priv.map(function(c){return room(c.id,'\ud83d\udd12',groupNameOf(c.id,c.name),badge(c.id));}).join('');
+    if(open.length) h+='<div class="bshdr">Group chats</div>'+open.map(function(c){return room(c.id,esc(c.icon||'#'),groupNameOf(c.id,c.name));}).join('');
+    var rest=ch.filter(function(c){return c.id!=='operations'&&String(c.id).indexOf('c_')!==0;});
+    if(rest.length) h+='<div class="bshdr">Company &amp; baseshops</div>'+rest.map(function(c){return room(c.id,esc(c.icon||'#'),c.name||c.id);}).join('');
+    $('chanList').innerHTML=h;
+    var dms=OPSDMS.filter(function(dm){return dm.parts.indexOf('KYLE')<0;});
+    $('dmList').innerHTML='<div class="bshdr">Direct messages ('+dms.length+')</div>'+
+      dms.map(function(dm){ var lb=dm.label||(dm.names||[]).join(' \u2194 ')||dm.channel;
+        return '<div class="room'+(CHAN===dm.channel?' on':'')+'" onclick="openChan(\''+esc(dm.channel)+'\')">'+
+               '<div class="dmav">'+esc(initials(lb))+'</div><div class="rn">'+esc(lb)+'</div></div>';
       }).join('');
     return;
   }
@@ -1076,7 +1143,7 @@ function groupAvatarOf(ch){ var g=GROUPMETA[ch]; return (g && g.avatar) || ''; }
 
 function renderHead(){
   var m=chanMeta(CHAN);
-  var del=(CHAN.indexOf('c_')===0)?'<button class="tic" title="Delete channel" onclick="deleteChannel()" style="margin-left:10px;flex:0 0 auto">\ud83d\uddd1\ufe0f</button>':'';
+  var del=(CHAN.indexOf('c_')===0&&canModerate(CHAN))?'<button class="tic" title="Delete channel" onclick="deleteChannel()" style="margin-left:10px;flex:0 0 auto">\ud83d\uddd1\ufe0f</button>':'';
   var isGroup = !m.dm;
   var nm = isGroup ? groupNameOf(CHAN, m.name) : m.name;
   var av = isGroup ? groupAvatarOf(CHAN) : '';
@@ -1087,6 +1154,7 @@ function renderHead(){
   var tap = isGroup ? ' class="chead-tap" onclick="openGroupDetails()" role="button" tabindex="0"'
                       +' onkeydown="if(event.key===\'Enter\'){openGroupDetails();}" title="Group details"' : '';
   syncComposer();
+  var aoc=document.getElementById('askOpsChip'); if(aoc) aoc.style.display=isPrivateGroup(CHAN)&&!OPSMODE?'':'none';
   $('chead').innerHTML='<div class="ci">'+icon+'</div><div'+tap+'><div class="cn">'+esc(nm)+'</div><div class="cs">'+esc(m.sub)+'</div></div><div class="presence"><span class="pd"></span>'+Object.keys(ONLINE).length+' online<div class="preslist"><div class="preshdr">Online now</div>'+presenceList()+'</div></div>'+del;
 }
 
@@ -1536,7 +1604,7 @@ function renderMsgs(scroll){
     }
     prev=m;
     var av='<div class="mav" onclick="openProfile(\''+m.author_code+'\')">'+avatarInner(m.author_code,m.author_name,m.kind)+'</div>';
-    var isBot=(m.kind==='ai'||m.kind==='recognition'||m.kind==='announce'||m.kind==='coach');var pname=isBot?(m.kind==='ai'?'Bob':(m.kind==='recognition'?'Kevin':(m.kind==='coach'?'Coach':'Stuart'))):(m.author_name||'—');var tag=isBot?'<span class="mc" style="background:var(--gold-soft);color:var(--gold)">BOT</span>':'<span class="mc">'+esc(m.author_code||'')+'</span>';var head=cont?'':'<div class="mhead"><span class="mn" onclick="openProfile(\''+m.author_code+'\')">'+esc(pname)+'</span>'+(isBot?'':miniEmb(m.author_code))+tag+'<span class="mt">'+tstr(m.created_at)+(m.edited?' · edited':'')+'</span></div>';
+    var isBot=(m.kind==='ai'||m.kind==='recognition'||m.kind==='announce'||m.kind==='coach');var pname=isBot?(m.kind==='ai'?'Bob':(m.kind==='recognition'?'Kevin':(m.kind==='coach'?'Coach':'Stuart'))):(m.author_name||'—');var tag=isBot?'<span class="mc" style="background:var(--gold-soft);color:var(--gold)">BOT</span>':(m.kind==='system'?'<span class="mc" style="background:var(--gold-soft);color:var(--gold)">OPS</span>':'<span class="mc">'+esc(m.author_code||'')+'</span>');var head=cont?'':'<div class="mhead"><span class="mn" onclick="openProfile(\''+m.author_code+'\')">'+esc(pname)+'</span>'+(isBot?'':miniEmb(m.author_code))+tag+'<span class="mt">'+tstr(m.created_at)+(m.edited?' · edited':'')+'</span></div>';
     var inner;
     if(m.deleted){inner='<div class="mtext del">message deleted</div>';}
     else if(m.kind==='recognition'){inner=collapsible('<div class="rcard"><div class="rt">🎉 Kevin · Recognition</div><div class="rb">'+linkify(m.body)+'</div></div>',m.body,m.id);}
@@ -1555,7 +1623,7 @@ function renderMsgs(scroll){
     }
     var rx='';var rk=m.reactions&&typeof m.reactions==='object'?m.reactions:{};
     var keys=Object.keys(rk);if(keys.length){rx='<div class="rx">'+keys.map(function(e){var mine=rk[e].indexOf(CODE)>=0;return '<button class="rxb'+(mine?' mine':'')+'" onclick="react('+m.id+',\''+e+'\')">'+e+' '+rk[e].length+'</button>';}).join('')+'</div>';}
-    var acts=(m.deleted||m.kind==='ai')?'':'<div class="mact"><button onclick="reactPop(event,'+m.id+')" title="React">😀</button><button onclick="setReply('+m.id+')" title="Reply">↩</button><button onclick="pinMsg('+m.id+')" title="Pin">📌</button>'+((m.author_code===CODE)?'<button onclick="editMsg('+m.id+')" title="Edit">✏️</button>':'')+((m.author_code===CODE||ACC.mod||MODTOKEN)?'<button onclick="delMsg('+m.id+')" title="Delete">🗑</button>':'')+((m.author_code&&m.author_code!==CODE&&!isBot)?'<button onclick="reportMsg('+m.id+')" title="Report to Operations">🚩</button><button onclick="blockUser(\''+m.author_code+'\',\''+escJs(m.author_name) +'\')" title="Block this person">🚫</button>':'')+'</div>';
+    var acts=(m.deleted||m.kind==='ai')?'':'<div class="mact"><button onclick="reactPop(event,'+m.id+')" title="React">😀</button><button onclick="setReply('+m.id+')" title="Reply">↩</button><button onclick="pinMsg('+m.id+')" title="Pin">📌</button>'+((m.author_code===CODE)?'<button onclick="editMsg('+m.id+')" title="Edit">✏️</button>':'')+((m.author_code===CODE||canModerate(CHAN))?'<button onclick="delMsg('+m.id+')" title="Delete">🗑</button>':'')+((m.author_code&&m.author_code!==CODE&&!isBot)?'<button onclick="reportMsg('+m.id+')" title="Report to Operations">🚩</button><button onclick="blockUser(\''+m.author_code+'\',\''+escJs(m.author_name) +'\')" title="Block this person">🚫</button>':'')+'</div>';
     var seen='';
     if(m.author_code===CODE&&SEEN[m.id]&&SEEN[m.id].count>0){
       var sv=SEEN[m.id];
@@ -1727,6 +1795,7 @@ function sendNow(){
   PENDATTACH=null; paintDraft();
   // Bob (Questions AI) auto-answers server-side when the message is a question or @Question
   h(msg).then(function(rr){
+    if(rr&&rr.escalated) toast('Operations has been asked to take a look');
     if(rr&&rr.ok===false){
       toast(rr.error||'Message not sent');
       t.value=body;                      // give them their text back rather than losing it
@@ -1935,6 +2004,37 @@ function closeNewGroup(){
    A short sheet: New group (the form above), New message (a searchable people list), and the
    app Menu the old upper-right button opened, so no route is lost. Same .cvm sheet styling as
    the long-press menu, so it reads as part of this screen. */
+function isPrivateGroup(ch){
+  if(String(ch).indexOf('c_')!==0) return false;
+  var c=(CHANNELS||[]).filter(function(x){return x.id===ch;})[0];
+  return !!(c&&c.private);
+}
+/* Ask Operations: the one way a private group reaches Ops. Recorded, posted to #operations by the
+   Help Desk, and noted in the group so everyone in it knows Ops was asked. */
+var ASKKIND='question';
+function openAskOps(){
+  if(!isPrivateGroup(CHAN)) return;
+  ASKKIND='question';
+  var ov=hubSheet();
+  ov.innerHTML='<div class="cvm askops"><h4>Ask Operations</h4>'+
+    '<div class="note">Operations does not read private groups unless someone asks. They will see this group and your note.</div>'+
+    '<div class="ao-kinds"><button id="aoQ" class="ao-k on" onclick="setAskKind(\'question\')">\u2753 A question</button>'+
+    '<button id="aoD" class="ao-k" onclick="setAskKind(\'dispute\')">\u2696\ufe0f A dispute</button></div>'+
+    '<textarea id="aoNote" class="ngdesc" maxlength="1000" rows="3" placeholder="What do you need Operations to look at?"></textarea>'+
+    '<div class="ao-act"><button onclick="closeHubSheet()"><i></i>Cancel</button><button class="ao-go" id="aoGo" onclick="sendAskOps()">Send to Operations</button></div></div>';
+  ov.classList.add('on');
+  setTimeout(function(){ try{ document.getElementById('aoNote').focus(); }catch(e){} },80);
+}
+function setAskKind(k){ ASKKIND=k; var q=document.getElementById('aoQ'),d=document.getElementById('aoD'); if(q)q.classList.toggle('on',k==='question'); if(d)d.classList.toggle('on',k==='dispute'); }
+function sendAskOps(){
+  var note=((document.getElementById('aoNote')||{}).value||'').trim();
+  if(!note){ toast('Add a short note for Operations'); return; }
+  var b=document.getElementById('aoGo'); if(b){ b.disabled=true; b.textContent='Sending\u2026'; }
+  h({action:'hub_escalate',channel:CHAN,kind:ASKKIND,note:note}).then(function(r){
+    if(!r||!r.ok){ toast((r&&r.error)||'Could not reach Operations'); if(b){ b.disabled=false; b.textContent='Send to Operations'; } return; }
+    closeHubSheet(); toast('Operations has been asked to take a look'); loadMsgs(true);
+  });
+}
 function hubSheet(){
   var ov=document.getElementById('plusOv');
   if(!ov){
@@ -2117,7 +2217,7 @@ function loadRoster(){hroster().then(function(r){ROSTER=(r&&r.members)||[];try{r
 function openProfileSettings(){$('psAv').innerHTML=avatarInner(CODE,NAME,'');$('psName').value=NAME;var open=function(){h({action:'hub_profile',code:CODE}).then(function(r){var pf=(r&&r.profile)||{};$('psTitle').value=pf.title||'';$('psEmail').value=pf.email||'';$('psPhone').value=pf.phone||'';$('psCal').value=pf.cal_link||'';var sel=$('psDirect');sel.innerHTML='<option value="">\u2014 Select your direct upline \u2014</option>'+ROSTER.filter(function(m){return m.code!==CODE;}).map(function(m){return '<option value="'+m.code+'"'+(pf.direct_to===m.code?' selected':'')+'>'+esc(m.name)+' ('+m.code+')</option>';}).join('');});$('psOv').classList.add('on');};if(!ROSTER.length){hroster().then(function(r){ROSTER=(r&&r.members)||[];open();});}else open();}
 function saveProfile(){var sel=$('psDirect');var dc=sel.value;var dn=dc?sel.options[sel.selectedIndex].text.replace(/\s*\([^)]*\)\s*$/,'').trim():'';h({action:'hub_setprofile',code:CODE,title:$('psTitle').value.trim(),email:$('psEmail').value.trim(),phone:$('psPhone').value.trim(),cal_link:$('psCal').value.trim(),direct_to:dc,direct_to_name:dn}).then(function(r){if(r&&r.ok){$('psOv').classList.remove('on');toast('Profile saved \u2713');loadRoster();}else toast((r&&r.error)||'Could not save');});}
 function deleteChannel(){if(CHAN.indexOf('c_')!==0)return;if(!confirm('Delete this channel for everyone? This cannot be undone.'))return;h({action:'hub_deletechannel',id:CHAN,code:CODE,token:MODTOKEN||''}).then(function(r){if(r&&r.ok){toast('Channel deleted');CHAN='main';loadChannels();renderHead();loadMsgs(true);}else toast((r&&r.error)||'Could not delete');});}
-function loadChannels(cb){var call=OPSMODE?hops({action:'channels',name:NAME}):h({action:'hub_channels',code:CODE});call.then(function(r){CHANNELS=(r&&r.channels)||[];if(r&&r.access){ACC=r.access;}syncBotBtn();if(CHAN.indexOf('dm:')!==0&&!CHANNELS.some(function(c){return c.id===CHAN;})){CHAN='main';renderHead();loadMsgs(true);}renderRooms();if(typeof cb==='function')cb();});}
+function loadChannels(cb){var call=OPSMODE?hops({action:'channels',name:NAME}):h({action:'hub_channels',code:CODE});call.then(function(r){CHANNELS=(r&&r.channels)||[];if(r&&r.access){ACC=r.access;}if(r&&Array.isArray(r.mod_channels)){MODCH={};r.mod_channels.forEach(function(c){MODCH[c]=1;});}syncBotBtn();if(CHAN.indexOf('dm:')!==0&&!CHANNELS.some(function(c){return c.id===CHAN;})){CHAN='main';renderHead();loadMsgs(true);}renderRooms();if(typeof cb==='function')cb();});}
 
 /* search */
 function doSearch(){var q=$('hq').value.trim();if(!q){return;}h({action:'hub_search',q:q}).then(function(r){var arr=(r&&r.messages)||[];if(!arr.length){toast('No matches');return;}MSGS=arr.slice().reverse();$('chead').innerHTML='<div class="ci">🔎</div><div><div class="cn">Search: “'+esc(q)+'”</div><div class="cs">'+arr.length+' results · click a channel to return</div></div>';LASTID=0;renderMsgs(true);});}
@@ -2151,7 +2251,9 @@ function heartbeat(){var st=(Date.now()-lastActivity>600000)?'away':'active';if(
     var q=new URLSearchParams(location.search);
     CODE=(q.get('code')||'OPS').toUpperCase();NAME=q.get('name')||'Operations';
     ACC={mod:true,role:'ops',licensed:true};MODTOKEN=OPSTOKEN;syncBotBtn();var mb=$('modBtn');if(mb)mb.textContent='🛡️';
-    loadOpsDMs();
+    loadOpsDMs(); loadOpsQueue();
+    /* Light: one check every two minutes, and only while this tab is actually being looked at. */
+    setInterval(function(){ if(!document.hidden) loadOpsQueue(); },120000);
   } else {
     try{CODE=localStorage.getItem('tsfg_code');NAME=localStorage.getItem('tsfg_name')||'';}catch(e){}
     /* ROUND TWO, task 1 - the post-login half of the blocker. Opening The Hub signed out used
@@ -2448,6 +2550,22 @@ body.phone.chat-open .top .tic.chan-toggle{
 .gd .grow:last-child{ border-bottom:0; }
 .gd .grow .n{ flex:1 1 auto; min-width:0; font-size:14px; }
 .gd .grow .n span{ display:block; font-size:11.5px; color:var(--ink3); }
+.ops-q{ margin:4px 6px 8px; padding:9px 10px; border:1px solid var(--line); border-left:3px solid var(--cvgold,#c99a2e); border-radius:10px; background:var(--panel2); }
+.ops-q-t{ font-size:12.5px; font-weight:800; color:var(--ink); }
+.ops-q-m{ font-size:11px; color:var(--ink3); margin-top:2px; }
+.ops-q-n{ font-size:12px; color:var(--ink2); margin-top:5px; white-space:pre-wrap; }
+.ops-q-a{ display:flex; gap:6px; margin-top:7px; flex-wrap:wrap; }
+.ops-q-a button{ border:1px solid var(--line2); background:var(--panel); color:var(--ink); border-radius:8px; padding:4px 10px; font:inherit; font-size:12px; font-weight:700; cursor:pointer; }
+.ops-q-none{ font-size:12px; color:var(--ink3); padding:2px 10px 8px; }
+.ops-wbadge{ margin-left:auto; min-width:18px; height:18px; border-radius:9px; padding:0 5px; background:var(--cvgold,#c99a2e); color:#17120a; font-size:11px; font-weight:800; display:flex; align-items:center; justify-content:center; flex:0 0 auto; }
+.askops .note{ padding:2px 12px 10px; }
+.ao-kinds{ display:flex; gap:8px; padding:0 10px 10px; }
+.cvm .ao-kinds .ao-k{ flex:1; justify-content:center; border:1px solid var(--line2); border-radius:11px; padding:11px 8px; font-size:14px; }
+.cvm .ao-kinds .ao-k.on{ border-color:var(--cvgold,#c99a2e); background:rgba(201,154,46,.12); font-weight:700; }
+.askops textarea{ margin:0 10px; width:calc(100% - 20px); }
+.ao-act{ display:flex; gap:8px; padding:10px 10px 0; }
+.cvm .ao-act button{ flex:1; justify-content:center; }
+.cvm .ao-act .ao-go{ background:var(--cvgold,#c99a2e); color:#17120a; font-weight:800; }
 .gd .gd-add{ max-height:240px; overflow-y:auto; margin-top:6px; }
 .gd .ngsearch{ font-size:15px; padding:10px 12px; }
 .gd .note{ font-size:12px; color:var(--ink3); line-height:1.5; margin:10px 2px 0; }

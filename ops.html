@@ -95,6 +95,7 @@ html,body{overflow-x:hidden}
 .ot-cash{font-size:11.5px;color:var(--ink3);margin-top:10px;padding:9px 11px;border:1px dashed var(--line2);border-radius:10px}
 .togglebar{display:inline-flex;background:var(--panel);border:1px solid var(--line2);border-radius:13px;padding:4px;gap:3px;box-shadow:var(--shadow-sm);flex-wrap:wrap}
 .togglebar .tgl{cursor:grab}
+.tg-badge{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;margin-left:4px;border-radius:9px;background:#c99a2e;color:#17120a;font-size:11px;font-weight:800;vertical-align:1px}
 .togglebar .tgl:active{cursor:grabbing}
 .togglebar .tgl.dragging{opacity:.45;box-shadow:0 6px 16px rgba(0,0,0,.2)}
 .togglebar.reordering{outline:2px dashed var(--gold);outline-offset:3px;border-radius:14px}
@@ -1120,6 +1121,22 @@ function rptCopy(btn){
   nbClip(out.join('\n'),btn,'✓');
   toast('Report copied — paste it into Sheets or an email');
 }
+/* Team Hub tab count (2026-10-26). Operations is NOT notified of private-group chatter - only when
+   a member asks it in (question / dispute) or reports a message. This number is that queue, so
+   Anais sees it from any tab without a notification for every message. One light check every three
+   minutes while the dashboard is visible; it never touches the session. */
+function opsHubBadge(){
+  var t=opsTok(); if(!t||!OPS||OPS.role!=='ops') return;
+  var F='https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/';
+  var post=function(fn,b){ return fetch(F+fn,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();}).catch(function(){return null;}); };
+  Promise.all([post('hub-ops',{action:'escalations',token:t}), post('hub-safety',{action:'list_reports',token:t})]).then(function(rs){
+    var n=((rs[0]&&rs[0].ok&&rs[0].open)||[]).length + (((rs[1]&&rs[1].reports)||[]).filter(function(x){return !x.status||x.status==='open';})).length;
+    var b=$('tg_teamhub'); if(!b) return;
+    b.innerHTML='💬 Team Hub'+(n?' <span class="tg-badge" title="Questions waiting for Operations">'+n+'</span>':'');
+  });
+}
+setTimeout(opsHubBadge,4000);
+setInterval(function(){ if(!document.hidden) opsHubBadge(); },180000);
 function renderTeamhub(){var host=$('teamhubHost');if(!host)return;if(host.getAttribute('data-loaded'))return;host.setAttribute('data-loaded','1');
   var src='teamhub.html?ops=1&code='+encodeURIComponent(OPS?OPS.code:'OPS')+'&name='+encodeURIComponent(OPS?OPS.name:'Operations');
   host.innerHTML='<div style="font-size:12.5px;color:var(--ink3,#8e8e93);margin:0 0 8px">🛡️ Operations oversight — full access to every channel &amp; direct message, and all recognition/AI bot activity. You post as <b>'+esc((OPS&&OPS.name)||'Operations')+'</b>.</div><iframe src="'+esc(src)+'" style="width:100%;height:calc(100vh - 150px);min-height:560px;border:1px solid var(--line);border-radius:15px;background:var(--panel)" title="Team Hub" allow="clipboard-write"></iframe>';}

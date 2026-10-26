@@ -1,3 +1,8 @@
+// hub-ops v5 (2026-10-26) — the Operations side of "Ask Operations". Private groups reach Ops
+//   ONLY when a member asks (hub-api hub_escalate, or @Operations in the group). These two
+//   actions are how Ops sees and closes those requests:
+//     escalations         -> open requests (oldest first) + the 20 most recently resolved
+//     escalation_resolve  -> mark one resolved, stamped with the seat that closed it
 // hub-ops v2 (2026-09-30) — Operations oversight for the Team Hub: ALL channels + ALL DM
 // conversations.
 //
@@ -46,6 +51,24 @@ Deno.serve(async (req) => {
     const baseshops = (bases.bases || []).filter((b: any) => low(b.name) !== low(bases.root)).map((b: any) => ({ id: low(b.name), name: String(b.name), emd: b.owner_name || "" }));
     const access = { role: "ops", licensed: true, mod: true, name: String(body.name || "Operations"), baseshop: bases.root, scope: "super", owns_base: "", accessibleBases: (bases.bases || []).map((b: any) => String(b.name)) };
     return json({ ok: true, access, channels, baseshops, ops: true });
+  }
+
+  if (action === "escalations") {
+    const open = await getJSON(`hub_escalations?status=eq.open&select=*&order=created_at.asc&limit=200`);
+    const done = await getJSON(`hub_escalations?status=eq.resolved&select=*&order=resolved_at.desc&limit=20`);
+    return json({ ok: true, open, resolved: done, count: Array.isArray(open) ? open.length : 0 });
+  }
+  if (action === "escalation_resolve") {
+    const id = Number(body.id); if (!id) return json({ ok: false, error: "Which request?" }, 400);
+    let seat = "Operations";
+    try {
+      const r = await fetch(`${SUPA}/rest/v1/rpc/ops_authorize`, { method: "POST", headers: DBH, body: JSON.stringify({ p_token: String(body.token ?? "") }) });
+      const j = await r.json(); if (j && j.ok) seat = String(j.label || ("Ops " + (j.code || "")));
+    } catch (_) { /* keep the generic stamp */ }
+    const up = await fetch(`${SUPA}/rest/v1/hub_escalations?id=eq.${id}&status=eq.open`, { method: "PATCH", headers: { ...DBH, Prefer: "return=representation" },
+      body: JSON.stringify({ status: "resolved", resolved_by: seat, resolved_at: new Date().toISOString() }) });
+    const rows = up.ok ? ((await up.json()) || []) : [];
+    return json({ ok: up.ok, resolved: rows.length });
   }
 
   if (action === "dms") {
