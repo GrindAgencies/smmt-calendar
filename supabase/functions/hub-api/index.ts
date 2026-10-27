@@ -657,7 +657,10 @@ Deno.serve(async (req) => {
       /* v32: the first load is the NEWEST 500, returned oldest-first. It used to ask for
          order=id.asc&limit=500, i.e. the oldest 500, so a room past 500 messages would have opened
          on its history and never shown what was said today. */
-      let q = `${SUPA}/rest/v1/hub_messages?channel=eq.${encodeURIComponent(channel)}`;
+      /* v36: deleted messages are not sent. A room used to open on a column of "message deleted"
+         stubs -- after the 2026-10-26 fresh start that would have been every message ever written.
+         Someone who deletes a message while the room is open still sees the stub locally. */
+      let q = `${SUPA}/rest/v1/hub_messages?channel=eq.${encodeURIComponent(channel)}&deleted=not.is.true`;
       if (after > 0) q += `&id=gt.${after}&order=id.asc`; else q += `&order=id.desc&limit=500`;
       const ex = await fetch(q, { headers: DBH });
       const msgs = ((await ex.json()) || []) as Record<string, unknown>[];
