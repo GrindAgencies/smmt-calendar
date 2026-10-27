@@ -125,6 +125,28 @@ function normLevel(v: unknown): string {
   if (s.includes("senior")) return "Senior Associate";
   return "Associate";
 }
+/* v23 (handoff sections 7 and 9): contract levels come from the live catalog in
+   app_settings.contract_rates, in its ladder order, stored under the spelling already used on
+   the roster. Anything not in the catalog is refused, never folded into "Associate" (which is
+   what used to happen to "National Vice President" -- assigning NVP demoted the person). */
+const LEVEL_ORDER: [string, string[]][] = [
+  ["Associate", ["associate"]],
+  ["Senior Associate", ["senior associate"]],
+  ["MD", ["md", "marketing director"]],
+  ["EMD", ["emd", "executive marketing director"]],
+  ["National Vice President", ["national vice president", "nvp"]],
+];
+async function levelCatalog(): Promise<string[]> {
+  const rates = await loadKey("contract_rates");
+  const keys = (rates && typeof rates === "object") ? Object.keys(rates).map((k) => k.toLowerCase()) : [];
+  return LEVEL_ORDER.filter(([, al]) => al.some((a) => keys.indexOf(a) >= 0)).map(([l]) => l);
+}
+function catalogLevel(v: unknown, cat: string[]): string | null {
+  const s = (v ?? "").toString().trim().toLowerCase();
+  const hit = LEVEL_ORDER.find(([l, al]) => l.toLowerCase() === s || al.indexOf(s) >= 0);
+  return hit && cat.indexOf(hit[0]) >= 0 ? hit[0] : null;
+}
+const levelRank = (l: unknown) => LEVEL_ORDER.findIndex(([n, al]) => n.toLowerCase() === String(l ?? "").trim().toLowerCase() || al.indexOf(String(l ?? "").trim().toLowerCase()) >= 0);
 function levelToRole(l: string): string { return l === "EMD" ? "exec" : l === "MD" ? "senior" : "agent"; }
 function levelToTitle(l: string): string { return l === "EMD" ? "Executive Marketing Director" : l === "MD" ? "Marketing Director" : l; }
 
@@ -206,7 +228,10 @@ Deno.serve(async (req) => {
     const email = clean(body.email), phone = clean(body.phone);
     const uplineRaw = clean(body.upline_code);   // as TYPED — may be a name, email or phone
     const myCode = norm(body.code);
-    const level = normLevel(body.contract_level);
+    /* A new account always starts as Associate. The level someone types about themselves is not
+       authority: a self-registered "EMD" used to become an approver and a standards editor. The
+       upline, an EMD or Operations assigns the real level afterwards with set_level. */
+    const level = "Associate";
     if (!first || !last) return json({ ok: false, error: "Please enter your first and last name." });
     if (!myCode) return json({ ok: false, error: "Enter the GFI code you were assigned." });
     if (!/^[A-Z0-9]{2,12}$/.test(myCode)) return json({ ok: false, error: "That GFI code doesn't look right — use the letters and numbers GFI gave you." });
@@ -311,6 +336,10 @@ Deno.serve(async (req) => {
     return json({ ok: true, name: nm, bookable: wantOn });
   }
 
+  if (action === "level_catalog") {
+    return json({ ok: true, levels: await levelCatalog() });
+  }
+
   if (action === "set_level") {
     const me = code ? await getAgent(code) : null;
     const builder = isPlatformAdmin(me);
@@ -319,14 +348,17 @@ Deno.serve(async (req) => {
     if (target === code && !isAdmin && !builder) return json({ ok: false, error: "You can’t change your own contract level." }, 403);
     const a = await getAgent(target); if (!a) return json({ ok: false, error: "agent not found" }, 404);
     if (!(await sameBaseOrSuper(code, isAdmin, a))) return json({ ok: false, error: "You can only manage people in your own baseshop." }, 403);
-    const level = normLevel(body.level); const nm = fullName(a);
-    const patch: Record<string, unknown> = { contract_level: level, title: levelToTitle(level) };
-    if (level === "EMD") patch.emd = nm;
-    if (level === "MD")  patch.md  = nm;
-    const up = await fetch(`${SUPA}/rest/v1/tracker_agents?code=eq.${encodeURIComponent(target)}`, { method: "PATCH", headers: { ...DBH, Prefer: "return=minimal" }, body: JSON.stringify(patch) });
+    const cat = await levelCatalog();
+    const level = catalogLevel(body.level, cat); const nm = fullName(a);
+    if (!level) return json({ ok: false, error: `That is not a contract level. Choose one of: ${cat.join(", ")}.`, levels: cat }, 400);
+    /* An EMD assigns levels up to their own, never above it. Operations and the platform builder
+       are not limited. */
+    if (!isAdmin && !builder && levelRank(level) > levelRank(me && me.contract_level)) return json({ ok: false, error: "You can only assign a contract level up to your own." }, 403);
+    /* Contract level ONLY. Title (leadership rank), the md/emd chain and the org-chart role are
+       separate things and are not changed by a pay level -- the brief is explicit that picking a
+       contract must not make someone an EMD administrator. */
+    const up = await fetch(`${SUPA}/rest/v1/tracker_agents?code=eq.${encodeURIComponent(target)}`, { method: "PATCH", headers: { ...DBH, Prefer: "return=minimal" }, body: JSON.stringify({ contract_level: level }) });
     if (!up.ok) return json({ ok: false, error: "Could not update." });
-    const org = await loadOrg();
-    if (org && Array.isArray(org.nodes)) { const node = org.nodes.find((n: any) => norm(n.id) === target); if (node) { node.role = levelToRole(level); node.title = levelToTitle(level); await saveOrg(org); } }
     return json({ ok: true, name: nm, contract_level: level });
   }
 
@@ -374,17 +406,28 @@ Deno.serve(async (req) => {
     if (body.ica_date  !== undefined) patch.ica_date = clean(body.ica_date);
     if (body.state     !== undefined) patch.state = clean(body.state);
     // Same resolver as signup — someone correcting their upline in their profile types a name
-    // just as readily as a new recruit does. Clearing it (empty string) stays allowed.
+    // just as readily as a new recruit does.
     if (body.direct_to !== undefined) {
       const typed = clean(body.direct_to);
-      if (!typed) { patch.direct_to = ""; patch.direct_to_name = ""; }
+      /* v23 (handoff 7/8): once a recruiter link exists, a profile edit cannot move it or clear it.
+         Reparenting goes through org-api set_upline (EMD/Operations), which is audited. Setting a
+         missing upline, or re-sending the same one, is still allowed. */
+      const had = norm(meRow && meRow.direct_to);
+      if (had && !isAdmin) {
+        const same = typed && (norm(typed) === had || lo(typed) === lo(meRow.direct_to_name));
+        if (!same) return json({ ok: false, field: "direct_to", error: `Your recruiter is already set to ${meRow.direct_to_name || had}. Ask your EMD or Operations if it needs to change.` }, 403);
+      }
+      if (!typed) { if (had && isAdmin) { patch.direct_to = ""; patch.direct_to_name = ""; patch.upline_set_by = "OPS"; } }
+      else if (had && !isAdmin && norm(typed) === had) { /* unchanged */ }
       else {
         const ref = await resolveRef(typed, code);
         if (!ref.ok || !ref.code) {
           return json({ ok: false, error: refError(ref, "upline"), reason: ref.reason || "no_match",
                         candidates: Array.isArray(ref.candidates) ? ref.candidates.slice(0, 5) : [] });
         }
+        if (had && !isAdmin && norm(ref.code) !== had) return json({ ok: false, field: "direct_to", error: `Your recruiter is already set to ${meRow.direct_to_name || had}. Ask your EMD or Operations if it needs to change.` }, 403);
         patch.direct_to = norm(ref.code);
+        patch.upline_set_by = isAdmin ? "OPS" : code;   // recorded in org_upline_changes by the trigger
         const up2 = await getAgent(norm(ref.code));
         patch.direct_to_name = up2 ? fullName(up2) : (ref.name || "");
       }

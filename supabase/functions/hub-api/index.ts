@@ -622,21 +622,41 @@ Deno.serve(async (req) => {
     }
 
     if (action === "hub_createchannel") {
-      const name = clean(body.name); if (!name) return json({ ok: false, error: "no name" });
+      /* v29 (handoff section 5): the 60-character rule lives here, not only in the field; a
+         retry carrying the same req_id returns the group already made instead of a second one;
+         the append is one locked database statement, so two people creating at once both keep
+         their group; and invitees outside the creator's own scope are refused, the same rule as
+         hub-groups member_add and the hub-roster picker. */
+      const name = clean(body.name).replace(/\s+/g, " ").trim();
+      if (!name) return json({ ok: false, field: "name", error: "Give the group a name." }, 400);
+      if (name.length > 60) return json({ ok: false, field: "name", error: "Group names can be up to 60 characters." }, 400);
       const byCode = norm(body.code);
       // `by` is the creator's display name, and it used to be whatever the request typed.
       const by = isAdmin ? clean(body.by) : ((await accessOf(byCode)).name || clean(body.by));
+      const reqId = clean(body.req_id).slice(0, 64);
       const id = "c_" + low(name).replace(/[^a-z0-9]+/g, "_").slice(0, 24) + "_" + Math.random().toString(36).slice(2, 6);
       const priv = !!body.private;
       let members: string[] = Array.isArray(body.members) ? (body.members as unknown[]).map((x) => norm(x)).filter(Boolean) : [];
-      if (byCode && members.indexOf(byCode) < 0) members.push(byCode);
-      const ex = await fetch(`${SUPA}/rest/v1/app_settings?key=eq.hub_channels&select=value`, { headers: DBH });
-      const rws = await ex.json();
-      const v = (rws && rws[0] && rws[0].value) ? rws[0].value : { channels: [] };
-      if (!Array.isArray(v.channels)) v.channels = [];
-      v.channels.push({ id, name, icon: priv ? "🔒" : "📌", by, byCode, private: priv, members });
-      const up = await fetch(`${SUPA}/rest/v1/app_settings?on_conflict=key`, { method: "POST", headers: { ...DBH, Prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify({ key: "hub_channels", value: v, updated_at: new Date().toISOString() }) });
-      return json({ ok: up.ok, id, private: priv, members });
+      members = members.filter((c, i) => members.indexOf(c) === i && c !== byCode);
+      if (members.length && !isAdmin) {
+        const pex = await fetch(`${SUPA}/rest/v1/tracker_agents?code=in.(${members.map((c) => `"${encodeURIComponent(c)}"`).join(",")})&select=code,first_name,last_name,status,baseshop`, { headers: DBH });
+        const ppl: Record<string, Record<string, unknown>> = {};
+        for (const r of ((await pex.json()) || []) as Record<string, unknown>[]) ppl[norm(r.code)] = r;
+        const missing = members.filter((c) => !ppl[c] || low(ppl[c].status) === "quit");
+        if (missing.length) return json({ ok: false, field: "members", error: `Not an active account: ${missing.join(", ")}` }, 400);
+        const sc = await rpc("agent_scope", { p_code: byCode });
+        const all = !!(sc && sc.ok === true && sc.all);
+        const bases = (sc && Array.isArray(sc.bases)) ? sc.bases.map((b: unknown) => norm(b)) : [];
+        const outside = all ? [] : members.filter((c) => bases.indexOf(norm(ppl[c].baseshop)) < 0);
+        if (outside.length) return json({ ok: false, field: "members", error: `Outside your baseshop: ${outside.map((c) => ((String(ppl[c].first_name || "") + " " + String(ppl[c].last_name || "")).trim() || c)).join(", ")}` }, 403);
+      }
+      if (byCode) members.push(byCode);
+      const ch: Record<string, unknown> = { id, name, icon: priv ? "🔒" : "📌", by, byCode, private: priv, members };
+      if (reqId) ch.req_id = reqId;
+      const res = await rpc("hub_channel_append", { p_ch: ch, p_req: reqId });
+      if (!res || !res.channel) return json({ ok: false, error: "Could not create the group. Try again." }, 500);
+      const saved = res.channel as Record<string, unknown>;
+      return json({ ok: true, id: saved.id, private: !!saved.private, members: saved.members, duplicate: !!res.dup });
     }
 
     if (action === "hub_escalate") {

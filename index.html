@@ -549,14 +549,9 @@ html, body{ overflow-x: hidden; }
       <div class="gfield"><label>Email</label><input id="sEmail" type="email" autocomplete="email" placeholder="you@email.com"></div>
       <div class="gfield"><label>Mobile phone</label><input id="sPhone" type="tel" autocomplete="tel" placeholder="(555) 555-5555"></div>
       <div class="gfield"><label>Your GFI code <span style="font-weight:600;color:var(--muted)">— the one GFI assigned you</span></label><input id="sCode" type="text" autocomplete="off" placeholder="e.g. A1234" style="text-transform:uppercase;"></div>
-      <div class="gfield"><label>Contract level</label>
-        <select id="sLevel">
-          <option value="Associate" selected>Associate</option>
-          <option value="Senior Associate">Senior Associate</option>
-          <option value="MD">Marketing Director (MD)</option>
-          <option value="EMD">Executive Marketing Director (EMD)</option>
-        </select>
-      </div>
+      <!-- No contract-level choice here: everyone starts as Associate and their upline, an EMD or
+           Operations assigns the real level. A level picked about yourself is not authority. -->
+      <input type="hidden" id="sLevel" value="Associate">
       <div class="gfield"><label>Your direct recruiter</label><input id="sUpline" type="text" autocomplete="off" placeholder="Their name or GFI code — e.g. Edgar Zavala"><div id="sUpHint" class="uphint" aria-live="polite"></div></div>
       <button class="gbtn" id="sBtn">Create my account →</button>
       <div class="gmsg" id="sMsg"></div>

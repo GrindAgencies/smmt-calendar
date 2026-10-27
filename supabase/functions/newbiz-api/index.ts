@@ -78,6 +78,28 @@ const low = (s: unknown) => (s ?? "").toString().trim().toLowerCase();
    figures themselves. An absent, null or blank value means "no value", not zero. */
 const numOr = (v: unknown, d: number | null = null) => { if (v === null || v === undefined || v === "") return d; const n = Number(v); return isNaN(n) ? d : n; };
 const pctOf = (v: unknown) => { const n = Number(v); return isNaN(n) ? 50 : Math.max(0, Math.min(100, n)); };
+/* v25 (handoff 6A/6B/6C): money and split inputs are VALIDATED, not coerced. numOr() turns
+   anything unparseable into null and pctOf() clamps 150 to 100, which is how a bad request used
+   to save "successfully" with a different number than was sent. These answer an error instead. */
+const MONEY = ["annual_premium", "coverage", "monthly_contribution", "lump_sum_contribution", "target_premium", "chargeback_amount"];
+const MONEY_LABEL: Record<string, string> = { annual_premium: "Annual premium", coverage: "Coverage", monthly_contribution: "Monthly contribution", lump_sum_contribution: "Lump sum amount", target_premium: "Target premium", chargeback_amount: "Chargeback amount" };
+function moneyError(body: Record<string, unknown>, keys: string[]): string | null {
+  for (const k of keys) {
+    if (MONEY.indexOf(k) < 0) continue;
+    const v = body[k];
+    if (v === null || v === undefined || v === "") continue;          // not provided
+    const raw = String(v).trim();
+    const n = Number(raw);
+    if (!/^-?\d*(\.\d+)?$/.test(raw) || !isFinite(n)) return `${MONEY_LABEL[k]} must be a plain amount.`;
+    if (n < 0) return `${MONEY_LABEL[k]} cannot be negative.`;
+    /* Float noise from a computed figure (33.33 * 12 = 399.96000000000004) is not extra
+       precision; anything genuinely past cents is. */
+    if (Math.abs(n * 100 - Math.round(n * 100)) > 1e-6) return `${MONEY_LABEL[k]} can have at most two decimals.`;
+  }
+  return null;
+}
+const cents = (v: unknown) => { const n = numOr(v, null); return n === null ? null : Math.round(n * 100) / 100; };
+const pct2 = (n: number) => Math.round(n * 100) / 100;
 function ptToday(): string { return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles" }).format(new Date()); }
 const squash = (s: unknown) => (s ?? "").toString().toLowerCase().replace(/[^a-z]/g, "");
 async function rpc(fn: string, args: Record<string, unknown>) { try { const r = await fetch(`${SUPA}/rest/v1/rpc/${fn}`, { method: "POST", headers: DBH, body: JSON.stringify(args) }); return await r.json(); } catch (_) { return null; } }
@@ -178,7 +200,7 @@ async function getAgent(code: string) {
 let ROSTER: Record<string, unknown>[] | null = null;
 async function roster(): Promise<Record<string, unknown>[]> {
   if (ROSTER) return ROSTER;
-  try { const ex = await fetch(`${SUPA}/rest/v1/tracker_agents?select=code,first_name,last_name`, { headers: DBH }); ROSTER = (await ex.json()) || []; } catch (_) { ROSTER = []; }
+  try { const ex = await fetch(`${SUPA}/rest/v1/tracker_agents?select=code,first_name,last_name,archived_at`, { headers: DBH }); ROSTER = (await ex.json()) || []; } catch (_) { ROSTER = []; }
   return ROSTER!;
 }
 async function resolveSplitCode(name: string): Promise<string> {
@@ -187,8 +209,8 @@ async function resolveSplitCode(name: string): Promise<string> {
   if (up) { const byCode = list.find((a) => String(a.code).toUpperCase() === up); if (byCode) return String(byCode.code); }
   const n = squash(name); if (!n) return "";
   for (const a of list) { if (squash((a.first_name || "") + (a.last_name || "")) === n) return String(a.code); }
-  const byLast = list.filter((a) => squash(a.last_name) && n.indexOf(squash(a.last_name)) >= 0);
-  if (byLast.length === 1) return String(byLast[0].code);
+  /* v25: no more last-name guessing. Credit goes to an identified person or to nobody, and an
+     unidentified partner is now refused by checkSplit() rather than saved as a blank code. */
   return "";
 }
 async function nameOfCode(code: string): Promise<string> {
@@ -220,15 +242,17 @@ async function orgByRole(role: string): Promise<string[]> {
 const orgExecs = () => orgByRole("exec");
 
 const ISSUED = ["policy_issued","premium_drafted","paid","funds_received"];
-function bucket(s: string) { if (s === "closed" || s === "declined" || s === "cancelled") return "closed"; if (s === "approved") return "approved"; if (ISSUED.indexOf(s) >= 0) return "paid"; return "pending"; }
+/* v25: a draft ("incomplete") was never submitted, so it is in no total -- the same DEAD rule
+   ops-metrics, ops-nbfeed and the New Business cards already use. Lapsed is closed there too. */
+function bucket(s: string) { if (s === "incomplete") return "draft"; if (s === "closed" || s === "declined" || s === "cancelled" || s === "canceled" || s === "lapsed") return "closed"; if (s === "approved") return "approved"; if (ISSUED.indexOf(s) >= 0) return "paid"; return "pending"; }
 function dnum(v: unknown) { const n = Number(v); return isNaN(n) ? 0 : n; }
 
 function mapRow(body: Record<string, unknown>) {
-  const prem = numOr(body.annual_premium, 0) || 0;
+  const prem = cents(body.annual_premium) || 0;
   const contract = numOr(body.contract_pct, null);
   const advance = numOr(body.advance_pct, null);
   const splitFlag = !!body.split_flag;
-  const splitPct = splitFlag ? pctOf(body.split_pct) : null;
+  const splitPct = splitFlag ? pct2(pctOf(body.split_pct)) : null;
   const partnerContract = numOr(body.partner_contract_pct, null);
   const st = clean(body.status).toLowerCase().replace(/\s+/g, "_") || "pending";
   const row: Record<string, unknown> = {
@@ -241,7 +265,7 @@ function mapRow(body: Record<string, unknown>) {
     state: clean(body.state).toUpperCase().slice(0, 2), carrier: clean(body.carrier), product: clean(body.product),
     policy_number: clean(body.policy_number), carrier_code: clean(body.carrier_code),
     coverage: numOr(body.coverage, 0) || 0, annual_premium: prem,
-    monthly_contribution: numOr(body.monthly_contribution, null), lump_sum_contribution: numOr(body.lump_sum_contribution, null),
+    monthly_contribution: cents(body.monthly_contribution), lump_sum_contribution: cents(body.lump_sum_contribution),
     /* Target premium (handoff 2026-10-23 section 6B): manually entered, saved independently of
        annual_premium, monthly_contribution and lump_sum_contribution, and never derived from
        them. null when not provided, which the brief requires to stay distinct from an entered 0.
@@ -252,7 +276,7 @@ function mapRow(body: Record<string, unknown>) {
        paths. Measured before this line existed: newbiz_update with target_premium returned
        ok:true, bumped updated_at, and left the column NULL. A silent discard that reported
        success. */
-    target_premium: numOr(body.target_premium, null),
+    target_premium: cents(body.target_premium),
     contract_pct: contract, advance_pct: advance,
     // expected_commission is set after the partner's rate is resolved — see finishRow()
     expected_commission: null,
@@ -275,8 +299,12 @@ function mapRow(body: Record<string, unknown>) {
 // Resolve the split partner (code + display name), fill their commission rate from their contract
 // level when the form did not supply one, then compute expected_commission from what we ended up
 // with. Shared by create and update so the two can never drift.
-async function finishRow(row: Record<string, unknown>) {
-  row.split_agent_code = row.split_flag ? await resolveSplitCode(String(row.split_agent || "")) : "";
+async function finishRow(row: Record<string, unknown>, codeHint: unknown = "") {
+  /* A picked code (the older form sends split_agent_code beside the name) is the identity; the
+     name is only a fallback for callers that send nothing else. */
+  let hinted = "";
+  if (row.split_flag && codeHint) { const h = norm(codeHint); if ((await roster()).some((a) => norm(a.code) === h)) hinted = h; }
+  row.split_agent_code = row.split_flag ? (hinted || await resolveSplitCode(String(row.split_agent || ""))) : "";
   if (row.split_flag && row.split_agent_code) {
     const rn = await nameOfCode(String(row.split_agent_code));
     if (rn) row.split_agent = rn;
@@ -287,6 +315,30 @@ async function finishRow(row: Record<string, unknown>) {
   }
   row.expected_commission = expCommOf(row);
   return row;
+}
+
+/* The split has to name a real, current, different person and a share the server can stand
+   behind. Run on create, and on update only when the split actually changes, so a legacy record
+   with an old incomplete split can still have its notes edited. */
+async function checkSplit(raw: Record<string, unknown>, row: Record<string, unknown>, writer: string): Promise<string | null> {
+  if (!row.split_flag) return null;
+  const sp = Number(raw.split_pct);
+  if (raw.split_pct === null || raw.split_pct === undefined || raw.split_pct === "" || !isFinite(sp)) return "Enter the split percentage.";
+  if (sp < 0 || sp > 100) return "The split percentage must be between 0 and 100.";
+  if (Math.abs(sp * 100 - Math.round(sp * 100)) > 1e-6) return "The split percentage can have at most two decimals.";
+  const pc = norm(row.split_agent_code);
+  if (!pc) return "Pick the split agent from the list so the credit goes to the right person.";
+  if (pc === norm(writer)) return "The split agent must be someone other than the writing agent.";
+  const a = (await roster()).find((x) => norm(x.code) === pc);
+  if (!a || a.archived_at) return "That split agent is not an active account.";
+  return null;
+}
+/* split_pct is the writer's share: 100 leaves the partner nothing, which is no split at all. */
+function dropEmptySplit(row: Record<string, unknown>) {
+  if (row.split_flag && Number(row.split_pct) === 100) {
+    row.split_flag = false; row.split_agent = ""; row.split_agent_code = ""; row.split_pct = null; row.partner_contract_pct = null;
+    row.expected_commission = expCommOf(row);
+  }
 }
 
 Deno.serve(async (req) => {
@@ -310,11 +362,16 @@ Deno.serve(async (req) => {
       if (!code) return json({ ok: false, error: "no code" });
       const a = await getAgent(code);
       const nm = a ? (((a.first_name || "") + " " + (a.last_name || "")).trim()) : clean(body.agent_name);
+      const mErr = moneyError(body, Object.keys(body));
+      if (mErr) return json({ ok: false, error: mErr }, 400);
       const row = mapRow(body);
       // Only a NEW policy falls back to today, and only when nothing was supplied.
       if (!row.submitted_date) row.submitted_date = ptToday();
       row.agent_code = code; row.agent_name = nm; row.emd = a ? clean(a.emd) : ""; row.md = a ? clean(a.md) : "";
-      await finishRow(row);
+      await finishRow(row, body.split_agent_code);
+      const sErr = await checkSplit(body, row, code);
+      if (sErr) return json({ ok: false, error: sErr }, 400);
+      dropEmptySplit(row);
       const ins = await fetch(`${SUPA}/rest/v1/policies`, { method: "POST", headers: { ...DBH, Prefer: "return=representation" }, body: JSON.stringify(row) });
       const r = await ins.json();
       return json({ ok: ins.ok, policy: Array.isArray(r) ? r[0] : r });
@@ -347,10 +404,33 @@ Deno.serve(async (req) => {
       const ENVELOPE = ["action", "id", "token", "session", "code", "by", "leader", "month", "goals", "scope"];
       const sent = Object.keys(body).filter((k) => ENVELOPE.indexOf(k) < 0);
 
+      const mErr = moneyError(body, sent);
+      if (mErr) return json({ ok: false, error: mErr }, 400);
+
       const merged: Record<string, unknown> = { ...current };
       for (const k of sent) merged[k] = body[k];
-      const full = mapRow(merged);
-      await finishRow(full);
+      let hint: unknown = sent.indexOf("split_agent_code") >= 0 ? body.split_agent_code : "";
+      /* The same partner name sent back unchanged keeps the partner already on the record. */
+      if (!hint && current.split_agent_code && low(merged.split_agent) === low(current.split_agent)) hint = current.split_agent_code;
+      const full = await finishRow(mapRow(merged), hint);
+      /* A different partner gets THEIR rate. The edit form starts from the stored record, so the
+         previous partner's partner_contract_pct rides along in the body unless it was retyped. */
+      if (full.split_flag && norm(full.split_agent_code) !== norm(current.split_agent_code)
+          && (sent.indexOf("partner_contract_pct") < 0 || Number(body.partner_contract_pct) === Number(current.partner_contract_pct))) {
+        full.partner_contract_pct = await rateForCode(String(full.split_agent_code));
+        full.expected_commission = expCommOf(full);
+      }
+
+      /* Did the credit actually change? Only then is it re-validated and re-checked for authority. */
+      const splitChanged = (!!full.split_flag !== !!current.split_flag)
+        || (full.split_flag && (norm(full.split_agent_code) !== norm(current.split_agent_code) || Number(full.split_pct) !== Number(current.split_pct)));
+      if (splitChanged) {
+        /* The partner shares the record but not the right to re-divide it. */
+        if (!isAdmin && norm(current.agent_code) !== me.code) return json({ ok: false, error: "Only the writing agent or Operations can change how the credit is split." }, 403);
+        const sErr = await checkSplit(merged, full, String(current.agent_code || ""));
+        if (sErr) return json({ ok: false, error: sErr }, 400);
+        dropEmptySplit(full);
+      }
 
       /* Only what was named. Anything mapRow invents for an absent column is discarded here,
          which is the whole point. Unknown keys (an agent_code, a read-time extra like
@@ -364,7 +444,7 @@ Deno.serve(async (req) => {
          a stale partner percentage behind. */
       const SPLIT_INPUTS = ["split_flag", "split_agent", "split_pct", "partner_contract_pct"];
       const touchedSplit = SPLIT_INPUTS.some((k) => sent.indexOf(k) >= 0);
-      if (touchedSplit) {
+      if (touchedSplit || splitChanged) {
         patch.split_flag = full.split_flag;
         patch.split_agent = full.split_agent;
         patch.split_agent_code = full.split_agent_code;
@@ -451,7 +531,7 @@ Deno.serve(async (req) => {
         const isWriter = code ? norm(r.agent_code) === code : true;
         const isPartner = code ? norm(r.split_agent_code) === code : false;
         const sp = (r.split_flag && r.split_pct != null) ? Number(r.split_pct) : 100;
-        const share = (code && isPartner && !isWriter) ? (100 - sp) : (code ? (r.split_flag ? sp : 100) : 100);
+        const share = pct2((code && isPartner && !isWriter) ? (100 - sp) : (code ? (r.split_flag ? sp : 100) : 100));
         (r as Record<string, unknown>)._share = share / 100;
         (r as Record<string, unknown>).split_role = (code && isPartner && !isWriter) ? "received" : (r.split_flag ? "given" : "");
         (r as Record<string, unknown>).my_share_pct = r.split_flag ? share : 100;
@@ -465,7 +545,7 @@ Deno.serve(async (req) => {
         const partnerPart = r.split_flag ? Math.round(prem * ((100 - sp) / 100) * (pRate / 100)) : 0;
         const fullComm = r.split_flag ? (writerPart + partnerPart) : ((wRate != null) ? Math.round(prem * (wRate / 100)) : 0);
         (r as Record<string, unknown>).my_commission = (code && isPartner && !isWriter) ? partnerPart : (code ? (r.split_flag ? writerPart : fullComm) : fullComm);
-        (r as Record<string, unknown>).partner_pct = r.split_flag ? (100 - Number(r.split_pct != null ? r.split_pct : 50)) : null;
+        (r as Record<string, unknown>).partner_pct = r.split_flag ? pct2(100 - Number(r.split_pct != null ? r.split_pct : 50)) : null;
         (r as Record<string, unknown>).partner_contract_pct = (r.partner_contract_pct != null) ? Number(r.partner_contract_pct) : null;
       }
       /* v24: a client belongs to the agents who wrote the business. Outside the caller's own tree
@@ -482,7 +562,7 @@ Deno.serve(async (req) => {
       const wsum = (arr: Record<string, unknown>[], k: string) => arr.reduce((t, r) => t + dnum(r[k]) * (Number(r._share) || 1), 0);
       const msum = (arr: Record<string, unknown>[]) => arr.reduce((t, r) => t + dnum(r.my_commission), 0);
       const inB = (b: string) => rows.filter((r) => bucket(r.status as string) === b);
-      const openR = rows.filter((r) => bucket(r.status as string) !== "closed");
+      const openR = rows.filter((r) => { const b = bucket(r.status as string); return b !== "closed" && b !== "draft"; });
       const paid = inB("paid");
       const out = {
         total: rows.length,
@@ -492,6 +572,7 @@ Deno.serve(async (req) => {
         ap_closed: wsum(inB("closed"), "annual_premium"), total_coverage: wsum(openR, "coverage"),
         commission_total: msum(openR), commission_paid: msum(paid),
         deposits_count: paid.length, deposits_ap: wsum(paid, "annual_premium"), deposits_commission: msum(paid),
+        drafts: inB("draft").length,
         chargeback_total: wsum(rows, "chargeback_amount"),
         net_deposits: msum(paid) - wsum(rows, "chargeback_amount")
       };

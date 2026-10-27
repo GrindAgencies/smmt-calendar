@@ -420,10 +420,6 @@ h1.big{margin:4px 0 0;font-size:26px;letter-spacing:-.01em;font-weight:800}
      screen. The header carries the real Standard logo and wordmark as of 2026-10-23; the
      hand-drawn Summit mountain that used to sit there was a substitute mark. -->
 <div id="curtain" role="status" aria-live="polite">
-  <svg width="54" height="54" viewBox="0 0 64 64" aria-hidden="true">
-    <path d="M6 50 L24 20 L34 36 L42 26 L58 50 Z" fill="none" stroke="#d7ae54" stroke-width="2" stroke-linejoin="round"/>
-    <path d="M24 20 L34 36 L42 26" fill="none" stroke="#f2d17a" stroke-width="2" stroke-linejoin="round"/>
-  </svg>
   <div class="bar"><i></i></div>
   <div class="t3">Building the organization</div>
 </div>
@@ -493,13 +489,34 @@ var STEP=0, LADDER='', ROADVIEW='mine';
 /* My Tracker opens this page straight on the ladder (?tab=road), so the Road to EMD is the
    tracker rather than a third tab someone has to go looking for. */
 (function(){var m=/[?&]tab=(map|perf|road)/.exec(location.search);
-  if(m)TAB=m[1]; else if(location.hash==='#road')TAB='road';})();
+  if(m)TAB=m[1]; else if(location.hash==='#road')TAB='road';
+  /* Road to EMD has ONE entry transition, the tool title on Home (brief section 10). No second
+     full-screen curtain here: the page header paints at once and the ladder fills in. */
+  if(TAB==='road'){ var cu=document.getElementById('curtain'); if(cu) cu.classList.add('gone'); }})();
 
 function $(id){return document.getElementById(id);}
 function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
 function toast(m){var t=$('toast');t.textContent=m;t.classList.add('on');setTimeout(function(){t.classList.remove('on');},2200);}
 function initials(n){n=(n||'').trim();if(!n)return '?';var p=n.split(/\s+/);return ((p[0][0]||'')+(p.length>1?p[p.length-1][0]:'')).toUpperCase();}
 function closeDrawer(){$('ov').classList.remove('on');}
+/* Back from a stage drawer returns to the Road, not Home (brief section 10). Opening a drawer
+   adds one history entry, so the phone's back gesture and the header chevron both close it
+   first; closing it any other way takes that entry back off so the next back goes Home. */
+(function(){
+  var DR=false;
+  function watch(){
+    var ov=$('ov'); if(!ov||!window.MutationObserver) return;
+    new MutationObserver(function(){
+      var on=ov.classList.contains('on');
+      if(on&&!DR){ DR=true; try{ history.pushState({tsfgDrawer:1},''); }catch(e){} }
+      else if(!on&&DR){ DR=false; try{ if(history.state&&history.state.tsfgDrawer) history.back(); }catch(e){} }
+    }).observe(ov,{attributes:true,attributeFilter:['class']});
+    window.addEventListener('popstate',function(){ if(DR){ DR=false; ov.classList.remove('on'); } });
+    var bk=document.querySelector('.top .iconbtn.back');
+    if(bk) bk.addEventListener('click',function(e){ if(ov.classList.contains('on')){ e.preventDefault(); closeDrawer(); } });
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',watch); else watch();
+})();
 function fmtPts(n){n=Number(n)||0;if(n>=1e6)return (n/1e6).toFixed(1)+'M';if(n>=1e3)return Math.round(n/1e3)+'K';return String(Math.round(n));}
 
 /* ===== rank vocabulary =================================================================
@@ -1302,8 +1319,13 @@ function renderPerf(){
 }
 
 /* ===== ROAD TO EMD ============================================================== */
+/* Only people whose Road this viewer is allowed to see: summit-api answers with progress for
+   in-scope agents only, so its keys are the allowed set. Alumni are not on anyone's Road. */
 function ladderAgents(){
-  var out=NODES.slice().sort(function(a,b){return (a.name||'').localeCompare(b.name||'');});
+  var ok={}; ok[CODE]=1;
+  ['derived','checks','pending','progress'].forEach(function(k){ Object.keys((BOARD&&BOARD[k])||{}).forEach(function(c){ ok[String(c).toUpperCase()]=1; }); });
+  var out=NODES.filter(function(n){ return ok[n.code] && !n.departed; })
+               .sort(function(a,b){return (a.name||'').localeCompare(b.name||'');});
   return out;
 }
 /* Stages the platform can already prove for this agent: rank, the licensing board, the steps
@@ -1371,7 +1393,7 @@ function roadHeader(){
   return '<div class="rank-top" style="margin-top:10px">'
     +'<div><div class="eyebrow">The leadership ascent</div><h1 class="big">Road to EMD</h1></div>'
     +toggle+reqBtn
-    +(ROADVIEW==='mine'?('<label class="agentsel"><small>Viewing agent</small>'
+    +((ROADVIEW==='mine'&&agents.length>1)?('<label class="agentsel"><small>Viewing agent</small>'
       +'<select onchange="LADDER=this.value;STEP=firstOpenStage(LADDER);renderRoad()">'
       +agents.map(function(a){return '<option value="'+esc(a.code)+'"'+(a.code===LADDER?' selected':'')+'>'+esc(a.name||a.code)+'</option>';}).join('')
       +'</select></label>'):'')
@@ -1405,6 +1427,18 @@ function renderTeamLadder(){
       +'<span><b>'+team.filter(function(t){return t.done>=stageIndexById('emd')+1;}).length+'</b><i>at EMD or beyond</i></span>'
     +'</div></div>'
     +'<div class="panel">'+rows+'</div>';
+}
+/* The emblem shows the stage being BROWSED, so it says which it is: cleared, the person's current
+   level, or a stage ahead of them. Browsing never changes the saved level. */
+function emblemState(){
+  if(stageComplete(LADDER,STEP)) return 'complete';
+  return STEP===firstOpenStage(LADDER) ? 'current' : 'future';
+}
+function emblemCaption(){
+  var st=emblemState(), who=(LADDER===CODE);
+  if(st==='complete') return 'Cleared';
+  if(st==='current') return who ? 'Your current level' : 'Their current level';
+  return 'Browsing a stage ahead';
 }
 function renderRoad(){
   if(!LADDER)LADDER=CODE;
@@ -1462,7 +1496,7 @@ function renderRoad(){
 
   $('view').innerHTML=roadHeader()
     +'<div class="overall">'
-      +'<span class="ov1">Stage <b>'+(STEP+1)+'</b> of '+STAGE_COUNT+'</span>'
+      +'<span class="ov1">Current stage <b>'+(firstOpenStage(LADDER)+1)+'</b> of '+STAGE_COUNT+'</span>'
       +'<span class="ovbar"><span style="width:'+pctAll+'%"></span></span>'
       +'<span class="ov2"><b>'+cleared+'</b> of '+STAGE_COUNT+' stages cleared \u00b7 '+pctAll+'%</span>'
     +'</div>'
@@ -1470,8 +1504,8 @@ function renderRoad(){
     +'<div class="stagewrap">'
     +'<button class="arrow" onclick="goStep('+(STEP-1)+')"'+(STEP===0?' disabled':'')+' aria-label="Previous stage">\u2039</button>'
     +'<div class="rank-card">'
-    +'<div class="rank-visual">'+rankBadge(STEP+1,stageComplete(LADDER,STEP)?'complete':'current',heroEmblemSize(),cashOf(LADDER).prestige)
-    +'<p>Level '+(STEP<9?('0'+(STEP+1)):(STEP+1))+' emblem</p><small>Progression badge</small></div>'
+    +'<div class="rank-visual">'+rankBadge(STEP+1,emblemState(),heroEmblemSize(),cashOf(LADDER).prestige)
+    +'<p>Level '+(STEP<9?('0'+(STEP+1)):(STEP+1))+' emblem</p><small>'+emblemCaption()+'</small></div>'
     +'<div class="rank-req"><header><div><div class="eyebrow">Progression step</div>'
     +'<h2>'+esc(STAGES[STEP])+'</h2>'
     +(ROAD[STEP].meaning?('<div class="stmean">'+esc(ROAD[STEP].meaning)+'</div>'):'')

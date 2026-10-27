@@ -309,7 +309,7 @@ function paintProfile(p){
     +'<div class="row"><div class="fld"><label class="lbl">First name</label><input id="pf_first" class="in" value="'+esc(p.first_name||'')+'"></div><div class="fld"><label class="lbl">Last name</label><input id="pf_last" class="in" value="'+esc(p.last_name||'')+'"></div></div>'
     +'<div class="row"><div class="fld"><label class="lbl">Mobile phone <span class="hint">· SMS + contact</span></label><input id="pf_phone" class="in" value="'+esc(p.phone||'')+'" placeholder="(555) 555-1234"></div><div class="fld"><label class="lbl">Email / Gmail</label><input id="pf_email" type="email" class="in" value="'+esc(p.email||'')+'" placeholder="you@gmail.com"></div></div>'
     +'<div class="row"><div class="fld"><label class="lbl">State of residence</label><input id="pf_state" class="in" value="'+esc(p.state||'')+'" placeholder="e.g. California" list="statelist"></div><div class="fld"><label class="lbl">Agent code <span class="hint">· assigned</span></label><input class="in" value="'+esc(CODE)+'" readonly></div></div>'
-    +'<div class="row"><div class="fld"><label class="lbl">Direct recruiter — agent code <span class="hint">· who brought you in</span></label><input id="pf_direct" class="in" value="'+esc(p.direct_to||'')+'" placeholder="e.g. C1991" style="text-transform:uppercase" oninput="recruiterLookup()" autocomplete="off"><div id="pf_direct_res" style="font-size:11.5px;margin-top:5px">On file: '+recruiter+'</div></div>'
+    +'<div class="row"><div class="fld"><label class="lbl">Direct recruiter — agent code <span class="hint">· who brought you in</span></label><input id="pf_direct" class="in" value="'+esc(p.direct_to||'')+'" placeholder="e.g. C1991" style="text-transform:uppercase" oninput="recruiterLookup()" autocomplete="off"'+(p.direct_to?' readonly aria-readonly="true"':'')+'><div id="pf_direct_res" style="font-size:11.5px;margin-top:5px">On file: '+recruiter+(p.direct_to?' · <span style="color:var(--ink3)">To change your recruiter, ask your EMD or Operations.</span>':'')+'</div></div>'
     /* Contract level is shown, never edited here: it is assigned by Operations (Ops Dashboard ->
        the person's profile), so nobody can raise their own level from their own form. */
     +'<div class="fld"><label class="lbl">Contract level <span class="hint">· assigned by Operations</span></label><input class="in" value="'+esc(p.contract_level||'Not assigned yet')+'" readonly></div></div>'
@@ -1053,17 +1053,24 @@ function loadRoadSummary(){
    }).catch(function(){});
 }
 
+var PROFILE_SAVING=false;
 function saveProfile(){
+  if(PROFILE_SAVING) return;                     /* one save at a time: a double tap must not send two */
   var first=val('pf_first'),last=val('pf_last');
   if(!first){toast('First name is required');return;}
   var body={action:'save_contact',code:CODE,current_name:NAME,first_name:first,last_name:last,phone:val('pf_phone'),email:val('pf_email'),state:val('pf_state'),direct_to:val('pf_direct').toUpperCase(),ica:val('pf_ica'),ica_date:val('pf_icadate')};
+  /* An established recruiter is not this form's to change (profile-api refuses it); only a
+     missing one is sent. */
+  if(PROFILE_P&&PROFILE_P.direct_to) delete body.direct_to;
+  PROFILE_SAVING=true;
   fetch(PA,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(function(r){return r.json();}).then(function(r){
+    PROFILE_SAVING=false;
     if(!r||!r.ok){toast((r&&r.error)||'Save failed');return;}
     var nn=(first+' '+last).trim();if(nn&&nn!==NAME){NAME=nn;try{localStorage.setItem('tsfg_name',nn);}catch(e){}}
-    PROFILE_P.first_name=first;PROFILE_P.last_name=last;PROFILE_P.phone=val('pf_phone');PROFILE_P.email=val('pf_email');PROFILE_P.state=val('pf_state');PROFILE_P.direct_to=val('pf_direct').toUpperCase();PROFILE_P.direct_to_name=r.direct_to_name||PROFILE_P.direct_to_name;PROFILE_P.ica=val('pf_ica');PROFILE_P.ica_date=val('pf_icadate');PROFILE_P.profile_complete=r.profile_complete;
+    PROFILE_P.first_name=first;PROFILE_P.last_name=last;PROFILE_P.phone=val('pf_phone');PROFILE_P.email=val('pf_email');PROFILE_P.state=val('pf_state');PROFILE_P.direct_to=(r.direct_to!==undefined?r.direct_to:PROFILE_P.direct_to)||'';PROFILE_P.direct_to_name=r.direct_to_name||PROFILE_P.direct_to_name;PROFILE_P.ica=val('pf_ica');PROFILE_P.ica_date=val('pf_icadate');PROFILE_P.profile_complete=r.profile_complete;
     WELCOME=false;renderShell();paintProfile(PROFILE_P);
     toast(r.profile_complete?'Profile saved ✓ — Operations updated':'Saved — a few fields still needed');
-  }).catch(function(){toast('Network error');});
+  }).catch(function(){PROFILE_SAVING=false;toast('Network error');});
 }
 function uploadPhoto(input){var f=input.files&&input.files[0];if(!f)return;
   if(!/^image\//.test(f.type||'')){toast('Please choose an image file');return;}

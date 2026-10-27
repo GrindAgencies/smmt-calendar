@@ -83,7 +83,7 @@ Deno.serve(async (req) => {
         const newer = await getJSON(`hub_messages?channel=eq.${enc(ch)}&id=gt.${boundary}&deleted=not.eq.true&select=id&limit=1`);
         isNew = newer.length > 0;
       } else if (h.hidden_at) {
-        const newer = await getJSON(`hub_messages?channel=eq.${enc(ch)}&created_at=gt.${enc(String(h.hidden_at))}&select=id&limit=1`);
+        const newer = await getJSON(`hub_messages?channel=eq.${enc(ch)}&created_at=gt.${enc(String(h.hidden_at))}&deleted=not.eq.true&select=id&limit=1`);
         isNew = newer.length > 0;
       }
       if (isNew) {

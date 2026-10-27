@@ -412,14 +412,14 @@ html, body{ overflow-x: hidden; }
        behind. -->
   <div class="ngphoto">
     <button type="button" class="ngav" id="ngAv" onclick="document.getElementById('ngFile').click()"
-            aria-label="Add a group photo"><span class="ngav-i">＋</span></button>
+            aria-label="Add a group photo"><span class="ngav-i"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/></svg></span></button>
     <input type="file" id="ngFile" accept="image/*" style="display:none" onchange="stageGroupPhoto(event)">
     <div class="ngphoto-t">
       <button type="button" class="lnk" onclick="document.getElementById('ngFile').click()">Add group photo</button>
       <button type="button" class="lnk sub" id="ngClear" style="display:none" onclick="clearGroupPhoto()">Remove</button>
     </div>
   </div>
-  <div class="fg"><label for="chName">Group name</label><input id="chName" placeholder="e.g. Regional — West" maxlength="60"></div>
+  <div class="fg"><label for="chName">Group name</label><input id="chName" placeholder="e.g. Regional — West" maxlength="60" aria-describedby="ngNameErr" oninput="ngNameErr('')"><div class="ngerr" id="ngNameErr" role="alert"></div></div>
   <!-- Brief §5: saved with the group (hub-groups set_description), never a field that drops what you type. -->
   <div class="fg"><label for="chDesc">Description <span class="ngopt">(optional)</span></label><textarea id="chDesc" class="ngdesc" maxlength="300" rows="2" placeholder="What is this group for?"></textarea></div>
   <label class="fg" style="display:flex;align-items:center;gap:9px;font-weight:600"><input type="checkbox" id="chPriv" style="width:auto" onchange="ngPrivNote()"> Private group (invite only)</label>
@@ -1561,7 +1561,10 @@ function loadUnread(){
   fetch(UNREADAPI,{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({code:CODE,read:readMap()})})
     .then(function(r){return r.json();})
-    .then(function(r){ if(r&&r.ok){ UNREAD=r.counts||{}; PREVIEW=r.preview||{}; renderRooms(); paintTitle(r.total||0); } })
+    .then(function(r){ if(r&&r.ok){ UNREAD=r.counts||{}; PREVIEW=r.preview||{}; renderRooms(); paintTitle(r.total||0);
+      /* A hidden chat that has a real new message should come back without a reload. hub-prefs
+         decides (by message id, never by typing) and clears the hide itself. */
+      if(Object.keys(HIDDEN).some(function(c){ return (UNREAD[c]||0)>0; })) loadPrefs(renderRooms); } })
     .catch(function(){});
 }
 /* Unread count in the tab title, the way every other chat app does it. */
@@ -1989,6 +1992,7 @@ function openNewChannel(){
   closeHubSheet();
   $('chName').value=''; $('chPriv').checked=false; var d=$('chDesc'); if(d)d.value='';
   clearGroupPhoto(); var q=$('ngSearch'); if(q)q.value='';
+  NG_REQ=''; ngNameErr('');
   fillMembers(); updateMemberCount(); setCreating(false); ngPrivNote();
   $('chOv').classList.add('on');
   setTimeout(function(){ try{ $('chName').focus(); }catch(e){} },80);
@@ -2005,9 +2009,16 @@ function newGroupDirty(){
   return !!(($('chName').value||'').trim() || (($('chDesc')||{}).value||'').trim() || NEWGRP_PHOTO ||
             document.querySelectorAll('#chMembers input:checked').length);
 }
-function closeNewGroup(){
+function closeNewGroup(force){
   if(CREATING) return;
-  if(newGroupDirty() && !confirm('Discard this new group?')) return;
+  if(!force && newGroupDirty()){
+    safetyModal('<h3 style="margin:0 0 8px">Discard this new group?</h3>'+
+      '<div style="color:var(--ink3);font-size:14px;line-height:1.45">The name, photo and members you picked will not be saved.</div>'+
+      '<div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end">'+
+      '<button class="gbtn" onclick="closeSafety()">Keep editing</button>'+
+      '<button class="gbtn" style="background:#c0392b;color:#fff;border-color:#c0392b" onclick="closeSafety();closeNewGroup(true)">Discard</button></div>');
+    return;
+  }
   $('chOv').classList.remove('on'); clearGroupPhoto();
 }
 /* ---- The Hub's plus (brief §4) ------------------------------------------------------
@@ -2163,30 +2174,43 @@ function saveBot(base,patch){fetch(BOTS,{method:'POST',headers:{'Content-Type':'
 function saveHighlights(base,lb){var el=document.getElementById('hl_'+lb);var arr=((el&&el.value)||'').split('\n').map(function(x){return x.trim();}).filter(Boolean);saveBot(base,{highlights:arr});}
 function fillMembers(){
   var host=$('chMembers'); if(!host)return;
+  var keep={}; [].forEach.call(host.querySelectorAll('input:checked'),function(x){ keep[x.value]=1; });
   var list=ROSTER.filter(function(m){return m.code!==CODE;});
   host.innerHTML = list.length
     ? list.map(function(m){
         return '<label class="memrow" data-q="'+esc((m.name+' '+m.code).toLowerCase())+'">'+
-               '<input type="checkbox" value="'+esc(m.code)+'" onchange="updateMemberCount()"> '+
-               esc(m.name)+' <span style="color:var(--ink3)">('+esc(m.code)+')</span></label>';
+               '<input type="checkbox" value="'+esc(m.code)+'"'+(keep[m.code]?' checked':'')+' onchange="updateMemberCount()"> '+
+               '<span class="memav" aria-hidden="true">'+avatarInner(m.code,m.name)+'</span>'+
+               '<span class="memnm">'+esc(m.name)+' <span style="color:var(--ink3)">('+esc(m.code)+')</span></span></label>';
       }).join('') + '<div class="noneleft" id="memNone" style="display:none">Nobody matches that.</div>'
-    : '<div style="color:var(--ink3);font-size:12px;padding:6px">No teammates found yet.</div>';
+    : '<div style="color:var(--ink3);font-size:12px;padding:6px">'+(ROSTER_READY?'No teammates found.':'Loading your team\u2026')+'</div>';
+  var q=$('ngSearch'); if(q&&q.value) filterMembers(q.value);
+  updateMemberCount();
 }
 /* One in-flight creation at a time. The brief is explicit that "a retry or double tap must not
    create duplicate groups", and nothing server-side dedupes this: every call appends a new
    channel with a fresh random id, so two taps really would make two groups. */
-var CREATING=false;
+var CREATING=false, NG_REQ='';
+function ngNameErr(t){ var e=$('ngNameErr'); if(e){ e.textContent=t||''; e.style.display=t?'':'none'; } var i=$('chName'); if(i) i.classList.toggle('bad',!!t); }
 function createChannel(){
   if(CREATING) return;
-  var n=$('chName').value.trim(); if(!n){toast('Give the group a name');try{$('chName').focus();}catch(e){}return;}
-  if(n.length>60){toast('Keep the name under 60 characters');return;}
+  var n=$('chName').value.replace(/\s+/g,' ').trim();
+  if(!n){ngNameErr('Give the group a name.');try{$('chName').focus();}catch(e){}return;}
+  if(n.length>60){ngNameErr('Group names can be up to 60 characters.');return;}
+  /* One id per attempt at THIS group, reused on every retry: if the first try reached the server
+     but the answer was lost, hub-api hands back the group it already made instead of a second. */
+  if(!NG_REQ) NG_REQ='ng'+Date.now().toString(36)+Math.random().toString(36).slice(2,8);
   var desc=(($('chDesc')||{}).value||'').trim();
   var priv=$('chPriv').checked;
   var mem=[].slice.call(document.querySelectorAll('#chMembers input:checked')).map(function(x){return x.value;});
   var photo=NEWGRP_PHOTO;
   CREATING=true; setCreating(true);
-  h({action:'hub_createchannel',name:n,private:priv,members:mem,code:CODE,by:NAME}).then(function(r){
-    if(!r||!r.ok){ CREATING=false; setCreating(false); toast((r&&r.error)||'Could not create'); return; }
+  h({action:'hub_createchannel',name:n,private:priv,members:mem,code:CODE,by:NAME,req_id:NG_REQ}).then(function(r){
+    if(!r||!r.ok){ CREATING=false; setCreating(false);
+      if(r&&r.field==='name') ngNameErr(r.error);
+      else toast((r&&r.error&&r.error!=='Network error')?r.error:'Could not reach the server. Tap Create group again \u2014 it will not make a second copy.');
+      return; }
+    NG_REQ='';
     /* The group exists from here on. Photo and description are SEPARATE calls to hub-groups, so
        they are reported separately too - an extra that fails must not read as a failed group,
        and a group that worked must not claim an extra it does not have. */
@@ -2209,7 +2233,7 @@ function createChannel(){
          conversation (openChan is what switches the phone from the list to the chat). */
       loadChannels(function(){ if(r.id && CHANNELS.some(function(c){return c.id===r.id;})) openChan(r.id); });
     });
-  }).catch(function(){ CREATING=false; setCreating(false); toast('Network error \u2014 the group was not created.'); });
+  }).catch(function(){ CREATING=false; setCreating(false); toast('Could not reach the server. Tap Create group again \u2014 it will not make a second copy.'); });
 }
 /* profile settings + roster */
 var ROSTER=[];
@@ -2223,7 +2247,10 @@ function hroster(){
   return fetch(ROSTERAPI,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)})
     .then(function(r){return r.json();}).catch(function(){return {ok:false};});
 }
-function loadRoster(){hroster().then(function(r){ROSTER=(r&&r.members)||[];try{renderRooms();}catch(e){}});}
+var ROSTER_READY=false;
+function loadRoster(){hroster().then(function(r){ROSTER=(r&&r.members)||[];ROSTER_READY=true;try{renderRooms();}catch(e){}
+  /* The New group form may already be open, showing "Loading"; fill it in, keeping any picks. */
+  try{ if($('chOv').classList.contains('on')) fillMembers(); }catch(e){}});}
 function openProfileSettings(){$('psAv').innerHTML=avatarInner(CODE,NAME,'');$('psName').value=NAME;var open=function(){h({action:'hub_profile',code:CODE}).then(function(r){var pf=(r&&r.profile)||{};$('psTitle').value=pf.title||'';$('psEmail').value=pf.email||'';$('psPhone').value=pf.phone||'';$('psCal').value=pf.cal_link||'';var sel=$('psDirect');sel.innerHTML='<option value="">\u2014 Select your direct upline \u2014</option>'+ROSTER.filter(function(m){return m.code!==CODE;}).map(function(m){return '<option value="'+m.code+'"'+(pf.direct_to===m.code?' selected':'')+'>'+esc(m.name)+' ('+m.code+')</option>';}).join('');});$('psOv').classList.add('on');};if(!ROSTER.length){hroster().then(function(r){ROSTER=(r&&r.members)||[];open();});}else open();}
 function saveProfile(){var sel=$('psDirect');var dc=sel.value;var dn=dc?sel.options[sel.selectedIndex].text.replace(/\s*\([^)]*\)\s*$/,'').trim():'';h({action:'hub_setprofile',code:CODE,title:$('psTitle').value.trim(),email:$('psEmail').value.trim(),phone:$('psPhone').value.trim(),cal_link:$('psCal').value.trim(),direct_to:dc,direct_to_name:dn}).then(function(r){if(r&&r.ok){$('psOv').classList.remove('on');toast('Profile saved \u2713');loadRoster();}else toast((r&&r.error)||'Could not save');});}
 function deleteChannel(){if(CHAN.indexOf('c_')!==0)return;if(!confirm('Delete this channel for everyone? This cannot be undone.'))return;h({action:'hub_deletechannel',id:CHAN,code:CODE,token:MODTOKEN||''}).then(function(r){if(r&&r.ok){toast('Channel deleted');CHAN='main';loadChannels();renderHead();loadMsgs(true);}else toast((r&&r.error)||'Could not delete');});}
@@ -2666,6 +2693,10 @@ body.phone .msg.cont .mhead{ display:none; }
 .memrow.hid{ display:none; }
 /* Member rows are <label>s inside .fg, so they were picking up the field-label look (tiny,
    grey, uppercase) and stacking the checkbox on its own line. A row is a person, not a caption. */
+.ngerr{display:none;color:#e5534b;font-size:13px;margin-top:6px}
+#chName.bad{border-color:#e5534b}
+.memav{flex:0 0 auto;width:34px;height:34px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:#16181b;border:1px solid rgba(211,170,69,.55);color:#e7c463;font-size:12px;font-weight:600;overflow:hidden}
+.memnm{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis}
 .fg .memrow{ display:flex; align-items:center; gap:10px; margin:0; padding:10px 8px; min-height:44px; box-sizing:border-box;
   font-size:14.5px; font-weight:500; text-transform:none; letter-spacing:0; color:var(--ink); }
 .fg .memrow input{ width:20px; height:20px; flex:0 0 auto; margin:0; accent-color:var(--cvgold,#e6c25a); }

@@ -196,13 +196,13 @@ html, body{ overflow-x: hidden; }
   <div class="fg"><label>How did this sale come to you? *</label><select id="f_source"><option value="">Select source</option><option>Warm Market</option><option>Referral</option><option>Lead — Purchased</option><option>Lead — Free</option><option>Social Media</option><option>Client of a Client</option><option>Cross-sell</option><option>Other</option></select></div>
   <label class="chk"><input type="checkbox" id="f_writingoff"> Writing agent not on The Standard</label>
   <label class="chk" id="splitToggle"><input type="checkbox" id="f_splitflag" onchange="if(this.checked)loadAgentRoster();document.getElementById('splitWrap').style.display=this.checked?'block':'none';calcComm()"> Split this sale with another agent</label>
-  <div id="splitWrap" style="display:none"><div class="fg" style="margin-top:8px"><label>Split agent (name or code)</label><input id="f_split" placeholder="Start typing a name or GFI code" list="tsfgAgents" autocomplete="off" oninput="updSplitShare();splitLookup()" onchange="splitLookup(true)" onblur="splitLookup(true)"><datalist id="tsfgAgents"></datalist><input type="hidden" id="f_split_code"><div id="splitMatch" class="splitmatch"></div></div><div class="frow" style="margin-top:8px"><div class="fg"><label>Your share of this sale (%)</label><input id="f_splitpct" type="number" min="0" max="100" value="50" oninput="updSplitShare();calcComm()"></div><div class="fg"><label>Partner's contract % (optional)</label><input id="f_partner_contract" type="number" inputmode="decimal" placeholder="defaults to your rate" oninput="calcComm()"><div class="hint">Their comp rate — used for their side of the split</div></div></div><div id="splitShareHint" style="font-size:12px;color:var(--muted,#6e6e73);margin-top:7px;line-height:1.45"></div></div>
+  <div id="splitWrap" style="display:none"><div class="fg" style="margin-top:8px"><label>Split agent (name or code)</label><input id="f_split" placeholder="Start typing a name or GFI code" list="tsfgAgents" autocomplete="off" oninput="updSplitShare();splitLookup()" onchange="splitLookup(true)" onblur="splitLookup(true)"><datalist id="tsfgAgents"></datalist><input type="hidden" id="f_split_code"><div id="splitMatch" class="splitmatch"></div></div><div class="frow" style="margin-top:8px"><div class="fg"><label>Writing agent's share of this sale (%)</label><input id="f_splitpct" type="number" min="0" max="100" value="50" oninput="updSplitShare();calcComm()"></div><div class="fg"><label>Partner's contract % (optional)</label><input id="f_partner_contract" type="number" inputmode="decimal" placeholder="their own contract rate" oninput="calcComm()"><div class="hint">Their comp rate — used for their side of the split</div></div></div><div id="splitShareHint" style="font-size:12px;color:var(--muted,#6e6e73);margin-top:7px;line-height:1.45"></div></div>
   <div class="sec-l">Policy Details</div>
   <div class="frow"><div class="fg"><label>Carrier *</label><input id="f_carrier" placeholder="Type or select a carrier" list="carriers"><datalist id="carriers"><option>American National</option><option>American Equity</option><option>Americo</option><option>Ethos</option><option>Foresters</option><option>Mutual of Omaha</option><option>National Life Group</option><option>North American</option><option>F&G</option><option>Corebridge</option></datalist></div><div class="fg"><label>Product *</label><select id="f_product" onchange="calcAnnuityPremium(true);calcComm()"><option value="">Select product</option><option>Term Life</option><option>IUL</option><option>Whole Life</option><option>Final Expense</option><option>GUL</option><option>Annuity — FIA</option><option>Annuity — MYGA</option><option>Other</option></select></div></div>
   <div class="frow"><div class="fg"><label>State *</label><input id="f_state" maxlength="2" placeholder="CA" style="text-transform:uppercase"></div><div class="fg"><label>Policy # *</label><input id="f_polnum" placeholder="Policy number"></div><div class="fg"><label>Carrier code</label><input id="f_ccode" placeholder="Optional"></div></div>
   <div class="sec-l">Numbers</div>
-  <div class="frow"><div class="fg"><label>Coverage amount *</label><input id="f_cov" type="number" inputmode="decimal" placeholder="$" oninput="calcAnnuityPremium();calcComm()"><div class="hint">For annuities, enter the total annuity amount</div></div><div class="fg"><label>Target premium *</label><input id="f_prem" type="number" inputmode="decimal" placeholder="$" oninput="this.dataset.touched=1;calcComm()"><div class="hint" id="annNote" style="display:none;color:var(--gold,#c99a2e);font-weight:700"></div></div></div>
-  <div class="frow"><div class="fg"><label>Monthly contribution *</label><input id="f_monthly" type="number" inputmode="decimal" min="0" placeholder="$ (enter 0 if none)"><div class="hint">Required · enter 0 if there is none</div></div><div class="fg"><label>Lump sum contribution *</label><input id="f_lump" type="number" inputmode="decimal" min="0" placeholder="$ (enter 0 if none)"><div class="hint">Required · enter 0 if there is none</div></div></div>
+  <div class="frow"><div class="fg"><label>Coverage amount *</label><input id="f_cov" type="number" inputmode="decimal" placeholder="$" oninput="calcAnnuityPremium();calcComm()"><div class="hint">For annuities, enter the total annuity amount</div></div><div class="fg"><label>Annual premium *</label><input id="f_prem" type="number" inputmode="decimal" placeholder="$" oninput="this.dataset.touched=1;calcComm()"><div class="hint" id="annNote" style="display:none;color:var(--gold,#c99a2e);font-weight:700"></div></div></div>
+  <div class="frow"><div class="fg"><label>Monthly contribution</label><input id="f_monthly" type="number" inputmode="decimal" min="0" placeholder="$"><div class="hint">Optional · leave blank if there is none</div></div><div class="fg"><label>Lump sum amount</label><input id="f_lump" type="number" inputmode="decimal" min="0" placeholder="$"><div class="hint">Optional · leave blank if there is none</div></div></div>
   <div class="frow"><div class="fg"><label>Your contract % *</label><input id="f_contract" type="number" inputmode="decimal" placeholder="80" oninput="calcComm()"><div class="hint">Your comp rate at the carrier · all business is 100% advance</div></div></div>
   <div class="commbox"><div class="cl" id="commLbl">Expected Commission</div><div class="cv" id="commOut">$0</div><div id="commPartner" style="display:none;font-size:12.5px;font-weight:700;color:#1a9c52;margin-top:6px"></div></div>
   <div class="sec-l">Dates</div>
@@ -476,7 +476,8 @@ function renderKpis(){
   /* Submitted-dated set drives the submitted/pipeline cards; in-force-dated set
      drives In Force and Paid Commission. They are deliberately different windows. */
   var subR=POLICIES.filter(inSubWindow);
-  var openR=subR.filter(function(r){return r.status!=='closed';});
+  /* A draft (status incomplete) was never submitted: it shows on the Stuck card, not in AP Submitted. */
+  var openR=subR.filter(function(r){return r.status!=='closed'&&r.status!=='incomplete';});
   var byB=function(b){return subR.filter(function(r){return bucket(r.status)===b;});};
   var forceR=POLICIES.filter(inForceWindow);
   var SUBD='Counted by submitted date', FORD='Counted by in-force date (paid out)';
@@ -575,16 +576,17 @@ function findP(id){return POLICIES.filter(function(p){return p.id===id;})[0];}
 function myShare(p){return p.split_flag?(p.my_share_pct!=null?Number(p.my_share_pct):(p.split_pct!=null?Number(p.split_pct):50)):100;}
 function myAp(p){return (p.my_ap!=null)?Number(p.my_ap):Math.round((Number(p.annual_premium)||0)*(myShare(p)/100));}
 function myComm(p){if(p.my_commission!=null)return Number(p.my_commission);if(p.expected_commission==null)return null;return Math.round(Number(p.expected_commission)*(myShare(p)/100));}
+function otherPct(mine){ return Math.round((100-mine)*100)/100; }
 function splitLabel(p){
   var mine=myShare(p);
-  if(p.split_role==='received')return ' · 🤝 split from '+esc(p.agent_name||'agent')+' · you '+mine+'% / them '+(100-mine)+'%';
-  if(p.split_flag)return ' · 🤝 split w/ '+esc(p.split_agent||'agent')+' · you '+mine+'% / them '+(100-mine)+'%';
+  if(p.split_role==='received')return ' · 🤝 split from '+esc(p.agent_name||'agent')+' · you '+mine+'% / them '+otherPct(mine)+'%';
+  if(p.split_flag)return ' · 🤝 split w/ '+esc(p.split_agent||'agent')+' · you '+mine+'% / them '+otherPct(mine)+'%';
   return '';
 }
 function splitCol(p){
   var mine=myShare(p);
-  if(p.split_role==='received')return '<span class="stpill" style="background:#e8f0ff;color:#1e40af" title="Written by '+esc(p.agent_name||'')+' — you receive '+mine+'%">↩ '+esc(p.agent_name||'—')+' '+(100-mine)+'% / you '+mine+'%</span>';
-  if(p.split_flag)return '<span class="stpill" style="background:#eef7ee;color:#1a7f47" title="Split with '+esc(p.split_agent||'')+' — you keep '+mine+'%">you '+mine+'% / '+esc(p.split_agent||'—')+' '+(100-mine)+'%</span>';
+  if(p.split_role==='received')return '<span class="stpill" style="background:#e8f0ff;color:#1e40af" title="Written by '+esc(p.agent_name||'')+' — you receive '+mine+'%">↩ '+esc(p.agent_name||'—')+' '+otherPct(mine)+'% / you '+mine+'%</span>';
+  if(p.split_flag)return '<span class="stpill" style="background:#eef7ee;color:#1a7f47" title="Split with '+esc(p.split_agent||'')+' — you keep '+mine+'%">you '+mine+'% / '+esc(p.split_agent||'—')+' '+otherPct(mine)+'%</span>';
   return '<span class="muted">—</span>';
 }
 function updSplitShare(){var el=$('splitShareHint');if(!el)return;var pct=Math.max(0,Math.min(100,Number(($('f_splitpct')||{}).value)||0));var other=(($('f_split')||{}).value||'').trim()||'your partner';el.innerHTML='You keep <b>'+pct+'%</b> · '+esc(other)+' gets <b>'+(100-pct)+'%</b>. This stays <b>one policy</b> — it shows once for each of you, never doubled.';}
@@ -649,7 +651,7 @@ function fillForm(p){
   STATUS=p.status||'pending';renderStatusGrid();
   var set=function(i,v){$(i).value=(v==null?'':v);};
   set('f_client',p.client_name);set('f_phone',p.phone);set('f_email',p.email);set('f_gender',p.gender);set('f_dob',(p.dob||'').slice(0,10));
-  set('f_source',p.source);$('f_writingoff').checked=!!p.writing_off;$('f_splitflag').checked=!!p.split_flag;$('splitWrap').style.display=p.split_flag?'block':'none';set('f_split',p.split_agent);set('f_splitpct',p.split_pct!=null?p.split_pct:50);set('f_partner_contract',p.partner_contract_pct!=null?p.partner_contract_pct:'');updSplitShare();
+  set('f_source',p.source);$('f_writingoff').checked=!!p.writing_off;$('f_splitflag').checked=!!p.split_flag;$('splitWrap').style.display=p.split_flag?'block':'none';set('f_split',p.split_agent);$('f_split_code').value=p.split_agent_code||'';set('f_splitpct',p.split_pct!=null?p.split_pct:50);set('f_partner_contract',p.partner_contract_pct!=null?p.partner_contract_pct:'');updSplitShare();
   set('f_carrier',p.carrier);set('f_product',p.product);set('f_state',p.state);set('f_polnum',p.policy_number);set('f_ccode',p.carrier_code);
   set('f_cov',p.coverage);set('f_prem',p.annual_premium);set('f_monthly',p.monthly_contribution);set('f_lump',p.lump_sum_contribution);set('f_contract',p.contract_pct);
   set('f_written',(p.date_written||'').slice(0,10));set('f_submitted',(p.submitted_date||'').slice(0,10));set('f_draft',(p.first_draft_date||'').slice(0,10));set('f_notes',p.notes);
@@ -663,7 +665,7 @@ function clearForm(){STATUS='pending';['f_client','f_phone','f_email','f_gender'
 function openNew(){EDIT=null;$('mTitle').textContent='New Sale';$('mSub').textContent='Log a fresh app to track through to commission.';$('mDel').classList.add('hide');$('saveBtn').textContent='Save Sale';clearForm();$('ov').classList.add('on');}
 function openEdit(p){if(!p)return;EDIT=p;var own=canEdit(p);$('mTitle').textContent=own?'Edit Sale':'View Sale';
   var sub=(p.agent_name||'')+(OPS?' · Operations edit':'');
-  if(p.split_flag){var mine=myShare(p);sub='🤝 Split · '+esc(p.agent_name||'writer')+' '+mine+'% + '+esc(p.split_agent||'partner')+' '+(100-mine)+'%'+(p.split_role==='received'?' · shared with you':'');}
+  if(p.split_flag){var mine=myShare(p);sub='🤝 Split · '+esc(p.agent_name||'writer')+' '+mine+'% + '+esc(p.split_agent||'partner')+' '+otherPct(mine)+'%'+(p.split_role==='received'?' · shared with you':'');}
   $('mSub').innerHTML=sub;$('mDel').classList.toggle('hide',!own);$('saveBtn').textContent=own?'Save Changes':'Close';fillForm(p);$('ov').classList.add('on');}
 function closeModal(){$('ov').classList.remove('on');}
 function collect(){var v=function(i){return $(i).value.trim();};return {client_name:v('f_client'),phone:v('f_phone'),email:v('f_email'),gender:v('f_gender'),dob:v('f_dob'),source:v('f_source'),status:STATUS,business_type:BIZ,writing_off:$('f_writingoff').checked,split_flag:$('f_splitflag').checked,split_agent:v('f_split'),split_agent_code:v('f_split_code'),split_pct:v('f_splitpct'),partner_contract_pct:v('f_partner_contract'),carrier:v('f_carrier'),product:v('f_product'),state:v('f_state'),policy_number:v('f_polnum'),carrier_code:v('f_ccode'),coverage:v('f_cov'),annual_premium:v('f_prem'),monthly_contribution:v('f_monthly'),lump_sum_contribution:v('f_lump'),contract_pct:v('f_contract'),advance_pct:'100',date_written:v('f_written'),submitted_date:v('f_submitted'),first_draft_date:v('f_draft'),notes:v('f_notes'),
@@ -673,11 +675,11 @@ function collect(){var v=function(i){return $(i).value.trim();};return {client_n
 function saveSale(){
   if(EDIT&&!canEdit(EDIT)){closeModal();return;}
   /* required intake fields — everything except carrier code, gender & DOB */
-  var need=[['f_client','a client name'],['f_phone','a phone number'],['f_email','an email'],['f_source','how the sale came to you'],['f_carrier','a carrier'],['f_product','a product'],['f_state','a state'],['f_polnum','a policy number'],['f_cov','a coverage amount'],['f_prem','a target premium'],['f_contract','your contract %'],['f_written','the date written'],['f_submitted','the submitted date']];
+  var need=[['f_client','a client name'],['f_phone','a phone number'],['f_email','an email'],['f_source','how the sale came to you'],['f_carrier','a carrier'],['f_product','a product'],['f_state','a state'],['f_polnum','a policy number'],['f_cov','a coverage amount'],['f_prem','an annual premium'],['f_contract','your contract %'],['f_written','the date written'],['f_submitted','the submitted date']];
   for(var i=0;i<need.length;i++){var el=$(need[i][0]);if(!el||el.value.trim()===''){toast('Enter '+need[i][1]);if(el){try{el.scrollIntoView({block:'center'});}catch(e){}el.focus();}return;}}
   if($('f_email').value.indexOf('@')<1){toast('Enter a valid email');try{$('f_email').scrollIntoView({block:'center'});}catch(e){}$('f_email').focus();return;}
-  if($('f_monthly').value.trim()===''){toast('Enter a monthly contribution (enter 0 if none)');return;}
-  if($('f_lump').value.trim()===''){toast('Enter a lump sum contribution (enter 0 if none)');return;}
+  /* Monthly and lump sum are optional: blank means "none" and is stored as not provided,
+     which is different from a typed 0 (handoff 6A). */
   /* A policy cannot draft or pay before it was submitted. When that ordering is
      inverted it means the submitted date was recorded as the day it was typed in,
      which is what put months of back-entered business into the wrong month. Catch

@@ -396,7 +396,7 @@
                      placeholder="30" oninput="paintCredit()">
               <span class="pcts">%</span>
             </div>
-            <div class="err">Enter a share from 0 to 100.</div>
+            <div class="err">Enter a share from 0 to 100, with up to two decimals.</div>
           </div>
           <div id="creditBreak" class="credit-break"></div>
           <button type="button" class="credit-btn danger" onclick="splitOn(false)">Remove split</button>
@@ -758,7 +758,7 @@ function setWizChrome(){
   var t=document.querySelector('#wiz .wiz-top h3');
   if(t) t.textContent = EDIT_APP ? 'Edit application' : 'New application';
   var b=$('nextBtn');
-  if(b && STEP===3) b.textContent = EDIT_APP ? 'Save changes' : 'Submit application';
+  if(b && STEP===3) b.textContent = submitLabel();
   var d=$('draftBtn'); if(d) d.style.display = EDIT_APP ? 'none' : '';
   var row=$('delRow');
   if(row) row.style.display = (EDIT_APP && mayDeleteApp(EDIT_APP)) ? '' : 'none';
@@ -880,7 +880,7 @@ function resetWiz(){
   ['f_first','f_last','f_state','f_email','f_phone','f_carrier','f_prem','f_cov','f_polnum','f_source','f_target','f_lump'].forEach(function(i){ var e=$(i); if(e) e.value=''; });
   splitOn(false);
   $('f_product').value=''; $('f_freq').value='12';
-  $('f_date').value = new Date().toISOString().slice(0,10);
+  $('f_date').value = easternToday();
   $('f_contract').value = (MYRATE!=null?MYRATE:'');
   document.querySelectorAll('.tsfg-field.bad').forEach(function(e){ e.classList.remove('bad'); });
   $('wizErr').style.display='none';
@@ -925,7 +925,7 @@ function goStep(n){
   /* goStep runs AFTER setWizChrome on the edit path, so this used to relabel an edit's
      final step "Submit application" — telling someone they were filing a new policy when
      they were saving changes to an existing one. */
-  $('nextBtn').textContent   = (n===3 ? (EDIT_APP ? 'Save changes' : 'Submit application') : 'Continue');
+  $('nextBtn').textContent   = (n===3 ? submitLabel() : 'Continue');
   $('wizErr').style.display='none';
   if(n===3) fillReview();
   window.scrollTo(0,0);
@@ -946,17 +946,15 @@ function validate(step){
     ok = bad('f_carrier', !$('f_carrier').value.trim()) && ok;
     ok = bad('f_product', !$('f_product').value)        && ok;
     ok = bad('f_date',    !$('f_date').value)           && ok;
-    ok = bad('f_prem',    !(Number($('f_prem').value)>0)) && ok;
+    ok = bad('f_prem',    !(Number($('f_prem').value)>0) || moneyBad('f_prem')) && ok;
     ok = bad('f_cov',     !(Number($('f_cov').value)>0))  && ok;
     /* Target premium is OPTIONAL, so blank passes. A value that is present must be a real
        number of 0 or more -- negative and malformed are rejected, and no arbitrary maximum is
        invented, which section 6B explicitly forbids. */
-    ok = bad('f_target',  (function(){ var r=String($('f_target').value||'').trim();
-                                       return !!r && !(isFinite(Number(r)) && Number(r)>=0); })()) && ok;
+    ok = bad('f_target',  moneyBad('f_target')) && ok;
     ok = bad('f_polnum',  !$('f_polnum').value.trim())  && ok;
     /* Lump sum: optional, same rule as the target. Present means a real number >= 0. */
-    ok = bad('f_lump',    (function(){ var r=String($('f_lump').value||'').trim();
-                                       return !!r && !(isFinite(Number(r)) && Number(r)>=0); })()) && ok;
+    ok = bad('f_lump',    moneyBad('f_lump')) && ok;
     /* A split must be COMPLETE or absent — 6C: "submission must reject an unresolved
        recipient/percentage pair". A zero share is treated as no split rather than an error,
        which the brief allows, but it must not name a recipient who is credited nothing. */
@@ -1084,6 +1082,16 @@ function payload(status){
 /* Blank -> null, so an untouched field is "not provided" rather than zero. A typed 0 is kept
    as 0, which is a different statement. Anything unparseable is null too; validateTarget()
    below is what tells the user, rather than silently sending a wrong number. */
+/* A money field that holds something is valid only as a plain amount with at most two decimals:
+   "12.345", "1e5" and "-3" are refused instead of being quietly rounded or read as blank. A
+   number input hands back "" for typed garbage, so validity.badInput is the only way to tell
+   that apart from a field the user left empty. Blank is not an error: these are optional. */
+function moneyBad(id){
+  var el=$(id); if(!el) return false;
+  if(el.validity && el.validity.badInput) return true;
+  var raw=String(el.value||'').trim();
+  return !!raw && !/^\d+(\.\d{1,2})?$/.test(raw);
+}
 function targetPremium(){
   var el=$('f_target'); if(!el) return null;
   var raw=String(el.value||'').trim();
@@ -1196,6 +1204,7 @@ function splitPct(){
   var raw=String(el.value||'').trim();
   if(!raw) return null;
   var n=Number(raw);
+  if(!/^\d+(\.\d{1,2})?$/.test(raw)) return null;
   return (isFinite(n) && n>=0 && n<=100) ? n : null;
 }
 /* The writer's remainder, which is what actually gets stored. Fixed to 2dp and recombined so
@@ -1249,6 +1258,11 @@ function paintCredit(){
     br.innerHTML='Enter their share to see the split.';
     return;
   }
+  if(o===0){
+    br.className='credit-break';
+    br.innerHTML='A 0% share is no split: '+esc(isMe ? 'you keep' : meLabel+' keeps')+' <b>100%</b> and '+esc(other)+' is not credited.';
+    return;
+  }
   var mine=primaryPct();
   var total=Math.round((mine+o)*100)/100;
   br.className='credit-break' + (total===100 ? '' : ' bad');
@@ -1257,6 +1271,9 @@ function paintCredit(){
                  '<span class="tot">Total application credit <b>'+total+'%</b>' +
                  (total===100 ? '' : ' \u2014 this must be exactly 100%.') + '</span>';
 }
+/* A reopened DRAFT has never been submitted, so finishing it is a submission, not an edit. */
+function isDraftEdit(){ return !!(EDIT_APP && String(EDIT_APP.status||'')==='incomplete'); }
+function submitLabel(){ return (EDIT_APP && !isDraftEdit()) ? 'Save changes' : 'Submit application'; }
 function send(body){
   return fetch(NB,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
     .then(function(r){ return r.json(); })
@@ -1286,7 +1303,7 @@ function submitApp(){
        later is carried through automatically instead of being quietly dropped. */
     body = {};
     Object.keys(EDIT_APP).forEach(function(k){ body[k] = EDIT_APP[k]; });
-    var form = payload(EDIT_APP.status || 'pending');
+    var form = payload(isDraftEdit() ? 'pending' : (EDIT_APP.status || 'pending'));
     Object.keys(form).forEach(function(k){ body[k] = form[k]; });
     body.action = 'newbiz_update';
     body.code = CODE;
@@ -1296,14 +1313,18 @@ function submitApp(){
        prefilled from the SUBMITTED date, and payload() sends it as date_written too - so an
        edit overwrote the real written date with the submitted one. 74 of 228 policies have
        those two dates genuinely different. Keep whatever is on the record. */
-    delete body.submitted_date;
+    /* ...but a date the user deliberately changed IS saved. Only an untouched field is dropped. */
+    if($('f_date').value === String(EDIT_APP.submitted_date||'').slice(0,10)) delete body.submitted_date;
+    /* The stored partner rate belongs to the stored partner. Choosing someone else must not carry
+       it over; newbiz-api fills the new partner's own rate. */
+    if(String(body.split_agent||'').toUpperCase() !== String(EDIT_APP.split_agent_code||'').toUpperCase()) delete body.partner_contract_pct;
     body.date_written = EDIT_APP.date_written ? String(EDIT_APP.date_written).slice(0,10) : '';
   } else {
     body = payload('pending');
   }
 
   send(body).then(function(r){
-    btn.disabled=false; btn.textContent = EDIT_APP ? 'Save changes' : 'Submit application';
+    btn.disabled=false; btn.textContent = submitLabel();
     if(!r || !r.ok){ $('wizErrTxt').textContent=(r&&r.error)||((EDIT_APP?'Could not save those changes.':'Could not submit that application.')); $('wizErr').style.display='flex'; return; }
     if(EDIT_APP){
       /* Back to the list with its filter, search and position intact - the totals above it

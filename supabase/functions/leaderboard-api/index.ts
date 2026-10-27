@@ -198,7 +198,8 @@ async function buildContext(period: string, from?: string, to?: string) {
   // SUBMITTED PREMIUM — dated by submitted_date, i.e. when the business was written.
   // Under 'all' the date filter is dropped entirely rather than widened, so the 8 policies
   // carrying no submitted_date ($18,924 of premium) are counted instead of vanishing.
-  let polQ = `policies?select=agent_code,agent_name,annual_premium,split_flag,split_pct,split_agent_code,status&limit=20000`;
+  /* A draft (status incomplete) has not been submitted, so it is not submitted premium. */
+  let polQ = `policies?select=agent_code,agent_name,annual_premium,split_flag,split_pct,split_agent_code,status&or=(status.is.null,status.neq.incomplete)&limit=20000`;
   if (!noDateTest) {
     polQ += `&submitted_date=gte.${start}`;
     if (end !== FAR_FUTURE) polQ += `&submitted_date=lte.${end}`;

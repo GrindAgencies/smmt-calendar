@@ -388,7 +388,7 @@ var OPS=null,ROWS=[],TAB="licensing",CUR=null,SORT={licensing:{k:'name',dir:1},n
 var LICTYPES=['Life','Health','Life & Health','Life & Annuity','Property & Casualty','Series 6/63','Other'];
 var LICSTATUS=['Not Started','Pre-Licensing','Exam Passed','Licensed'];
 function setLicStatuses(a){if(!a||!a.length)return;LICSTATUS.length=0;a.forEach(function(s){LICSTATUS.push(s);});}
-var CONTRACT_LEVELS=['Associate','Senior Associate','Marketing Director','Executive Marketing Director','National Vice President','Senior Executive Vice President'];
+var CONTRACT_LEVELS=['Associate','Senior Associate','Marketing Director','Executive Marketing Director','National Vice President'];  /* the contract_rates catalog; a level outside it has no rate */
 function setContract(code,val){api(auth({action:'agent_update',code:code,contract_level:val})).then(function(r){if(!r||!r.ok){toast((r&&r.error)||'Save failed');return;}var row=ROWS.filter(function(x){return x.code===code;})[0];if(row)row.contract_level=val;if(CUR&&CUR.agent)CUR.agent.contract_level=val;toast('Contract level → '+val+' ✓');renderTab();});}
 var STATES=["Alabama","Alaska","Arizona","Arkansas","California","Colorado","Connecticut","Delaware","Florida","Georgia","Hawaii","Idaho","Illinois","Indiana","Iowa","Kansas","Kentucky","Louisiana","Maine","Maryland","Massachusetts","Michigan","Minnesota","Mississippi","Missouri","Montana","Nebraska","Nevada","New Hampshire","New Jersey","New Mexico","New York","North Carolina","North Dakota","Ohio","Oklahoma","Oregon","Pennsylvania","Rhode Island","South Carolina","South Dakota","Tennessee","Texas","Utah","Vermont","Virginia","Washington","West Virginia","Wisconsin","Wyoming"];
 function $(id){return document.getElementById(id);}
