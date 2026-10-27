@@ -1,3 +1,12 @@
+// hub-api v31 (2026-10-26): WHICH OPERATIONS SEAT OVERSEES WHICH PRIVATE ROOM. Owner decision:
+//   private groups and DMs are overseen by the master Operations seats (0000 Anais, C1991 the
+//   builder) everywhere, and by a per-baseshop Operations seat ONLY for its own shop(s). Until now
+//   every Ops token -- including TITANS's or SCAPED's seat -- opened every private group and every
+//   DM in the company. A private group belongs to its creator's (byCode) baseshop; a DM to the
+//   baseshops of its two people (either one in the seat's shops is enough). Open rooms,
+//   announcements and #operations are unchanged, and machine/legacy tokens keep full reach.
+//   One rule, opsOversight(), now gates hub_access/hub_channels, hub_list, hub_search, hub_send,
+//   hub_edit, hub_delete, hub_react and hub_deletechannel for an Ops caller.
 // hub-api v30 (2026-10-26): AUDIT FOLLOW-UPS.
 //   · canSeeCustom no longer lets a display-name match open a private group: two people can
 //     share a name, and `by` was once whatever the request typed. byCode (checked in prod: every
@@ -70,7 +79,59 @@ const clean = (s: unknown) => (s ?? "").toString().trim().slice(0, 4000);
 const low = (s: unknown) => (s ?? "").toString().trim().toLowerCase();
 const money = (v: unknown) => "$" + (Number(v) || 0).toLocaleString("en-US");
 async function rpc(fn: string, args: Record<string, unknown>) { try { const r = await fetch(`${SUPA}/rest/v1/rpc/${fn}`, { method: "POST", headers: DBH, body: JSON.stringify(args) }); return await r.json(); } catch (_) { return null; } }
-async function opsAuthorized(token: unknown) { const t = String(token ?? ""); if (!t) return false; const r = await rpc("ops_authorize", { p_token: t }); return !!(r && r.ok); }
+/* v31: what an Operations token reaches. `full` = the master seats (0000, C1991) and every
+   non-session token (cron/machine, legacy) - exactly what every Ops token used to get. A
+   per-baseshop seat gets its shops, widened through baseshop groups by ops_scope the same way
+   pin's lockAuthority does. ops_scope failing leaves `bases` empty: fail closed, not open. */
+type OpsReach = { ok: boolean; full: boolean; bases: string[]; seat: string };
+async function opsReach(token: unknown): Promise<OpsReach> {
+  const t = String(token ?? ""); const none = { ok: false, full: false, bases: [], seat: "" };
+  if (!t) return none;
+  const r = await rpc("ops_authorize", { p_token: t });
+  if (!(r && r.ok)) return none;
+  const seat = norm(r.code);
+  if (r.master === true || r.via !== "session") return { ok: true, full: true, bases: [], seat };
+  const sc = await rpc("ops_scope", { p_token: t });
+  if (sc && sc.seat && !sc.scoped) return { ok: true, full: true, bases: [], seat };
+  const bases: string[] = Array.isArray(sc?.bases) ? sc.bases.map((b: unknown) => norm(b)).filter(Boolean) : [];
+  return { ok: true, full: false, bases, seat };
+}
+/* v31: may this Operations caller oversee this room? Only private groups and DMs are limited;
+   every other room answers true, as before. Registry and roster are read lazily and once per
+   request, so a list (search, channels) costs two queries, not one per row. */
+function opsOversight(reach: OpsReach) {
+  let custom: Record<string, unknown>[] | null = null;
+  let shops: Map<string, string> | null = null;
+  const shopOf = async (code: unknown): Promise<string> => {
+    if (!shops) {
+      shops = new Map();
+      try {
+        const ex = await fetch(`${SUPA}/rest/v1/tracker_agents?select=code,baseshop&limit=10000`, { headers: DBH });
+        for (const a of ((await ex.json()) || []) as Record<string, unknown>[]) shops.set(norm(a.code), norm(a.baseshop));
+      } catch (_) { /* empty roster -> nothing private is in reach */ }
+    }
+    return shops.get(norm(code)) || "";
+  };
+  return async (channel: string): Promise<boolean> => {
+    if (!reach.ok) return false;
+    if (reach.full) return true;
+    if (channel.indexOf("dm:") === 0) {
+      for (const p of channel.slice(3).split("|")) { const b = await shopOf(p); if (b && reach.bases.indexOf(b) >= 0) return true; }
+      return false;
+    }
+    if (channel.indexOf("c_") === 0) {
+      if (!custom) custom = await customChannels();
+      const c = custom.find((x) => String(x.id) === channel);
+      if (!c || !c.private) return true;
+      // A group the seat itself created is the seat's, whatever shop that maps to.
+      const by = norm(c.byCode);
+      if (by && (by === reach.seat || by === "OPS:" + reach.seat)) return true;
+      const b = by ? await shopOf(by) : "";
+      return !!b && reach.bases.indexOf(b) >= 0;
+    }
+    return true;
+  };
+}
 /* Proof of identity. A session token is proof; a typed code is not. */
 async function sessionCode(session: unknown): Promise<string> {
   const s = (session ?? "").toString().trim().slice(0, 120);
@@ -430,7 +491,10 @@ Deno.serve(async (req) => {
     let body: Record<string, unknown> = {};
     if (req.method === "POST") body = await req.json().catch(() => ({}));
     const action = (body.action as string) || url.searchParams.get("action") || "";
-    const isAdmin = await opsAuthorized(body.token);
+    const OPS = await opsReach(body.token);
+    const isAdmin = OPS.ok;
+    /* v31: isAdmin says "this is Operations"; opsMay says which private rooms it may oversee. */
+    const opsMay = opsOversight(OPS);
 
     /* Resolve the caller ONCE, then overwrite body.code with the verified answer. Every check
        further down was already written correctly against `code`; the only thing wrong with them
@@ -463,7 +527,9 @@ Deno.serve(async (req) => {
          little else, and hub-files / hub-groups (which ask this endpoint) refused it attachments
          and group settings everywhere else. Same answer hub-ops already gives. */
       if (isAdmin) {
-        const channels = genChannels(bases).concat(await customChannels());
+        /* v31: a baseshop seat's list carries only the private groups of its own shops. */
+        const channels: Record<string, unknown>[] = genChannels(bases);
+        for (const c of await customChannels()) if (await opsMay(String(c.id))) channels.push(c);
         const baseshops = (bases.bases || []).filter((b) => low(b.name) !== low(bases.root)).map((b) => ({ id: low(b.name), name: String(b.name), emd: b.owner_name || "" }));
         const access = { role: "ops", licensed: true, mod: true, name: "Operations", baseshop: bases.root, scope: "super", owns_base: "", accessibleBases: (bases.bases || []).map((b) => String(b.name)) };
         return json({ ok: true, access, channels, baseshops, ops: true });
@@ -484,6 +550,7 @@ Deno.serve(async (req) => {
     if (action === "hub_send") {
       const code = norm(body.code); const channel = clean(body.channel) || "main";
       if (!code) return json({ ok: false, error: "missing" });
+      if (isAdmin && !(await opsMay(channel))) return json({ ok: false, error: "That conversation belongs to another baseshop." }, 403);
       if (!isAdmin && channel.indexOf("dm:") !== 0) {
         const acc = await accessOf(code);
         if (channel.indexOf("c_") === 0) {
@@ -534,6 +601,8 @@ Deno.serve(async (req) => {
       // Operations seats reach the hub with an Operations token (teamhub's h() adds it in ops
       // mode), so that token is exactly the line between them and everybody else.
       if (channel === "operations" && !isAdmin) return json({ ok: true, messages: [] });
+      // v31: a baseshop Ops seat reads only its own shops' private groups and DMs.
+      if (isAdmin && !(await opsMay(channel))) return json({ ok: false, error: "That conversation belongs to another baseshop." }, 403);
       /* ...and knowing any OTHER channel id was still enough. A DM id is just the two codes
          sorted, both printed on the org chart, so anyone could rebuild a colleague's private
          conversation. Private custom channels had the same shape of gap: eligible() and
@@ -568,6 +637,7 @@ Deno.serve(async (req) => {
       /* v30: only in a room you can read. Same answer as a missing id, so this cannot be used to
          probe which message ids live in rooms you are not in. */
       if (!isAdmin && !(await mayRead(String(rows[0].channel || ""), code))) return json({ ok: false, error: "not found" });
+      if (isAdmin && !(await opsMay(String(rows[0].channel || "")))) return json({ ok: false, error: "not found" });
       const rx = (rows[0].reactions && typeof rows[0].reactions === "object") ? rows[0].reactions : {};
       const arr: string[] = Array.isArray(rx[emoji]) ? rx[emoji] : [];
       const i = arr.indexOf(code); if (i >= 0) arr.splice(i, 1); else arr.push(code);
@@ -579,6 +649,12 @@ Deno.serve(async (req) => {
     if (action === "hub_edit") {
       const id = Number(body.id); const code = norm(body.code);
       if (!id) return json({ ok: false, error: "no id" });
+      // v31: Operations edits anyone's message only in a room it oversees; same answer as no id.
+      if (isAdmin && !OPS.full) {
+        const ex = await fetch(`${SUPA}/rest/v1/hub_messages?id=eq.${id}&select=channel`, { headers: DBH });
+        const m0 = ((await ex.json()) || [])[0];
+        if (!m0 || !(await opsMay(String(m0.channel || "")))) return json({ ok: false, error: "not found" });
+      }
       let q = `${SUPA}/rest/v1/hub_messages?id=eq.${id}`;
       if (!isAdmin) q += `&author_code=eq.${encodeURIComponent(code)}`;
       const up = await fetch(q, { method: "PATCH", headers: { ...DBH, Prefer: "return=minimal" }, body: JSON.stringify({ body: clean(body.body), edited: true }) });
@@ -589,6 +665,12 @@ Deno.serve(async (req) => {
       const id = Number(body.id); const code = norm(body.code); const by = norm(body.by);
       if (!id) return json({ ok: false, error: "no id" });
       let modOk = isAdmin;
+      /* v31: a baseshop Ops seat removes messages only in rooms it oversees. */
+      if (isAdmin && !OPS.full) {
+        const ox = await fetch(`${SUPA}/rest/v1/hub_messages?id=eq.${id}&select=channel`, { headers: DBH });
+        const o0 = ((await ox.json()) || [])[0];
+        if (!o0 || !(await opsMay(String(o0.channel || "")))) return json({ ok: false, error: "That conversation belongs to another baseshop." }, 403);
+      }
       /* v27: moderation is per room. Read the message's room, then ask mayModerate(). */
       if (!modOk && by) {
         const mx = await fetch(`${SUPA}/rest/v1/hub_messages?id=eq.${id}&select=channel,author_code`, { headers: DBH });
@@ -747,10 +829,11 @@ Deno.serve(async (req) => {
       const list = await customChannels();
       const cobj = list.find((x) => x.id === id);
       if (!cobj) return json({ ok: false, error: "channel not found" });
-      let allowed = isAdmin || norm(cobj.byCode) === byCode;
+      // v31: Operations deletes a private group only if it oversees it (opsMay is true for open ones).
+      let allowed = (isAdmin && await opsMay(id)) || (!isAdmin && norm(cobj.byCode) === byCode);
       /* v27: a private group is deleted only by its creator or Operations. An open group also by
          the leaders who moderate the creator's own baseshop. */
-      if (!allowed && byCode && !cobj.private) { const acc = await accessOf(byCode); allowed = await mayModerate(byCode, acc, id, await loadBases(), list); }
+      if (!allowed && !isAdmin && byCode && !cobj.private) { const acc = await accessOf(byCode); allowed = await mayModerate(byCode, acc, id, await loadBases(), list); }
       if (!allowed) return json({ ok: false, error: cobj.private ? "Only the person who created this private group, or Operations, can delete it." : "Only the creator or a leader of this baseshop can delete this group." }, 403);
       /* v30: removed under the registry's row lock (hub_channel_remove), not by writing back a copy
          read above - a group created between that read and this write used to be erased with it.
@@ -789,6 +872,11 @@ Deno.serve(async (req) => {
           }
           return true;
         });
+      } else if (!OPS.full) {
+        // v31: a baseshop Ops seat searches only the private rooms it oversees.
+        const keep: Record<string, unknown>[] = [];
+        for (const m of hits) if (await opsMay(String(m.channel || ""))) keep.push(m);
+        hits = keep;
       }
       return json({ ok: true, messages: hits.slice(0, 40) });
     }

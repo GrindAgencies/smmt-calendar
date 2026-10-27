@@ -1,3 +1,9 @@
+// hub-files v4 (2026-10-26) — a baseshop Operations seat may use attachments in the DMs of its
+//   own shop(s). Owner decision: masters (0000, C1991) oversee every DM, a shop seat only DMs
+//   where either person is in its shops. v3 let masters through and refused every other seat in
+//   every DM (its "OPS:<seat>" code is never a participant), so a shop seat could read a DM in
+//   hub-api but not open its photos. Channels are unchanged: still decided by hub-api
+//   hub_channels with the forwarded token, which (hub-api v31) now scopes private groups too.
 // hub-files v3 (2026-10-26) — Operations master may use attachments in any channel or DM.
 // hub-files v2 (2026-10-20) — photos, videos and documents in a conversation.
 //
@@ -61,16 +67,32 @@ async function rpc(fn: string, args: Record<string, unknown>) { try { const r = 
 
 /* v3 (2026-10-26): an Operations caller is "OPS:<seat>" from its token, never a code it typed --
    v2 let Ops name any agent and pass the DM-participant test as them. */
-async function whoIs(body: any): Promise<{ code: string; master: boolean }> {
+/* v4: `master` also covers non-session (machine/legacy) tokens and an unscoped seat, and a
+   baseshop seat carries its shops from ops_scope (as pin lockAuthority) for the DM rule below. */
+async function whoIs(body: any): Promise<{ code: string; master: boolean; ops: boolean; bases: string[] }> {
   const t = String(body.token ?? "").trim();
   if (t) {
     const r = await rpc("ops_authorize", { p_token: t });
-    if (r && r.ok) return { code: "OPS:" + norm(r.code), master: r.master === true };
+    if (r && r.ok) {
+      const code = "OPS:" + norm(r.code);
+      if (r.master === true || r.via !== "session") return { code, master: true, ops: true, bases: [] };
+      const sc = await rpc("ops_scope", { p_token: t });
+      if (sc && sc.seat && !sc.scoped) return { code, master: true, ops: true, bases: [] };
+      const bases: string[] = Array.isArray(sc?.bases) ? sc.bases.map((b: unknown) => norm(b)).filter(Boolean) : [];
+      return { code, master: false, ops: true, bases };
+    }
   }
   const s = String(body.session ?? "").trim().slice(0, 120);
-  if (!s) return { code: "", master: false };
+  if (!s) return { code: "", master: false, ops: false, bases: [] };
   const got = await rpc("agent_session_code", { p_token: s });
-  return { code: (typeof got === "string") ? norm(got) : "", master: false };
+  return { code: (typeof got === "string") ? norm(got) : "", master: false, ops: false, bases: [] };
+}
+/* v4: a baseshop Ops seat oversees a DM when either person's baseshop is one of its shops. */
+async function opsSeesDm(channel: string, bases: string[]): Promise<boolean> {
+  const parts = channel.slice(3).split("|").map(norm).filter(Boolean);
+  if (!parts.length || !bases.length) return false;
+  const rows = await getJSON(`tracker_agents?code=in.(${parts.map((c) => `"${enc(c)}"`).join(",")})&select=baseshop`);
+  return (Array.isArray(rows) ? rows : []).some((a: any) => bases.indexOf(norm(a && a.baseshop)) >= 0);
 }
 
 /* THE one access rule, borrowed rather than rebuilt. A DM is readable by its two participants;
@@ -132,7 +154,8 @@ Deno.serve(async (req) => {
   const opsTok  = String(body.token ?? "").trim();
   /* The Operations master seat oversees every room and every DM (hub-ops already shows it them),
      so it may open and send attachments anywhere. */
-  if (!caller.master && !(await mayUse(me, channel, sessTok, opsTok))) {
+  const dmOk = !caller.master && caller.ops && channel.startsWith("dm:") && await opsSeesDm(channel, caller.bases);
+  if (!caller.master && !dmOk && !(await mayUse(me, channel, sessTok, opsTok))) {
     return json({ ok: false, error: "You are not in that conversation." }, 403);
   }
 

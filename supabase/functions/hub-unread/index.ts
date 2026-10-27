@@ -51,6 +51,13 @@
 //   it is open, or the caller is in its members or is its creator (byCode) — hub-api
 //   canSeeCustom's rule exactly. An Operations token still sees everything, as before.
 //
+// v8 (2026-10-26) — A BASESHOP OPS SEAT COUNTS ONLY ITS OWN SHOP'S PRIVATE ROOMS.
+//   Owner decision: private groups and DMs are overseen by the master seats (0000 Anais, C1991)
+//   everywhere, and by a per-baseshop seat only for its own shop(s). Every Ops token used to get a
+//   count AND the last line (v6 preview) of every DM and private group in the company. A shop
+//   seat now gets those only for private groups whose creator (byCode) is in its shops and DMs
+//   where either person is. Masters and machine tokens: unchanged. Same rule as hub-api v31.
+//
 // A channel counts only if it is one of:
 //   • a SHARED room (main / operations / leadership) — company-wide by design,
 //   • a DM this person is actually in,
@@ -77,7 +84,21 @@ async function rpc(fn: string, args: Record<string, unknown>) {
     return await r.json();
   } catch (_) { return null; }
 }
-async function opsAuthorized(token: unknown) { const t = String(token ?? ""); if (!t) return false; const r = await rpc("ops_authorize", { p_token: t }); return !!(r && r.ok); }
+/* v8: is this Operations, and how far does it reach? `full` = master seats and non-session
+   (machine/legacy) tokens; otherwise the seat's shops via ops_scope, as pin lockAuthority. */
+type OpsReach = { ok: boolean; full: boolean; bases: string[]; seat: string };
+async function opsReach(token: unknown): Promise<OpsReach> {
+  const t = String(token ?? ""); const none = { ok: false, full: false, bases: [], seat: "" };
+  if (!t) return none;
+  const r = await rpc("ops_authorize", { p_token: t });
+  if (!(r && r.ok)) return none;
+  const seat = norm(r.code);
+  if (r.master === true || r.via !== "session") return { ok: true, full: true, bases: [], seat };
+  const sc = await rpc("ops_scope", { p_token: t });
+  if (sc && sc.seat && !sc.scoped) return { ok: true, full: true, bases: [], seat };
+  const bases: string[] = Array.isArray(sc?.bases) ? sc.bases.map((b: unknown) => norm(b)).filter(Boolean) : [];
+  return { ok: true, full: false, bases, seat };
+}
 /* Proof of identity. A session token is proof; a typed code is not. */
 async function sessionCode(session: unknown): Promise<string> {
   const s = String(session ?? "").trim().slice(0, 120);
@@ -98,7 +119,8 @@ Deno.serve(async (req) => {
     let body: Record<string, unknown> = {};
     if (req.method === "POST") body = await req.json().catch(() => ({}));
 
-    const isOps = await opsAuthorized(body.token);
+    const OPS = await opsReach(body.token);
+    const isOps = OPS.ok;
     const me = isOps ? norm(body.code) : await sessionCode(body.session);
     const readRaw = (body.read && typeof body.read === "object") ? body.read as Record<string, unknown> : {};
     const read: Record<string, number> = {};
@@ -113,7 +135,7 @@ Deno.serve(async (req) => {
     /* v7: the custom-group registry, read once. Every c_ decision below is made from this, never
        from which keys the request happened to send. */
     const customs = new Map<string, Record<string, unknown>>();
-    if (!isOps) {
+    if (!isOps || !OPS.full) {
       const cx = await fetch(`${SUPA}/rest/v1/app_settings?key=eq.hub_channels&select=value`, { headers: DBH });
       const crow = ((await cx.json()) || [])[0];
       const list = (crow && crow.value && Array.isArray(crow.value.channels)) ? crow.value.channels : [];
@@ -127,9 +149,30 @@ Deno.serve(async (req) => {
       return Array.isArray(c.members) && (c.members as unknown[]).map((x) => norm(x)).indexOf(me) >= 0;
     };
 
+    /* v8: a shop seat's private reach. The roster's baseshops are read once, only for such a seat. */
+    const shops = new Map<string, string>();
+    if (isOps && !OPS.full) {
+      const ax = await fetch(`${SUPA}/rest/v1/tracker_agents?select=code,baseshop&limit=10000`, { headers: DBH });
+      for (const a of ((await ax.json()) || []) as Record<string, unknown>[]) shops.set(norm(a.code), norm(a.baseshop));
+    }
+    const inShop = (code: unknown): boolean => { const b = shops.get(norm(code)) || ""; return !!b && OPS.bases.indexOf(b) >= 0; };
+    const opsMay = (ch: string): boolean => {
+      if (OPS.full) return true;
+      if (ch.indexOf("dm:") === 0) return ch.slice(3).split("|").some((p) => inShop(p));
+      if (ch.indexOf("c_") === 0) {
+        const c = customs.get(ch);
+        if (!c) return false;                     // a deleted / unknown group counts for nobody
+        if (!c.private) return true;
+        const by = norm(c.byCode);
+        if (by && (by === OPS.seat || by === "OPS:" + OPS.seat)) return true;
+        return !!by && inShop(by);
+      }
+      return true;
+    };
+
     const maySee = (ch: string): boolean => {
       if (!ch) return false;
-      if (isOps) return true;
+      if (isOps) return opsMay(ch);
       // c_ is decided before the company-wide shortcut: rank is not a key to a private group.
       if (ch.indexOf("c_") === 0) return mayCustom(ch);
       if (sc.all) return true;
@@ -188,6 +231,25 @@ Deno.serve(async (req) => {
         total++;
       }
     }
+
+    /* 2026-10-26: the read above is answered with the newest 1,000 messages at most (the API's
+       page size, whatever `limit` says). A quiet room whose last message is older than that lost
+       its preview line and its `last` id, which is also what brings a hidden chat back. One row
+       per room fills those in; unread counts stay as they were. */
+    try {
+      const lr = await fetch(`${SUPA}/rest/v1/rpc/hub_latest_per_channel`, { method: "POST", headers: DBH, body: "{}" });
+      const latest: Record<string, unknown>[] = (await lr.json()) || [];
+      for (const r of Array.isArray(latest) ? latest : []) {
+        const ch = String(r.channel || "");
+        if (!ch || last[ch]) continue;
+        if (!allowed.has(ch)) allowed.set(ch, maySee(ch));
+        if (!allowed.get(ch)) continue;
+        last[ch] = Number(r.max_id) || Number(r.id) || 0;
+        let txt = String(r.body ?? "").replace(/\s+/g, " ").trim();
+        if (!txt && r.has_attach) txt = "\u{1F4CE} Attachment";
+        preview[ch] = { body: txt.slice(0, PREVIEW_CHARS), name: String(r.author_name ?? "").trim(), at: String(r.created_at ?? ""), mine: !!me && norm(r.author_code) === me };
+      }
+    } catch (_) { /* previews for quiet rooms are a nicety; counts above stand on their own */ }
 
     return json({ ok: true, counts, last, preview, total, scope: sc.all ? "all" : "baseshop" });
   } catch (e) {

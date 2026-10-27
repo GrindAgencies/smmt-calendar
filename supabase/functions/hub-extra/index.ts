@@ -1,3 +1,8 @@
+// hub-extra v5 (2026-10-26) — a baseshop Operations seat pins, reads pins and read receipts only
+//   in the private rooms it oversees. Owner decision: masters (0000, C1991) oversee every private
+//   group and DM; a shop seat only private groups created by someone in its shops and DMs where
+//   either person is. maySee() used to wave every Ops token into every room - pinned message
+//   BODIES included. Open rooms, masters and machine tokens: unchanged. Rule = hub-api v31.
 // hub-extra v4 — pinned messages and read receipts for Team Hub.
 //
 // A separate function rather than more actions bolted onto the 40KB hub-api:
@@ -36,7 +41,42 @@ const enc = encodeURIComponent;
 const SHARED = ["main", "leadership"];   // "operations" is the Ops room and is NOT shared here
 
 async function rpc(fn: string, args: Record<string, unknown>) { try { const r = await fetch(`${SUPA}/rest/v1/rpc/${fn}`, { method: "POST", headers: DBH, body: JSON.stringify(args) }); return await r.json(); } catch (_) { return null; } }
-async function opsAuthorized(token: unknown) { const t = String(token ?? ""); if (!t) return false; const r = await rpc("ops_authorize", { p_token: t }); return !!(r && r.ok); }
+/* v5: is this Operations, and how far does it reach? `full` = master seats and non-session
+   (machine/legacy) tokens; otherwise the seat's shops via ops_scope, as pin lockAuthority. */
+type OpsReach = { ok: boolean; full: boolean; bases: string[]; seat: string };
+async function opsReach(token: unknown): Promise<OpsReach> {
+  const t = String(token ?? ""); const none = { ok: false, full: false, bases: [], seat: "" };
+  if (!t) return none;
+  const r = await rpc("ops_authorize", { p_token: t });
+  if (!(r && r.ok)) return none;
+  const seat = norm(r.code);
+  if (r.master === true || r.via !== "session") return { ok: true, full: true, bases: [], seat };
+  const sc = await rpc("ops_scope", { p_token: t });
+  if (sc && sc.seat && !sc.scoped) return { ok: true, full: true, bases: [], seat };
+  const bases: string[] = Array.isArray(sc?.bases) ? sc.bases.map((b: unknown) => norm(b)).filter(Boolean) : [];
+  return { ok: true, full: false, bases, seat };
+}
+/* v5: may this seat oversee this room? Only private groups and DMs are limited. */
+async function opsMayRoom(reach: OpsReach, channel: string): Promise<boolean> {
+  if (!reach.ok) return false;
+  if (reach.full) return true;
+  const shopOf = async (codes: string[]): Promise<string[]> => {
+    const cs = codes.map((c) => norm(c)).filter(Boolean); if (!cs.length) return [];
+    try {
+      const r = await fetch(`${SUPA}/rest/v1/tracker_agents?code=in.(${cs.map((c) => `"${enc(c)}"`).join(",")})&select=baseshop`, { headers: DBH });
+      return ((await r.json()) || []).map((a: Record<string, unknown>) => norm(a.baseshop)).filter(Boolean);
+    } catch (_) { return []; }
+  };
+  if (channel.indexOf("dm:") === 0) return (await shopOf(channel.slice(3).split("|"))).some((b) => reach.bases.indexOf(b) >= 0);
+  if (channel.indexOf("c_") === 0) {
+    const c = (await customChannels()).find((x) => String(x.id) === channel);
+    if (!c || !c.private) return true;
+    const by = norm(c.byCode);
+    if (by && (by === reach.seat || by === "OPS:" + reach.seat)) return true;
+    return (await shopOf([by])).some((b) => reach.bases.indexOf(b) >= 0);
+  }
+  return true;
+}
 /* Proof of identity. A session token is proof; a typed code is not. */
 async function sessionCode(session: unknown): Promise<string> {
   const s = String(session ?? "").trim().slice(0, 120);
@@ -65,9 +105,9 @@ async function agentName(code: string): Promise<string> {
 }
 
 /* May this person see this channel at all? The same shape of rule the rest of the hub uses. */
-async function maySee(channel: string, me: string, isOps: boolean): Promise<boolean> {
+async function maySee(channel: string, me: string, ops: OpsReach | null): Promise<boolean> {
   if (!channel) return false;
-  if (isOps) return true;
+  if (ops) return await opsMayRoom(ops, channel);   // v5: was `return true` for every Ops token
   if (channel === "operations") return false;
   if (SHARED.indexOf(channel) >= 0) return true;
   if (channel.indexOf("dm:") === 0) {
@@ -97,7 +137,9 @@ Deno.serve(async (req) => {
     const action = clean(body.action, 20);
     const channel = clean(body.channel, 120);
 
-    const isOps = await opsAuthorized(body.token);
+    const OPS = await opsReach(body.token);
+    const isOps = OPS.ok;
+    const opsArg = isOps ? OPS : null;
     const me = isOps ? "" : await sessionCode(body.session);
     if (!isOps && !me) return json({ ok: false, needs_session: true, error: "Please sign in again." }, 401);
 
@@ -109,7 +151,7 @@ Deno.serve(async (req) => {
       const mr = await fetch(`${SUPA}/rest/v1/hub_messages?id=eq.${id}&select=id,channel&limit=1`, { headers: DBH });
       const msg = ((await mr.json()) || [])[0];
       if (!msg) return json({ ok: false, error: "Message not found." }, 404);
-      if (!(await maySee(String(msg.channel || ""), me, isOps))) {
+      if (!(await maySee(String(msg.channel || ""), me, opsArg))) {
         return json({ ok: false, error: "That conversation is not yours." }, 403);
       }
       const on = body.on !== false;
@@ -126,7 +168,7 @@ Deno.serve(async (req) => {
 
     if (action === "pins") {
       if (!channel) return json({ ok: false, error: "no channel" });
-      if (!(await maySee(channel, me, isOps))) return json({ ok: false, error: "That conversation is not yours." }, 403);
+      if (!(await maySee(channel, me, opsArg))) return json({ ok: false, error: "That conversation is not yours." }, 403);
       const ex = await fetch(
         `${SUPA}/rest/v1/hub_messages?channel=eq.${enc(channel)}&pinned=is.true&deleted=is.false` +
         `&select=id,author_name,author_code,body,kind,pinned_by,pinned_at&order=pinned_at.desc&limit=20`,
@@ -139,7 +181,7 @@ Deno.serve(async (req) => {
       const code = isOps ? norm(body.code) : me;
       const lastId = Number(body.last_id) || 0;
       if (!code || !channel || !lastId) return json({ ok: false, error: "missing" });
-      if (!(await maySee(channel, code, isOps))) return json({ ok: false, error: "That conversation is not yours." }, 403);
+      if (!(await maySee(channel, code, opsArg))) return json({ ok: false, error: "That conversation is not yours." }, 403);
       // Only ever move forward — scrolling back must not retract a receipt.
       const cur = await fetch(`${SUPA}/rest/v1/hub_reads?code=eq.${enc(code)}&channel=eq.${enc(channel)}&select=last_id`, { headers: DBH });
       const row = ((await cur.json()) || [])[0];
@@ -154,7 +196,7 @@ Deno.serve(async (req) => {
 
     if (action === "seenby") {
       if (!channel) return json({ ok: false, error: "no channel" });
-      if (!(await maySee(channel, me, isOps))) return json({ ok: false, error: "That conversation is not yours." }, 403);
+      if (!(await maySee(channel, me, opsArg))) return json({ ok: false, error: "That conversation is not yours." }, 403);
       const ids: number[] = Array.isArray(body.ids) ? (body.ids as unknown[]).map((x) => Number(x) || 0).filter(Boolean).slice(0, 60) : [];
       const ex = await fetch(`${SUPA}/rest/v1/hub_reads?channel=eq.${enc(channel)}&select=code,name,last_id`, { headers: DBH });
       const rows: Record<string, unknown>[] = (await ex.json()) || [];

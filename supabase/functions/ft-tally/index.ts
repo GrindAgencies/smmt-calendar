@@ -23,6 +23,10 @@ const norm = (c: unknown) => (c ?? "").toString().trim().toUpperCase();
 const lo = (s: unknown) => (s ?? "").toString().trim().toLowerCase();
 const fullName = (a: any) => `${a.first_name || ""} ${a.last_name || ""}`.trim();
 async function getJSON(path: string){ try { const r = await fetch(`${SUPA}/rest/v1/${path}`, { headers: DBH }); return (await r.json()) || []; } catch (_) { return []; } }
+/* 2026-10-26: the API answers at most 1,000 rows per request whatever `limit` says, so a single
+   read of calendly_events (2,770 active) silently counted only the first 1,000 -- field trainings
+   ran were undercounted by about two thirds. Read every page. */
+async function getAll(path: string){ const out: any[] = []; for (let off = 0; off < 100000; off += 1000) { const page = await getJSON(`${path}&limit=1000&offset=${off}`); if (!Array.isArray(page) || !page.length) break; out.push(...page); if (page.length < 1000) break; } return out; }
 async function opsAuthorized(token: unknown): Promise<boolean> {
   const t = String(token ?? "").trim();
   if (!t) return false;
@@ -49,11 +53,11 @@ Deno.serve(async (req) => {
   const bump = (code: string, date: string) => { if (!code) return; const t = tally[code] || (tally[code] = { count: 0, upcoming: 0, last: "" }); t.count++; if (date && date >= today) t.upcoming++; if (date && date > t.last) t.last = date; };
 
   // 1) internal bookings attributed to the broker
-  const bks = await getJSON(`bookings?status=in.(booked,confirmed,completed,pending)&agent_code=not.is.null&select=agent_code,category,date&limit=20000`);
+  const bks = await getAll(`bookings?status=in.(booked,confirmed,completed,pending)&agent_code=not.is.null&select=agent_code,category,date&order=id.asc`);
   for (const b of bks) { if (isFT(b.category)) bump(norm(b.agent_code), b.date || ""); }
 
   // 2) Calendly field trainings -> match invitee back to a broker
-  const cev = await getJSON(`calendly_events?status=in.(active)&select=event_type_name,name,invitee_email,invitee_name,start_time&limit=20000`);
+  const cev = await getAll(`calendly_events?status=in.(active)&select=event_type_name,name,invitee_email,invitee_name,start_time&order=start_time.asc,event_uuid.asc`);
   let matched = 0, unmatched = 0;
   for (const e of cev) {
     if (!isFT(e.event_type_name) && !isFT(e.name)) continue;

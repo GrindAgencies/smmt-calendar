@@ -198,8 +198,11 @@ async function buildContext(period: string, from?: string, to?: string) {
   // SUBMITTED PREMIUM — dated by submitted_date, i.e. when the business was written.
   // Under 'all' the date filter is dropped entirely rather than widened, so the 8 policies
   // carrying no submitted_date ($18,924 of premium) are counted instead of vanishing.
-  /* A draft (status incomplete) has not been submitted, so it is not submitted premium. */
-  let polQ = `policies?select=agent_code,agent_name,annual_premium,split_flag,split_pct,split_agent_code,status&or=(status.is.null,status.neq.incomplete)&limit=20000`;
+  /* v28 (2026-10-26, Christopher): Submitted Premium is business that is still alive. Drafts
+     (incomplete) were never submitted, and declined / cancelled / closed / lapsed business did not
+     go through -- the same rule New Business, ops-metrics and ops-nbfeed already use, so the
+     leaderboard and the New Business cards now agree. */
+  let polQ = `policies?select=agent_code,agent_name,annual_premium,split_flag,split_pct,split_agent_code,status&or=(status.is.null,status.not.in.(incomplete,declined,cancelled,canceled,closed,lapsed))&limit=20000`;
   if (!noDateTest) {
     polQ += `&submitted_date=gte.${start}`;
     if (end !== FAR_FUTURE) polQ += `&submitted_date=lte.${end}`;

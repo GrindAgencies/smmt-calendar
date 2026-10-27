@@ -751,8 +751,12 @@ function mayEditApp(p){
 /* The server lets the WRITER delete their own application (newbiz-api `newbiz_delete`
    filters agent_code to the caller) — a split partner may edit the record but not destroy
    it. The button mirrors that exactly rather than offering an action the server will refuse. */
+/* ...and not once it has been paid (2026-10-26): paid business is history. Operations removes a
+   genuine mistake. Same statuses newbiz-api counts as paid. */
+var PAID_ST=['policy_issued','premium_drafted','paid','funds_received'];
 function mayDeleteApp(p){
-  return !!p && String(p.agent_code||'').toUpperCase() === String(CODE||'').toUpperCase();
+  return !!p && String(p.agent_code||'').toUpperCase() === String(CODE||'').toUpperCase()
+         && PAID_ST.indexOf(String(p.status||'')) < 0;
 }
 function setWizChrome(){
   var t=document.querySelector('#wiz .wiz-top h3');

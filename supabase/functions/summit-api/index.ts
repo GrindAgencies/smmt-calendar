@@ -269,7 +269,7 @@ Deno.serve(async (req) => {
       return json({
         ok: true, scope: scope.all ? "all" : "baseshop",
         can_manage: ops || isLeader(me),
-        can_set_standards: ops || isEMD(me),
+        can_set_standards: ops || !!(me && me.platform_admin === true),
         can_set_levels: await ownsLevels(code, ops),
         tiers: await tiersOf(),
         my_baseshop: me ? (me.baseshop || "") : "",
@@ -399,9 +399,11 @@ Deno.serve(async (req) => {
       const shop = clean(body.baseshop, 40) || (me ? me.baseshop : "");
       const idx = Number(body.stage_index);
       if (!shop || !(idx >= 0 && idx <= 19)) return json({ ok: false, error: "baseshop and stage required" }, 400);
-      const ownShop = me && low(me.baseshop) === low(shop);
-      if (!(ops || (isEMD(me) && (ownShop || (me && me.platform_admin === true))))) {
-        return json({ ok: false, error: "Only this baseshop's EMD or Operations can set its promotion standards." }, 403);
+      /* v11 (2026-10-26, Christopher): the wording of the twenty-stage standards is company-wide.
+         The brief says EMDs approve progress but do not rewrite the standards, so this is
+         Operations and the platform builder only. (No shop had customised any wording.) */
+      if (!(ops || (me && me.platform_admin === true))) {
+        return json({ ok: false, error: "The Road to EMD standards are set company-wide by Operations." }, 403);
       }
       const labels = (Array.isArray(body.labels) ? body.labels : [])
         .map((x: unknown) => clean(x, 120)).filter((x: string) => !!x).slice(0, 10);

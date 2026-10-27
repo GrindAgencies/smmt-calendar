@@ -630,6 +630,15 @@ Deno.serve(async (req) => {
       if (!id) return json({ ok: false, error: "no id" });
       let q = `${SUPA}/rest/v1/policies?id=eq.${encodeURIComponent(id)}`;
       if (!isAdmin) q += `&agent_code=eq.${encodeURIComponent(me.code)}`;
+      /* v27 (2026-10-26, Christopher): once business is paid it is history, not a draft to tidy
+         away -- an agent can no longer delete it (it would vanish from production, In Force and
+         cash flow). Operations can still remove a genuine mistake. */
+      if (!isAdmin) {
+        const cur = ((await (await fetch(q + "&select=status&limit=1", { headers: DBH })).json()) || [])[0];
+        if (cur && bucket(String(cur.status || "")) === "paid") {
+          return json({ ok: false, error: "This application has been paid, so it can't be deleted. Ask Operations if it was entered by mistake." }, 403);
+        }
+      }
       const del = await fetch(q + "&select=id", { method: "DELETE", headers: { ...DBH, Prefer: "return=representation" } });
       const gone = await del.json();
       if (!del.ok || !Array.isArray(gone) || !gone.length) return json({ ok: false, error: "That policy is not yours to delete." }, 403);

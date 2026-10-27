@@ -1,3 +1,9 @@
+// hub-safety v4 (2026-10-26) — a baseshop Operations seat sees (and closes) only the reports
+//   about messages in rooms it oversees. Owner decision: masters (0000, C1991) oversee every
+//   private group and DM; a shop seat only private groups created by someone in its shops and DMs
+//   where either person is. A report snapshots the message body, so the old all-reports queue
+//   handed every seat excerpts from other shops' DMs. Open rooms' reports are unchanged (all
+//   seats see them); masters and machine tokens see everything, as before. Rule = hub-api v31.
 // hub-safety v3 (2026-10-26) — report is limited to messages the reporter could actually read,
 //   and to 10 open reports per person. A report snapshots the message body into hub_reports, so
 //   "report message 1234" was a way to copy any DM or private-group message into the Ops queue
@@ -65,6 +71,49 @@ async function isOps(token: unknown): Promise<boolean> {
   return !!(r && r.ok);
 }
 
+/* v4: how far an Operations token reaches. `full` = master seats and non-session (machine/legacy)
+   tokens; otherwise the seat's shops via ops_scope, as pin lockAuthority. Fails closed. */
+type OpsReach = { ok: boolean; full: boolean; bases: string[]; seat: string };
+async function opsReach(token: unknown): Promise<OpsReach> {
+  const t = String(token ?? "").trim(); const none = { ok: false, full: false, bases: [], seat: "" };
+  if (!t) return none;
+  const r = await rpc("ops_authorize", { p_token: t });
+  if (!(r && r.ok)) return none;
+  const seat = norm(r.code);
+  if (r.master === true || r.via !== "session") return { ok: true, full: true, bases: [], seat };
+  const sc = await rpc("ops_scope", { p_token: t });
+  if (sc && sc.seat && !sc.scoped) return { ok: true, full: true, bases: [], seat };
+  const bases: string[] = Array.isArray(sc?.bases) ? sc.bases.map((b: unknown) => norm(b)).filter(Boolean) : [];
+  return { ok: true, full: false, bases, seat };
+}
+/* v4: may this seat oversee this room? Only private groups and DMs are limited. */
+function opsOversight(reach: OpsReach) {
+  let custom: Record<string, unknown>[] | null = null;
+  let shops: Map<string, string> | null = null;
+  const shopOf = async (code: unknown): Promise<string> => {
+    if (!shops) { shops = new Map(); for (const a of ((await db("tracker_agents?select=code,baseshop&limit=10000")) || []) as Record<string, unknown>[]) shops.set(norm(a.code), norm(a.baseshop)); }
+    return shops.get(norm(code)) || "";
+  };
+  return async (channel: string): Promise<boolean> => {
+    if (!reach.ok) return false;
+    if (reach.full) return true;
+    if (channel.indexOf("dm:") === 0) {
+      for (const p of channel.slice(3).split("|")) { const b = await shopOf(p); if (b && reach.bases.indexOf(b) >= 0) return true; }
+      return false;
+    }
+    if (channel.indexOf("c_") === 0) {
+      if (!custom) { const row = ((await db("app_settings?key=eq.hub_channels&select=value")) || [])[0]; custom = (row && row.value && Array.isArray(row.value.channels)) ? row.value.channels : []; }
+      const c = (custom || []).find((x) => String(x && x.id) === channel);
+      if (!c || !c.private) return true;
+      const by = norm(c.byCode);
+      if (by && (by === reach.seat || by === "OPS:" + reach.seat)) return true;
+      const b = by ? await shopOf(by) : "";
+      return !!b && reach.bases.indexOf(b) >= 0;
+    }
+    return true;
+  };
+}
+
 const MAX_OPEN_REPORTS = 10;
 
 /* hub-api's reading rule, restated here for the one question report needs: could `me` have
@@ -108,16 +157,25 @@ Deno.serve(async (req) => {
 
     /* ---- Operations queue ------------------------------------------------ */
     if (action === "list_reports" || action === "resolve") {
-      if (!(await isOps(body.token))) return json({ ok: false, error: "Operations only" }, 403);
+      const OPS = await opsReach(body.token);
+      if (!OPS.ok) return json({ ok: false, error: "Operations only" }, 403);
+      const opsMay = opsOversight(OPS);
 
       if (action === "list_reports") {
-        const rows = await db("hub_reports?select=*&order=created_at.desc&limit=200");
-        return json({ ok: true, reports: rows || [] });
+        let rows = (await db("hub_reports?select=*&order=created_at.desc&limit=200")) || [];
+        /* v4: a shop seat's queue is reports from rooms it oversees. */
+        if (!OPS.full) { const keep: Record<string, unknown>[] = []; for (const r of rows) if (await opsMay(String(r.channel || ""))) keep.push(r); rows = keep; }
+        return json({ ok: true, reports: rows });
       }
       const id = parseInt(String(body.id ?? "0"), 10);
       const status = clean(body.status, 12);
       if (!id || ["actioned", "dismissed"].indexOf(status) < 0) {
         return json({ ok: false, error: "id and status (actioned|dismissed) required" }, 400);
+      }
+      /* v4: and closes only those. Same answer as a report that does not exist. */
+      if (!OPS.full) {
+        const rep = ((await db(`hub_reports?id=eq.${id}&select=channel&limit=1`)) || [])[0];
+        if (!rep || !(await opsMay(String(rep.channel || "")))) return json({ ok: false, error: "That report could not be found." }, 404);
       }
       await db(`hub_reports?id=eq.${id}`, {
         method: "PATCH",
