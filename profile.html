@@ -339,7 +339,9 @@ function paintProfile(p){
   loadRoadSummary();
   loadCalendlyStatus();
   loadBaseBrand();
-  loadEmdControl();
+  /* Leader-only panels (bots, broadcasts). An agent's profile asked for them on every repaint and
+     was refused each time -- six wasted calls per visit. MD/EMD/builder/Ops still load them. */
+  if(p.access_scope==='super'||p.access_scope==='base_owner'||p.platform_admin) loadEmdControl();
   /* 2026-10-26: the company-wide Announcements room was retired -- announcements now land in each
      team's chat and the Company Chat -- so there is no posting list left to manage here. */
   loadApptMail();
