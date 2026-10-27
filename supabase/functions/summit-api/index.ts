@@ -205,12 +205,17 @@ Deno.serve(async (req) => {
     const me = code ? await agentRow(code) : null;
 
     if (action === "board") {
-      const tags = await dbGet(`summit_tags?select=id,label,color&order=label.asc`);
-      const links = await dbGet(`summit_agent_tags?select=agent_code,tag_id&limit=20000`);
-      const prog = await dbGet(`summit_progress?select=agent_code,stage_index,checks&limit=20000`);
-      const checkRows = await dbGet(`summit_checks?select=agent_code,req_key,done,status&done=is.true&limit=50000`);
-      const reqs = await dbGet(`summit_requirements?select=baseshop,stage_index,labels&limit=5000`);
-      const lay = (await dbGet(`summit_layout?viewer_code=eq.${enc(code)}&select=positions,zoom`))[0] || null;
+      /* v12 (2026-10-26): these six reads do not depend on each other, so they go out together.
+         One after another they were most of this board's ~2.6 s. */
+      const [tags, links, prog, checkRows, reqs, layRows] = await Promise.all([
+        dbGet(`summit_tags?select=id,label,color&order=label.asc`),
+        dbGet(`summit_agent_tags?select=agent_code,tag_id&limit=20000`),
+        dbGet(`summit_progress?select=agent_code,stage_index,checks&limit=20000`),
+        dbGet(`summit_checks?select=agent_code,req_key,done,status&done=is.true&limit=50000`),
+        dbGet(`summit_requirements?select=baseshop,stage_index,labels&limit=5000`),
+        dbGet(`summit_layout?viewer_code=eq.${enc(code)}&select=positions,zoom`),
+      ]);
+      const lay = layRows[0] || null;
 
       const agentTags: Record<string, string[]> = {};
       for (const l of links) { const c = norm(l.agent_code); if (!inScope(c)) continue; (agentTags[c] = agentTags[c] || []).push(l.tag_id); }
