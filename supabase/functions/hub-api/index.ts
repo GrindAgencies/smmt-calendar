@@ -161,7 +161,7 @@ async function callClaude(sys: string, prompt: string, maxTokens: number): Promi
 }
 
 async function agentRow(code: string) {
-  const ex = await fetch(`${SUPA}/rest/v1/tracker_agents?code=eq.${encodeURIComponent(code)}&select=first_name,last_name,emd,md,progress,pct,email,phone,cal_link,title,contract_level,baseshop,direct_to,direct_to_name,last_activity,created_at`, { headers: DBH });
+  const ex = await fetch(`${SUPA}/rest/v1/tracker_agents?code=eq.${encodeURIComponent(code)}&select=first_name,last_name,emd,md,progress,pct,email,phone,cal_link,title,contract_level,baseshop,direct_to,direct_to_name,last_activity,created_at,platform_admin`, { headers: DBH });
   const r = await ex.json(); return (r && r[0]) ? r[0] : null;
 }
 async function orgRole(code: string): Promise<string> {
@@ -172,7 +172,13 @@ async function orgRole(code: string): Promise<string> {
   } catch (_) { return "agent"; }
 }
 
-const BSCH = [["announcements", "Announcements", "📣"], ["training", "Training", "🎓"], ["licensing", "Licensing", "📝"], ["cft", "CFT Room", "🏵️"]];
+/* v37 (2026-10-26, Christopher): ONE chat per baseshop, plus the Company Chat. "Only create 4
+   baseshop chats, one for each team, and one COMPANY chat ... tie announcements to each base shop
+   in each chat." The four sub-rooms (Announcements, Training, Licensing, CFT) are gone; anything
+   still aimed at them -- a bot, the EMD broadcast, a sale alert -- is rewritten to the shop's chat
+   by the hub_room_router trigger in the database, so nothing can post into a room nobody sees.
+   Every other group is created by the EMDs with the plus button. */
+const BSCH = [["chat", "", "💬"]];
 async function loadBases(): Promise<{ root: string; bases: Record<string, unknown>[] }> {
   try {
     const ex = await fetch(`${SUPA}/rest/v1/app_settings?key=eq.baseshops&select=value`, { headers: DBH });
@@ -183,8 +189,18 @@ async function loadBases(): Promise<{ root: string; bases: Record<string, unknow
 }
 function agentLevel(a: Record<string, unknown> | null): string {
   const cl = a && a.contract_level ? String(a.contract_level).toLowerCase() : "";
-  if (cl) { if (cl === "emd" || cl.includes("executive")) return "EMD"; if (cl === "md" || (cl.includes("marketing director") && !cl.includes("executive"))) return "MD"; if (cl.includes("senior")) return "Senior Associate"; return "Associate"; }
-  const t = a && a.title ? String(a.title) : ""; if (/executive marketing/i.test(t)) return "EMD"; if (/marketing director/i.test(t) && !/executive/i.test(t)) return "MD"; return "Associate";
+  /* v38: NVP is EMD-tier (it fell through to "Associate"), and `title` is no longer read -- it is
+     free text, not authority. Same rule summit-api and profile-api use. */
+  if (cl) { if (cl === "emd" || cl === "nvp" || cl.includes("executive") || cl.includes("vice president")) return "EMD"; if (cl === "md" || (cl.includes("marketing director") && !cl.includes("executive"))) return "MD"; if (cl.includes("senior")) return "Senior Associate"; return "Associate"; }
+  return "Associate";
+}
+/* v38 (2026-10-26, Christopher): "baseline simple" -- the Company Chat and one chat per baseshop
+   come built in; every other group is created by an EMD (or Elijah's builder seat / Operations).
+   Agents still start direct messages freely. */
+async function canCreateGroup(code: string): Promise<boolean> {
+  if (!code) return false;
+  const a = await agentRow(code);
+  return !!a && (a.platform_admin === true || agentLevel(a) === "EMD");
 }
 function accessibleBasesOf(baseshop: string, bases: { root: string; bases: Record<string, unknown>[] }): string[] {
   const list = bases.bases || []; const byName: Record<string, Record<string, unknown>> = {}; list.forEach((b) => byName[String(b.name)] = b);
@@ -195,14 +211,13 @@ function accessibleBasesOf(baseshop: string, bases: { root: string; bases: Recor
 function genChannels(bases: { root?: string; bases: Record<string, unknown>[] }) {
   const ch: Record<string, unknown>[] = [
     { id: "main", name: "Company Chat", icon: "💬", scope: "hierarchy" },
-    { id: "leadership", name: "Leadership", icon: "👑", scope: "hierarchy" },
     { id: "operations", name: "Operations", icon: "⚙️", scope: "hierarchy" }
   ];
   const root = low(bases.root || "STANDARD");
   for (const bs of (bases.bases || [])) {
     const nm = String(bs.name); const pfx = low(nm);
     if (pfx === root) continue; // STANDARD/root has no base group — Company Chat is the STANDARD chat
-    for (const c of BSCH) ch.push({ id: pfx + "_" + c[0], name: nm + " · " + c[1], icon: c[2], baseshop: nm, baseshopName: nm, sub: c[0] });
+    for (const c of BSCH) ch.push({ id: pfx + "_" + c[0], name: c[1] ? nm + " · " + c[1] : nm, icon: c[2], baseshop: nm, baseshopName: nm, sub: c[0] });
   }
   return ch;
 }
@@ -224,12 +239,14 @@ async function accessOf(code: string): Promise<Acc> {
 }
 function eligible(id: string, acc: Acc, bases: { root?: string; bases: Record<string, unknown>[] }) {
   if (id === "main") return true;
-  if (id === "leadership") return acc.mod;
+  if (id === "leadership") return false;   // v37: retired; leaders make their own group
   // #operations is the Operations team's private room. It is served only through hub-ops,
   // which the Operations seats use; no agent, leader or baseshop owner sees it here.
   if (id === "operations") return false;
-  const m = /^([a-z0-9]+)_(announcements|training|licensing|cft)$/.exec(id);
+  const m = /^([a-z0-9]+)_(announcements|training|licensing|cft|chat)$/.exec(id);
   if (m) {
+    if (m[2] !== "chat") return false;     // v37: the old sub-rooms are retired
+
     const pfx = m[1], sub = m[2];
     const base = (bases.bases || []).find((b) => low(b.name) === pfx);
     if (acc.scope !== "super") { if (!base) return false; if ((acc.accessibleBases || []).indexOf(String(base.name)) < 0) return false; }
@@ -394,7 +411,7 @@ async function trainingChannelFor(agentCode: string): Promise<string> {
   if (!shop) return "";
   const bases = await loadBases();
   if (shop === low(bases.root || "STANDARD")) return "";   // the root shop has no channel group
-  return shop + "_training";
+  return shop + "_chat";
 }
 
 /* ===== Coach · Progression (author_code stays KYLE: it is the DM channel identity key) ===== */
@@ -532,7 +549,7 @@ Deno.serve(async (req) => {
         for (const c of await customChannels()) if (await opsMay(String(c.id))) channels.push(c);
         const baseshops = (bases.bases || []).filter((b) => low(b.name) !== low(bases.root)).map((b) => ({ id: low(b.name), name: String(b.name), emd: b.owner_name || "" }));
         const access = { role: "ops", licensed: true, mod: true, name: "Operations", baseshop: bases.root, scope: "super", owns_base: "", accessibleBases: (bases.bases || []).map((b) => String(b.name)) };
-        return json({ ok: true, access, channels, baseshops, ops: true });
+        return json({ ok: true, access, channels, baseshops, ops: true, can_create_group: true });
       }
       const code = norm(body.code || url.searchParams.get("code"));
       const acc: Acc = code ? await accessOf(code) : { role: "agent", licensed: false, mod: false, name: "", baseshop: bases.root, scope: "member", owns_base: "", accessibleBases: [bases.root] };
@@ -544,7 +561,7 @@ Deno.serve(async (req) => {
          server will honour it. */
       const mod_channels: string[] = [];
       for (const c of chans) { if (await mayModerate(code, acc, String(c.id), bases, custom)) mod_channels.push(String(c.id)); }
-      return json({ ok: true, access: acc, channels: chans, baseshops, mod_channels });
+      return json({ ok: true, access: acc, channels: chans, baseshops, mod_channels, can_create_group: await canCreateGroup(code) });
     }
 
     if (action === "hub_send") {
@@ -828,6 +845,7 @@ Deno.serve(async (req) => {
          the append is one locked database statement, so two people creating at once both keep
          their group; and invitees outside the creator's own scope are refused, the same rule as
          hub-groups member_add and the hub-roster picker. */
+      if (!isAdmin && !(await canCreateGroup(norm(body.code)))) return json({ ok: false, error: "New group chats are set up by your EMD. Ask them to create one, or send a direct message." }, 403);
       const name = clean(body.name).replace(/\s+/g, " ").trim();
       if (!name) return json({ ok: false, field: "name", error: "Give the group a name." }, 400);
       if (name.length > 60) return json({ ok: false, field: "name", error: "Group names can be up to 60 characters." }, 400);
@@ -991,7 +1009,7 @@ Deno.serve(async (req) => {
         const stalled = mine.filter((a) => a.status === "red").sort((a, b) => (b.days || 0) - (a.days || 0));
         const sl = stalled.length ? stalled.map((a) => "🔴 " + a.name + " (" + a.code + (a.days != null ? ", " + a.days + "d" : "") + ")").join("\n") : "None 🎉";
         const msg = "📣 Coach · Daily Progression Report (" + date + ")\n🟡 Slowing: " + cnt.yellow + "   🟠 Stalling: " + cnt.orange + "   🔴 Stalled: " + cnt.red + "\n\nStalled — need a leadership touch:\n" + sl + "\n\nEvery agent above + their full upline has been DM'd by Coach.";
-        if (!preview) { await postKyle(shop + "_training", msg); log.push(ko); }
+        if (!preview) { await postKyle(shop + "_chat", msg); log.push(ko); }
         posted.ops++;
       }
       if (!preview && (posted.agents || posted.uplines || posted.ops)) {

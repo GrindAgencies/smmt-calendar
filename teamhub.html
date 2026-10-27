@@ -26,6 +26,8 @@
 /* 2026-10-26: tell the browser the page is dark, so native scrollbars and form controls follow
    (they were bright white inside the edit sheet, New group and member lists). */
 [data-theme="dark"]{color-scheme:dark;}
+/* group creation is an EMD action; the buttons appear once hub-api says so */
+body:not(.cangroup) .tic.newgrp, body:not(.cangroup) .rsec button[onclick="openNewChannel()"]{display:none !important}
 [data-theme="dark"]{--bg:#0a0a0c;--panel:#161618;--panel2:#1c1c1f;--ink:#f5f5f7;--ink2:#a1a1a8;--ink3:#77777e;--line:#26262a;--line2:#2e2e33;--accent:#7c8bff;--accent-soft:rgba(124,139,255,.14);}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
 html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:var(--font);-webkit-font-smoothing:antialiased;letter-spacing:-.01em;}
@@ -1157,7 +1159,7 @@ function dmId(other){return 'dm:'+[CODE,other].sort().join('|');}
 function chanMeta(id){
   if(id.indexOf('dm:')===0){var o=id.slice(3).split('|').filter(function(c){return c!==CODE;})[0]||'';if(o==='KYLE')return {icon:'📣',name:'Coach',sub:'Tough love, in your corner — here to keep you moving 📣',dm:true,other:'KYLE'};return {icon:initials(MEMBERS[o]||o),name:MEMBERS[o]||o,sub:'Direct message · '+o,dm:true,other:o};}
   var SUBS={operations:'Operations team only — private room for the Ops staff',leadership:'Marketing Directors, EMDs & Operations only',licensing:'Agents completing licensing',licensed:'Licensed agents only',cft:'Certified Field Trainers only',announcements:'Company-wide announcements',main:'Everyone in the company',training:'Live training discussion'};
-  var c=CHANNELS.filter(function(c){return c.id===id;})[0]||{icon:'#',name:id};var subtxt=SUBS[id];if(!subtxt&&c.baseshop){var L={announcements:'Announcements',training:'Training',licensing:'Licensing',cft:'CFT Room',operations:'Operations'}[c.sub]||'';subtxt=(c.baseshopName||'')+' baseshop \u00b7 '+L;}if(!subtxt&&String(id).indexOf('c_')===0){var mc=(c.members||[]).length;subtxt=(c.private?'Private group':'Group')+(mc?(' \u00b7 '+mc+' member'+(mc===1?'':'s')):'');}return {icon:c.icon||'#',name:c.name,sub:subtxt||'Channel'};
+  var c=CHANNELS.filter(function(c){return c.id===id;})[0]||{icon:'#',name:id};var subtxt=SUBS[id];if(!subtxt&&c.baseshop){var L={announcements:'Announcements',training:'Training',licensing:'Licensing',cft:'CFT Room',operations:'Operations',chat:'Team chat \u00b7 announcements included'}[c.sub]||'';subtxt=(c.baseshopName||'')+' baseshop \u00b7 '+L;}if(!subtxt&&String(id).indexOf('c_')===0){var mc=(c.members||[]).length;subtxt=(c.private?'Private group':'Group')+(mc?(' \u00b7 '+mc+' member'+(mc===1?'':'s')):'');}return {icon:c.icon||'#',name:c.name,sub:subtxt||'Channel'};
 }
 function openChan(id,opts){
   /* 2026-10-26: per-room composer state. A reply target, a mention popup, a picked file or a
@@ -1170,7 +1172,7 @@ function openChan(id,opts){
   /* quiet = switched for us (access lost) while the phone shows the list; do not claim it is on screen. */
   if(!(opts&&opts.quiet)) VIEWING=true;
   CHAN=id;LASTID=0;NEWLINE=(readMap()[id]||0);renderTyping([]);PINS=[];SEEN={};renderPins();loadPins();$('mlist').innerHTML='';renderRooms();renderHead();loadMsgs(true);document.body.classList.remove('rooms-open');if(typeof heartbeat==='function')heartbeat();}
-function chanNameOf(id){if(!id)return '';if(id.indexOf('dm:')===0)return 'a direct message';var c=CHANNELS.filter(function(x){return x.id===id;})[0];if(c){if(c.baseshop){var L={announcements:'Announcements',training:'Training',licensing:'Licensing',cft:'CFT Room',operations:'Operations'}[c.sub]||c.name;return (c.baseshopName?c.baseshopName+' \u00b7 ':'')+L;}return c.name;}return id;}
+function chanNameOf(id){if(!id)return '';if(id.indexOf('dm:')===0)return 'a direct message';var c=CHANNELS.filter(function(x){return x.id===id;})[0];if(c){if(c.baseshop){var L={announcements:'Announcements',training:'Training',licensing:'Licensing',cft:'CFT Room',operations:'Operations',chat:'Base Shop Chat'}[c.sub]||c.name;return (c.baseshopName?c.baseshopName+' \u00b7 ':'')+L;}return c.name;}return id;}
 function presenceList(){var codes=Object.keys(ONLINE);if(!codes.length)return '<div class="presrow"><span class="pc">No one online right now</span></div>';return codes.sort(function(a,b){return ((ONLINE[a]&&ONLINE[a].name)||'').localeCompare((ONLINE[b]&&ONLINE[b].name)||'');}).map(function(cd){var ob=ONLINE[cd]||{};var away=ob.status==='away';var ch=ob.channel?chanNameOf(ob.channel):'';var sub=away?'Away from computer':(ch?('in '+ch):'Active now');return '<div class="presrow"><span class="pdd'+(away?' away':'')+'"></span><div><div class="pn">'+esc(ob.name||cd)+(away?' <span style=\"color:#e6a700;font-weight:700\">\u2022 Away</span>':'')+'</div><div class="pc">'+esc(sub)+'</div></div></div>';}).join('');}
 /* A group's own name and photo, once somebody has set them (round two task 5). Empty until
    then, so a group nobody has renamed keeps the name hub-api derives for it. */
@@ -2093,6 +2095,7 @@ function sendRecognition(){
 
 /* channels */
 function openNewChannel(){
+  if(!CANGROUP){toast('New group chats are set up by your EMD \u2014 send them a message to ask for one.');return;}
   closeHubSheet();
   $('chName').value=''; $('chPriv').checked=false; var d=$('chDesc'); if(d)d.value='';
   clearGroupPhoto(); var q=$('ngSearch'); if(q)q.value='';
@@ -2174,7 +2177,8 @@ function openHubPlus(){
   var ov=hubSheet();
   ov.innerHTML='<div class="cvm" role="menu" aria-label="New">'+
     '<h4>New</h4>'+
-    '<button role="menuitem" onclick="openNewChannel()"><i>\ud83d\udc65</i>New group</button>'+
+    /* 2026-10-26: new groups are an EMD's to create (hub-api refuses others); agents get messages. */
+    (CANGROUP?'<button role="menuitem" onclick="openNewChannel()"><i>\ud83d\udc65</i>New group</button>':'')+
     '<button role="menuitem" onclick="openNewDm()"><i>\u2709\ufe0f</i>New message</button>'+
     '<div class="sep"></div>'+
     '<button role="menuitem" onclick="closeHubSheet();openAppMenu()"><i>\u2630</i>Menu \u2014 all pages &amp; settings</button>'+
@@ -2367,7 +2371,9 @@ function deleteChannel(){if(CHAN.indexOf('c_')!==0)return;
     '<button class="gbtn" style="background:#c0392b;color:#fff;border-color:#c0392b" onclick="closeSafety();doDeleteChannel(\''+escJs(CHAN)+'\')">Delete</button></div>');}
 var DELCHAN_BUSY=false;
 function doDeleteChannel(ch){if(DELCHAN_BUSY||ch!==CHAN)return;DELCHAN_BUSY=true;h({action:'hub_deletechannel',id:ch,code:CODE,token:MODTOKEN||''}).then(function(r){DELCHAN_BUSY=false;if(r&&r.ok){toast('Channel deleted');if(CHAN===ch)openChan('main');loadChannels();}else toast((r&&r.error)||'Could not delete');});}
+var CANGROUP=false;   /* may this person create group chats? hub-api decides (EMD tier, builder, Operations) */
 function loadChannels(cb){var call=OPSMODE?hops({action:'channels',name:NAME}):h({action:'hub_channels',code:CODE});call.then(function(r){
+  CANGROUP=!!(OPSMODE||(r&&r.can_create_group));document.body.classList.toggle('cangroup',CANGROUP);
   /* 2026-10-26: a failed call answered {ok:false}, which emptied CHANNELS and then "lost access" to
      whatever room was open. Keep the list we have when the server did not send one. */
   if(!r||!Array.isArray(r.channels)){renderRooms();if(typeof cb==='function')cb();return;}

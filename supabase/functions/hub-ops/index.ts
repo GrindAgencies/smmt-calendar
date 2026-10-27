@@ -72,12 +72,13 @@ function opsOversight(reach: OpsReach) {
     return true;
   };
 }
-const BSCH = [["announcements", "Announcements", "📣"], ["training", "Training", "🎓"], ["licensing", "Licensing", "📝"], ["cft", "CFT Room", "🎵"]];
+/* v8 (2026-10-26): one chat per baseshop plus Company Chat, the same set hub-api serves. */
+const BSCH = [["chat", "", "💬"]];
 async function loadBases() { const v = await loadKey("baseshops"); if (v && Array.isArray(v.bases)) return { root: v.root || "STANDARD", bases: v.bases }; return { root: "STANDARD", bases: [{ name: "STANDARD" }] }; }
 function genChannels(bases: any) {
-  const ch: any[] = [ { id: "main", name: "Company Chat", icon: "💬" }, { id: "leadership", name: "Leadership", icon: "👑" }, { id: "operations", name: "Operations", icon: "⚙️" } ];
+  const ch: any[] = [ { id: "main", name: "Company Chat", icon: "💬" }, { id: "operations", name: "Operations", icon: "⚙️" } ];
   const root = low(bases.root || "STANDARD");
-  for (const bs of (bases.bases || [])) { const nm = String(bs.name); const pfx = low(nm); if (pfx === root) continue; for (const c of BSCH) ch.push({ id: pfx + "_" + c[0], name: nm + " · " + c[1], icon: c[2], baseshop: nm, baseshopName: nm, sub: c[0] }); }
+  for (const bs of (bases.bases || [])) { const nm = String(bs.name); const pfx = low(nm); if (pfx === root) continue; for (const c of BSCH) ch.push({ id: pfx + "_" + c[0], name: c[1] ? nm + " · " + c[1] : nm, icon: c[2], baseshop: nm, baseshopName: nm, sub: c[0] }); }
   return ch;
 }
 async function customChannels() { const v = await loadKey("hub_channels"); return (v && Array.isArray(v.channels)) ? v.channels : []; }
