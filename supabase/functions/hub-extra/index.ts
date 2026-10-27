@@ -200,9 +200,16 @@ Deno.serve(async (req) => {
       const ids: number[] = Array.isArray(body.ids) ? (body.ids as unknown[]).map((x) => Number(x) || 0).filter(Boolean).slice(0, 60) : [];
       const ex = await fetch(`${SUPA}/rest/v1/hub_reads?channel=eq.${enc(channel)}&select=code,name,last_id`, { headers: DBH });
       const rows: Record<string, unknown>[] = (await ex.json()) || [];
+      /* 2026-10-26: whoever WROTE a message is not one of its readers. "Seen by 1" under your own
+         message, with nobody else in the room, was you. */
+      const authors: Record<string, string> = {};
+      if (ids.length) {
+        const ax = await fetch(`${SUPA}/rest/v1/hub_messages?id=in.(${ids.join(",")})&select=id,author_code`, { headers: DBH });
+        for (const m of ((await ax.json()) || []) as Record<string, unknown>[]) authors[String(m.id)] = String(m.author_code || "").toUpperCase();
+      }
       const out: Record<string, { count: number; names: string[] }> = {};
       for (const id of ids) {
-        const who = rows.filter((r) => Number(r.last_id) >= id);
+        const who = rows.filter((r) => Number(r.last_id) >= id && String(r.code || "").toUpperCase() !== authors[String(id)]);
         out[String(id)] = {
           count: who.length,
           names: who.map((r) => String(r.name || r.code)).slice(0, 12),

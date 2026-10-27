@@ -747,9 +747,18 @@ Deno.serve(async (req) => {
       return json({ ok: up.ok });
     }
     if (action === "hub_avatars") {
-      const ex = await fetch(`${SUPA}/rest/v1/hub_avatars?select=code,url`, { headers: DBH });
+      /* v35 (2026-10-26): links, not photos. This answered with every face as a base64 data URL
+         -- 6.4 MB for 18 people, on every open of the Hub, Home and the Leaderboard, which is
+         what made the Hub take ~7 s to show its rooms on a phone. Each face is now a URL to the
+         `avatar` function, versioned by updated_at so a new photo shows at once and an unchanged
+         one comes from the browser cache. Pages use the value as an <img src> either way. */
+      const ex = await fetch(`${SUPA}/rest/v1/hub_avatars?select=code,updated_at&url=like.data:*`, { headers: DBH });
       const rows = (await ex.json()) || [];
-      const map: Record<string, string> = {}; for (const r of rows) map[r.code] = r.url;
+      const map: Record<string, string> = {};
+      for (const r of rows) {
+        const v = Date.parse(String(r.updated_at || "")) || 0;
+        map[r.code] = `${SUPA}/functions/v1/avatar?code=${encodeURIComponent(String(r.code))}&v=${v}`;
+      }
       return json({ ok: true, avatars: map });
     }
 

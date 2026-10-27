@@ -35,6 +35,9 @@ Deno.serve(async (req) => {
     const bin = atob(b64);
     const bytes = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-    return new Response(bytes, { headers: { ...CORS, "Content-Type": mime, "Cache-Control": "public, max-age=600" } });
+    /* A versioned link (?v=updated_at, as hub_avatars now hands out) never changes content, so the
+       browser may keep it for a year; an unversioned one keeps the old 10-minute cache. */
+    const versioned = !!url.searchParams.get("v");
+    return new Response(bytes, { headers: { ...CORS, "Content-Type": mime, "Cache-Control": versioned ? "public, max-age=31536000, immutable" : "public, max-age=600" } });
   } catch (e) { return new Response(String(e), { status: 500, headers: CORS }); }
 });
