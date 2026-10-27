@@ -183,7 +183,10 @@ Deno.serve(async (req) => {
       const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
       if (typeof body.status === "string") patch.status = clean(body.status);
       if (typeof body.notes === "string") patch.notes = (body.notes as string).slice(0, 2000);
-      const up = await fetch(`${SUPA}/rest/v1/policy_1035_exchanges?id=eq.${enc(id)}`, { method: "PATCH", headers: { ...DBH, Prefer: "return=minimal" }, body: JSON.stringify(patch) });
+      /* v11: a per-baseshop seat may only move candidates belonging to its own shop's agents. */
+      const up = await fetch(`${SUPA}/rest/v1/policy_1035_exchanges?id=eq.${enc(id)}${seatQ}`, { method: "PATCH", headers: { ...DBH, Prefer: "return=representation" }, body: JSON.stringify(patch) });
+      const got = await up.json().catch(() => []);
+      if (up.ok && seatQ && !(Array.isArray(got) && got.length)) return json({ ok: false, error: "That candidate is outside your baseshop." }, 403);
       return json({ ok: up.ok, id });
     }
 

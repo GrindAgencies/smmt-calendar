@@ -840,7 +840,9 @@ function renderSnapshot(){
   var who=me?'Your numbers':(CTX==='team'?'Your team':(CTX==='shop'?'Your baseshop':'Whole company'));
   var mo=(SNAP&&SNAP.month)?(' · '+SNAP.month):'';
   $('snapCtxLbl').textContent=who+mo;
-  var _pc=$('perfCtx');if(_pc)_pc.textContent=me?'You':(CTX==='team'?'Team':(CTX==='shop'?'Baseshop':'Company'));
+  /* The performance box below is built from tracker-api `team`, which is the viewer's own tree in
+     every non-personal view, so it is labelled as that rather than as whichever tab is open. */
+  var _pc=$('perfCtx');if(_pc)_pc.textContent=me?'You':'Your team';
   var src=SNAP?SNAP[snapScope()]:null;
   if(!src){for(var i=0;i<4;i++){var d=document.createElement('div');d.className='card';d.innerHTML='<div class="stat"><div class="top"><div class="ic skl" style="width:40px;height:40px;"></div></div><div class="num skl">00</div><div class="lbl skl">loading</div></div>';g.appendChild(d);}return;}
   var pLbl=me?'Your New Partners':(CTX==='team'?'Team New Partners':(CTX==='shop'?'Baseshop New Partners':'Company New Partners'));

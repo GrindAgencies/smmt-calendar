@@ -123,6 +123,20 @@ Deno.serve(async (req) => {
     const me = isOps ? "" : await _sessionCode(body.session);
     if (!isOps && !me) return json({ ok: false, needs_session: true, error: "Please sign in again." }, 401);
     const meIsCoach = isOps ? true : await isCoach(me);
+    /* v9 (2026-10-26): a per-baseshop Operations seat reads, files and deletes coaching notes only
+       for agents in its own shop(s). Master seats (0000, the builder) and machine tokens keep
+       company-wide reach. `seatAllows` is null when the caller is not limited. */
+    let seatBases: string[] | null = null;
+    if (isOps && opsAuth && opsAuth.master !== true) {
+      const sc = await _rpcAuth("ops_scope", { p_token: token });
+      if (!(sc && sc.seat && !sc.scoped)) seatBases = Array.isArray(sc && sc.bases) ? sc.bases.map((b: unknown) => norm(b)) : [];
+    }
+    const seatAllows = async (agentCode: string): Promise<boolean> => {
+      if (!seatBases) return true;
+      const ar = await fetch(`${SUPA}/rest/v1/tracker_agents?code=eq.${encodeURIComponent(agentCode)}&select=baseshop&limit=1`, { headers: DBH });
+      const base = norm((((await ar.json()) || [])[0] || {}).baseshop);
+      return !!base && seatBases.indexOf(base) >= 0;
+    };
 
     if (action === "add") {
       /* The author is the verified caller. Operations may still file one on a trainer's
@@ -135,6 +149,7 @@ Deno.serve(async (req) => {
       const text = clean(body.body);
       if (!traineeCode || !text) return json({ ok: false, error: "Missing trainee or note." });
       if (!meIsCoach) return json({ ok: false, error: "Only trainers and senior leaders can leave coaching notes." }, 403);
+      if (!(await seatAllows(traineeCode))) return json({ ok: false, error: "That agent is outside your baseshop." }, 403);
       /* The name on the note comes from the roster. It used to be whatever the request said,
          so a note could carry a real trainer's name without them writing it. */
       const author = isOps ? "" : await rosterName(byCode);
@@ -160,6 +175,7 @@ Deno.serve(async (req) => {
       if (!isOps && !meIsCoach && asked && asked !== me) {
         return json({ ok: false, error: "Those notes are not yours." }, 403);
       }
+      if (!(await seatAllows(code))) return json({ ok: false, error: "That agent is outside your baseshop." }, 403);
       let only = "";
       if (!isOps && code !== me) {
         const down = await fetch(`${SUPA}/rest/v1/rpc/is_in_downline`, { method: "POST", headers: DBH, body: JSON.stringify({ p_leader: me, p_target: code }) }).then((r) => r.json()).catch(() => false);
@@ -174,6 +190,10 @@ Deno.serve(async (req) => {
       if (!bid) return json({ ok: true, notes: [] });
       /* Notes about an appointment belong to the two people on it. */
       let only = "";
+      if (seatBases) {
+        const bk0 = ((await (await fetch(`${SUPA}/rest/v1/bookings?id=eq.${encodeURIComponent(bid)}&select=agent_code&limit=1`, { headers: DBH })).json()) || [])[0];
+        if (!bk0 || !(await seatAllows(norm(bk0.agent_code)))) return json({ ok: true, notes: [] });
+      }
       if (!isOps) {
         const bk = ((await (await fetch(`${SUPA}/rest/v1/bookings?id=eq.${encodeURIComponent(bid)}&select=agent_code,trainer_code&limit=1`, { headers: DBH })).json()) || [])[0];
         const mine = bk && (norm(bk.agent_code) === me || norm(bk.trainer_code) === me);
@@ -197,6 +217,10 @@ Deno.serve(async (req) => {
       /* You may delete a note you wrote. The filter uses the VERIFIED code, so typing a
          trainer's code no longer deletes their notes. */
       if (!isOps) q += `&by_code=eq.${encodeURIComponent(me)}`;
+      if (seatBases) {
+        const n0 = ((await (await fetch(`${SUPA}/rest/v1/coaching_notes?id=eq.${encodeURIComponent(id)}&select=trainee_code&limit=1`, { headers: DBH })).json()) || [])[0];
+        if (!n0 || !(await seatAllows(norm(n0.trainee_code)))) return json({ ok: false, error: "That note is outside your baseshop." }, 403);
+      }
       const del = await fetch(q, { method: "DELETE", headers: { ...DBH, Prefer: "return=minimal" } });
       return json({ ok: del.ok, id });
     }
