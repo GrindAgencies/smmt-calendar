@@ -623,10 +623,15 @@ Deno.serve(async (req) => {
         }
       }
       const after = Number(body.after || url.searchParams.get("after")) || 0;
-      let q = `${SUPA}/rest/v1/hub_messages?channel=eq.${encodeURIComponent(channel)}&order=id.asc`;
-      if (after > 0) q += `&id=gt.${after}`; else q += `&limit=500`;
+      /* v32: the first load is the NEWEST 500, returned oldest-first. It used to ask for
+         order=id.asc&limit=500, i.e. the oldest 500, so a room past 500 messages would have opened
+         on its history and never shown what was said today. */
+      let q = `${SUPA}/rest/v1/hub_messages?channel=eq.${encodeURIComponent(channel)}`;
+      if (after > 0) q += `&id=gt.${after}&order=id.asc`; else q += `&order=id.desc&limit=500`;
       const ex = await fetch(q, { headers: DBH });
-      return json({ ok: true, messages: (await ex.json()) || [] });
+      const msgs = ((await ex.json()) || []) as Record<string, unknown>[];
+      if (!(after > 0) && Array.isArray(msgs)) msgs.reverse();
+      return json({ ok: true, messages: msgs });
     }
 
     if (action === "hub_react") {

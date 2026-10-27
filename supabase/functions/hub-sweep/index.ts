@@ -82,7 +82,23 @@ Deno.serve(async (req) => {
   /* Every path any surviving message still points at. Matched as text rather than by reaching
      into the attach shape, so a future change to that shape cannot quietly turn a live file
      into an orphan and delete it. */
-  const msgs = await getJSON(`hub_messages?select=attach&attach=not.is.null&limit=20000`);
+  /* 2026-10-26: read EVERY page. The API answers at most 1,000 rows per request, so past 1,000
+     attachments a single read would have left newer live files out of `referenced` -- and this
+     function deletes what is not referenced. And a read that FAILS must stop the sweep: an empty
+     list here means "delete everything past the grace period". */
+  const msgs: any[] = [];
+  let readFailed = false;
+  for (let off = 0; off < 200000; off += 1000) {
+    let page: unknown = null;
+    try {
+      const r = await fetch(`${SUPA}/rest/v1/hub_messages?select=id,attach&attach=not.is.null&order=id.asc&limit=1000&offset=${off}`, { headers: DBH });
+      page = r.ok ? await r.json() : null;
+    } catch (_) { page = null; }
+    if (!Array.isArray(page)) { readFailed = true; break; }
+    msgs.push(...page);
+    if (page.length < 1000) break;
+  }
+  if (readFailed) return json({ ok: false, error: "Could not read which files are still in use, so nothing was deleted." }, 503);
   const referenced = msgs.map((m: any) => JSON.stringify(m.attach ?? "")).join("\n");
 
   const folders = (await listPrefix("")).filter((e: any) => e && e.name && !e.id);
