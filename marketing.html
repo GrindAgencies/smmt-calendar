@@ -427,7 +427,7 @@ html, body{ overflow-x: hidden; }
       <a class="btn-gold" href="index.html">Sign in →</a>
     </div>
     <div id="planApp" style="display:none">
-      <div class="who-row"><span id="whoAmI"></span><span class="savestat" id="wmSaveStat"></span></div>
+      <div class="who-row"><span id="whoAmI"></span><span class="savestat" id="wmSaveStat" onclick="wmRetryLoad()"></span></div>
       <div class="mp-tabs">
         <button id="mpTabMine" class="mp-tab on" onclick="mpTab('mine')">📒 My List</button>
         <button id="mpTabPool" class="mp-tab" onclick="mpTab('pool')">📞 Phone Zone <span class="vcount" id="pzTabCount">0</span></button>
@@ -723,20 +723,39 @@ html, body{ overflow-x: hidden; }
   var warmMarket=[];
   function setSave(t,ok){var s=el('wmSaveStat');if(s){s.textContent=t;s.className='savestat'+(ok?' ok':'');}}
   var wmSaveTimer=null;
+  /* A save REPLACES the stored list. WMLOADED: never save a list that did not load (it would write an
+     empty-plus-one list over the real book). WMKNOWN: how many leads the server holds as far as this
+     page knows, sent as prev_count so a stale copy is refused. WMBUSY/WMAGAIN: one save at a time. */
+  var WMLOADED=false, WMKNOWN=0, WMBUSY=false, WMAGAIN=false;
   function wmSave(immediate){
-    if(!CODE)return; setSave('Saving…');
-    var go=function(){api({action:'savewarm',code:CODE,warm_market:warmMarket}).then(function(r){setSave(r&&r.ok?'Saved ✓':'Saved',r&&r.ok);}).catch(function(){setSave('Offline — will retry');});};
+    if(!CODE)return;
+    if(!WMLOADED){setSave('Not saved — your list didn’t load. Tap here to retry.');return;}
+    setSave('Saving…');
+    var go=function(){
+      if(WMBUSY){WMAGAIN=true;return;}
+      WMBUSY=true; var sent=warmMarket.slice();
+      api({action:'savewarm',code:CODE,warm_market:sent,prev_count:WMKNOWN}).then(function(r){
+        WMBUSY=false;
+        if(r&&r.ok){WMKNOWN=sent.length;if(WMAGAIN){WMAGAIN=false;go();}else setSave('Saved ✓',true);return;}
+        WMAGAIN=false;
+        if(r&&r.stale){loadPlan();setSave('Your list changed on another device — reloaded. Please redo your last change.');return;}
+        setSave('Not saved — '+((r&&r.error)||'try again'));
+      }).catch(function(){WMBUSY=false;setSave('Offline — will retry');setTimeout(go,4000);});
+    };
     clearTimeout(wmSaveTimer); if(immediate)go(); else wmSaveTimer=setTimeout(go,650);
   }
+  function wmRetryLoad(){if(!WMLOADED){setSave('Loading…');loadPlan();}}
   function loadPlan(){
     if(!CODE){el('signedOut').style.display='block';el('planApp').style.display='none';return;}
     el('signedOut').style.display='none';el('planApp').style.display='block';
     el('whoAmI').textContent=(MYNAME?(MYNAME+' · '):'')+'GFI '+CODE;
     api({action:'load',code:CODE}).then(function(r){
-      if(r&&r.ok&&r.agent){warmMarket=Array.isArray(r.agent.warm_market)?r.agent.warm_market:[];if(!MYNAME){var nm=((r.agent.first_name||'')+' '+(r.agent.last_name||'')).trim();if(nm)el('whoAmI').textContent=nm+' · GFI '+CODE;}}
+      WMLOADED=!!(r&&r.ok&&r.agent&&!r.lookup_only);
+      if(!WMLOADED)setSave('Couldn’t load your list — tap here to retry.');
+      if(r&&r.ok&&r.agent){warmMarket=Array.isArray(r.agent.warm_market)?r.agent.warm_market:[];WMKNOWN=warmMarket.length;if(!MYNAME){var nm=((r.agent.first_name||'')+' '+(r.agent.last_name||'')).trim();if(nm)el('whoAmI').textContent=nm+' · GFI '+CODE;}}
       else warmMarket=[];
       renderWarm();
-    }).catch(function(){renderWarm();});
+    }).catch(function(){WMLOADED=false;setSave('Couldn’t load your list — tap here to retry.');renderWarm();});
   }
   /* ===================== AI GROWTH PLAN ===================== */
   var LASTFULL=false, PLANMD='';
@@ -1003,7 +1022,7 @@ html, body{ overflow-x: hidden; }
     list.slice(0,PZLIMIT).forEach(function(c){var d=document.createElement('div');d.className='pz-card';var meta=[];if(c.howKnow)meta.push('🤝 '+escH(c.howKnow));if(c.timeZone)meta.push('🕑 '+escH(c.timeZone));if(c.age)meta.push('🎂 '+escH(c.age));if(c.apptDate)meta.push('📅 '+escH(c.apptDate));var tagHtml='';if(c.autoReleased)tagHtml+='<span class="pz-tag release">⏰ '+(c.originAgentName?('From '+escH(c.originAgentName)+' — '):'')+'uncalled 21+ days</span>';if(c.married)tagHtml+='<span class="pz-tag">Married</span>';if(c.children)tagHtml+='<span class="pz-tag">Children</span>';if(c.contacted)tagHtml+='<span class="pz-tag">Previously contacted</span>';d.innerHTML='<div class="pz-top"><span class="pz-name">'+(escH(c.name)||'(no name)')+'</span>'+(c.phone?'<a class="pz-phone" href="tel:'+escH(c.phone)+'">☎ '+escH(c.phone)+'</a>':'')+'</div>'+(meta.length?'<div class="pz-meta">'+meta.join(' &nbsp;·&nbsp; ')+'</div>':'')+(c.notes?'<div class="pz-meta">📝 '+escH(c.notes)+'</div>':'')+(tagHtml?'<div class="pz-tags">'+tagHtml+'</div>':'')+'<button type="button" class="pz-claim">✅ Assign to me &amp; add to my list</button>';d.querySelector('.pz-claim').addEventListener('click',function(){claimLead(c.id,d.querySelector('.pz-claim'));});L.appendChild(d);});
     if(list.length>PZLIMIT){var more=document.createElement('button');more.type='button';more.className='pz-refresh';more.style.cssText='display:block;margin:12px auto 0;';more.textContent='Show more ('+(list.length-PZLIMIT)+' more)';more.onclick=function(){PZLIMIT+=60;renderPool();};L.appendChild(more);}
   }
-  function claimLead(id,btn){if(!CODE){alert('Please sign in first.');return;}if(!confirm('Assign this lead to your list?\n\nUse this once you have called and connected with them. It moves into your list and leaves the shared pool.'))return;if(btn){btn.disabled=true;btn.textContent='Assigning…';}api({action:'claimlead',code:CODE,leadId:id}).then(function(r){if(r&&r.ok&&r.lead){poolLeads=poolLeads.filter(function(x){return x.id!==id;});warmMarket.unshift(r.lead);renderPool();renderWarm();setSave('Lead assigned ✓',true);}else if(r&&r.taken){poolLeads=poolLeads.filter(function(x){return x.id!==id;});renderPool();alert('That lead was just claimed by another agent.');}else{if(btn){btn.disabled=false;btn.innerHTML='✅ Assign to me &amp; add to my list';}alert((r&&r.error)||'Could not assign that lead.');}}).catch(function(){if(btn){btn.disabled=false;btn.innerHTML='✅ Assign to me &amp; add to my list';}alert('Network error — please try again.');});}
+  function claimLead(id,btn){if(!CODE){alert('Please sign in first.');return;}if(!confirm('Assign this lead to your list?\n\nUse this once you have called and connected with them. It moves into your list and leaves the shared pool.'))return;if(btn){btn.disabled=true;btn.textContent='Assigning…';}api({action:'claimlead',code:CODE,leadId:id}).then(function(r){if(r&&r.ok&&r.lead){poolLeads=poolLeads.filter(function(x){return x.id!==id;});warmMarket.unshift(r.lead);WMKNOWN++;renderPool();renderWarm();setSave('Lead assigned ✓',true);}else if(r&&r.taken){poolLeads=poolLeads.filter(function(x){return x.id!==id;});renderPool();alert('That lead was just claimed by another agent.');}else{if(btn){btn.disabled=false;btn.innerHTML='✅ Assign to me &amp; add to my list';}alert((r&&r.error)||'Could not assign that lead.');}}).catch(function(){if(btn){btn.disabled=false;btn.innerHTML='✅ Assign to me &amp; add to my list';}alert('Network error — please try again.');});}
 
   /* ===================== TEAM MARKETING PLANS (CFT+ · view-only) ===================== */
   var MKT="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/mktg-team";

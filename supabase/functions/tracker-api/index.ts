@@ -373,6 +373,16 @@ Deno.serve(async (req) => {
       const code = myCode;
       if (!code) return json({ ok: false, error: "No code" });
       if (!Array.isArray(body.warm_market)) return json({ ok: false, error: "warm_market must be an array" });
+      // 2026-10-27: this REPLACES the list, so a page that failed to load (empty list on screen) or
+      // a second device with an older copy could overwrite a whole book with one new lead. The page
+      // now sends prev_count — how many leads it started from — and a mismatch means somebody else
+      // (another device, claimlead, sweepstale) changed the list since: refuse and let it reload.
+      // Older cached pages send no prev_count and keep the old behaviour.
+      if (typeof body.prev_count === "number") {
+        const cur = await getAgent(code);
+        const curLen = cur && Array.isArray(cur.warm_market) ? cur.warm_market.length : 0;
+        if (curLen !== body.prev_count) return json({ ok: false, stale: true, count: curLen });
+      }
       const td = ptToday();
       const wm = (body.warm_market as Record<string, unknown>[]).map((c) => (c && c.contacted && !c.contactedDate) ? { ...c, contactedDate: td } : c);
       const up = await fetch(`${SUPA}/rest/v1/tracker_agents?code=eq.${encodeURIComponent(code)}`, { method: "PATCH", headers: { ...DBH, Prefer: "return=minimal" }, body: JSON.stringify({ warm_market: wm, updated_at: new Date().toISOString(), last_activity: new Date().toISOString() }) });
