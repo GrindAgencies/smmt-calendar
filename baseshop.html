@@ -386,10 +386,11 @@ function paintBots(){
       return '<button type="button" class="daybtn'+(on?' on':'')+'" data-r="'+n+'" onclick="this.classList.toggle(\'on\')">'+l+'</button>';};
     var hrs=''; for(var i=0;i<24;i++)hrs+='<option value="'+i+'"'+((sc.highlights_hour===i)?' selected':'')+'>'+((i%12)||12)+(i<12?' AM':' PM')+'</option>';
     h+='<div class="card" data-base="'+esc(id)+'"><h2>'+esc(id)+' channel</h2>'+
-      '<p class="sub">Bots only ever post here — never the company chat, never Operations. You decide what the channel is called, when they speak, and what they say.</p>'+
+      '<p class="sub">This is your team\u2019s chat in The Hub. Your team\u2019s bots post here \u2014 never in the Company Chat or Operations. You decide what it is called, when they speak, and what they say.</p>'+
       '<label class="sw" style="margin-bottom:12px"><input type="checkbox" data-f="announce" '+((sc.announce!==false)?'checked':'')+'> Bots on</label>'+
-      '<div class="fld"><label class="lbl">What this channel is called</label>'+
-        '<input class="in" data-f="label" value="'+esc(b.label||'')+'" maxlength="40" placeholder="'+esc(id)+' Announcements"></div>'+
+      '<div class="fld"><label class="lbl">What your team chat is called</label>'+
+        '<input class="in" data-f="label" value="'+esc(/ announcements$/i.test(b.label||'')?'':(b.label||''))+'" maxlength="40" placeholder="'+esc(id)+'">'+
+        '<div style="font-size:12px;color:var(--ink3);margin-top:4px">Shown on your team\u2019s chat in The Hub. Leave blank to use the baseshop name.</div></div>'+
       '<div class="fld"><label class="lbl">Reminders before a session</label><div class="daybar">'+rem(60,'1 hr')+rem(30,'30 min')+rem(10,'10 min')+rem(0,'Live')+'</div></div>'+
       '<div class="fld"><label class="lbl">Daily highlights — days</label><div class="daybar">'+day(1,'Mon')+day(2,'Tue')+day(3,'Wed')+day(4,'Thu')+day(5,'Fri')+day(6,'Sat')+day(0,'Sun')+'</div></div>'+
       '<div class="fld"><label class="lbl">Post them at</label><select class="in" data-f="hour" style="max-width:170px">'+hrs+'</select></div>'+

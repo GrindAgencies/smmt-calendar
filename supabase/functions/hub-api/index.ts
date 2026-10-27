@@ -179,6 +179,22 @@ async function orgRole(code: string): Promise<string> {
    by the hub_room_router trigger in the database, so nothing can post into a room nobody sees.
    Every other group is created by the EMDs with the plus button. */
 const BSCH = [["chat", "", "💬"]];
+/* v39 (2026-10-26): the name an EMD gives their channel in Baseshop Settings -> Bots & Channel
+   (app_settings.hub_bot_config.bases[shop].label) is the team chat's name. It used to be saved and
+   never read. The old default "<SHOP> Announcements" counts as unset, so the chat shows the shop. */
+async function applyChatLabels(chs: Record<string, unknown>[]) {
+  try {
+    const ex = await fetch(`${SUPA}/rest/v1/app_settings?key=eq.hub_bot_config&select=value`, { headers: DBH });
+    const cfg = (((await ex.json()) || [])[0] || {}).value || {};
+    const bases = (cfg && cfg.bases) || {};
+    for (const c of chs) {
+      if (c.sub !== "chat") continue;
+      const lbl = String((bases[low(c.baseshop)] || {}).label || "").trim();
+      if (lbl && !/ announcements$/i.test(lbl)) c.name = lbl;
+    }
+  } catch (_) { /* a label is cosmetic; the shop name stands */ }
+  return chs;
+}
 async function loadBases(): Promise<{ root: string; bases: Record<string, unknown>[] }> {
   try {
     const ex = await fetch(`${SUPA}/rest/v1/app_settings?key=eq.baseshops&select=value`, { headers: DBH });
@@ -545,7 +561,7 @@ Deno.serve(async (req) => {
          and group settings everywhere else. Same answer hub-ops already gives. */
       if (isAdmin) {
         /* v31: a baseshop seat's list carries only the private groups of its own shops. */
-        const channels: Record<string, unknown>[] = genChannels(bases);
+        const channels: Record<string, unknown>[] = await applyChatLabels(genChannels(bases));
         for (const c of await customChannels()) if (await opsMay(String(c.id))) channels.push(c);
         const baseshops = (bases.bases || []).filter((b) => low(b.name) !== low(bases.root)).map((b) => ({ id: low(b.name), name: String(b.name), emd: b.owner_name || "" }));
         const access = { role: "ops", licensed: true, mod: true, name: "Operations", baseshop: bases.root, scope: "super", owns_base: "", accessibleBases: (bases.bases || []).map((b) => String(b.name)) };
@@ -554,7 +570,7 @@ Deno.serve(async (req) => {
       const code = norm(body.code || url.searchParams.get("code"));
       const acc: Acc = code ? await accessOf(code) : { role: "agent", licensed: false, mod: false, name: "", baseshop: bases.root, scope: "member", owns_base: "", accessibleBases: [bases.root] };
       const custom = await customChannels();
-      const all = genChannels(bases).concat(custom);
+      const all = (await applyChatLabels(genChannels(bases))).concat(custom);
       const chans = all.filter((c: Record<string, unknown>) => (c.id as string).indexOf("c_") === 0 ? canSeeCustom(c, code, acc) : eligible(c.id as string, acc, bases));
       const baseshops = (bases.bases || []).filter((b) => low(b.name) !== low(bases.root)).map((b) => ({ id: low(b.name), name: String(b.name), emd: b.owner_name || "" }));
       /* v27: the rooms this person may moderate, so the page offers "remove" only where the

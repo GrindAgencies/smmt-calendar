@@ -306,7 +306,7 @@ Deno.serve(async (req) => {
         const k = low(n); const c = basesCfg[k] || {};
         return {
           baseshop: n, channel_key: k + "_announcements",
-          label: clean(c.label, 40) || (n + " Announcements"),
+          label: clean(c.label, 40) || n,
           schedule: cleanSched({}, c.schedule || { announce: c.announce !== false, highlights: c.highlights || [] }),
         };
       });
@@ -323,7 +323,7 @@ Deno.serve(async (req) => {
       if (cur.schedule) { cur.announce = cur.schedule.announce !== false; cur.highlights = cur.schedule.highlights || []; }
       cfg.bases[k] = cur;
       await saveKey("hub_bot_config", cfg);
-      return json({ ok: true, baseshop: base, label: cur.label || (base + " Announcements"), schedule: cur.schedule });
+      return json({ ok: true, baseshop: base, label: cur.label || base, schedule: cur.schedule });
     }
 
     return json({ ok: false, error: "unknown action" }, 400);
