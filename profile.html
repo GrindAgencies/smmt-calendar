@@ -620,7 +620,7 @@ function loadEmdControl(){
   fetch(BOTADMIN,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'base_get',code:CODE})})
     .then(function(r){return r.json();}).then(function(d){ if(d&&d.ok)BASEDATA=d; renderEmd(); }).catch(function(){});
   fetch(BCAST,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'me',code:CODE})})
-    .then(function(r){return r.json();}).then(function(d){ if(d&&d.ok){BCME=d;loadBcFeed();} renderEmd(); }).catch(function(){});
+    .then(function(r){return r.json();}).then(function(d){ if(d&&d.ok&&d.is_leader!==false){BCME=d;loadBcFeed();} renderEmd(); }).catch(function(){});
   fetch(BOTADMIN,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'list',code:CODE})})
     .then(function(r){return r.json();}).then(function(d){ if(d&&d.ok)BOTLIST=d; renderEmd(); }).catch(function(){});
   fetch(ANN,{method:'POST',headers:{'Content-Type':'application/json'},

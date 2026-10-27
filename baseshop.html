@@ -149,7 +149,7 @@ if(!CODE){
     'Open the app and sign in, then come back.</p><a class="btn" href="index.html">Go to Home</a>';
 } else {
   post(BCAST,{action:'me',code:CODE}).then(function(r){
-    if(!r||!r.ok){
+    if(!r||!r.ok||r.is_leader===false){
       $('gate').innerHTML='<h2>Leaders only</h2><p style="color:var(--ink3);font-size:13.5px">'+
         esc((r&&r.error)||'This page is for Marketing Directors and above.')+'</p>'+
         '<a class="btn ghost" href="index.html">Back to Home</a>';

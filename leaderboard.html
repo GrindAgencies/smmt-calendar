@@ -258,6 +258,11 @@ try{
   SCOPE  = sessionStorage.getItem('tsfg_lb_scope')  || 'hierarchy';
   var _r = sessionStorage.getItem('tsfg_lb_range'); if(_r) RANGE = JSON.parse(_r);
 }catch(e){}
+/* 2026-10-26: a remembered choice that is no longer valid (an old metric name, a hand-edited value)
+   used to throw in render() on every visit for the rest of the session. Fall back instead. */
+if(!METRICS[METRIC]) METRIC='premium';
+if(['week','month','all','custom'].indexOf(PERIOD)<0) PERIOD='month';
+if(['personal','baseshop','hierarchy'].indexOf(SCOPE)<0) SCOPE='hierarchy';
 
 function money(n){ return '$'+Math.round(Number(n)||0).toLocaleString('en-US'); }
 function fmt(v){ return METRICS[METRIC].money ? money(v) : String(Math.round(Number(v)||0)); }
@@ -270,6 +275,7 @@ function setPeriod(p){
   syncSegs(); load();
 }
 function setMetric(m){
+  if(!METRICS[m]) return;
   METRIC=m; try{ sessionStorage.setItem('tsfg_lb_metric',m); }catch(e){}
   syncSegs();
   render();                      /* every metric is already in the one reply */

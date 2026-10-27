@@ -348,7 +348,7 @@
     if (!c) return;
     fetch('https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/emd-broadcast', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'me', code: c })
+      body: JSON.stringify({ action: 'me', code: c, probe: true })   // a yes/no question, answered without a 403
     }).then(function(r){ return r.json(); }).then(function(d){
       var yes = !!(d && d.ok && d.is_leader);
       try{ sessionStorage.setItem(LEADER_KEY, yes ? '1' : '0'); }catch(e){}

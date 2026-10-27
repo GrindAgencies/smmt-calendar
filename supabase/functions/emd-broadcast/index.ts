@@ -206,6 +206,9 @@ Deno.serve(async (req) => {
     if (!myCode) return json({ ok: false, needs_session: true, error: "Please sign in again." }, 401);
     const who = await whoami(myCode);
     if (!who) return json({ ok: false, error: "Sign in again — we could not find your profile." }, 401);
+    /* "Am I a leader?" is a question with a yes/no answer, not a refusal. The nav asks it once a
+       session for every agent; answering "no" with a 403 logged a false failure each time. */
+    if (action === "me" && body.probe === true && !who.is_leader) return json({ ok: true, is_leader: false });
     if (!who.is_leader) return json({ ok: false, error: "Only a Marketing Director and above can open Baseshop Settings." }, 403);
     if (!who.baseshop) return json({ ok: false, error: "Your profile has no baseshop, so there is no team channel to post to." }, 400);
 

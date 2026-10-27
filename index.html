@@ -1415,7 +1415,7 @@ function leaderInit(){
   var c=''; try{ c=(localStorage.getItem('tsfg_code')||'').toUpperCase(); }catch(e){}
   if(!c) return;
   fetch(BCASTAPI,{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({action:'me',code:c})})
+    body:JSON.stringify({action:'me',code:c,probe:true})})   /* yes/no, answered without a 403 */
    .then(function(r){return r.json();})
    .then(function(d){
      if(!d||!d.ok||!d.is_leader) return;
