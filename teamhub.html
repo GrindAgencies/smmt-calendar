@@ -1724,9 +1724,25 @@ function setReply(id){REPLYTO=id;var m=findMsg(id);$('replybar').className='repl
 function clearReply(){REPLYTO=null;$('replybar').className='replybar';}
 /* 2026-10-26: a failed edit used to vanish silently; hub-api now refuses blank edits and edits of
    someone else's message with a reason, so say it. Blank is refused here first - Delete is for that. */
-function editMsg(id){var m=findMsg(id);if(!m)return;var v=prompt('Edit message:',m.body);if(v===null)return;
-  if(!String(v).trim()){toast('A message cannot be blank \u2014 use Delete to remove it');return;}
-  h({action:'hub_edit',id:id,code:CODE,body:v}).then(function(r){if(r&&r.ok){m.body=v;m.edited=true;renderMsgs(false);}else toast((r&&r.error)||'Could not save that edit');});}
+/* 2026-10-26: edited in the app's own sheet, not prompt() -- the last bare system dialog in the
+   Hub, and the one that looked broken in the iOS app. Same modal as Report and Delete. */
+var EDITBUSY=false;
+function editMsg(id){var m=findMsg(id);if(!m)return;
+  safetyModal('<h3 style="margin:0 0 10px">Edit message</h3>'
+    +'<textarea id="editTxt" rows="4" style="width:100%;box-sizing:border-box;border-radius:10px;border:1px solid var(--line);'
+    +'background:var(--panel);color:var(--ink);padding:10px;font:inherit;font-size:15px;resize:vertical">'+esc(m.body||'')+'</textarea>'
+    +'<div id="editErr" style="color:#e5534b;font-size:13px;min-height:18px;margin-top:6px"></div>'
+    +'<div style="margin-top:8px;display:flex;gap:10px;justify-content:flex-end">'
+    +'<button class="gbtn" onclick="closeSafety()">Cancel</button>'
+    +'<button class="gbtn" id="editGo" style="background:var(--gold,#d3aa45);color:#111;border-color:transparent" onclick="saveEdit('+Number(id)+')">Save</button></div>');
+  setTimeout(function(){var t=$('editTxt');if(t){t.focus();t.setSelectionRange(t.value.length,t.value.length);}},60);}
+function saveEdit(id){if(EDITBUSY)return;var m=findMsg(id);var t=$('editTxt');if(!t)return;var v=t.value;
+  if(!String(v).trim()){$('editErr').textContent='A message cannot be blank \u2014 use Delete to remove it.';return;}
+  if(m&&v===m.body){closeSafety();return;}
+  EDITBUSY=true;var b=$('editGo');if(b){b.disabled=true;b.textContent='Saving\u2026';}
+  h({action:'hub_edit',id:id,code:CODE,body:v}).then(function(r){EDITBUSY=false;
+    if(r&&r.ok){var mm=findMsg(id);if(mm){mm.body=v;mm.edited=true;}closeSafety();renderMsgs(false);}
+    else{if(b){b.disabled=false;b.textContent='Save';}var e=$('editErr');if(e)e.textContent=(r&&r.error)||'Could not save that edit.';}});}
 /* 2026-10-26: confirm() is a bare system dialog in the iOS WebView, so the app's own modal asks
    instead. A message that has gone (repaint, another device) is handled, and a double tap sends once. */
 var DELBUSY={};
