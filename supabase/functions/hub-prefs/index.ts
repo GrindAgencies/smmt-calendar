@@ -115,6 +115,22 @@ Deno.serve(async (req) => {
       const d = await fetch(`${SUPA}/rest/v1/hub_pins?code=eq.${enc(me)}&channel=eq.${enc(channel)}`, { method: "DELETE", headers: { ...DBH, Prefer: "return=minimal" } });
       return json({ ok: d.ok, pinned: false, channel });
     }
+    /* 2026-10-26: you can only pin a conversation you are in. A DM must include you; a private
+       group must list you (or be yours). Open rooms are decided by hub-api as before. Ops seats
+       keep their oversight pins. */
+    if (!me.startsWith("OPS:")) {
+      if (channel.indexOf("dm:") === 0) {
+        const parts = channel.slice(3).split("|").map(norm);
+        if (parts.indexOf(norm(me)) < 0) return json({ ok: false, error: "That conversation is not yours." }, 403);
+      } else if (channel.indexOf("c_") === 0) {
+        const reg = await getJSON(`app_settings?key=eq.hub_channels&select=value`);
+        const chs = (reg[0] && reg[0].value && Array.isArray(reg[0].value.channels)) ? reg[0].value.channels : [];
+        const c = chs.find((x: any) => String(x && x.id) === channel);
+        if (!c) return json({ ok: false, error: "That group no longer exists." }, 404);
+        const mem = (Array.isArray(c.members) ? c.members : []).map(norm);
+        if (c.private && norm(c.byCode) !== norm(me) && mem.indexOf(norm(me)) < 0) return json({ ok: false, error: "You are not in that group." }, 403);
+      }
+    }
     const have = await getJSON(`hub_pins?code=eq.${enc(me)}&select=channel`);
     if (have.length >= MAX_PINS && !have.some((p: any) => String(p.channel) === channel)) {
       return json({ ok: false, error: `That is the limit of ${MAX_PINS} pinned chats.` });

@@ -551,15 +551,46 @@ Deno.serve(async (req) => {
       const code = norm(body.code); const channel = clean(body.channel) || "main";
       if (!code) return json({ ok: false, error: "missing" });
       if (isAdmin && !(await opsMay(channel))) return json({ ok: false, error: "That conversation belongs to another baseshop." }, 403);
+      /* v33 (2026-10-26): a direct message is only for its two people. DM rooms skipped every
+         check here, so anyone could post into a conversation between two other agents -- found
+         by the end-to-end Hub test. */
+      if (!isAdmin && channel.indexOf("dm:") === 0) {
+        const parts = channel.slice(3).split("|").map((x) => norm(x)).filter(Boolean);
+        if (parts.length !== 2 || parts.indexOf(code) < 0) return json({ ok: false, error: "That conversation is not yours." }, 403);
+      }
       if (!isAdmin && channel.indexOf("dm:") !== 0) {
         const acc = await accessOf(code);
         if (channel.indexOf("c_") === 0) {
           const cl = await customChannels(); const cobj = cl.find((x) => x.id === channel);
-          if (cobj && !canSeeCustom(cobj, code, acc)) return json({ ok: false, error: "You don't have access to this channel." }, 403);
+          /* ...and a group that no longer exists (or never did) takes no new messages. */
+          if (!cobj) return json({ ok: false, error: "That group no longer exists." }, 404);
+          if (!canSeeCustom(cobj, code, acc)) return json({ ok: false, error: "You don't have access to this channel." }, 403);
         } else { const bases = await loadBases(); if (!eligible(channel, acc, bases)) return json({ ok: false, error: "You don't have access to this channel." }, 403); }
       }
       let nm = clean(body.author_name); if (!nm) { const a = await agentRow(code); nm = a ? (((a.first_name || "") + " " + (a.last_name || "")).trim()) : ""; }
-      const row: Record<string, unknown> = { channel, author_code: code, author_name: nm, body: clean(body.body), kind: clean(body.kind) || "text", attach: (body.attach && typeof body.attach === "object") ? body.attach : null, reply_to: body.reply_to ? Number(body.reply_to) : null, reactions: {} };
+      /* v34 (2026-10-26): what a person may put on a message. `kind` decides how it is drawn --
+         'system' wears the OPERATIONS badge and 'ai'/'coach'/'announce' look like the bots -- so an
+         agent may only send plain text or a recognition. `attach` was stored as sent and drawn into
+         src/href, which let a crafted object run script in everyone's Hub; an agent's attachment is
+         now rebuilt from the v2 upload fields only, and only for a file in THIS room's folder. */
+      let kind = clean(body.kind) || "text";
+      let attach: unknown = null;
+      if (isAdmin) {
+        attach = (body.attach && typeof body.attach === "object") ? body.attach : null;
+      } else {
+        if (["text", "recognition"].indexOf(kind) < 0) kind = "text";
+        const a = (body.attach && typeof body.attach === "object") ? body.attach as Record<string, unknown> : null;
+        if (a) {
+          const folder = channel.replace(/[^A-Za-z0-9_.|:-]/g, "_") + "/";
+          const path = String(a.path ?? "");
+          const akind = String(a.kind ?? "");
+          if (Number(a.v) !== 2 || path.indexOf(folder) !== 0 || !/^[A-Za-z0-9_.|:\/-]+$/.test(path) || path.indexOf("..") >= 0 || ["image", "video", "file"].indexOf(akind) < 0) {
+            return json({ ok: false, error: "That attachment could not be sent. Pick the file again." }, 400);
+          }
+          attach = { v: 2, kind: akind, path, name: clean(a.name).slice(0, 200), size: Number(a.size) || 0, mime: clean(a.mime).slice(0, 100) };
+        }
+      }
+      const row: Record<string, unknown> = { channel, author_code: code, author_name: nm, body: clean(body.body), kind, attach, reply_to: body.reply_to ? Number(body.reply_to) : null, reactions: {} };
       const ins = await fetch(`${SUPA}/rest/v1/hub_messages`, { method: "POST", headers: { ...DBH, Prefer: "return=representation" }, body: JSON.stringify(row) });
       const r = await ins.json();
       const inserted = Array.isArray(r) ? r[0] : r;
@@ -636,6 +667,8 @@ Deno.serve(async (req) => {
 
     if (action === "hub_react") {
       const id = Number(body.id); const code = norm(body.code); const emoji = clean(body.emoji).slice(0, 8);
+      /* v34: a reaction is an emoji, not markup -- quotes, brackets and letters are refused. */
+      if (/[<>"'`&\\A-Za-z0-9]/.test(emoji)) return json({ ok: false, error: "That is not a reaction." }, 400);
       if (!id || !code || !emoji) return json({ ok: false, error: "missing" });
       const ex = await fetch(`${SUPA}/rest/v1/hub_messages?id=eq.${id}&select=reactions,channel`, { headers: DBH });
       const rows = await ex.json(); if (!rows || !rows[0]) return json({ ok: false, error: "not found" });
@@ -660,9 +693,15 @@ Deno.serve(async (req) => {
         const m0 = ((await ex.json()) || [])[0];
         if (!m0 || !(await opsMay(String(m0.channel || "")))) return json({ ok: false, error: "not found" });
       }
-      let q = `${SUPA}/rest/v1/hub_messages?id=eq.${id}`;
+      /* v33: an edit to nothing is refused (it used to blank the message -- deleting is a separate,
+         recorded action), and an edit that changed no row says so instead of reporting success. */
+      const newBody = clean(body.body);
+      if (!newBody.trim()) return json({ ok: false, error: "A message can't be empty. Delete it instead." }, 400);
+      let q = `${SUPA}/rest/v1/hub_messages?id=eq.${id}&deleted=not.eq.true`;
       if (!isAdmin) q += `&author_code=eq.${encodeURIComponent(code)}`;
-      const up = await fetch(q, { method: "PATCH", headers: { ...DBH, Prefer: "return=minimal" }, body: JSON.stringify({ body: clean(body.body), edited: true }) });
+      const up = await fetch(q, { method: "PATCH", headers: { ...DBH, Prefer: "return=representation" }, body: JSON.stringify({ body: newBody, edited: true }) });
+      const got = await up.json().catch(() => []);
+      if (up.ok && !(Array.isArray(got) && got.length)) return json({ ok: false, error: "You can only edit your own messages." }, 403);
       return json({ ok: up.ok });
     }
 

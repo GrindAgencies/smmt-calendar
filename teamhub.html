@@ -491,6 +491,14 @@ function avatarInner(code,name,kind){if(kind==='coach'||code==='KYLE')return '�
 var TA="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/tracker-api";
 var BASESHOP_LEADER="Elijah Cox";
 var CODE=null,NAME="",CHAN="main",CHANNELS=[],MEMBERS={},ONLINE={},LASTID=0,REPLYTO=null,PENDATTACH=null,RECPICK=null,POLL=null,MENSEL=0,MENITEMS=[];
+/* 2026-10-26. VIEWING: a conversation pane is actually on screen. On a phone the back arrow shows the
+   list while CHAN stays set, and everything that means "I have read this" (read marks, receipts,
+   unread zeroing) kept firing for a room nobody was looking at. Two-pane desktop is always viewing.
+   SEARCHMODE: the message pane is showing search results, not CHAN - polls must not repaint over
+   them and the composer must not post into a room that is not on screen.
+   CHANGEN: bumped on every openChan, so a response from an earlier visit can never be merged in.
+   DRAFTS: half-typed text per conversation, so switching rooms never carries it into the wrong one. */
+var VIEWING=true, SEARCHMODE=false, CHANGEN=0, DRAFTS={};
 var lastActivity=Date.now(),MYSTATUS='active';
 ['mousemove','mousedown','keydown','touchstart','scroll','click','focus'].forEach(function(ev){window.addEventListener(ev,function(){lastActivity=Date.now();},{passive:true});});
 function timeAgo(iso){if(!iso)return '';var t=new Date(iso).getTime();if(isNaN(t))return '';var sec=Math.max(0,Math.floor((Date.now()-t)/1000));if(sec<60)return 'just now';var m=Math.floor(sec/60);if(m<60)return m+' min ago';var h=Math.floor(m/60);if(h<24)return h+'h ago';var d=Math.floor(h/24);return d+'d ago';}
@@ -829,11 +837,11 @@ function convRows(){
   var SUB={chat:'Base Shop Chat',announcements:'Announcements',cft:'CFT · Dial Room',training:'Training',licensing:'Licensing'};
   CHANNELS.forEach(function(c){
     var label=c.baseshop ? ((c.baseshopName||c.baseshop)+' · '+(SUB[c.sub]||c.name)) : c.name;
-    rows.push({id:c.id,label:label,icon:(c.icon||'#'),dm:false,unread:(CHAN===c.id?0:(UNREAD[c.id]||0))});
+    rows.push({id:c.id,label:label,icon:(c.icon||'#'),dm:false,unread:((CHAN===c.id&&VIEWING)?0:(UNREAD[c.id]||0))});
   });
   (THREADS||[]).forEach(function(t){
     rows.push({id:t.channel,label:(t.other_name||t.other_code||'Direct message'),icon:'',dm:true,
-               other:t.other_code,unread:(CHAN===t.channel?0:(t.unread||0)),
+               other:t.other_code,unread:((CHAN===t.channel&&VIEWING)?0:(t.unread||0)),
                preview:(t.last_body||''),at:(t.last_at||'')});
   });
   rows.forEach(function(r){
@@ -1148,7 +1156,17 @@ function chanMeta(id){
   var SUBS={operations:'Operations team only — private room for the Ops staff',leadership:'Marketing Directors, EMDs & Operations only',licensing:'Agents completing licensing',licensed:'Licensed agents only',cft:'Certified Field Trainers only',announcements:'Company-wide announcements',main:'Everyone in the company',training:'Live training discussion'};
   var c=CHANNELS.filter(function(c){return c.id===id;})[0]||{icon:'#',name:id};var subtxt=SUBS[id];if(!subtxt&&c.baseshop){var L={announcements:'Announcements',training:'Training',licensing:'Licensing',cft:'CFT Room',operations:'Operations'}[c.sub]||'';subtxt=(c.baseshopName||'')+' baseshop \u00b7 '+L;}return {icon:c.icon||'#',name:c.name,sub:subtxt||'Channel'};
 }
-function openChan(id){CHAN=id;LASTID=0;NEWLINE=(readMap()[id]||0);renderTyping([]);PINS=[];SEEN={};renderPins();loadPins();$('mlist').innerHTML='';renderRooms();renderHead();loadMsgs(true);document.body.classList.remove('rooms-open');if(typeof heartbeat==='function')heartbeat();}
+function openChan(id,opts){
+  /* 2026-10-26: per-room composer state. A reply target, a mention popup, a picked file or a
+     half-typed sentence all belong to the room they were started in; none may follow you out. */
+  var cin=$('cin');
+  if(cin && id!==CHAN){ DRAFTS[CHAN]=cin.value; cin.value=DRAFTS[id]||''; delete DRAFTS[id]; try{autoresize();}catch(e){} }
+  if(PENDATTACH && PENDATTACH.channel && PENDATTACH.channel!==id) clearAttach(); else paintDraft();
+  clearReply(); var mp=$('mentions'); if(mp) mp.classList.remove('on');
+  SEARCHMODE=false; CHANGEN++;
+  /* quiet = switched for us (access lost) while the phone shows the list; do not claim it is on screen. */
+  if(!(opts&&opts.quiet)) VIEWING=true;
+  CHAN=id;LASTID=0;NEWLINE=(readMap()[id]||0);renderTyping([]);PINS=[];SEEN={};renderPins();loadPins();$('mlist').innerHTML='';renderRooms();renderHead();loadMsgs(true);document.body.classList.remove('rooms-open');if(typeof heartbeat==='function')heartbeat();}
 function chanNameOf(id){if(!id)return '';if(id.indexOf('dm:')===0)return 'a direct message';var c=CHANNELS.filter(function(x){return x.id===id;})[0];if(c){if(c.baseshop){var L={announcements:'Announcements',training:'Training',licensing:'Licensing',cft:'CFT Room',operations:'Operations'}[c.sub]||c.name;return (c.baseshopName?c.baseshopName+' \u00b7 ':'')+L;}return c.name;}return id;}
 function presenceList(){var codes=Object.keys(ONLINE);if(!codes.length)return '<div class="presrow"><span class="pc">No one online right now</span></div>';return codes.sort(function(a,b){return ((ONLINE[a]&&ONLINE[a].name)||'').localeCompare((ONLINE[b]&&ONLINE[b].name)||'');}).map(function(cd){var ob=ONLINE[cd]||{};var away=ob.status==='away';var ch=ob.channel?chanNameOf(ob.channel):'';var sub=away?'Away from computer':(ch?('in '+ch):'Active now');return '<div class="presrow"><span class="pdd'+(away?' away':'')+'"></span><div><div class="pn">'+esc(ob.name||cd)+(away?' <span style=\"color:#e6a700;font-weight:700\">\u2022 Away</span>':'')+'</div><div class="pc">'+esc(sub)+'</div></div></div>';}).join('');}
 /* A group's own name and photo, once somebody has set them (round two task 5). Empty until
@@ -1158,6 +1176,7 @@ function groupNameOf(ch, fallback){ var g=GROUPMETA[ch]; return (g && g.name) ||
 function groupAvatarOf(ch){ var g=GROUPMETA[ch]; return (g && g.avatar) || ''; }
 
 function renderHead(){
+  if(SEARCHMODE)return;   /* 2026-10-26: heartbeat/group-meta repaints were replacing the search header */
   var m=chanMeta(CHAN);
   var del=(CHAN.indexOf('c_')===0&&canModerate(CHAN))?'<button class="tic" title="Delete channel" onclick="deleteChannel()" style="margin-left:10px;flex:0 0 auto">\ud83d\uddd1\ufe0f</button>':'';
   var isGroup = !m.dm;
@@ -1307,8 +1326,16 @@ function addGroupMember(code,btn){
 }
 function removeGroupMember(code){
   var m=(GDM&&GDM.members||[]).filter(function(x){return x.code===code;})[0];
-  if(!confirm('Remove '+((m&&m.name)||code)+' from this group?')) return;
-  gdApi({action:'member_remove', channel:CHAN, who:[code]}).then(function(r){
+  /* 2026-10-26: in-app modal, not confirm() (bare system dialog in the iOS WebView). */
+  safetyModal('<h3 style="margin:0 0 8px">Remove '+esc((m&&m.name)||code)+'?</h3>'+
+    '<div style="color:var(--ink3);font-size:14px;line-height:1.45">They will no longer be a member of this group.</div>'+
+    '<div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end">'+
+    '<button class="gbtn" onclick="closeSafety()">Cancel</button>'+
+    '<button class="gbtn" style="background:#c0392b;color:#fff;border-color:#c0392b" onclick="closeSafety();doRemoveGroupMember(\''+escJs(code)+'\',\''+escJs(CHAN)+'\')">Remove</button></div>');
+}
+function doRemoveGroupMember(code,ch){
+  if(ch!==CHAN) return;   /* the group changed under the modal; do nothing rather than the wrong group */
+  gdApi({action:'member_remove', channel:ch, who:[code]}).then(function(r){
     if(!r||!r.ok){ toast((r&&r.error)||'Could not remove them'); return; }
     toast('Removed'); loadGroupMembers();
   });
@@ -1480,8 +1507,12 @@ function rtSubscribe(){
   }catch(e){rtChan=null;}
 }
 function rtEnsure(){ if(rtTopicNow!==rtTopic(CHAN))rtSubscribe(); }
-var LOADING=false, LOADSTART=0;
+/* 2026-10-26: in-flight loads are tracked PER CHANNEL. One shared flag meant opening a room while
+   the previous room's load was still out dropped the new room's first load, and the old answer was
+   then thrown away by the channel check - a blank room until the next 60s poll. */
+var LOADING={};
 function loadMsgs(scroll){
+  if(SEARCHMODE)return;
   try{rtEnsure();}catch(e){}
   /* First load of a channel — from openChan OR from boot, which doesn't go
      through openChan — is where the unread boundary is captured. */
@@ -1494,12 +1525,15 @@ function loadMsgs(scroll){
      that never settles (dropped connection, sleeping phone) pinned it true and
      the message list stopped refreshing FOREVER. Sending still posted, but you
      never saw your own message arrive — indistinguishable from "can't send". */
-  if(LOADING && (Date.now()-LOADSTART) < 12000)return;
-  LOADING=true; LOADSTART=Date.now();
-  var reqChan=CHAN, reqAfter=LASTID;
+  if(LOADING[CHAN] && (Date.now()-LOADING[CHAN]) < 12000)return;
+  var reqChan=CHAN, reqAfter=LASTID, reqGen=CHANGEN, started=Date.now();
+  LOADING[reqChan]=started;
+  var settle=function(){ if(LOADING[reqChan]===started) delete LOADING[reqChan]; };
   h({action:'hub_list',channel:CHAN,after:LASTID}).then(function(r){
-    LOADING=false;
-    if(reqChan!==CHAN)return;
+    settle();
+    /* Discarded: an earlier visit's answer. If the room now open never got its first load (it was
+       turned away by this one being in flight), start it now rather than waiting for a poll. */
+    if(reqChan!==CHAN || reqGen!==CHANGEN || SEARCHMODE){ if(!SEARCHMODE && LASTID===0) loadMsgs(true); return; }
     var arr=(r&&r.messages)||[];
     if(reqAfter===0){MSGS=arr;}
     else if(arr.length){
@@ -1510,9 +1544,12 @@ function loadMsgs(scroll){
     if(reqAfter===0||arr.length)renderMsgs(scroll);
     /* Reading a channel clears it — but only while the tab is actually visible,
        so a background poll doesn't silently mark things read. */
-    if(arr.length&&!document.hidden){markRead(CHAN,LASTID);if(UNREAD[CHAN]){UNREAD[CHAN]=0;renderRooms();}
+    if(arr.length&&!document.hidden&&VIEWING){markRead(CHAN,LASTID);var dirty=false;if(UNREAD[CHAN]){UNREAD[CHAN]=0;dirty=true;}
+      /* 2026-10-26: a DM's badge comes from THREADS, not UNREAD, so it stayed lit after reading. */
+      (THREADS||[]).forEach(function(t){ if(t.channel===CHAN && t.unread){ t.unread=0; dirty=true; } });
+      if(dirty)renderRooms();
       pushSeen();loadSeen();}
-  }).catch(function(){LOADING=false;});
+  }).catch(function(){settle();});
 }
 function findMsg(id){for(var i=0;i<MSGS.length;i++)if(MSGS[i].id===id)return MSGS[i];return null;}
 function linkify(t){t=esc(t);t=t.replace(/@([A-Za-z][A-Za-z .'-]{1,30})/g,'<span class="men">@$1</span>');return t;}
@@ -1585,8 +1622,10 @@ function dayLabel(iso){
   var d=new Date(iso), n=new Date(), y=new Date(Date.now()-86400000);
   if(dayKey(iso)===dayKey(n.toISOString()))return 'Today';
   if(dayKey(iso)===dayKey(y.toISOString()))return 'Yesterday';
-  var wk=(n-d)/86400000;
-  if(wk<7)return d.toLocaleDateString('en-US',{weekday:'long'});
+  /* 2026-10-26: whole calendar days between the two LOCAL dates, not elapsed hours - 6.5 days of
+     hours could name a weekday a week back, and a future-dated row got a weekday too. */
+  var days=Math.round((new Date(n.getFullYear(),n.getMonth(),n.getDate())-new Date(d.getFullYear(),d.getMonth(),d.getDate()))/86400000);
+  if(days>=2&&days<=6)return d.toLocaleDateString('en-US',{weekday:'long'});
   return d.toLocaleDateString('en-US',{month:'long',day:'numeric'}) + (d.getFullYear()!==n.getFullYear()?(', '+d.getFullYear()):'');
 }
 function daySep(prev,m){
@@ -1638,12 +1677,17 @@ function renderMsgs(scroll){
       /* v2 attachments live in private storage and are signed on demand (round two task 8).
          Older messages carry a data URL inline and keep working untouched. */
       if(m.attach&&m.attach.v===2&&m.attach.path) att=attachHtml(m.attach);
-      else if(m.attach&&m.attach.type==='image')att='<img class="mimg" src="'+m.attach.url+'" onclick="window.open(this.src)">';
-      else if(m.attach&&m.attach.type==='file')att='<a class="mfile" href="'+m.attach.url+'" download="'+esc(m.attach.name)+'"><span class="fi">📄</span><span>'+esc(m.attach.name)+'</span></a>';
+      /* 2026-10-26: the old inline url went into src/href raw. Escaped, and only an inline image or
+         an https link is rendered - a javascript: or other scheme in a stored row shows nothing. */
+      else if(m.attach&&(m.attach.type==='image'||m.attach.type==='file')){
+        var au=String(m.attach.url||''), aok=/^data:image\//i.test(au)||/^https:\/\//i.test(au);
+        if(aok&&m.attach.type==='image')att='<img class="mimg" src="'+esc(au)+'" onclick="window.open(this.src)">';
+        else if(aok)att='<a class="mfile" href="'+esc(au)+'" download="'+esc(m.attach.name)+'"><span class="fi">📄</span><span>'+esc(m.attach.name)+'</span></a>';
+      }
       inner=quote+(m.body?'<div class="mtext">'+linkify(m.body)+'</div>':'')+att;
     }
     var rx='';var rk=m.reactions&&typeof m.reactions==='object'?m.reactions:{};
-    var keys=Object.keys(rk);if(keys.length){rx='<div class="rx">'+keys.map(function(e){var mine=rk[e].indexOf(CODE)>=0;return '<button class="rxb'+(mine?' mine':'')+'" onclick="react('+m.id+',\''+e+'\')">'+e+' '+rk[e].length+'</button>';}).join('')+'</div>';}
+    var keys=Object.keys(rk);if(keys.length){rx='<div class="rx">'+keys.map(function(e){var mine=rk[e].indexOf(CODE)>=0;return '<button class="rxb'+(mine?' mine':'')+'" onclick="react('+m.id+',\''+escJs(e)+'\')">'+esc(e)+' '+rk[e].length+'</button>';}).join('')+'</div>';}
     var acts=(m.deleted||m.kind==='ai')?'':'<div class="mact"><button onclick="reactPop(event,'+m.id+')" title="React">😀</button><button onclick="setReply('+m.id+')" title="Reply">↩</button><button onclick="pinMsg('+m.id+')" title="Pin">📌</button>'+((m.author_code===CODE)?'<button onclick="editMsg('+m.id+')" title="Edit">✏️</button>':'')+((m.author_code===CODE||canModerate(CHAN))?'<button onclick="delMsg('+m.id+')" title="Delete">🗑</button>':'')+((m.author_code&&m.author_code!==CODE&&!isBot)?'<button onclick="reportMsg('+m.id+')" title="Report to Operations">🚩</button><button onclick="blockUser(\''+m.author_code+'\',\''+escJs(m.author_name) +'\')" title="Block this person">🚫</button>':'')+'</div>';
     var seen='';
     if(m.author_code===CODE&&SEEN[m.id]&&SEEN[m.id].count>0){
@@ -1678,8 +1722,22 @@ function closePop(){document.querySelectorAll('.emojipop').forEach(function(e){e
 document.addEventListener('click',function(e){if(!e.target.closest('.emojipop')&&!e.target.closest('.mact'))closePop();});
 function setReply(id){REPLYTO=id;var m=findMsg(id);$('replybar').className='replybar on';$('replybar').innerHTML='↩ Replying to <b>'+esc(m.author_name)+'</b> <span style="color:var(--ink3)">'+esc((m.body||'').slice(0,60))+'</span><span class="x" onclick="clearReply()">✕</span>';$('cin').focus();}
 function clearReply(){REPLYTO=null;$('replybar').className='replybar';}
-function editMsg(id){var m=findMsg(id);var v=prompt('Edit message:',m.body);if(v===null)return;h({action:'hub_edit',id:id,code:CODE,body:v}).then(function(r){if(r.ok){m.body=v;m.edited=true;renderMsgs(false);}});}
-function delMsg(id){if(!confirm('Delete this message?'))return;var b={action:'hub_delete',id:id,code:CODE,by:CODE};if(MODTOKEN)b.token=MODTOKEN;h(b).then(function(r){if(r.ok){var m=findMsg(id);m.deleted=true;renderMsgs(false);toast('Deleted');}else toast(r.error||'Could not delete');});}
+/* 2026-10-26: a failed edit used to vanish silently; hub-api now refuses blank edits and edits of
+   someone else's message with a reason, so say it. Blank is refused here first - Delete is for that. */
+function editMsg(id){var m=findMsg(id);if(!m)return;var v=prompt('Edit message:',m.body);if(v===null)return;
+  if(!String(v).trim()){toast('A message cannot be blank \u2014 use Delete to remove it');return;}
+  h({action:'hub_edit',id:id,code:CODE,body:v}).then(function(r){if(r&&r.ok){m.body=v;m.edited=true;renderMsgs(false);}else toast((r&&r.error)||'Could not save that edit');});}
+/* 2026-10-26: confirm() is a bare system dialog in the iOS WebView, so the app's own modal asks
+   instead. A message that has gone (repaint, another device) is handled, and a double tap sends once. */
+var DELBUSY={};
+function delMsg(id){var m=findMsg(id);if(!m){toast('That message is no longer here');return;}if(DELBUSY[id])return;
+  safetyModal('<h3 style="margin:0 0 8px">Delete this message?</h3>'+
+    '<div style="color:var(--ink3);font-size:14px;line-height:1.45">Everyone in this conversation will see \u201cmessage deleted\u201d in its place.</div>'+
+    '<div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end">'+
+    '<button class="gbtn" onclick="closeSafety()">Cancel</button>'+
+    '<button class="gbtn" style="background:#c0392b;color:#fff;border-color:#c0392b" onclick="closeSafety();doDelMsg('+Number(id)+')">Delete</button></div>');}
+function doDelMsg(id){if(DELBUSY[id])return;DELBUSY[id]=1;var b={action:'hub_delete',id:id,code:CODE,by:CODE};if(MODTOKEN)b.token=MODTOKEN;
+  h(b).then(function(r){delete DELBUSY[id];if(r&&r.ok){var m=findMsg(id);if(m){m.deleted=true;renderMsgs(false);}toast('Deleted');}else toast((r&&r.error)||'Could not delete');});}
 
 /* composer */
 function autoresize(){var t=$('cin');t.style.height='auto';t.style.height=Math.min(140,t.scrollHeight)+'px';}
@@ -1691,7 +1749,8 @@ function xa(b){return fetch(EXTRAAPI,{method:'POST',headers:{'Content-Type':'app
 
 /* --- pinned messages --- */
 function loadPins(){
-  xa({action:'pins',channel:CHAN}).then(function(r){ if(r&&r.ok){PINS=r.pins||[];renderPins();} });
+  var ch=CHAN;   /* 2026-10-26: another room's pins must never land on this one */
+  xa({action:'pins',channel:ch}).then(function(r){ if(ch!==CHAN)return; if(r&&r.ok){PINS=r.pins||[];renderPins();} });
 }
 function renderPins(){
   var el=$('pinbar'); if(!el)return;
@@ -1720,7 +1779,7 @@ function jumpTo(id){
 
 /* --- read receipts --- */
 function pushSeen(){
-  if(!LASTID||!CODE||document.hidden)return;
+  if(!LASTID||!CODE||document.hidden||!VIEWING||SEARCHMODE)return;
   xa({action:'seen',channel:CHAN,code:CODE,name:NAME,last_id:LASTID});
 }
 function loadSeen(){
@@ -1728,7 +1787,10 @@ function loadSeen(){
      is shown, and asking about every message would be wasteful. */
   var mine=MSGS.filter(function(m){return m.author_code===CODE&&!m.deleted;}).slice(-3).map(function(m){return m.id;});
   if(!mine.length)return;
-  xa({action:'seenby',channel:CHAN,ids:mine}).then(function(r){
+  /* 2026-10-26: answers for a room you have since left (or while search results are up) are dropped. */
+  var ch=CHAN;
+  xa({action:'seenby',channel:ch,ids:mine}).then(function(r){
+    if(ch!==CHAN||SEARCHMODE)return;
     if(r&&r.ok){SEEN=r.seen||{};renderMsgs(false);}});
 }
 var LASTTYPE=0, TYPETIMER=null;
@@ -1798,6 +1860,9 @@ function sendNow(){
   /* Access can be revoked while this page is open. The trigger would refuse the insert
      anyway; this turns that into a sentence instead of a failed save. */
   if(!mayPostHere()){ toast('Only designated people can post in Announcements.'); return; }
+  /* 2026-10-26: search results are on screen, not CHAN - sending would post into a hidden room. */
+  if(SEARCHMODE){ toast('Open a chat to send \u2014 you are looking at search results'); return; }
+  var sentChan=CHAN;
   var a=PENDATTACH;
   /* An attachment still uploading is not ready to send, and one picked in another chat must
      never ride along into this one. Both are quietly common and both would be wrong. */
@@ -1819,8 +1884,8 @@ function sendNow(){
     if(rr&&rr.escalated) toast('Operations has been asked to take a look');
     if(rr&&rr.ok===false){
       toast(rr.error||'Message not sent');
-      t.value=body;                      // give them their text back rather than losing it
-      autoresize();
+      // give them their text back rather than losing it - in the room it was written for
+      if(CHAN===sentChan){ t.value=body; autoresize(); } else DRAFTS[sentChan]=body;
     }
     loadMsgs(true);
     if(rr&&rr.bot){setTimeout(function(){loadMsgs(true);},400);}
@@ -1828,7 +1893,7 @@ function sendNow(){
     /* A rejected request used to fall through silently: the box cleared, no
        toast, nothing appeared. It looked exactly like "I can't send". */
     toast('Could not reach the server — your message was not sent.');
-    t.value=body; autoresize();
+    if(CHAN===sentChan){ t.value=body; autoresize(); } else DRAFTS[sentChan]=body;
   });
 }
 /* ================= ROUND TWO task 8: real attachments =================
@@ -1992,7 +2057,14 @@ function sendRecognition(){
   if(RECPICK===null){toast('Pick what for');return;}
   var t=RECTYPES[RECPICK];var note=$('recNote').value.trim();
   var body='@'+(MEMBERS[who]||who).split(' ')[0]+' '+t[0]+' Congratulations on '+t[1]+'!'+(note?(' '+note):'')+' — from '+NAME;
-  h({action:'hub_send',code:CODE,channel:CHAN,author_name:'Kevin',kind:'recognition',body:body}).then(function(){closeRec();loadMsgs(true);toast('Recognition posted 🎉');});
+  if(SEARCHMODE){toast('Open a chat first \u2014 you are looking at search results');return;}
+  /* 2026-10-26: it toasted success whatever the server said, and a double tap posted twice. */
+  var btn=document.querySelector('#recOv .mact2 .go'); if(btn&&btn.disabled)return; if(btn)btn.disabled=true;
+  h({action:'hub_send',code:CODE,channel:CHAN,author_name:'Kevin',kind:'recognition',body:body}).then(function(r){
+    if(btn)btn.disabled=false;
+    if(r&&r.ok){closeRec();loadMsgs(true);toast('Recognition posted 🎉');}
+    else toast((r&&r.error)||'Could not post that recognition');
+  });
 }
 
 /* channels */
@@ -2261,11 +2333,28 @@ function loadRoster(){hroster().then(function(r){ROSTER=(r&&r.members)||[];ROSTE
   try{ if($('chOv').classList.contains('on')) fillMembers(); }catch(e){}});}
 function openProfileSettings(){$('psAv').innerHTML=avatarInner(CODE,NAME,'');$('psName').value=NAME;var open=function(){h({action:'hub_profile',code:CODE}).then(function(r){var pf=(r&&r.profile)||{};$('psTitle').value=pf.title||'';/* 2026-10-26: title is leadership rank and hub-api v30 refuses it from anyone but Operations, so it is shown, not offered. */$('psTitle').readOnly=!OPSMODE;$('psTitleNote').style.display=OPSMODE?'none':'block';$('psEmail').value=pf.email||'';$('psPhone').value=pf.phone||'';$('psCal').value=pf.cal_link||'';var sel=$('psDirect');sel.innerHTML='<option value="">\u2014 Select your direct upline \u2014</option>'+ROSTER.filter(function(m){return m.code!==CODE;}).map(function(m){return '<option value="'+m.code+'"'+(pf.direct_to===m.code?' selected':'')+'>'+esc(m.name)+' ('+m.code+')</option>';}).join('');});$('psOv').classList.add('on');};if(!ROSTER.length){hroster().then(function(r){ROSTER=(r&&r.members)||[];open();});}else open();}
 function saveProfile(){var sel=$('psDirect');var dc=sel.value;var dn=dc?sel.options[sel.selectedIndex].text.replace(/\s*\([^)]*\)\s*$/,'').trim():'';var pb={action:'hub_setprofile',code:CODE,email:$('psEmail').value.trim(),phone:$('psPhone').value.trim(),cal_link:$('psCal').value.trim(),direct_to:dc,direct_to_name:dn};if(OPSMODE)pb.title=$('psTitle').value.trim();h(pb).then(function(r){if(r&&r.ok){$('psOv').classList.remove('on');toast('Profile saved \u2713');loadRoster();}else toast((r&&r.error)||'Could not save');});}
-function deleteChannel(){if(CHAN.indexOf('c_')!==0)return;if(!confirm('Delete this channel for everyone? This cannot be undone.'))return;h({action:'hub_deletechannel',id:CHAN,code:CODE,token:MODTOKEN||''}).then(function(r){if(r&&r.ok){toast('Channel deleted');CHAN='main';loadChannels();renderHead();loadMsgs(true);}else toast((r&&r.error)||'Could not delete');});}
-function loadChannels(cb){var call=OPSMODE?hops({action:'channels',name:NAME}):h({action:'hub_channels',code:CODE});call.then(function(r){CHANNELS=(r&&r.channels)||[];if(r&&r.access){ACC=r.access;}if(r&&Array.isArray(r.mod_channels)){MODCH={};r.mod_channels.forEach(function(c){MODCH[c]=1;});}syncBotBtn();if(CHAN.indexOf('dm:')!==0&&!CHANNELS.some(function(c){return c.id===CHAN;})){CHAN='main';renderHead();loadMsgs(true);}renderRooms();if(typeof cb==='function')cb();});}
+/* 2026-10-26: in-app modal instead of confirm(), and leaving goes through openChan - setting CHAN by
+   hand kept the deleted room's LASTID, so main loaded "after" another room's ids and the two mixed. */
+function deleteChannel(){if(CHAN.indexOf('c_')!==0)return;
+  safetyModal('<h3 style="margin:0 0 8px">Delete this channel for everyone?</h3>'+
+    '<div style="color:var(--ink3);font-size:14px;line-height:1.45">This cannot be undone.</div>'+
+    '<div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end">'+
+    '<button class="gbtn" onclick="closeSafety()">Cancel</button>'+
+    '<button class="gbtn" style="background:#c0392b;color:#fff;border-color:#c0392b" onclick="closeSafety();doDeleteChannel(\''+escJs(CHAN)+'\')">Delete</button></div>');}
+var DELCHAN_BUSY=false;
+function doDeleteChannel(ch){if(DELCHAN_BUSY||ch!==CHAN)return;DELCHAN_BUSY=true;h({action:'hub_deletechannel',id:ch,code:CODE,token:MODTOKEN||''}).then(function(r){DELCHAN_BUSY=false;if(r&&r.ok){toast('Channel deleted');if(CHAN===ch)openChan('main');loadChannels();}else toast((r&&r.error)||'Could not delete');});}
+function loadChannels(cb){var call=OPSMODE?hops({action:'channels',name:NAME}):h({action:'hub_channels',code:CODE});call.then(function(r){
+  /* 2026-10-26: a failed call answered {ok:false}, which emptied CHANNELS and then "lost access" to
+     whatever room was open. Keep the list we have when the server did not send one. */
+  if(!r||!Array.isArray(r.channels)){renderRooms();if(typeof cb==='function')cb();return;}
+  CHANNELS=r.channels;if(r&&r.access){ACC=r.access;}if(r&&Array.isArray(r.mod_channels)){MODCH={};r.mod_channels.forEach(function(c){MODCH[c]=1;});}syncBotBtn();if(CHAN!=='main'&&CHAN.indexOf('dm:')!==0&&!CHANNELS.some(function(c){return c.id===CHAN;})){openChan('main',{quiet:!VIEWING});}renderRooms();
+  /* 2026-10-26: group names/photos are fetched here, once per channel-list load - not from the
+     phone init(), which runs three times and fired one request per channel each time. */
+  loadGroupMeta();
+  if(typeof cb==='function')cb();});}
 
 /* search */
-function doSearch(){var q=$('hq').value.trim();if(!q){return;}h({action:'hub_search',q:q}).then(function(r){var arr=(r&&r.messages)||[];if(!arr.length){toast('No matches');return;}MSGS=arr.slice().reverse();$('chead').innerHTML='<div class="ci">🔎</div><div><div class="cn">Search: “'+esc(q)+'”</div><div class="cs">'+arr.length+' results · click a channel to return</div></div>';LASTID=0;renderMsgs(true);});}
+function doSearch(){var q=$('hq').value.trim();if(!q){return;}h({action:'hub_search',q:q}).then(function(r){var arr=(r&&r.messages)||[];if(!arr.length){toast('No matches');return;}SEARCHMODE=true;MSGS=arr.slice().reverse();$('chead').innerHTML='<div class="ci">🔎</div><div><div class="cn">Search: “'+esc(q)+'”</div><div class="cs">'+arr.length+' results · click a channel to return</div></div>';LASTID=0;renderMsgs(true);});}
 
 /* profile */
 function openProfile(code){
@@ -2796,6 +2885,8 @@ body.phone .composer textarea{ border-radius:21px !important; padding:11px 15px 
   function syncPhone(){
     document.body.classList.toggle('phone', isPhone());
     if(!isPhone()) document.body.classList.remove('chat-open');
+    /* 2026-10-26: two panes always show the open room; a phone shows it only with chat-open. */
+    VIEWING = !isPhone() || document.body.classList.contains('chat-open');
   }
 
   function buildChrome(){
@@ -2844,7 +2935,7 @@ body.phone .composer textarea{ border-radius:21px !important; padding:11px 15px 
     if(top && !top.querySelector('.cv-back')){
       var b=document.createElement('button');
       b.type='button'; b.className='cv-back'; b.innerHTML='‹'; b.title='Back to messages';
-      b.onclick=function(){ document.body.classList.remove('chat-open'); };
+      b.onclick=function(){ document.body.classList.remove('chat-open'); VIEWING=false; try{ renderRooms(); }catch(e){} };
       top.insertBefore(b, top.firstChild);
     }
   }
@@ -2853,7 +2944,7 @@ body.phone .composer textarea{ border-radius:21px !important; padding:11px 15px 
   function hookOpen(){
     if(window.__cvHooked || typeof window.openChan!=='function') return;
     var orig=window.openChan;
-    window.openChan=function(){ orig.apply(this,arguments); if(isPhone()) document.body.classList.add('chat-open'); };
+    window.openChan=function(id,opts){ orig.apply(this,arguments); if(isPhone() && !(opts&&opts.quiet)) document.body.classList.add('chat-open'); };
     window.__cvHooked=true;
   }
 
@@ -2862,8 +2953,8 @@ body.phone .composer textarea{ border-radius:21px !important; padding:11px 15px 
     /* Light up the remembered filter, and fetch this person's pins and hides. The list is
        re-rendered once they arrive so a pinned chat does not jump after the fact. */
     try{ setConvFilter(CVFILTER); }catch(e){}
-    if(!PREFS_READY) loadPrefs(function(){ try{ renderRooms(); }catch(e){} });
-    loadGroupMeta();
+    /* 2026-10-26: init runs up to three times (DOM ready + two timers); ask for prefs once. */
+    if(!PREFS_READY && !window.__prefsAsked){ window.__prefsAsked=true; loadPrefs(function(){ try{ renderRooms(); }catch(e){} }); }
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', init); else init();
   setTimeout(init,500); setTimeout(init,1500);
