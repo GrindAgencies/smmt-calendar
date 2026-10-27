@@ -2434,7 +2434,7 @@ function heartbeat(){var st=(Date.now()-lastActivity>600000)?'away':'active';if(
   }
   buildSide();
   MEMBERS[CODE]=NAME;
-  loadChannels();renderHead();loadMsgs(true);heartbeat();loadAvatars();loadEmblems();loadRoster();loadAnnouncers();
+  loadChannels();renderHead();loadMsgs(true);heartbeat();loadAvatars();loadEmblems();loadRoster();   /* loadAnnouncers retired 2026-10-26 with the Announcements room */
   // roster for DMs + mentions
   fetch(TA,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'team',leader:BASESHOP_LEADER})}).then(function(r){return r.json();}).then(function(d){(d&&d.agents||[]).forEach(function(a){var nm=((a.first_name||'')+' '+(a.last_name||'')).trim();if(a.code&&nm)MEMBERS[a.code]=nm;});renderRooms();})
   /* A phone that loses signal mid-load threw this as an unhandled rejection, which
