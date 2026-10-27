@@ -553,7 +553,7 @@ function paintWeek(days){
          DOW[d.getDay()]+' '+MON[d.getMonth()].slice(0,3)+' '+d.getDate()+
          (ymd(d)===ymd(new Date())?' · Today':'')+'</div>';
     h += items.length ? items.map(function(x){
-      return '<div class="ag '+kindOf(x.b)+'" onclick="showEvent('+JSON.stringify(x.b.id)+')">'+
+      return '<div class="ag '+kindOf(x.b)+'" onclick="showEvent(\''+esc(x.b.id)+'\')">'+
         '<div class="t">'+esc(labelOf(x.b))+'</div>'+
         '<div class="s">'+hhmm(x.s)+(subOf(x.b)?(' · '+esc(subOf(x.b))):'')+'</div></div>';
     }).join('') : '<div class="tsfg-muted" style="font-size:12.5px;padding:2px 0 6px">—</div>';
@@ -582,7 +582,7 @@ function paintAgenda(){
            DOW[x.s.getDay()]+' · '+MON[x.s.getMonth()].slice(0,3)+' '+x.s.getDate()+
            (k===ymd(new Date())?' · Today':'')+'</div>';
     }
-    h += '<div class="ag '+kindOf(x.b)+'" onclick="showEvent('+JSON.stringify(x.b.id)+')">'+
+    h += '<div class="ag '+kindOf(x.b)+'" onclick="showEvent(\''+esc(x.b.id)+'\')">'+
       '<div class="t">'+esc(labelOf(x.b))+'</div>'+
       '<div class="s">'+hhmm(x.s)+(subOf(x.b)?(' · '+esc(subOf(x.b))):'')+'</div></div>';
   });
