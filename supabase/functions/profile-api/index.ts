@@ -120,7 +120,9 @@ function conflictMessage(list: Conflict[]): string {
 
 function normLevel(v: unknown): string {
   const s = (v ?? "").toString().trim().toLowerCase();
-  if (s === "emd" || s.includes("executive")) return "EMD";
+  /* NVP sits above EMD; for access purposes it is EMD-tier. It used to fall through to
+     "Associate", which refused Elijah every set_level. */
+  if (s === "emd" || s === "nvp" || s.includes("executive") || s.includes("vice president")) return "EMD";
   if (s === "md" || (s.includes("marketing director") && !s.includes("executive"))) return "MD";
   if (s.includes("senior")) return "Senior Associate";
   return "Associate";
@@ -162,7 +164,9 @@ async function getPhoto(code: string): Promise<string | null> { const r = await 
 async function allCodes(): Promise<Set<string>> { const r = await fetch(`${SUPA}/rest/v1/tracker_agents?select=code`, { headers: DBH }); const rows = (await r.json()) || []; return new Set(rows.map((x: any) => (x.code || "").toUpperCase())); }
 function titleIsEmd(t: string) { return /executive marketing/i.test(t || ""); }
 function titleIsMd(t: string) { return /marketing director/i.test(t || "") && !/executive/i.test(t || ""); }
-function agentLevel(a: any): string { if (a?.contract_level) return normLevel(a.contract_level); if (titleIsEmd(a?.title)) return "EMD"; if (titleIsMd(a?.title)) return "MD"; return "Associate"; }
+/* v24: the assigned contract level only. `title` is free text and is not authority (checked live:
+   no leader depended on a title fallback). */
+function agentLevel(a: any): string { return a?.contract_level ? normLevel(a.contract_level) : "Associate"; }
 function accessibleBases(baseshop: string, bases: any): string[] {
   const list = (bases && Array.isArray(bases.bases)) ? bases.bases : [];
   const byName: Record<string, any> = {}; list.forEach((b: any) => byName[b.name] = b);

@@ -303,6 +303,7 @@ th.lockedcol{background:rgba(201,154,46,.14)!important;box-shadow:inset 0 -2px 0
     <div id="gPinWrap" style="display:none">
       <input id="gPin" type="password" inputmode="numeric" maxlength="6" placeholder="6-digit Operations PIN" autocomplete="off">
       <input id="gPin2" type="password" inputmode="numeric" maxlength="6" placeholder="Confirm your new PIN" autocomplete="off" style="display:none">
+      <input id="gSetup" type="text" inputmode="numeric" maxlength="8" placeholder="8-digit setup code you were given" autocomplete="one-time-code" style="display:none">
     </div>
     <button class="gbtn" id="gBtn">Enter →</button>
     <div class="gmsg" id="gMsg"></div>
@@ -450,6 +451,7 @@ var OPSPEND=null, PINNEW=false;
 function pinShow(on,newPin){
   var w=document.getElementById('gPinWrap'); if(w)w.style.display=on?'block':'none';
   var c=document.getElementById('gPin2'); if(c)c.style.display=(on&&newPin)?'block':'none';
+  var su=document.getElementById('gSetup'); if(su){su.style.display=(on&&newPin)?'block':'none'; su.value='';}
   PINNEW=!!newPin;
   var b=document.getElementById('gBtn'); if(b)b.textContent=on?(newPin?'Set PIN & enter \u2192':'Enter \u2192'):'Enter \u2192';
   if(on){var p=document.getElementById('gPin'); if(p){p.value='';setTimeout(function(){p.focus();},60);}}
@@ -495,9 +497,10 @@ function submitPin(){
   if(PINNEW){
     var p2=($('gPin2').value||'').trim();
     if(pin!==p2){msg.style.color='var(--red)';msg.textContent='Those two PINs do not match.';return;}
+    if(!/^[0-9]{8}$/.test(($('gSetup').value||'').trim())){msg.style.color='var(--red)';msg.textContent='Enter the 8-digit setup code you were given.';return;}
   }
   msg.style.color='var(--ink3)';msg.textContent='Signing in\u2026';
-  var go=PINNEW?tsfgOps.createPin(OPSPEND.code,pin):tsfgOps.signIn(OPSPEND.code,pin);
+  var go=PINNEW?tsfgOps.createPin(OPSPEND.code,pin,($('gSetup').value||'').trim()):tsfgOps.signIn(OPSPEND.code,pin);
   go.then(function(r){
     if(!r||!r.ok){msg.style.color='var(--red)';msg.textContent=(r&&r.error)||'Could not sign in.';return;}
     OPS=OPSPEND; OPSPEND=null; pinShow(false,false);
@@ -518,7 +521,7 @@ function finishLogin(name,code,msg){
 }
 $('gBtn').addEventListener('click',function(){ if(OPSPEND)submitPin(); else doLogin(); });
 ['gName','gCode'].forEach(function(id){$(id).addEventListener('keydown',function(e){if(e.key==='Enter'){if(OPSPEND)submitPin();else doLogin();}});});
-['gPin','gPin2'].forEach(function(id){var el=$(id);if(el)el.addEventListener('keydown',function(e){if(e.key==='Enter')submitPin();});});
+['gPin','gPin2','gSetup'].forEach(function(id){var el=$(id);if(el)el.addEventListener('keydown',function(e){if(e.key==='Enter')submitPin();});});
 
 function showApp(){
   $('gate').classList.add('hide');$('app').classList.remove('hide');
@@ -1994,7 +1997,7 @@ function paintSeatSetup(){
       +'<div style="display:flex;align-items:flex-start;gap:10px"><h2 style="margin:0;font-size:18px;flex:1">Seat setup</h2>'
       +'<button class="signout" onclick="closeDrawer()">Close</button></div>'
       +'<p style="font-size:13px;color:var(--ink3);line-height:1.55;margin:8px 0 4px">Opening setup lets that seat choose its first 6-digit PIN. '
-      +'Only do it when the person is ready: while it is open, whoever types that seat code claims it. '
+      +'You will get a one-time setup code to give them; nobody can claim the seat without it. '
       +'It closes on its own and never signs anyone out.</p>'
       +body
       +'<div id="seatMsg" style="font-size:13px;font-weight:700;margin-top:12px;min-height:18px"></div></div>';
@@ -2007,7 +2010,7 @@ function doSeatEnroll(code){
     toast('Setup open for '+code+' — they can choose a PIN now');
     paintSeatSetup();
     setTimeout(function(){var m2=$('seatMsg');if(m2){m2.style.color='var(--green)';
-      m2.textContent='Open for '+(r.minutes||60)+' minutes. They sign in with '+code+' and pick a 6-digit PIN.';}},60);
+      m2.innerHTML='Open for '+(r.minutes||60)+' minutes. Give them this one-time setup code in person or by phone: <b style="font-size:16px;letter-spacing:.12em">'+esc(String(r.setup_code||''))+'</b><br>They sign in with '+esc(code)+', enter the code, and pick a 6-digit PIN.';}},60);
   });
 }
 

@@ -27,6 +27,12 @@
 // phishing surface in the app, because announcements are the one place agents are told to trust.
 // Identity is now the session token minted when somebody enters their PIN, or an Operations token
 // ops_authorize() accepts. `body.code` is not read at all any more.
+//
+// v7 (2026-10-26) — AN OPS TOKEN DECIDES ONLY FOR THE SHOPS IT COVERS. v6 let Operations decide,
+// but any token ops_authorize() accepted counted: a baseshop seat (0001-0005) could approve an
+// announcement into another shop's channel, and a machine token (a cron job, not a person) could
+// sign a decision. Now a master seat (0000, C1991) decides anywhere, a baseshop seat only for
+// targets in its own bases, and a machine token never.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const SUPA = Deno.env.get("SUPABASE_URL")!;
@@ -46,7 +52,19 @@ async function loadKey(k: string) {
   return ((await r.json()) || [])[0]?.value ?? null;
 }
 async function rpc(fn: string, args: Record<string, unknown>) { try { const r = await fetch(`${SUPA}/rest/v1/rpc/${fn}`, { method: "POST", headers: DBH, body: JSON.stringify(args) }); return await r.json(); } catch (_) { return null; } }
-async function opsAuthorized(token: unknown) { const t = String(token ?? ""); if (!t) return false; const r = await rpc("ops_authorize", { p_token: t }); return !!(r && r.ok); }
+async function opsAuthorize(token: unknown): Promise<Record<string, unknown> | null> { const t = String(token ?? ""); if (!t) return null; const r = await rpc("ops_authorize", { p_token: t }); return (r && r.ok) ? r : null; }
+
+/* v7: may this Ops token decide for this baseshop? Machine tokens are scheduled jobs, not a person
+   who can approve anything. Non-master seats are expanded through baseshop_groups by ops_scope,
+   the same helper every other scoped Ops screen uses. */
+async function opsMayDecide(auth: Record<string, unknown> | null, token: unknown, baseshop: string): Promise<boolean> {
+  if (!auth || auth.via === "machine") return false;
+  if (auth.master === true) return true;
+  const sc = await rpc("ops_scope", { p_token: String(token ?? "") });
+  const seatBases: string[] = Array.isArray(sc?.bases) ? sc.bases.map((b: unknown) => norm(b)) : [];
+  if (sc && sc.seat && !sc.scoped) return true;
+  return !!baseshop && seatBases.indexOf(norm(baseshop)) >= 0;
+}
 async function isBuilder(code: string) { if (!code) return false; return (await rpc("is_platform_admin", { p_code: code })) === true; }
 
 /* The one place identity is decided. A session token is proof; a typed code is not. */
@@ -82,7 +100,8 @@ Deno.serve(async (req) => {
     const body: Record<string, unknown> = (req.method === "POST") ? (await req.json().catch(() => ({}))) : {};
     const action = clean(body.action, 20) || "pending";
 
-    const opsToken = await opsAuthorized(body.token);
+    const opsAuth = await opsAuthorize(body.token);
+    const opsToken = !!opsAuth;
     const myCode = opsToken ? "" : await sessionCode(body.session);
     if (!opsToken && !myCode) return json({ ok: false, needs_session: true, error: "Please sign in again." }, 401);
 
@@ -199,7 +218,11 @@ Deno.serve(async (req) => {
       if (!t) return json({ ok: false, error: "That announcement is no longer waiting." }, 404);
       if (t.status !== "pending") return json({ ok: false, error: `Already ${t.status}.` }, 409);
 
-      const ownsIt = isOps || norm(t.emd_code) === actor.code || (actor.isEmd && norm(t.baseshop) === actor.baseshop);
+      /* v7: an Ops TOKEN is judged by its seat's bases (master = everywhere, machine = never);
+         the agent-session paths (builder, Eli, the target's own EMD) are unchanged. */
+      const ownsIt = opsToken
+        ? await opsMayDecide(opsAuth, body.token, norm(t.baseshop))
+        : (isOps || norm(t.emd_code) === actor.code || (actor.isEmd && norm(t.baseshop) === actor.baseshop));
       if (!ownsIt) return json({ ok: false, error: "Only this baseshop's EMD can decide this." }, 403);
 
       const ar = await fetch(`${SUPA}/rest/v1/announcements?id=eq.${enc(String(t.announcement_id))}&select=*&limit=1`, { headers: DBH });

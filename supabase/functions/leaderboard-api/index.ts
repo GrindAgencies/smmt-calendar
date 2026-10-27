@@ -208,7 +208,7 @@ async function buildContext(period: string, from?: string, to?: string) {
   const premium: Record<string, number> = {}; pols.forEach((p: any) => creditPrem(premium, p));
   /* Deliberately unbounded in EVERY period: this backs Net Licenses, which asks whether a recruit
      has ever written $1,000 — not whether they did so inside the selected window. */
-  const allPols = await getJSON(`policies?select=agent_code,agent_name,annual_premium,split_flag,split_pct,split_agent_code&limit=20000`);
+  const allPols = await getJSON(`policies?select=agent_code,agent_name,annual_premium,split_flag,split_pct,split_agent_code&or=(status.is.null,status.neq.incomplete)&limit=20000`);  // a draft is not $1,000 written
   const allPrem: Record<string, number> = {}; allPols.forEach((p: any) => creditPrem(allPrem, p));
 
   // FAMILIES HELPED — one per SURNAME, counted once the policy is actually in force / paid out.

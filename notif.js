@@ -12,7 +12,7 @@
     var t = localStorage.getItem('gfi_theme');
     if (!t) {
       var phone = false;
-      try { phone = (window.matchMedia && (matchMedia('(display-mode: standalone)').matches || matchMedia('(max-width: 980px)').matches)) || navigator.standalone === true; } catch (e2) {}
+      try { phone = (window.matchMedia && (matchMedia('(display-mode: standalone)').matches || matchMedia('(max-width: 980px) and (pointer: coarse)').matches)) || navigator.standalone === true; } catch (e2) {}
       if (phone) t = 'dark';
     }
     if (t === 'dark' || t === 'light') {

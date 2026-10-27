@@ -1,3 +1,16 @@
+// hub-api v30 (2026-10-26): AUDIT FOLLOW-UPS.
+//   · canSeeCustom no longer lets a display-name match open a private group: two people can
+//     share a name, and `by` was once whatever the request typed. byCode (checked in prod: every
+//     c_ group carries one) and the members list are the only keys.
+//   · @ops/@operations in hub_send obeys hub_escalate's cap (5 open per person) and at most one
+//     escalation per person per group per 10 minutes - typing it twice must not page Ops twice.
+//   · hub_react checks the caller may read the message's room. Reacting to a message id in a DM
+//     or private group you are not in used to work, and echoed back its reactions.
+//   · hub_setprofile: `title` is leadership rank and is no longer self-assigned (Ops only), and
+//     cal_link gets profile-api save_contact's Calendly validation.
+//   · mayModerate: a designated group admin of a PRIVATE group must still be a member of it.
+//   · hub_deletechannel removes the group through the locked hub_channel_remove RPC instead of
+//     rewriting the whole registry blob, which could drop a group created in the same moment.
 // hub-api v28 (2026-10-26): hub_profile gave anyone signed in another person's email, phone and
 //   booking link across every baseshop. Contact details now come back only when the person is in
 //   the caller's own baseshop scope (agent_scope) or is the caller; Operations sees all. Name,
@@ -170,7 +183,8 @@ function canSeeCustom(c: Record<string, unknown>, code: string, acc: { role: str
      else's private group; Operations reads every room through its own token instead. */
   if (code && norm(c.byCode) === norm(code)) return true;
   if (Array.isArray(c.members) && (c.members as string[]).map((x) => norm(x)).indexOf(norm(code)) >= 0) return true;
-  if (low(c.by) === low(acc.name)) return true;
+  /* v30: no display-name match. `by` is a name, names repeat, and an Ops-created group carries
+     whatever name was typed - so it could open a private group to a stranger who shares it. */
   return false;
 }
 /* The shops a leader moderates: their own baseshop, any shop they own, and every shop beneath
@@ -202,7 +216,9 @@ async function mayModerate(code: string, acc: Acc, channel: string, bases: { roo
     const c = (custom || await customChannels()).find((x) => x.id === channel);
     if (!c) return false;
     if (norm(c.byCode) === norm(code)) return true;
-    if (await isDesignatedGroupAdmin(norm(code), channel)) return true;
+    /* v30: a designated admin of a private group moderates it only while still in it. Taking
+       someone out of the group takes away the room; it must take away the gavel too. */
+    if (await isDesignatedGroupAdmin(norm(code), channel) && (!c.private || canSeeCustom(c, code, acc))) return true;
     if (c.private) return false;                    // those involved, and Operations. Nobody else.
     if (acc.scope === "super") return true;
     if (!acc.mod) return false;
@@ -231,6 +247,30 @@ async function raiseToOps(channel: string, kind: "question" | "dispute", note: s
   await fetch(`${SUPA}/rest/v1/hub_messages`, { method: "POST", headers: { ...DBH, Prefer: "return=minimal" },
     body: JSON.stringify({ channel, author_code: "OPSNOTE", author_name: "\ud83d\udee1\ufe0f Operations", body: `${byName || byCode} asked Operations to take a look (${kind}).`, kind: "system", attach: null, reactions: {} }) });
   return row;
+}
+/* v30: "may this signed-in person read this room?" - the rule hub_list applies, as one function
+   so hub_react (and anything after it) cannot drift from it. Operations is decided by the caller. */
+async function mayRead(channel: string, code: string): Promise<boolean> {
+  if (!channel || !code) return false;
+  if (channel.indexOf("dm:") === 0) return channel.slice(3).split("|").map((x) => norm(x)).indexOf(norm(code)) >= 0;
+  if (channel === "operations") return false;
+  const acc = await accessOf(code);
+  if (!eligible(channel, acc, await loadBases())) return false;
+  if (channel.indexOf("c_") === 0) {
+    const c = (await customChannels()).find((x) => String(x.id) === channel);
+    if (c && !canSeeCustom(c, norm(code), acc)) return false;
+  }
+  return true;
+}
+/* v30: the one flood rule for asking Operations into a private group, shared by hub_escalate and
+   the @ops shortcut in hub_send. Returns an error string, or "" when the request may go ahead. */
+async function escalationBlocked(code: string, channel: string): Promise<string> {
+  const op = await fetch(`${SUPA}/rest/v1/hub_escalations?raised_by=eq.${encodeURIComponent(code)}&status=eq.open&select=id`, { headers: DBH });
+  if (((await op.json()) || []).length >= 5) return "You already have 5 open requests with Operations. They will get to them.";
+  const since = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+  const rc = await fetch(`${SUPA}/rest/v1/hub_escalations?raised_by=eq.${encodeURIComponent(code)}&channel=eq.${encodeURIComponent(channel)}&created_at=gte.${encodeURIComponent(since)}&select=id&limit=1`, { headers: DBH });
+  if (((await rc.json()) || []).length) return "Operations was already asked about this group in the last 10 minutes.";
+  return "";
 }
 async function customChannels(): Promise<Record<string, unknown>[]> {
   const ex = await fetch(`${SUPA}/rest/v1/app_settings?key=eq.hub_channels&select=value`, { headers: DBH });
@@ -471,15 +511,20 @@ Deno.serve(async (req) => {
       }
       /* v27: "@Operations" (or @ops) in a PRIVATE group is how a member asks Ops in. Nothing else
          said in a private group reaches Operations. */
-      let escalated = false;
+      let escalated = false; let escalate_error = "";
       if (ins.ok && !isAdmin && channel.indexOf("c_") === 0 && /(^|\s)@(operations|ops)\b/i.test(String(row.body || ""))) {
         const cl = await customChannels(); const cobj = cl.find((x) => x.id === channel);
         if (cobj && cobj.private) {
-          await raiseToOps(channel, "question", String(row.body || "").slice(0, 1000), code, String(nm || code), inserted && inserted.id ? Number(inserted.id) : null, String(cobj.name || channel));
-          escalated = true;
+          /* v30: same cap as hub_escalate. The message itself is still posted; only the page to
+             Operations is held back, and the sender is told why. */
+          escalate_error = await escalationBlocked(code, channel);
+          if (!escalate_error) {
+            await raiseToOps(channel, "question", String(row.body || "").slice(0, 1000), code, String(nm || code), inserted && inserted.id ? Number(inserted.id) : null, String(cobj.name || channel));
+            escalated = true;
+          }
         }
       }
-      return json({ ok: ins.ok, message: inserted, bot, escalated });
+      return json({ ok: ins.ok, message: inserted, bot, escalated, escalate_error: escalate_error || undefined });
     }
 
     if (action === "hub_list") {
@@ -518,8 +563,11 @@ Deno.serve(async (req) => {
     if (action === "hub_react") {
       const id = Number(body.id); const code = norm(body.code); const emoji = clean(body.emoji).slice(0, 8);
       if (!id || !code || !emoji) return json({ ok: false, error: "missing" });
-      const ex = await fetch(`${SUPA}/rest/v1/hub_messages?id=eq.${id}&select=reactions`, { headers: DBH });
+      const ex = await fetch(`${SUPA}/rest/v1/hub_messages?id=eq.${id}&select=reactions,channel`, { headers: DBH });
       const rows = await ex.json(); if (!rows || !rows[0]) return json({ ok: false, error: "not found" });
+      /* v30: only in a room you can read. Same answer as a missing id, so this cannot be used to
+         probe which message ids live in rooms you are not in. */
+      if (!isAdmin && !(await mayRead(String(rows[0].channel || ""), code))) return json({ ok: false, error: "not found" });
       const rx = (rows[0].reactions && typeof rows[0].reactions === "object") ? rows[0].reactions : {};
       const arr: string[] = Array.isArray(rx[emoji]) ? rx[emoji] : [];
       const i = arr.indexOf(code); if (i >= 0) arr.splice(i, 1); else arr.push(code);
@@ -600,8 +648,23 @@ Deno.serve(async (req) => {
       const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
       if (typeof body.email === "string") patch.email = clean(body.email);
       if (typeof body.phone === "string") patch.phone = clean(body.phone);
-      if (typeof body.cal_link === "string") patch.cal_link = clean(body.cal_link);
-      if (typeof body.title === "string") patch.title = clean(body.title);
+      /* v30: the same Calendly rule as profile-api save_contact, so the two editors of this one
+         column cannot disagree: https calendly.com only, a bare calendly.com/x gets its https://,
+         blank clears it. It is printed as a link on other people's screens. */
+      if (typeof body.cal_link === "string") {
+        let link = clean(body.cal_link);
+        if (link && /^(www\.)?calendly\.com\//i.test(link)) link = "https://" + link;
+        if (link && !/^https:\/\/(www\.)?calendly\.com\/[A-Za-z0-9._~\/?=&%-]+$/i.test(link)) {
+          return json({ ok: false, field: "cal_link", error: "That is not a Calendly booking link. It should look like https://calendly.com/your-name." }, 400);
+        }
+        patch.cal_link = link;
+      }
+      /* v30: `title` is leadership rank (agentLevel() reads it, and the roster shows it as who
+         leads). Nobody promotes themselves from their own contact card; Operations may set it. */
+      if (typeof body.title === "string") {
+        if (!isAdmin) return json({ ok: false, field: "title", error: "Your title is set by Operations." }, 403);
+        patch.title = clean(body.title);
+      }
       /* direct_to IS the org tree — it is the single source of truth the whole hierarchy is
          computed from, and who your upline is is not a contact detail you set about yourself.
          An agent editing their own contact card could re-parent themselves under anyone. Upline
@@ -669,9 +732,10 @@ Deno.serve(async (req) => {
       if (!cobj || !cobj.private) return json({ ok: false, error: "Asking Operations from here is for private groups." }, 400);
       const acc = await accessOf(code);
       if (!canSeeCustom(cobj, code, acc)) return json({ ok: false, error: "You are not in that group." }, 403);
-      /* Keeps Ops from being flooded: at most 5 open requests per person. */
-      const op = await fetch(`${SUPA}/rest/v1/hub_escalations?raised_by=eq.${encodeURIComponent(code)}&status=eq.open&select=id`, { headers: DBH });
-      if (((await op.json()) || []).length >= 5) return json({ ok: false, error: "You already have 5 open requests with Operations. They will get to them." }, 429);
+      /* Keeps Ops from being flooded: at most 5 open requests per person, and (v30) one per group
+         per 10 minutes. Shared with the @ops shortcut in hub_send. */
+      const blocked = await escalationBlocked(code, channel);
+      if (blocked) return json({ ok: false, error: blocked }, 429);
       const mid = Number(body.message_id) || null;
       const row = await raiseToOps(channel, kind, note, code, acc.name || code, mid, String(cobj.name || channel));
       return json({ ok: !!row, id: row ? row.id : null });
@@ -680,10 +744,7 @@ Deno.serve(async (req) => {
     if (action === "hub_deletechannel") {
       const id = clean(body.id); const byCode = norm(body.code);
       if (!id || id.indexOf("c_") !== 0) return json({ ok: false, error: "only custom channels can be deleted" });
-      const ex = await fetch(`${SUPA}/rest/v1/app_settings?key=eq.hub_channels&select=value`, { headers: DBH });
-      const rws = await ex.json();
-      const v = (rws && rws[0] && rws[0].value) ? rws[0].value : { channels: [] };
-      const list: Record<string, unknown>[] = Array.isArray(v.channels) ? v.channels : [];
+      const list = await customChannels();
       const cobj = list.find((x) => x.id === id);
       if (!cobj) return json({ ok: false, error: "channel not found" });
       let allowed = isAdmin || norm(cobj.byCode) === byCode;
@@ -691,8 +752,11 @@ Deno.serve(async (req) => {
          the leaders who moderate the creator's own baseshop. */
       if (!allowed && byCode && !cobj.private) { const acc = await accessOf(byCode); allowed = await mayModerate(byCode, acc, id, await loadBases(), list); }
       if (!allowed) return json({ ok: false, error: cobj.private ? "Only the person who created this private group, or Operations, can delete it." : "Only the creator or a leader of this baseshop can delete this group." }, 403);
-      v.channels = list.filter((x) => x.id !== id);
-      await fetch(`${SUPA}/rest/v1/app_settings?on_conflict=key`, { method: "POST", headers: { ...DBH, Prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify({ key: "hub_channels", value: v, updated_at: new Date().toISOString() }) });
+      /* v30: removed under the registry's row lock (hub_channel_remove), not by writing back a copy
+         read above - a group created between that read and this write used to be erased with it.
+         The RPC also drops the group's hub_group_admins rows. */
+      const gone = await rpc("hub_channel_remove", { p_id: id });
+      if (!gone || gone.ok !== true) return json({ ok: false, error: "Could not delete the group. Try again." }, 500);
       await fetch(`${SUPA}/rest/v1/hub_messages?channel=eq.${encodeURIComponent(id)}`, { method: "DELETE", headers: { ...DBH, Prefer: "return=minimal" } });
       return json({ ok: true, id });
     }

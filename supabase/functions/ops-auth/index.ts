@@ -12,7 +12,7 @@
 //
 // Actions:
 //   status { code }             -> does this seat have a PIN yet?
-//   set    { code, pin }        -> choose one (first time only)
+//   set    { code, pin, setup } -> choose one (first time only; v7 needs the one-time setup code)
 //   login  { code, pin }        -> verify and mint a session token
 //   check  { token }            -> is this session still good? (who does it belong to?)
 //   logout { token }            -> end it now
@@ -61,7 +61,11 @@ Deno.serve(async (req) => {
     if (action === "set") {
       const pin = clean(body.pin, 8);
       if (!/^[0-9]{6}$/.test(pin)) return json({ ok: false, error: "Your Operations PIN must be 6 digits." });
-      return json(await rpc("ops_pin_set", { p_code: clean(body.code, 8), p_pin: pin }));
+      /* v7: the one-time setup code handed out by enroll/reset is required. Knowing a seat
+         number during an open setup window is no longer enough to claim the seat. */
+      const setup = clean(body.setup, 12);
+      if (!setup) return json({ ok: false, needs_setup: true, error: "Enter the setup code you were given with this seat." });
+      return json(await rpc("ops_pin_set", { p_code: clean(body.code, 8), p_pin: pin, p_setup: setup }));
     }
 
     if (action === "login") {

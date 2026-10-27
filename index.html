@@ -593,7 +593,7 @@ html, body{ overflow-x: hidden; }
       <div class="tb-search" style="position:relative">${ICON.search}<input id="appSearch" type="text" autocomplete="off" placeholder="Search the app — scripts, leads, policies, people…" oninput="appSearch()" onkeydown="appSearchKey(event)" onfocus="appSearch()"><div id="appSearchRes" class="as-res" hidden></div></div>
       <div class="tb-spacer"></div>
       <div class="ctx"><button id="ctxMe" class="on" onclick="setCtx('me')">Personal</button><button id="ctxTeam" onclick="setCtx('team')">Team</button><button id="ctxShop" onclick="setCtx('shop')">Baseshop</button><button id="ctxOrg" onclick="setCtx('org')">Hierarchy</button></div>
-      <button class="tb-ic" onclick="toggleTheme()" aria-label="Theme" id="themeBtn">${ICON.moon}</button>
+      <button class="tb-ic" onclick="toggleTheme()" aria-label="Theme" id="themeBtn">${document.documentElement.getAttribute('data-theme')==='dark'?ICON.sun:ICON.moon}</button>
       <button class="tb-ic" aria-label="Notifications" onclick="location.href='dashboard.html'">${ICON.bell}<span class="dot"></span></button>
     </div>
 
@@ -725,7 +725,7 @@ function initials(n){n=(n||'').trim();if(!n)return '–';var p=n.split(/\s+/);re
 /* ---------- THEME ---------- */
 function applyTheme(t){document.documentElement.setAttribute('data-theme',t);try{localStorage.setItem('gfi_theme',t);}catch(e){}$('themeBtn').innerHTML=(t==='dark')?I.sun:I.moon;}
 function toggleTheme(){applyTheme(document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark');}
-(function(){var t='light';try{t=localStorage.getItem('gfi_theme')||((function(){try{return (window.matchMedia&&(matchMedia('(display-mode: standalone)').matches||matchMedia('(max-width: 980px)').matches))||navigator.standalone===true;}catch(e){return false;}})()?'dark':'light');}catch(e){}document.documentElement.setAttribute('data-theme',t);})();
+(function(){var t='light';try{t=localStorage.getItem('gfi_theme')||((function(){try{return (window.matchMedia&&(matchMedia('(display-mode: standalone)').matches||matchMedia('(max-width: 980px) and (pointer: coarse)').matches))||navigator.standalone===true;}catch(e){return false;}})()?'dark':'light');}catch(e){}document.documentElement.setAttribute('data-theme',t);})();
 
 /* ---------- SIDEBAR ---------- */
 function toggleSidebar(){var a=$('app');if(window.innerWidth<=860){a.classList.toggle('drawer');}else{a.classList.toggle('collapsed');try{localStorage.setItem('gfi_side',a.classList.contains('collapsed')?'1':'0');}catch(e){}}}
@@ -932,7 +932,7 @@ function loadData(){
     api({action:'team',leader:BASESHOP_LEADER}),
     fetch(API+'?action=pulse').then(function(r){return r.json();}).catch(function(){return{};}),
     nbapi({action:'newbiz_summary',code:CODE,since:since}),
-    nbapi({action:'newbiz_summary',leader:BASESHOP_LEADER,since:since}),
+    nbapi({action:'newbiz_summary',leader:BASESHOP_LEADER,scope:'baseshop',since:since}),
     fetch(GOALSAPI,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'get',code:CODE,month:monthKey()})}).then(function(r){return r.json();}).catch(function(){return{ok:false};}),
     fetch(LB,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'snapshot',code:CODE})}).then(function(r){return r.json();}).catch(function(){return{ok:false};})
   ]).then(function(res){

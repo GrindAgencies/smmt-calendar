@@ -1,3 +1,8 @@
+// hub-safety v3 (2026-10-26) — report is limited to messages the reporter could actually read,
+//   and to 10 open reports per person. A report snapshots the message body into hub_reports, so
+//   "report message 1234" was a way to copy any DM or private-group message into the Ops queue
+//   by guessing ids; and an unlimited queue was a way to bury Operations. The read rule is
+//   hub-api's (public room / member or creator of a private group / one side of a DM).
 // hub-safety v2 (2026-10-26) — adds Operations list_blocks / clear_block.
 // hub-safety v1 — reporting objectionable content, and blocking a person.
 //
@@ -58,6 +63,35 @@ async function isOps(token: unknown): Promise<boolean> {
   if (!t) return false;
   const r = await rpc("ops_authorize", { p_token: t });
   return !!(r && r.ok);
+}
+
+const MAX_OPEN_REPORTS = 10;
+
+/* hub-api's reading rule, restated here for the one question report needs: could `me` have
+   seen this message? Rank/baseshop eligibility of built-in rooms is asked of hub-api itself
+   (hub_channels, with the caller's own session), so the two can never disagree; DMs and custom
+   groups are answered locally because those rules are short and exact. */
+async function mayReadChannel(me: string, channel: string, session: string): Promise<boolean> {
+  if (!channel) return false;
+  if (channel.indexOf("dm:") === 0) return channel.slice(3).split("|").map((x) => norm(x)).indexOf(me) >= 0;
+  if (channel === "operations") return false;
+  if (channel.indexOf("c_") === 0) {
+    const row = ((await db("app_settings?key=eq.hub_channels&select=value")) || [])[0];
+    const list = (row && row.value && Array.isArray(row.value.channels)) ? row.value.channels : [];
+    const c = list.find((x: Record<string, unknown>) => String(x && x.id) === channel);
+    if (!c) return false;
+    if (!c.private) return true;
+    if (norm(c.byCode) === me) return true;
+    return Array.isArray(c.members) && c.members.map((x: unknown) => norm(x)).indexOf(me) >= 0;
+  }
+  try {
+    const r = await fetch(`${SUPA}/functions/v1/hub-api`, {
+      method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${KEY}`, apikey: KEY },
+      body: JSON.stringify({ action: "hub_channels", session }),
+    });
+    const j = await r.json();
+    return !!(j && Array.isArray(j.channels) && j.channels.some((c: Record<string, unknown>) => String(c && c.id) === channel));
+  } catch (_) { return false; }
 }
 
 async function db(path: string, init?: RequestInit) {
@@ -149,6 +183,14 @@ Deno.serve(async (req) => {
       /* Snapshot the message as it stood when reported — the author can edit or delete it
          afterwards, and Operations still needs to see what was actually complained about. */
       const msg = (await db(`hub_messages?id=eq.${mid}&select=id,author_code,channel,body&limit=1`) || [])[0];
+      /* v3: a message you could not have read is answered exactly like one that does not exist. */
+      if (!msg || !(await mayReadChannel(me, String(msg.channel || ""), String(body.session ?? "").trim().slice(0, 120)))) {
+        return json({ ok: false, error: "That message could not be found." }, 404);
+      }
+      const open = await db(`hub_reports?reporter=eq.${enc(me)}&status=eq.open&select=id&limit=${MAX_OPEN_REPORTS}`);
+      if ((open || []).length >= MAX_OPEN_REPORTS) {
+        return json({ ok: false, error: `You already have ${MAX_OPEN_REPORTS} reports waiting for Operations. They will review them.` }, 429);
+      }
 
       await db("hub_reports", {
         method: "POST",

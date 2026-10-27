@@ -1,3 +1,8 @@
+// coaching v8 (2026-10-26) — AN OPERATIONS NOTE IS SIGNED BY THE SEAT, NOT BY A TYPED CODE.
+//   v7 still stored `by_code` exactly as an Ops caller sent it, so an Ops-filed note was
+//   indistinguishable from one the named trainer wrote (and could be deleted as theirs). Ops
+//   notes now always carry by_code "OPS:<seat>"; a trainer named by Ops survives only as the
+//   trainer_name label.
 // coaching v7 (2026-10-26) — a coach reads notes about THEIR OWN TREE. "list" and "booking" let any
 //   coach (CFT and up) read anyone's coaching notes company-wide by code or booking id. Brief
 //   section 8: no reading across branches. A coach now sees all notes for themselves and their
@@ -42,7 +47,7 @@ async function _rpcAuth(fn, args) { try { const r = await fetch(`${Deno.env.get(
 /* The one authority for "is this really Operations". Replaces a hardcoded literal that could not
    be switched off centrally, which is exactly why five other functions kept working after the
    September cutover was supposed to have closed this. */
-async function _opsOk(token) { const t = String(token ?? "").trim(); if (!t) return false; const r = await _rpcAuth("ops_authorize", { p_token: t }); return !!(r && r.ok); }
+async function _opsAuth(token) { const t = String(token ?? "").trim(); if (!t) return null; const r = await _rpcAuth("ops_authorize", { p_token: t }); return (r && r.ok) ? r : null; }
 /* Proof of identity. A session token is proof; a typed code is not — and here a typed code was
    both a read of somebody's private feedback and a forged byline on their record. */
 async function _sessionCode(session) {
@@ -113,7 +118,8 @@ Deno.serve(async (req) => {
     const token = (body.token as string) || "";
 
     /* WHO IS ASKING. Resolved once, before any note is read or written. */
-    const isOps = await _opsOk(token);
+    const opsAuth = await _opsAuth(token);
+    const isOps = !!opsAuth;
     const me = isOps ? "" : await _sessionCode(body.session);
     if (!isOps && !me) return json({ ok: false, needs_session: true, error: "Please sign in again." }, 401);
     const meIsCoach = isOps ? true : await isCoach(me);
@@ -121,20 +127,24 @@ Deno.serve(async (req) => {
     if (action === "add") {
       /* The author is the verified caller. Operations may still file one on a trainer's
          behalf, which is what support needs, and says so in the byline. */
-      const byCode = isOps ? norm(body.by_code) : me;
+      /* v8: an Ops note is ALWAYS signed by the seat. body.by_code is only used to look up the
+         trainer it was filed for, which becomes the trainer_name label and nothing more. */
+      const byCode = isOps ? `OPS:${(opsAuth && opsAuth.code) || "?"}` : me;
+      const forTrainer = isOps ? norm(body.by_code) : "";
       const traineeCode = norm(body.trainee_code);
       const text = clean(body.body);
       if (!traineeCode || !text) return json({ ok: false, error: "Missing trainee or note." });
       if (!meIsCoach) return json({ ok: false, error: "Only trainers and senior leaders can leave coaching notes." }, 403);
       /* The name on the note comes from the roster. It used to be whatever the request said,
          so a note could carry a real trainer's name without them writing it. */
-      const author = byCode ? await rosterName(byCode) : "";
+      const author = isOps ? "" : await rosterName(byCode);
+      const trainerLabel = isOps ? ((forTrainer ? await rosterName(forTrainer) : "") || clean(body.trainer_name)) : author;
       const row = {
         trainee_code: traineeCode, trainee_name: (await rosterName(traineeCode)) || clean(body.trainee_name),
         /* v6 (2026-10-26): an Operations note with no trainer named used to save with a blank
-           byline. It now says who wrote it. */
-        by_code: byCode || (isOps ? "OPS" : ""), by_name: author || clean(body.by_name) || (isOps ? "Operations" : ""),
-        trainer_name: author || clean(body.trainer_name),
+           byline. It now says who wrote it. v8: and that is always the seat, never a typed code. */
+        by_code: byCode, by_name: isOps ? (String((opsAuth && opsAuth.label) || "") || "Operations") : (author || clean(body.by_name)),
+        trainer_name: trainerLabel,
         booking_id: clean(body.booking_id) || null, ft_date: clean(body.ft_date) || null, body: text
       };
       const ins = await fetch(`${SUPA}/rest/v1/coaching_notes`, { method: "POST", headers: { ...DBH, Prefer: "return=representation" }, body: JSON.stringify(row) });

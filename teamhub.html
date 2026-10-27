@@ -319,7 +319,7 @@ html, body{ overflow-x: hidden; }
     <div style="font-size:11px;color:var(--ink3);margin-top:5px">JPG or PNG · square looks best</div></div>
   </div>
   <div class="fg"><label>Name</label><input id="psName" disabled></div>
-  <div class="fg"><label>What best describes you</label><input id="psTitle" placeholder="e.g. Agent, Senior Associate, Marketing Director"></div>
+  <div class="fg"><label>What best describes you</label><input id="psTitle" placeholder="e.g. Agent, Senior Associate, Marketing Director"><div id="psTitleNote" style="display:none;font-size:12px;opacity:.7;margin-top:4px">Your title is set by Operations.</div></div>
   <div class="fg"><label>Reports directly to <span style="color:var(--ink3);font-weight:500">(your direct upline)</span></label><select id="psDirect" class="dmsel" style="margin:0"></select><div style="font-size:11px;color:var(--ink3);margin-top:5px">Builds the full team hierarchy across the platform — org chart, team &amp; more.</div></div>
   <div class="fg"><label>Email <span style="color:var(--ink3);font-weight:500">(support contact · never public)</span></label><input id="psEmail" type="email" placeholder="you@email.com"></div>
   <div class="fg"><label>Phone <span style="color:var(--ink3);font-weight:500">(support contact · never public)</span></label><input id="psPhone" placeholder="(555) 555-5555"></div>
@@ -657,7 +657,7 @@ function toast(m){var t=$('toast');t.textContent=m;t.classList.add('on');setTime
 function toggleRooms(){if(window.innerWidth<=980){document.body.classList.toggle('rooms-open');}else{document.body.classList.toggle('rooms-collapsed');}}
 function drawer(on){document.body.classList.toggle('drawer',on===undefined?!document.body.classList.contains('drawer'):on);}
 function toggleTheme(){var d=document.documentElement.getAttribute('data-theme')==='dark';document.documentElement.setAttribute('data-theme',d?'light':'dark');try{localStorage.setItem('gfi_theme',d?'light':'dark');}catch(e){}}
-(function(){try{document.documentElement.setAttribute('data-theme',localStorage.getItem('gfi_theme')||((function(){try{return (window.matchMedia&&(matchMedia('(display-mode: standalone)').matches||matchMedia('(max-width: 980px)').matches))||navigator.standalone===true;}catch(e){return false;}})()?'dark':'light'));}catch(e){}})();
+(function(){try{document.documentElement.setAttribute('data-theme',localStorage.getItem('gfi_theme')||((function(){try{return (window.matchMedia&&(matchMedia('(display-mode: standalone)').matches||matchMedia('(max-width: 980px) and (pointer: coarse)').matches))||navigator.standalone===true;}catch(e){return false;}})()?'dark':'light'));}catch(e){}})();
 function tstr(iso){try{var d=new Date(iso);return new Intl.DateTimeFormat('en-US',{hour:'numeric',minute:'2-digit'}).format(d);}catch(e){return '';}}
 
 /* sidebar */
@@ -764,7 +764,7 @@ function togglePin(){
 }
 function hideRow(){
   var ch = CVMENU_FOR; if(!ch) return;
-  HIDDEN[ch]=1;
+  HIDDEN[ch]=1; HIDE_SEEN[ch]=String(HUB_LAST[ch]||0);
   closeRowMenu(); renderRooms();
   prefsApi({action:'hide', channel: ch}).then(function(r){
     if(!r || !r.ok){ delete HIDDEN[ch]; renderRooms(); toast((r&&r.error)||'Could not hide that chat'); }
@@ -966,6 +966,11 @@ try{ CVFILTER = localStorage.getItem('tsfg_hub_filter') || 'group'; }catch(e){}
 /* Per-person pins and hides. These belong to the signed-in user and never move anybody
    else's list; the server owns the rules and this is only its answer. */
 var PINNED = {}, HIDDEN = {}, PREFS_READY = false;
+/* 2026-10-26: the newest message id each hidden chat had when we last asked hub-prefs about it
+   (at hide time, or at the last prefs load). loadUnread re-asks only when that id moves -
+   otherwise a chat hidden while it still had unreads re-polled hub-prefs every 30 seconds. */
+var HUB_LAST = {}, HIDE_SEEN = {};
+function markHiddenSeen(){ Object.keys(HIDDEN).forEach(function(c){ HIDE_SEEN[c]=String(HUB_LAST[c]||0); }); }
 var HUBPREFS = 'https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/hub-prefs';
 function prefsApi(b){
   return fetch(HUBPREFS,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b||{})})
@@ -977,6 +982,7 @@ function loadPrefs(cb){
     if(r && r.ok){
       (r.pinned||[]).forEach(function(c){ PINNED[c]=1; });
       (r.hidden||[]).forEach(function(c){ HIDDEN[c]=1; });
+      markHiddenSeen();
       /* Anything the server says has moved on is simply not in `hidden` any more - it told
          us so in `resurfaced` and cleared its own row, so there is nothing to do here but
          let it reappear. */
@@ -1561,10 +1567,12 @@ function loadUnread(){
   fetch(UNREADAPI,{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({code:CODE,read:readMap()})})
     .then(function(r){return r.json();})
-    .then(function(r){ if(r&&r.ok){ UNREAD=r.counts||{}; PREVIEW=r.preview||{}; renderRooms(); paintTitle(r.total||0);
+    .then(function(r){ if(r&&r.ok){ UNREAD=r.counts||{}; PREVIEW=r.preview||{}; HUB_LAST=r.last||{}; renderRooms(); paintTitle(r.total||0);
       /* A hidden chat that has a real new message should come back without a reload. hub-prefs
-         decides (by message id, never by typing) and clears the hide itself. */
-      if(Object.keys(HIDDEN).some(function(c){ return (UNREAD[c]||0)>0; })) loadPrefs(renderRooms); } })
+         decides (by message id, never by typing) and clears the hide itself. Only ask when a
+         hidden chat's newest id has moved since we last asked (HIDE_SEEN). */
+      var moved=Object.keys(HIDDEN).filter(function(c){ return (UNREAD[c]||0)>0 && String(HUB_LAST[c]||0)!==HIDE_SEEN[c]; });
+      if(moved.length){ moved.forEach(function(c){ HIDE_SEEN[c]=String(HUB_LAST[c]||0); }); loadPrefs(renderRooms); } } })
     .catch(function(){});
 }
 /* Unread count in the tab title, the way every other chat app does it. */
@@ -2251,8 +2259,8 @@ var ROSTER_READY=false;
 function loadRoster(){hroster().then(function(r){ROSTER=(r&&r.members)||[];ROSTER_READY=true;try{renderRooms();}catch(e){}
   /* The New group form may already be open, showing "Loading"; fill it in, keeping any picks. */
   try{ if($('chOv').classList.contains('on')) fillMembers(); }catch(e){}});}
-function openProfileSettings(){$('psAv').innerHTML=avatarInner(CODE,NAME,'');$('psName').value=NAME;var open=function(){h({action:'hub_profile',code:CODE}).then(function(r){var pf=(r&&r.profile)||{};$('psTitle').value=pf.title||'';$('psEmail').value=pf.email||'';$('psPhone').value=pf.phone||'';$('psCal').value=pf.cal_link||'';var sel=$('psDirect');sel.innerHTML='<option value="">\u2014 Select your direct upline \u2014</option>'+ROSTER.filter(function(m){return m.code!==CODE;}).map(function(m){return '<option value="'+m.code+'"'+(pf.direct_to===m.code?' selected':'')+'>'+esc(m.name)+' ('+m.code+')</option>';}).join('');});$('psOv').classList.add('on');};if(!ROSTER.length){hroster().then(function(r){ROSTER=(r&&r.members)||[];open();});}else open();}
-function saveProfile(){var sel=$('psDirect');var dc=sel.value;var dn=dc?sel.options[sel.selectedIndex].text.replace(/\s*\([^)]*\)\s*$/,'').trim():'';h({action:'hub_setprofile',code:CODE,title:$('psTitle').value.trim(),email:$('psEmail').value.trim(),phone:$('psPhone').value.trim(),cal_link:$('psCal').value.trim(),direct_to:dc,direct_to_name:dn}).then(function(r){if(r&&r.ok){$('psOv').classList.remove('on');toast('Profile saved \u2713');loadRoster();}else toast((r&&r.error)||'Could not save');});}
+function openProfileSettings(){$('psAv').innerHTML=avatarInner(CODE,NAME,'');$('psName').value=NAME;var open=function(){h({action:'hub_profile',code:CODE}).then(function(r){var pf=(r&&r.profile)||{};$('psTitle').value=pf.title||'';/* 2026-10-26: title is leadership rank and hub-api v30 refuses it from anyone but Operations, so it is shown, not offered. */$('psTitle').readOnly=!OPSMODE;$('psTitleNote').style.display=OPSMODE?'none':'block';$('psEmail').value=pf.email||'';$('psPhone').value=pf.phone||'';$('psCal').value=pf.cal_link||'';var sel=$('psDirect');sel.innerHTML='<option value="">\u2014 Select your direct upline \u2014</option>'+ROSTER.filter(function(m){return m.code!==CODE;}).map(function(m){return '<option value="'+m.code+'"'+(pf.direct_to===m.code?' selected':'')+'>'+esc(m.name)+' ('+m.code+')</option>';}).join('');});$('psOv').classList.add('on');};if(!ROSTER.length){hroster().then(function(r){ROSTER=(r&&r.members)||[];open();});}else open();}
+function saveProfile(){var sel=$('psDirect');var dc=sel.value;var dn=dc?sel.options[sel.selectedIndex].text.replace(/\s*\([^)]*\)\s*$/,'').trim():'';var pb={action:'hub_setprofile',code:CODE,email:$('psEmail').value.trim(),phone:$('psPhone').value.trim(),cal_link:$('psCal').value.trim(),direct_to:dc,direct_to_name:dn};if(OPSMODE)pb.title=$('psTitle').value.trim();h(pb).then(function(r){if(r&&r.ok){$('psOv').classList.remove('on');toast('Profile saved \u2713');loadRoster();}else toast((r&&r.error)||'Could not save');});}
 function deleteChannel(){if(CHAN.indexOf('c_')!==0)return;if(!confirm('Delete this channel for everyone? This cannot be undone.'))return;h({action:'hub_deletechannel',id:CHAN,code:CODE,token:MODTOKEN||''}).then(function(r){if(r&&r.ok){toast('Channel deleted');CHAN='main';loadChannels();renderHead();loadMsgs(true);}else toast((r&&r.error)||'Could not delete');});}
 function loadChannels(cb){var call=OPSMODE?hops({action:'channels',name:NAME}):h({action:'hub_channels',code:CODE});call.then(function(r){CHANNELS=(r&&r.channels)||[];if(r&&r.access){ACC=r.access;}if(r&&Array.isArray(r.mod_channels)){MODCH={};r.mod_channels.forEach(function(c){MODCH[c]=1;});}syncBotBtn();if(CHAN.indexOf('dm:')!==0&&!CHANNELS.some(function(c){return c.id===CHAN;})){CHAN='main';renderHead();loadMsgs(true);}renderRooms();if(typeof cb==='function')cb();});}
 

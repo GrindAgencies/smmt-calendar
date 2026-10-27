@@ -506,6 +506,9 @@ function closeDrawer(){$('ov').classList.remove('on');}
   var DR=false;
   function watch(){
     var ov=$('ov'); if(!ov||!window.MutationObserver) return;
+    /* A reload while a drawer was open leaves its history entry behind with no drawer; drop the
+       marker so the next back press is not a dead one. */
+    try{ if(history.state&&history.state.tsfgDrawer) history.replaceState(null,''); }catch(e){}
     new MutationObserver(function(){
       var on=ov.classList.contains('on');
       if(on&&!DR){ DR=true; try{ history.pushState({tsfgDrawer:1},''); }catch(e){} }

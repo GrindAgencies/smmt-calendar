@@ -63,13 +63,17 @@ async function rpc(fn: string, args: Record<string, unknown>) { try { const r = 
 async function opsAuthorized(token: unknown) { const r = await rpc("ops_authorize", { p_token: String(token ?? "") }); return !!(r && r.ok); }
 
 async function agentRow(code: string) { return (await dbGet(`tracker_agents?code=eq.${enc(norm(code))}&select=code,first_name,last_name,contract_level,title,baseshop,platform_admin`))[0] || null; }
-const isLeader = (a: any) => ["MD", "EMD"].indexOf(norm(a && a.contract_level)) >= 0
-  || /marketing director|vice president/i.test(String((a && a.title) || ""))
+/* v10 (2026-10-26): authority comes from the ASSIGNED contract level (spelled either way) or the
+   platform-builder flag -- never from `title`. Title is free text a person could set about
+   themselves in the Hub profile, and the brief is explicit that EMD powers must not follow from
+   "a name containing EMD". Checked live: nobody's leadership depended on the title alone. */
+const LVL = (a: any) => String((a && a.contract_level) || "").trim().toLowerCase();
+const EMD_UP = ["emd", "executive marketing director", "nvp", "national vice president"];
+const isLeader = (a: any) => ["md", "marketing director"].concat(EMD_UP).indexOf(LVL(a)) >= 0
   || (a && a.platform_admin === true);
 /* Setting the standards is an EMD act, not an MD one: an MD must not be able to rewrite the bar
    they are themselves measured against. */
-const isEMD = (a: any) => ["EMD", "NVP"].indexOf(norm(a && a.contract_level)) >= 0
-  || /executive marketing|vice president/i.test(String((a && a.title) || ""))
+const isEMD = (a: any) => EMD_UP.indexOf(LVL(a)) >= 0
   || (a && a.platform_admin === true);
 
 /* The cashflow levels past EMD. One row of data, seeded with the five thresholds that used to be

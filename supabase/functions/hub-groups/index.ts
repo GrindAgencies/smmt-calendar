@@ -1,3 +1,10 @@
+// hub-groups v7 (2026-10-26) — member_add / member_remove no longer write back a copy of the
+//   whole app_settings.hub_channels registry. Two edits at once (or an edit racing a new group
+//   being created) used to lose one of them: a fresh group could vanish, a removed member could
+//   come back. The change is now one call to hub_channel_patch, which applies members_add /
+//   members_remove to the CURRENT list under the same row lock hub_channel_append uses, and in
+//   the same statement deletes a removed member's hub_group_admins row for that group - being
+//   taken out of a private group must also end being its admin.
 // hub-groups v6 (2026-10-26) — members of a created group can be viewed and managed after
 //   creation (brief §5: "Authorized group admins can later ... manage members under existing
 //   rules"). Before this a private group was frozen with whoever was ticked on day one.
@@ -171,13 +178,6 @@ async function channelRegistry(): Promise<any> {
   if (!Array.isArray(v.channels)) v.channels = [];
   return v;
 }
-async function saveRegistry(v: any) {
-  const r = await fetch(`${SUPA}/rest/v1/app_settings?on_conflict=key`, {
-    method: "POST", headers: { ...DBH, Prefer: "resolution=merge-duplicates,return=minimal" },
-    body: JSON.stringify({ key: "hub_channels", value: v, updated_at: new Date().toISOString() }),
-  });
-  return r.ok;
-}
 async function peopleByCode(codes: string[]) {
   const list = codes.map(norm).filter((c) => /^[A-Z0-9]{2,12}$/.test(c));
   if (!list.length) return {} as Record<string, any>;
@@ -350,7 +350,6 @@ Deno.serve(async (req) => {
 
     if (action === "member_remove") {
       if (asked.indexOf(creator) >= 0) return json({ ok: false, error: "The person who created the group stays in it." }, 400);
-      ch.members = cur.filter((c) => asked.indexOf(c) < 0);
     } else {
       const ppl = await peopleByCode(asked);
       const missing = asked.filter((c) => !ppl[c] || low(ppl[c].status) === "quit");
@@ -363,11 +362,12 @@ Deno.serve(async (req) => {
         const outside = all ? [] : asked.filter((c) => bases.indexOf(norm(ppl[c].baseshop)) < 0);
         if (outside.length) return json({ ok: false, error: `Outside your baseshop: ${outside.map((c) => ppl[c].name).join(", ")}` }, 403);
       }
-      const next = cur.slice(); for (const c of asked) if (next.indexOf(c) < 0) next.push(c);
-      ch.members = next;
     }
-    if (!(await saveRegistry(reg))) return json({ ok: false, error: "Could not save that." }, 500);
-    return json({ ok: true, channel, members: ch.members, count: ch.members.length });
+    /* v7: the delta, not a recomputed list - applied under the registry lock (see header). */
+    const res = await rpc("hub_channel_patch", { p_id: channel, p_patch: action === "member_add" ? { members_add: asked } : { members_remove: asked } });
+    if (!res || res.ok !== true || !res.channel) return json({ ok: false, error: "Could not save that." }, 500);
+    const saved: string[] = Array.isArray(res.channel.members) ? res.channel.members : [];
+    return json({ ok: true, channel, members: saved, count: saved.length });
   }
 
   /* ------------------------------------------------------- designate / revoke ---- */

@@ -1,4 +1,4 @@
-// pfr-api v9 (2026-10-26; v8 2026-09-30) — Personal Financial Reviews. This holds the most sensitive data in
+// pfr-api v10 (2026-10-26; v9 2026-10-26; v8 2026-09-30) — Personal Financial Reviews. This holds the most sensitive data in
 // the platform: 94 reviews, each carrying a client's name, phone, household, health, assets,
 // debt, monthly expenses and their existing policies with cash values. Third-party personal
 // financial data about people who are not users of this app.
@@ -23,6 +23,15 @@
 // Operations token ops_authorize() accepts. A `code` in the request is never identity again:
 // reads are scoped to the session, writes land on the session, and pfr_get checks the review
 // actually belongs to the person asking.
+//
+// v10 (2026-10-26) — OPS SEATS ARE SCOPED, AND AN OPS EDIT NEVER MOVES A CLIENT.
+//   a) Every Ops token saw every review in the company. A baseshop seat (0001-0005) now sees,
+//      opens and saves only reviews owned by agents in its bases; master seats (0000, C1991)
+//      keep the full view exactly as before.
+//   b) v9 still let a named `code` win over the row's owner when Ops saved an EXISTING review,
+//      so a stale or wrong code silently reassigned a client's whole financial file. An existing
+//      review now always keeps its agent unless the request says reassign:true with a code. New
+//      reviews still take the agent from pfr.html's picker (it sends `code`), unchanged.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const SUPA = Deno.env.get("SUPABASE_URL")!;
@@ -38,14 +47,28 @@ async function rpc(fn: string, args: Record<string, unknown>) { try { const r = 
 
 /* ===== WHO IS CALLING =====
    Operations by token, or a member by the session minted at PIN entry. Nothing else. */
-type Caller = { code: string; ops: boolean };
+type Caller = { code: string; ops: boolean; token?: string };
 async function whoIsCalling(body: Record<string, unknown>, q: URLSearchParams): Promise<Caller> {
   const t = ((body.token ?? q.get("token")) ?? "").toString().trim().slice(0, 120);
-  if (t) { const az = await rpc("ops_authorize", { p_token: t }); if (az && az.ok) return { code: "", ops: true }; }
+  if (t) { const az = await rpc("ops_authorize", { p_token: t }); if (az && az.ok) return { code: "", ops: true, token: t }; }
   const s = ((body.session ?? q.get("session")) ?? "").toString().trim().slice(0, 120);
   if (s) { const c = await rpc("agent_session_code", { p_token: s }); if (typeof c === "string" && c) return { code: norm(c), ops: false }; }
   return { code: "", ops: false };
 }
+/* v10: the agent codes a baseshop Ops seat may see, or null for company-wide (master seat or
+   machine token). ops_scope expands the seat's bases through baseshop_groups, the same as every
+   other scoped Ops screen. */
+async function seatCodes(token: string): Promise<string[] | null> {
+  const sc = await rpc("ops_scope", { p_token: token });
+  if (sc && sc.seat && !sc.scoped) return null;
+  const bases: string[] = Array.isArray(sc?.bases) ? sc.bases.map((b: unknown) => norm(b)) : [];
+  if (!bases.length) return [];
+  const r = await fetch(`${SUPA}/rest/v1/tracker_agents?select=code,baseshop&limit=5000`, { headers: DBH });
+  const rows: Record<string, unknown>[] = (await r.json()) || [];
+  return rows.filter((a) => bases.indexOf(norm(a.baseshop)) >= 0).map((a) => norm(a.code)).filter(Boolean);
+}
+/* PostgREST filter for "owned by one of these agents". An empty list must match nothing. */
+const inCodes = (codes: string[]) => codes.length ? `&agent_code=in.(${codes.map((c) => enc(`"${c}"`)).join(",")})` : `&agent_code=eq.__none__`;
 function needSession() { return json({ ok: false, needs_session: true, error: "Please sign in again." }, 401); }
 
 // Mirror the client's existing life policies (from the PFR JSON) into the OPS
@@ -93,11 +116,19 @@ Deno.serve(async (req) => {
        Ops caller sees everything instead of filtering to a non-existent agent "0000". */
     const named = me.ops ? norm(body.code || url.searchParams.get("code")) : "";
     const mine = me.ops ? (/^\d{4}$/.test(named) ? "" : named) : me.code;
+    /* v10: a baseshop seat's reach (null = master, unchanged). Naming an agent outside it is refused
+       outright rather than quietly returning an empty book. */
+    const seat = me.ops ? await seatCodes(me.token || "") : null;
+    if (seat && mine && seat.indexOf(mine) < 0) {
+      return json({ ok: false, error: "That agent is outside your Operations seat." }, 403);
+    }
+    const seatQ = seat ? inCodes(seat) : "";
 
     if (action === "pfr_list") {
       let q = `${SUPA}/rest/v1/pfrs?select=id,agent_code,agent_name,client_name,client_phone,insurable_need,status,recommended_carrier,recommended_product,recommended_strategy,updated_at,created_at,data&order=updated_at.desc`;
       if (!me.ops) q += `&agent_code=eq.${enc(me.code)}`;
       else if (mine) q += `&agent_code=eq.${enc(mine)}`;
+      else q += seatQ;
       const ex = await fetch(q, { headers: DBH });
       return json({ ok: true, scope: me.ops ? (mine || "all") : me.code, pfrs: (await ex.json()) || [] });
     }
@@ -108,6 +139,7 @@ Deno.serve(async (req) => {
       if (!id) return json({ ok: false, error: "no id" });
       let q = `${SUPA}/rest/v1/pfrs?id=eq.${enc(id)}&select=*`;
       if (!me.ops) q += `&agent_code=eq.${enc(me.code)}`;
+      else q += seatQ;
       const ex = await fetch(q, { headers: DBH });
       const rows = await ex.json();
       const pfr = (rows && rows[0]) ? rows[0] : null;
@@ -120,6 +152,7 @@ Deno.serve(async (req) => {
       let q = `${SUPA}/rest/v1/pfrs?select=agent_code,client_name,recommended_carrier,recommended_product,recommended_strategy,updated_at&order=updated_at.desc`;
       if (!me.ops) q += `&agent_code=eq.${enc(me.code)}`;
       else if (mine) q += `&agent_code=eq.${enc(mine)}`;
+      else q += seatQ;
       const ex = await fetch(q, { headers: DBH });
       const rows: Record<string, unknown>[] = (await ex.json()) || [];
       const map: Record<string, unknown> = {};
@@ -138,6 +171,7 @@ Deno.serve(async (req) => {
       let q = `${SUPA}/rest/v1/policy_1035_exchanges?select=*&order=updated_at.desc`;
       if (!me.ops) q += `&agent_code=eq.${enc(me.code)}`;
       else if (mine) q += `&agent_code=eq.${enc(mine)}`;
+      else q += seatQ;
       const ex = await fetch(q, { headers: DBH });
       return json({ ok: true, policies: (await ex.json()) || [] });
     }
@@ -161,15 +195,20 @@ Deno.serve(async (req) => {
          review Ops now inherits the row's own agent; naming a code is only needed for a new one. */
       let owner = mine;
       let keepName = "";
-      if (me.ops && id && !owner) {
-        const cur = await fetch(`${SUPA}/rest/v1/pfrs?id=eq.${enc(id)}&select=agent_code,agent_name`, { headers: DBH });
+      /* v10: for an EXISTING review the row's own agent always wins, whatever `code` says, unless
+         the request explicitly asks to reassign (reassign:true plus a code). pfr.html sends the
+         row's own agent_code here anyway, so the normal edit path is unchanged. */
+      const reassign = me.ops && body.reassign === true && !!mine;
+      if (me.ops && id) {
+        const cur = await fetch(`${SUPA}/rest/v1/pfrs?id=eq.${enc(id)}&select=agent_code,agent_name${seatQ}`, { headers: DBH });
         const r0 = ((await cur.json()) || [])[0];
         if (!r0) return json({ ok: false, error: "That review no longer exists." }, 404);
-        owner = norm(r0.agent_code); keepName = clean(r0.agent_name);
+        if (!reassign) { owner = norm(r0.agent_code); keepName = clean(r0.agent_name); }
       }
       if (!owner) return json({ ok: false, error: me.ops ? "Choose which agent this review belongs to." : "no agent code" });
       const row: Record<string, unknown> = {
-        agent_code: owner, agent_name: clean(body.agent_name) || keepName,
+        /* v10: an Ops edit keeps the row's agent_name too, so the name never drifts from the code. */
+        agent_code: owner, agent_name: (keepName && me.ops) ? keepName : (clean(body.agent_name) || keepName),
         client_name: clean(body.client_name), client_phone: clean(body.client_phone), client_email: clean(body.client_email),
         data: (body.data && typeof body.data === "object") ? body.data : {},
         insurable_need: numOr(body.insurable_need), status: clean(body.status) || "draft",
@@ -182,6 +221,7 @@ Deno.serve(async (req) => {
       if (id) {
         let q = `${SUPA}/rest/v1/pfrs?id=eq.${enc(id)}`;
         if (!me.ops) q += `&agent_code=eq.${enc(me.code)}`;
+        else q += seatQ;
         const up = await fetch(q, { method: "PATCH", headers: { ...DBH, Prefer: "return=representation" }, body: JSON.stringify(row) });
         const r = await up.json(); saved = Array.isArray(r) ? r[0] : r; okFlag = up.ok;
         if (okFlag && !saved) return json({ ok: false, error: "That review is not yours, or no longer exists." }, 404);
@@ -199,6 +239,7 @@ Deno.serve(async (req) => {
       if (!id) return json({ ok: false, error: "no id" });
       let q = `${SUPA}/rest/v1/pfrs?id=eq.${enc(id)}`;
       if (!me.ops) q += `&agent_code=eq.${enc(me.code)}`;
+      else q += seatQ;
       // Only clear the 1035 rows once we know the review itself was ours to delete.
       const del = await fetch(q + "&select=id", { method: "DELETE", headers: { ...DBH, Prefer: "return=representation" } });
       const gone = await del.json();

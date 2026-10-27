@@ -44,7 +44,35 @@
        has no agent session to give. A background call that wants one (a profile lookup, say) must
        not throw her out of the page she is working in — Home cannot sign her in as an agent
        anyway. Her Ops calls carry their own token and ops-session.js handles those. */
-    try { if (!code() && localStorage.getItem('tsfg_ops_token')) return; } catch (e) {}
+    /* v2 (2026-10-26): but only while that Ops token is still GOOD. A stored token that had long
+       since expired or been revoked used to exempt the page from the bounce forever, leaving a
+       dead page that failed every call. When ops-session.js is loaded we ask it (check() is
+       read-only: it never clears or rotates the token) and bounce only on a definite "not
+       valid" answer. A network error, an outage or a page without tsfgOps keeps the old
+       behaviour and does nothing, so a working Ops session can never be thrown out by this. */
+    var opsTok = '';
+    try { opsTok = !code() ? (localStorage.getItem('tsfg_ops_token') || '') : ''; } catch (e) {}
+    if (opsTok) {
+      if (checkingOps || !window.tsfgOps || typeof window.tsfgOps.check !== 'function') return;
+      checkingOps = true;
+      try {
+        window.tsfgOps.check().then(function (c) {
+          checkingOps = false;
+          if (!c || c.ok) return;                                    // still valid: stay put
+          if (c.error && /network/i.test(String(c.error))) return;   // could not ask: stay put
+          var now = '';
+          try { now = localStorage.getItem('tsfg_ops_token') || ''; } catch (e) {}
+          if (now && now !== opsTok) return;                         // re-signed in meanwhile
+          bounce();
+        }, function () { checkingOps = false; });
+      } catch (e) { checkingOps = false; }
+      return;
+    }
+    bounce();
+  }
+  var checkingOps = false;
+  function bounce() {
+    if (bouncing) return;
     bouncing = true;
     set('');
     /* The code has to go too. Home decides whether to draw the app or the sign-in gate by looking

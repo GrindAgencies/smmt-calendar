@@ -553,7 +553,7 @@ function load(){
 
   var url=NB, body={action:'newbiz_list',code:CODE,business_type:BIZ};
   if(SCOPE==='baseshop'){ url=SHOP; body={business_type:BIZ}; }
-  else if(SCOPE==='hierarchy' && MYNAME){ body={action:'newbiz_list',leader:MYNAME,business_type:BIZ}; }
+  else if(SCOPE==='hierarchy' && MYNAME){ body={action:'newbiz_list',leader:MYNAME,scope:'hierarchy',business_type:BIZ}; }
 
   fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
     .then(function(r){ return r.json(); })

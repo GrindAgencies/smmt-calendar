@@ -70,6 +70,8 @@
       + '<input class="opsq-pin" type="password" inputmode="numeric" autocomplete="off" maxlength="6" placeholder="••••••"></div>'
       + '<div class="opsq-row opsq-pin2row" style="display:none"><label>Confirm PIN</label>'
       + '<input class="opsq-pin2" type="password" inputmode="numeric" autocomplete="off" maxlength="6" placeholder="••••••"></div>'
+      + '<div class="opsq-row opsq-setuprow" style="display:none"><label>Setup code</label>'
+      + '<input class="opsq-setup" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="8 digits from whoever opened setup"></div>'
       + '</div>'
       + '<div class="opsq-msg"></div>'
       + '<div class="opsq-btns"><button class="opsq-go" type="button">Continue</button>'
@@ -125,7 +127,7 @@
     token:    get,
     setToken: put,
     status:   function(code){ return call({ action:'status', code:code }); },
-    setPin:   function(code, pin){ return call({ action:'set',  code:code, pin:pin }); },
+    setPin:   function(code, pin, setup){ return call({ action:'set',  code:code, pin:pin, setup:setup||'' }); },
     login:    function(code, pin){ return call({ action:'login',code:code, pin:pin }); },
     check:    function(){ var t = get(); return t ? call({ action:'check', token:t }) : Promise.resolve({ ok:false }); },
     logout:   function(){ var t = get(); put(''); return t ? call({ action:'logout', token:t }) : Promise.resolve({ ok:true }); },
@@ -162,6 +164,7 @@
         var msg = el.q('.opsq-msg'), codeIn = el.q('.opsq-code'),
             pinIn = el.q('.opsq-pin'), pin2In = el.q('.opsq-pin2'),
             pin2Row = el.q('.opsq-pin2row'), title = el.q('.opsq-title'),
+            setupRow = el.q('.opsq-setuprow'), setupIn = el.q('.opsq-setup'),
             sub = el.q('.opsq-sub'), go = el.q('.opsq-go'), cancel = el.q('.opsq-cancel');
 
         function say(t, bad){ msg.textContent = t || ''; msg.className = 'opsq-msg' + (bad ? ' bad' : ''); }
@@ -193,6 +196,7 @@
             el.q('.opsq-coderow').style.display = 'none';
             el.q('.opsq-pinrow').style.display = '';
             pin2Row.style.display = seat.has_pin ? 'none' : '';
+            setupRow.style.display = seat.has_pin ? 'none' : '';
             title.textContent = seat.label;
             if (seat.has_pin) {
               sub.textContent = 'Enter your 6-digit Operations PIN.';
@@ -219,7 +223,8 @@
           }
           say(seat.has_pin ? 'Signing in\u2026' : 'Setting your PIN\u2026');
           go.disabled = true;
-          var run = seat.has_pin ? window.tsfgOps.signIn(seat.code, pin) : window.tsfgOps.createPin(seat.code, pin);
+          if (!seat.has_pin && !/^[0-9]{8}$/.test(String(setupIn.value || '').trim())) { say('Enter the 8-digit setup code you were given.', true); setupIn.focus(); go.disabled = false; return; }
+          var run = seat.has_pin ? window.tsfgOps.signIn(seat.code, pin) : window.tsfgOps.createPin(seat.code, pin, String(setupIn.value || '').trim());
           run.then(function(r){
             go.disabled = false;
             if (r && r.ok) { close({ ok:true, label: seat.label, bases: r.bases, master: r.master }); return; }
@@ -229,7 +234,7 @@
         }
 
         go.onclick = function(){ if (seat) askPin(); else askCode(); };
-        [codeIn, pinIn, pin2In].forEach(function(i){
+        [codeIn, pinIn, pin2In, setupIn].forEach(function(i){
           i.addEventListener('keydown', function(e){ if (e.key === 'Enter') { e.preventDefault(); go.click(); } });
         });
 
@@ -239,8 +244,8 @@
       });
     },
     /* First run for a seat: choose the PIN, then sign straight in with it. */
-    createPin: function(code, pin){
-      return window.tsfgOps.setPin(code, pin).then(function(r){
+    createPin: function(code, pin, setup){
+      return window.tsfgOps.setPin(code, pin, setup).then(function(r){
         if (r && r.ok) return window.tsfgOps.signIn(code, pin);
         return r || { ok:false, error:'Could not set that PIN.' };
       });

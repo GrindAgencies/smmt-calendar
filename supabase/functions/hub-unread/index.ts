@@ -1,4 +1,4 @@
-// hub-unread v6 — per-channel unread counts AND the last line of each conversation.
+// hub-unread v7 — per-channel unread counts AND the last line of each conversation.
 //
 // Deliberately a separate function rather than another action bolted onto the
 // 40KB hub-api: this is read-only and keeps a live chat function untouched.
@@ -41,12 +41,21 @@
 //   why the preview is captured BEFORE the "your own messages are never unread" skip: the two
 //   rules look similar and mean opposite things.
 //
+// v7 (2026-10-26) — c_ ROOMS ARE CHECKED AGAINST THE REGISTRY, NOT THE CALLER'S WORD.
+//   v5 narrowed `known` to c_ rooms on the reasoning that the client could only hold a c_ key
+//   because hub_channels served it. But `known` was still built from whatever keys the request
+//   sent, so naming a private group's id was enough to get its unread count and its LAST LINE
+//   (v6's preview) — reading a private group one message at a time. And `sc.all` (the company-
+//   wide seats) waved every c_ room through, though v27 of hub-api took rank away as a key to
+//   other people's private groups. Now a c_ room counts only if app_settings.hub_channels says
+//   it is open, or the caller is in its members or is its creator (byCode) — hub-api
+//   canSeeCustom's rule exactly. An Operations token still sees everything, as before.
+//
 // A channel counts only if it is one of:
 //   • a SHARED room (main / operations / leadership) — company-wide by design,
 //   • a DM this person is actually in,
 //   • a room whose <shop>_ prefix is a baseshop they may see (agent_scope),
-//   • a private c_ channel the client already had — it can only have that key because the properly
-//     scoped hub_channels served it.
+//   • a c_ group that is open, or that the caller is a member or the creator of (v7).
 // No session means no counts: fail closed.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
@@ -97,17 +106,32 @@ Deno.serve(async (req) => {
       const n = Number(readRaw[k]);
       if (!isNaN(n) && n > 0) read[k] = n;
     }
-    // Private c_ rooms the client already knows about — it can only know them because the scoped
-    // hub_channels served them. Keys are kept even when the lastSeen value was 0/absent.
-    const known = new Set(Object.keys(readRaw));
-    if (Array.isArray(body.channels)) for (const c of body.channels as unknown[]) known.add(String(c || ""));
-
     if (!isOps && !me) return json({ ok: false, needs_session: true, error: "Please sign in again.", counts: {}, last: {}, preview: {}, total: 0 }, 401);
     const sc = isOps ? { ok: true, all: true, bases: [] as string[] } : await agentScope(me);
     if (!sc.ok) return json({ ok: true, counts: {}, last: {}, preview: {}, total: 0, scope: "unknown" });
 
+    /* v7: the custom-group registry, read once. Every c_ decision below is made from this, never
+       from which keys the request happened to send. */
+    const customs = new Map<string, Record<string, unknown>>();
+    if (!isOps) {
+      const cx = await fetch(`${SUPA}/rest/v1/app_settings?key=eq.hub_channels&select=value`, { headers: DBH });
+      const crow = ((await cx.json()) || [])[0];
+      const list = (crow && crow.value && Array.isArray(crow.value.channels)) ? crow.value.channels : [];
+      for (const c of list as Record<string, unknown>[]) if (c && c.id) customs.set(String(c.id), c);
+    }
+    const mayCustom = (ch: string): boolean => {
+      const c = customs.get(ch);
+      if (!c) return false;                       // a deleted / unknown group counts for nobody
+      if (!c.private) return true;
+      if (norm(c.byCode) === me) return true;
+      return Array.isArray(c.members) && (c.members as unknown[]).map((x) => norm(x)).indexOf(me) >= 0;
+    };
+
     const maySee = (ch: string): boolean => {
       if (!ch) return false;
+      if (isOps) return true;
+      // c_ is decided before the company-wide shortcut: rank is not a key to a private group.
+      if (ch.indexOf("c_") === 0) return mayCustom(ch);
       if (sc.all) return true;
       if (SHARED.indexOf(ch) >= 0) return true;
       if (ch.indexOf("dm:") === 0) {
@@ -115,9 +139,6 @@ Deno.serve(async (req) => {
         const sides = ch.slice(3).split("|").map((x) => norm(x));
         return sides.indexOf(me) >= 0;
       }
-      // A private custom room: membership was already checked by hub_channels, which is the only
-      // way the client could hold this key. Nothing else may be asserted by the caller.
-      if (ch.indexOf("c_") === 0) return known.has(ch);
       const us = ch.indexOf("_");
       if (us > 0 && sc.bases.indexOf(norm(ch.slice(0, us))) >= 0) return true;
       return false;

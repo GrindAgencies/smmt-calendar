@@ -327,7 +327,7 @@ function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){retu
 function toast(m){var t=$('toast');t.textContent=m;t.classList.add('on');setTimeout(function(){t.classList.remove('on');},2000);}
 function drawer(on){document.body.classList.toggle('drawer',on===undefined?!document.body.classList.contains('drawer'):on);}
 function toggleTheme(){var d=document.documentElement.getAttribute('data-theme')==='dark';document.documentElement.setAttribute('data-theme',d?'light':'dark');try{localStorage.setItem('gfi_theme',d?'light':'dark');}catch(e){}}
-(function(){try{document.documentElement.setAttribute('data-theme',localStorage.getItem('gfi_theme')||((function(){try{return (window.matchMedia&&(matchMedia('(display-mode: standalone)').matches||matchMedia('(max-width: 980px)').matches))||navigator.standalone===true;}catch(e){return false;}})()?'dark':'light'));}catch(e){}})();
+(function(){try{document.documentElement.setAttribute('data-theme',localStorage.getItem('gfi_theme')||((function(){try{return (window.matchMedia&&(matchMedia('(display-mode: standalone)').matches||matchMedia('(max-width: 980px) and (pointer: coarse)').matches))||navigator.standalone===true;}catch(e){return false;}})()?'dark':'light'));}catch(e){}})();
 function ptToday(){return new Intl.DateTimeFormat('en-CA',{timeZone:'America/Los_Angeles'}).format(new Date());}
 
 /* status model (granular -> bucket) */
@@ -422,7 +422,9 @@ function toggleOps(){
     tsfgOps.status(code).then(function(st){
       if(!st||!st.ok){toast((st&&st.error)||'That Operations code is not recognised.');return;}
       if(st.locked){toast('Too many wrong PINs on this seat. Try again shortly.');return;}
-      var pin=prompt(st.has_pin?('PIN for '+(st.label||code)+':'):('First sign-in for '+(st.label||code)+' — choose a 6-digit PIN:'));
+      /* First-time setup needs the one-time setup code, so it goes through the shared sheet. */
+      if(!st.has_pin){ tsfgOps.promptSignIn(code).then(function(r){ if(r&&r.ok){OPS=true;try{localStorage.setItem('nb_ops','1');}catch(e){}applyOps();load();toast('Operations mode — full control unlocked');} }); return; }
+      var pin=prompt('PIN for '+(st.label||code)+':');
       if(!pin)return; pin=String(pin).trim();
       var go=st.has_pin?tsfgOps.signIn(code,pin):tsfgOps.createPin(code,pin);
       go.then(function(r){
@@ -595,9 +597,9 @@ function load(){
   var q={action:'newbiz_list',business_type:BIZ};
   if(OPS&&SCOPE==='all'&&opsTok())q.token=opsTok();
   else if(SCOPE==='me')q.code=CODE;
-  else if(SCOPE==='team')q.leader=NAME;
-  else if(SCOPE==='hier')q.leader=NAME;
-  else q.leader=(MYMD||MYEMD||BASESHOP_LEADER); /* baseshop - the server answers with your baseshop (agent_scope) */
+  else if(SCOPE==='team'){q.leader=NAME;q.scope='hierarchy';}
+  else if(SCOPE==='hier'){q.leader=NAME;q.scope='hierarchy';}
+  else {q.leader=(MYMD||MYEMD||BASESHOP_LEADER);q.scope='baseshop';} /* baseshop - the server answers with your baseshop (agent_scope) */
   api(q).then(function(r){POLICIES=(r&&r.policies)||[];render();loadRecos();});
 }
 

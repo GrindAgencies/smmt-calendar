@@ -1,4 +1,4 @@
-// goals-api v3 — Snapshot goals, one accountable owner per level.
+// goals-api v4 — Snapshot goals, one accountable owner per level.
 //
 //   personal   → each person sets their own
 //   team       → the Marketing Director who runs that team
@@ -15,6 +15,10 @@
 // GLOBAL — every baseshop shared one set of numbers, so TITANS (4 people) and SMMT (74)
 // were held to the same target. Goals now live in a real table keyed by level + owner + month,
 // and the database decides who may write each one.
+//
+// v4 (2026-10-26): A BASESHOP OPS SEAT SETS GOALS FOR ITS OWN SHOP ONLY. v3 let every Ops
+// token through, so the TITANS seat could rewrite SUMMIT's numbers and the company-wide
+// HIERARCHY goal. Master seats (0000, C1991) keep the v3 behaviour exactly.
 //
 // Actions:
 //   get { month }                      -> all four levels for this person + who owns each
@@ -38,6 +42,33 @@ async function rpc(fn: string, args: Record<string, unknown>) {
   return await r.json();
 }
 async function getJSON(path: string) { const r = await fetch(`${SUPA}/rest/v1/${path}`, { headers: DBH }); return (await r.json()) || []; }
+
+/* v4 (2026-10-26): which baseshops an Ops token may act on. null = company-wide (master seat or
+   machine token). ops_scope expands each seat base through baseshop_groups, the same way every
+   other scoped Ops screen does, so GRIND's seat still reaches SMMT/SUMMIT. */
+async function seatBases(token: string): Promise<string[] | null> {
+  const sc = await rpc("ops_scope", { p_token: token });
+  if (sc && sc.seat && !sc.scoped) return null;
+  return Array.isArray(sc?.bases) ? sc.bases.map((b: unknown) => norm(b)) : [];
+}
+async function baseOf(code: string): Promise<string> {
+  if (!code) return "";
+  const r = await getJSON(`tracker_agents?code=eq.${encodeURIComponent(code)}&select=baseshop&limit=1`);
+  return norm(r[0]?.baseshop);
+}
+/* Can this Ops seat set a goal at this level for this agent? A baseshop seat may touch only goals
+   that belong wholly to its shop: never HIERARCHY (company-wide), and a team goal only when the
+   MD who owns it is in the shop too. */
+async function opsMayEdit(bases: string[] | null, agent: string, scope: string, ownerKey: string) {
+  if (bases === null) return { ok: true };
+  const deny = { ok: false, why: "Your Operations seat covers " + (bases.join(", ") || "no baseshop") + " only." };
+  if (scope === "hierarchy") return deny;
+  const mine = await baseOf(agent);
+  if (!mine || bases.indexOf(mine) < 0) return deny;
+  if (scope === "baseshop" && bases.indexOf(norm(ownerKey)) < 0) return deny;
+  if (scope === "team" && bases.indexOf(await baseOf(ownerKey)) < 0) return deny;
+  return { ok: true };
+}
 
 /* WHO IS ACTUALLY CALLING. A session token is proof; a GFI code is a public fact printed on the
    org chart. Operations keeps its own door via ops_authorize, because Ops screens act on behalf
@@ -65,6 +96,7 @@ Deno.serve(async (req) => {
     const code = who.code;
     const month = /^\d{4}-\d{2}$/.test(clean(body.month, 7)) ? clean(body.month, 7) : thisMonth();
     if (!code) return json({ ok: false, needs_session: true, error: "Sign in again to continue." }, 401);
+    const bases = who.ops ? await seatBases(clean(body.token, 120)) : null;
 
     if (action === "get") {
       const out: Record<string, unknown> = {};
@@ -77,8 +109,9 @@ Deno.serve(async (req) => {
           continue;
         }
         /* v3 (2026-10-26): Operations sets any goal at any level. It used to be judged as the
-           agent it named, so Ops could only set what that agent could already set themselves. */
-        const perm = who.ops ? { ok: true } : await rpc("goal_can_edit", { p_code: code, p_scope: scope, p_owner: ownerKey });
+           agent it named, so Ops could only set what that agent could already set themselves.
+           v4: "any goal" now means master seats only; a baseshop seat is held to its shop. */
+        const perm = who.ops ? await opsMayEdit(bases, code, scope, ownerKey) : await rpc("goal_can_edit", { p_code: code, p_scope: scope, p_owner: ownerKey });
         const rows = await getJSON(`goals?scope=eq.${scope}&owner=eq.${encodeURIComponent(ownerKey)}&month=eq.${month}&select=metric,target,set_by_name,updated_at`);
         const targets: Record<string, number> = {};
         let setBy = "", setAt = "";
@@ -102,7 +135,7 @@ Deno.serve(async (req) => {
 
       // The real gate. The UI greys out what you cannot edit, but it is only a courtesy —
       // this runs on every write regardless of what the browser sent.
-      const perm = who.ops ? { ok: true } : await rpc("goal_can_edit", { p_code: code, p_scope: scope, p_owner: ownerKey });
+      const perm = who.ops ? await opsMayEdit(bases, code, scope, ownerKey) : await rpc("goal_can_edit", { p_code: code, p_scope: scope, p_owner: ownerKey });
       if (!perm || !perm.ok) return json({ ok: false, error: (perm && perm.why) || "You cannot set that goal." });
 
       const whoRow = await getJSON(`tracker_agents?code=eq.${encodeURIComponent(code)}&select=first_name,last_name&limit=1`);

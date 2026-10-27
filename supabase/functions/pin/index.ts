@@ -1,4 +1,9 @@
-// pin v14 — 4-digit sign-in PINs for The Standard, and the thing that issues an agent session.
+// pin v15 — 4-digit sign-in PINs for The Standard, and the thing that issues an agent session.
+//
+// v15 (2026-10-26) — A BASESHOP OPS SEAT LOCKS ONLY ITS OWN SHOP. v14's lockAuthority accepted
+// any Ops token, so the TITANS seat could lock SUMMIT's EMD out of the app. Master seats (0000,
+// C1991) and the platform builder keep company-wide reach; seats 0001-0005 may lock, unlock or
+// read lock state only for agents whose baseshop is in the seat's bases.
 //
 // v12 (2026-10-23) — ACCOUNT TAKEOVER, CLOSED. `issue_setup_code` decided who was allowed to
 // vouch for somebody's first PIN by reading `by_code` out of the REQUEST BODY and asking
@@ -146,11 +151,22 @@ async function whoIsAsking(token: string, session: string): Promise<{ ops: boole
 }
 
 /* Who may lock or unlock an account: an Operations seat (recorded as "OPS:<seat>") or the
-   platform builder from their own agent session. Never a typed code. */
-async function lockAuthority(token: string, session: string): Promise<string> {
+   platform builder from their own agent session. Never a typed code.
+   v15: `target` is the account being locked. A master seat reaches everyone; a baseshop seat only
+   agents whose baseshop is in its bases (expanded through baseshop_groups by ops_scope, the same
+   as every other scoped Ops screen). */
+async function lockAuthority(token: string, session: string, target: string): Promise<string> {
   if (token) {
     const r = await rpc("ops_authorize", { p_token: token });
-    if (r && r.ok) return `OPS:${r.code || "?"}`;
+    if (r && r.ok) {
+      if (r.master === true) return `OPS:${r.code || "?"}`;
+      const sc = await rpc("ops_scope", { p_token: token });
+      if (sc && sc.seat && !sc.scoped) return `OPS:${r.code || "?"}`;
+      const bases: string[] = Array.isArray(sc?.bases) ? sc.bases.map((b: unknown) => norm(b)) : [];
+      const ar = await fetch(`${SUPA}/rest/v1/tracker_agents?code=eq.${encodeURIComponent(target)}&select=baseshop&limit=1`, { headers: DBH });
+      const base = norm(((await ar.json()) || [])[0]?.baseshop);
+      return (base && bases.indexOf(base) >= 0) ? `OPS:${r.code || "?"}` : "";
+    }
   }
   const s = (session ?? "").toString().trim().slice(0, 120);
   if (!s) return "";
@@ -292,8 +308,8 @@ Deno.serve(async (req) => {
        too-many-wrong-PINs lockout without wiping a PIN they still remember. Lock blocks sign-in
        and ends every open session; Unlock lifts it and clears the wrong-PIN counter. */
     if (action === "lock" || action === "unlock" || action === "lock_state") {
-      const actor = await lockAuthority(clean(body.token, 80), clean(body.session, 120));
-      if (!actor) return json({ ok: false, error: "Only Operations can lock or unlock an account." }, 403);
+      const actor = await lockAuthority(clean(body.token, 80), clean(body.session, 120), code);
+      if (!actor) return json({ ok: false, error: "Only Operations for this person's baseshop can lock or unlock their account." }, 403);
       if (action === "lock_state") return json(await rpc("agent_lock_state", { p_code: code }));
       if (action === "lock") {
         return json(await rpc("agent_lock", { p_code: code, p_by: actor, p_reason: clean(body.reason, 300) || null }));

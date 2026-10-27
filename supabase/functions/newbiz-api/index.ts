@@ -252,7 +252,10 @@ function mapRow(body: Record<string, unknown>) {
   const contract = numOr(body.contract_pct, null);
   const advance = numOr(body.advance_pct, null);
   const splitFlag = !!body.split_flag;
-  const splitPct = splitFlag ? pct2(pctOf(body.split_pct)) : null;
+  /* A blank share stays blank (null), never 0 -- pctOf("") is 0, which re-saved an old split with
+     no percentage as "writer 0%, partner 100%". */
+  const rawPct = body.split_pct;
+  const splitPct = (splitFlag && !(rawPct === null || rawPct === undefined || rawPct === "")) ? pct2(pctOf(rawPct)) : null;
   const partnerContract = numOr(body.partner_contract_pct, null);
   const st = clean(body.status).toLowerCase().replace(/\s+/g, "_") || "pending";
   const row: Record<string, unknown> = {
@@ -320,7 +323,7 @@ async function finishRow(row: Record<string, unknown>, codeHint: unknown = "") {
 /* The split has to name a real, current, different person and a share the server can stand
    behind. Run on create, and on update only when the split actually changes, so a legacy record
    with an old incomplete split can still have its notes edited. */
-async function checkSplit(raw: Record<string, unknown>, row: Record<string, unknown>, writer: string): Promise<string | null> {
+async function checkSplit(raw: Record<string, unknown>, row: Record<string, unknown>, writer: string, keepCode: unknown = ""): Promise<string | null> {
   if (!row.split_flag) return null;
   const sp = Number(raw.split_pct);
   if (raw.split_pct === null || raw.split_pct === undefined || raw.split_pct === "" || !isFinite(sp)) return "Enter the split percentage.";
@@ -330,7 +333,9 @@ async function checkSplit(raw: Record<string, unknown>, row: Record<string, unkn
   if (!pc) return "Pick the split agent from the list so the credit goes to the right person.";
   if (pc === norm(writer)) return "The split agent must be someone other than the writing agent.";
   const a = (await roster()).find((x) => norm(x.code) === pc);
-  if (!a || a.archived_at) return "That split agent is not an active account.";
+  /* The partner already on the record may have left since; correcting the share must still be
+     possible. Only a NEWLY chosen partner has to be active. */
+  if (!a || (a.archived_at && pc !== norm(keepCode))) return "That split agent is not an active account.";
   return null;
 }
 /* split_pct is the writer's share: 100 leaves the partner nothing, which is no split at all. */
@@ -427,7 +432,7 @@ Deno.serve(async (req) => {
       if (splitChanged) {
         /* The partner shares the record but not the right to re-divide it. */
         if (!isAdmin && norm(current.agent_code) !== me.code) return json({ ok: false, error: "Only the writing agent or Operations can change how the credit is split." }, 403);
-        const sErr = await checkSplit(merged, full, String(current.agent_code || ""));
+        const sErr = await checkSplit(merged, full, String(current.agent_code || ""), current.split_agent_code);
         if (sErr) return json({ ok: false, error: sErr }, 400);
         dropEmptySplit(full);
       }
@@ -473,6 +478,10 @@ Deno.serve(async (req) => {
       // For an ordinary caller the only book they can name is their own, or one belonging to
       // somebody above them in the org tree. Anything else falls back to their own book rather
       // than erroring, so a stale screen degrades quietly instead of breaking.
+      /* v26: the page says which view it wants. Inferring it from the leader's NAME turned Base shop
+         into Hierarchy for leaders whose own name is stamped in their md/emd column, and resolved
+         Hierarchy by name instead of by the signed-in code. */
+      const askScope = low(body.scope);
       let useLeader = "";
       if (leader) {
         if (me.ops) useLeader = leader;
@@ -495,10 +504,16 @@ Deno.serve(async (req) => {
           const sr = await fetch(`${SUPA}/rest/v1/tracker_agents?code=eq.${encodeURIComponent(me.code)}&select=first_name,last_name&limit=1`, { headers: DBH });
           const s0 = (((await sr.json()) || []) as Record<string, unknown>[])[0] || {};
           const selfName = low(((String(s0.first_name || "")) + " " + (String(s0.last_name || ""))).trim());
-          const selfAsked = low(useLeader) === selfName || norm(useLeader) === me.code;
+          const selfAsked = askScope ? askScope === "hierarchy" : (low(useLeader) === selfName || norm(useLeader) === me.code);
           if (!selfAsked) shopMode = true;
         }
+        if (askScope === "baseshop" && !(mine && mine.root)) shopMode = true;
+        if (askScope === "hierarchy" && !shopMode) useLeader = me.code;   // own tree, by code
       }
+      /* The set of agents whose SHARE of a split counts in this view (null = everyone). A split
+         with one side outside the view used to be counted at 100%, which a common-upline total
+         must never do. */
+      let viewSet: Set<string> | null = null;
       if (shopMode) {
         /* BASE SHOP: the established definition (agent_scope), not the upline's whole tree. */
         const sc = await rpc("agent_scope", { p_code: me.code }) as Record<string, unknown> | null;
@@ -508,6 +523,7 @@ Deno.serve(async (req) => {
           const ex2 = await fetch(`${SUPA}/rest/v1/tracker_agents?select=code${bases.length ? `&baseshop=in.(${bases.map((b) => `"${encodeURIComponent(b)}"`).join(",")})` : `&code=eq.${encodeURIComponent(me.code)}`}`, { headers: DBH });
           const shopCodes = (((await ex2.json()) || []) as Record<string, unknown>[]).map((r) => String(r.code ?? "").trim()).filter((c) => /^[A-Za-z0-9_.-]+$/.test(c));
           if (!shopCodes.length) shopCodes.push(me.code);
+          viewSet = new Set(shopCodes.map((c) => norm(c)));
           const inList = shopCodes.map((c) => `"${c}"`).join(",");
           q += `&or=(agent_code.in.(${inList}),split_agent_code.in.(${inList}))`;
         }
@@ -516,6 +532,7 @@ Deno.serve(async (req) => {
         const sc = await leaderScope(useLeader);
         if (sc && sc.root) { /* hierarchy lead — the entire book, nothing filtered out */ }
         else if (sc && sc.codes.length) {
+          viewSet = new Set(sc.codes.map((c) => norm(c)));
           const inList = sc.codes.map((c) => `"${c}"`).join(",");
           q += `&or=(agent_code.in.(${inList}),split_agent_code.in.(${inList}))`;
         } else { const L = encodeURIComponent(useLeader); q += `&or=(md.eq.${L},emd.eq.${L})`; }
@@ -531,7 +548,11 @@ Deno.serve(async (req) => {
         const isWriter = code ? norm(r.agent_code) === code : true;
         const isPartner = code ? norm(r.split_agent_code) === code : false;
         const sp = (r.split_flag && r.split_pct != null) ? Number(r.split_pct) : 100;
-        const share = pct2((code && isPartner && !isWriter) ? (100 - sp) : (code ? (r.split_flag ? sp : 100) : 100));
+        const share = pct2(code
+          ? ((isPartner && !isWriter) ? (100 - sp) : (r.split_flag ? sp : 100))
+          : (viewSet && r.split_flag
+              ? ((viewSet.has(norm(r.agent_code)) ? sp : 0) + (viewSet.has(norm(r.split_agent_code)) ? 100 - sp : 0))
+              : 100));
         (r as Record<string, unknown>)._share = share / 100;
         (r as Record<string, unknown>).split_role = (code && isPartner && !isWriter) ? "received" : (r.split_flag ? "given" : "");
         (r as Record<string, unknown>).my_share_pct = r.split_flag ? share : 100;
@@ -544,7 +565,10 @@ Deno.serve(async (req) => {
         const writerPart = (wRate != null) ? Math.round(prem * (sp / 100) * (wRate / 100)) : 0;
         const partnerPart = r.split_flag ? Math.round(prem * ((100 - sp) / 100) * (pRate / 100)) : 0;
         const fullComm = r.split_flag ? (writerPart + partnerPart) : ((wRate != null) ? Math.round(prem * (wRate / 100)) : 0);
-        (r as Record<string, unknown>).my_commission = (code && isPartner && !isWriter) ? partnerPart : (code ? (r.split_flag ? writerPart : fullComm) : fullComm);
+        const viewComm = (viewSet && r.split_flag)
+          ? ((viewSet.has(norm(r.agent_code)) ? writerPart : 0) + (viewSet.has(norm(r.split_agent_code)) ? partnerPart : 0))
+          : fullComm;
+        (r as Record<string, unknown>).my_commission = (code && isPartner && !isWriter) ? partnerPart : (code ? (r.split_flag ? writerPart : fullComm) : viewComm);
         (r as Record<string, unknown>).partner_pct = r.split_flag ? pct2(100 - Number(r.split_pct != null ? r.split_pct : 50)) : null;
         (r as Record<string, unknown>).partner_contract_pct = (r.partner_contract_pct != null) ? Number(r.partner_contract_pct) : null;
       }
@@ -559,7 +583,7 @@ Deno.serve(async (req) => {
         }
       }
       if (isList) return json({ ok: true, count: rows.length, scope: shopMode ? "baseshop" : (useLeader || code || "all"), policies: rows });
-      const wsum = (arr: Record<string, unknown>[], k: string) => arr.reduce((t, r) => t + dnum(r[k]) * (Number(r._share) || 1), 0);
+      const wsum = (arr: Record<string, unknown>[], k: string) => arr.reduce((t, r) => t + dnum(r[k]) * (r._share == null ? 1 : Number(r._share)), 0);
       const msum = (arr: Record<string, unknown>[]) => arr.reduce((t, r) => t + dnum(r.my_commission), 0);
       const inB = (b: string) => rows.filter((r) => bucket(r.status as string) === b);
       const openR = rows.filter((r) => { const b = bucket(r.status as string); return b !== "closed" && b !== "draft"; });

@@ -1,5 +1,13 @@
-// sched-ext v11 — isolated Scheduler helper (does NOT touch atlas-api).
+// sched-ext v12 — isolated Scheduler helper (does NOT touch atlas-api).
 // actions: emds, create_appt, my_appts, update_appt, delete_appt, staff_appt.
+//
+// v12 (2026-10-26) A BASESHOP OPS SEAT RUNS ITS OWN SHOP'S CALENDAR, NOT EVERYONE'S. v11 treated
+// every Ops token as company-wide, so the TITANS seat (0002) could list, edit and delete SUMMIT's
+// appointments, and could stand in for any agent by typing their code. Master seats (0000, C1991)
+// keep v11 exactly; seats 0001-0005 now see and change only bookings that involve an agent in
+// their bases (or that the seat booked itself). Separately, ownedBy() now also demands
+// source=manual: update/delete only ever made sense for manual rows, but nothing enforced it, so a
+// Calendly-synced booking could be deleted here and silently vanish from the board.
 //
 // v11 (2026-10-26) OPERATIONS CAN RUN THE CALENDAR. Christopher: Operations (Anais, seat 0000)
 // needs full access to edit and create. Every action here took `body.code` as the caller and then
@@ -118,12 +126,32 @@ async function baseOwners(): Promise<Record<string, { name: string; root: boolea
 
 function cap(s: string) { return (s || '').replace(/\b\w/g, (c) => c.toUpperCase()); }
 const enc = encodeURIComponent;
-async function ownedBy(id: string, caller: string, ops = false) {
-  const r = await db(`bookings?select=id,booked_by&id=eq.${enc(id)}&limit=1`);
+/* v12: the agent codes in a set of baseshops. null bases = company-wide (master seat). */
+async function shopCodes(bases: string[]): Promise<Set<string>> {
+  const r = await db(`tracker_agents?select=code,baseshop&limit=5000`);
+  const out = new Set<string>();
+  for (const a of (Array.isArray(r.data) ? r.data : [])) {
+    if (bases.indexOf(UP(a.baseshop)) >= 0) out.add(UP(a.code));
+  }
+  return out;
+}
+/* v12: does this booking belong to the seat's shop? Any of the three people on it being in the
+   shop is enough, and a seat always owns what it booked itself. */
+function inShop(b: any, codes: Set<string>, opsTag: string): boolean {
+  if (opsTag && UP(b.booked_by) === UP(opsTag)) return true;
+  return [b.booked_by, b.trainer_code, b.agent_code].some((c) => !!c && codes.has(UP(c)));
+}
+async function ownedBy(id: string, caller: string, ops = false, seat: { codes: Set<string>; tag: string } | null = null) {
+  const r = await db(`bookings?select=id,booked_by,trainer_code,agent_code,source&id=eq.${enc(id)}&limit=1`);
   const b = Array.isArray(r.data) ? r.data[0] : null;
   if (!b) return { ok: false, code: 404 };
-  // Operations may change any appointment; everyone else only their own.
-  if (!ops && String(b.booked_by || '').toUpperCase() !== caller) return { ok: false, code: 403 };
+  /* v12: only manual rows are ours to change. A Calendly-synced row is owned by Calendly; deleting
+     it here would just make the board lie until the next sync. */
+  if (String(b.source || '') !== 'manual') return { ok: false, code: 403 };
+  // A master Ops seat may change any manual appointment; a baseshop seat only its shop's;
+  // everyone else only their own.
+  if (ops) return (!seat || inShop(b, seat.codes, seat.tag)) ? { ok: true, booking: b } : { ok: false, code: 403 };
+  if (String(b.booked_by || '').toUpperCase() !== caller) return { ok: false, code: 403 };
   return { ok: true, booking: b };
 }
 async function activeCaller(caller: string) {
@@ -148,6 +176,13 @@ async function _opsAuth(token: unknown): Promise<{ ok: boolean; code?: string } 
   const t = String(token ?? "").trim(); if (!t) return null;
   const r = await _authRpc("ops_authorize", { p_token: t }); return (r && r.ok) ? r : null;
 }
+/* v12: the baseshops an Ops token covers, expanded through baseshop_groups by ops_scope.
+   null = company-wide (master seat or machine token). */
+async function _seatBases(token: unknown): Promise<string[] | null> {
+  const sc = await _authRpc("ops_scope", { p_token: String(token ?? "").trim() });
+  if (sc && sc.seat && !sc.scoped) return null;
+  return Array.isArray(sc?.bases) ? sc.bases.map((b: unknown) => UP(b)) : [];
+}
 async function _sessionCode(session: unknown): Promise<string> {
   const s = String(session ?? "").trim().slice(0, 120); if (!s) return "";
   const got = await _authRpc("agent_session_code", { p_token: s });
@@ -171,6 +206,14 @@ Deno.serve(async (req) => {
   /* Operations acting as itself: signed into a seat and not standing in for a named agent. */
   const opsSelf = !!OPS && !caller;
   const opsTag = OPS ? `OPS:${OPS.code || '?'}` : '';
+  /* v12: a baseshop seat's reach. null for master seats, so every v11 path below is unchanged
+     for 0000/C1991. */
+  const seatBases = OPS ? await _seatBases((p as Record<string, unknown>).token) : null;
+  const seat = seatBases ? { codes: await shopCodes(seatBases), tag: opsTag } : null;
+  // A baseshop seat may stand in only for an agent in its own shop.
+  if (seat && caller && !seat.codes.has(caller)) {
+    return json({ ok: false, error: 'That agent is outside your Operations seat.' }, 403);
+  }
 
   /* Both spellings, every time. The quick-add sent client_email/client_phone while this read
      email/phone, and the values vanished in between without either side complaining. */
@@ -179,7 +222,7 @@ Deno.serve(async (req) => {
 
   if (action === 'emds') {
     if (!caller && !opsSelf) return json({ ok: true, emds: [], scope: 'unknown' });
-    const sc = opsSelf ? { ok: true, all: true, bases: [] as string[] } : await agentScope(caller);
+    const sc = opsSelf ? { ok: true, all: !seatBases, bases: (seatBases || []) as string[] } : await agentScope(caller);
     if (!sc.ok) return json({ ok: true, emds: [], scope: 'unknown' });
     let path = `tracker_agents?select=code,first_name,last_name,cal_link,contract_level,title,status,baseshop&order=first_name.asc`;
     if (!sc.all) {
@@ -219,8 +262,11 @@ Deno.serve(async (req) => {
 
   if (action === 'my_appts') {
     if (opsSelf) {
-      const r = await db(`bookings?select=id,title,agent_name,trainer_name,booked_by,date,time,notes,status,duration_minutes,color,client_email,client_phone,guests&source=eq.manual&order=date.desc,time.desc&limit=500`);
-      return json({ ok: true, appts: Array.isArray(r.data) ? r.data : [], scope: 'all' });
+      const r = await db(`bookings?select=id,title,agent_name,agent_code,trainer_name,trainer_code,booked_by,date,time,notes,status,duration_minutes,color,client_email,client_phone,guests&source=eq.manual&order=date.desc,time.desc&limit=${seat ? 2000 : 500}`);
+      let appts = Array.isArray(r.data) ? r.data : [];
+      // v12: a baseshop seat sees its own shop's appointments only.
+      if (seat) appts = appts.filter((b: any) => inShop(b, seat.codes, seat.tag)).slice(0, 500);
+      return json({ ok: true, appts, scope: seat ? 'baseshop' : 'all', bases: seatBases || [] });
     }
     if (!caller) return json({ ok: false, error: 'missing code' }, 400);
     const r = await db(`bookings?select=id,title,agent_name,date,time,notes,status,duration_minutes,color,client_email,client_phone,guests&source=eq.manual&booked_by=eq.${enc(caller)}&order=date.asc,time.asc`);
@@ -266,6 +312,10 @@ Deno.serve(async (req) => {
       const t = Array.isArray(tr.data) ? tr.data[0] : null; if (t) tcode = t.code;
     }
     // You may only put a booking on the calendar of someone in a shop you can actually see.
+    // v12: a baseshop seat acting as itself is held to its own shop's trainers.
+    if (opsSelf && seat && tcode && !seat.codes.has(tcode)) {
+      return json({ ok: false, error: 'That trainer is outside your Operations seat.' }, 403);
+    }
     if (tcode && !opsSelf) {
       const sc = await agentScope(caller);
       if (sc.ok && !sc.all) {
@@ -310,7 +360,7 @@ Deno.serve(async (req) => {
 
   if (action === 'update_appt') {
     if ((!caller && !OPS) || !p.id) return json({ ok: false, error: 'missing code/id' }, 400);
-    const own = await ownedBy(p.id, caller, !!OPS); if (!own.ok) return json({ ok: false, error: 'not allowed' }, own.code || 403);
+    const own = await ownedBy(p.id, caller, !!OPS, seat); if (!own.ok) return json({ ok: false, error: 'not allowed' }, own.code || 403);
     const patch: any = { updated_at: new Date().toISOString() };
     if (p.title !== undefined) patch.title = TXT(p.title) || null;
     if (p.with !== undefined || p.title !== undefined) patch.agent_name = TXT(p.with || p.title || 'Appointment');
@@ -327,7 +377,7 @@ Deno.serve(async (req) => {
 
   if (action === 'delete_appt') {
     if ((!caller && !OPS) || !p.id) return json({ ok: false, error: 'missing code/id' }, 400);
-    const own = await ownedBy(p.id, caller, !!OPS); if (!own.ok) return json({ ok: false, error: 'not allowed' }, own.code || 403);
+    const own = await ownedBy(p.id, caller, !!OPS, seat); if (!own.ok) return json({ ok: false, error: 'not allowed' }, own.code || 403);
     const del = await db(`bookings?id=eq.${enc(p.id)}`, { method: 'DELETE' });
     if (!del.ok) return json({ ok: false, error: 'delete failed', detail: del.data }, 500);
     return json({ ok: true });

@@ -1,3 +1,6 @@
+// hub-prefs v2 (2026-10-26) — an Operations caller is "OPS:<seat>" from ops_authorize, never the
+//   code it typed. v1 returned norm(body.code) for any Ops token, so an Ops session naming an
+//   agent's code read and rearranged THAT agent's pins and hides. Same rule as hub-groups v4.
 // hub-prefs v1 (2026-10-20) — one person's own view of their chat list: pins and hides.
 //
 // ROUND TWO, tasks 3 and 4. Elijah: press and hold a chat to Pin it, pinned ones go to the top;
@@ -45,7 +48,7 @@ async function rpc(fn: string, args: Record<string, unknown>) { try { const r = 
    let anyone rearrange or empty somebody else's chat list. */
 async function whoIs(body: any): Promise<string> {
   const t = String(body.token ?? "").trim();
-  if (t) { const r = await rpc("ops_authorize", { p_token: t }); if (r && r.ok) return norm(body.code) || norm(r.code); }
+  if (t) { const r = await rpc("ops_authorize", { p_token: t }); if (r && r.ok) return r.code ? "OPS:" + norm(r.code) : ""; }
   const s = String(body.session ?? "").trim().slice(0, 120);
   if (!s) return "";
   const got = await rpc("agent_session_code", { p_token: s });

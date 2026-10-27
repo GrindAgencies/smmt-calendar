@@ -182,7 +182,9 @@ Deno.serve(async (req) => {
       const rows = await getJSON(`tracker_agents?code=eq.${enc(me)}&select=contract_level,platform_admin`);
       const a = rows[0];
       if (a && a.platform_admin === true) isLeader = true;
-      else if (a && ["MD", "EMD"].indexOf(norm(a.contract_level)) >= 0) {
+      /* Spelled-out ranks count too: two leaders are stored as "Marketing Director" and Elijah as
+         "National Vice President", and the short-form check refused all three. */
+      else if (a && ["MD", "EMD", "MARKETING DIRECTOR", "EXECUTIVE MARKETING DIRECTOR", "NVP", "NATIONAL VICE PRESIDENT"].indexOf(norm(a.contract_level)) >= 0) {
         for (const t of [norm(bk.agent_code), norm(bk.trainer_code)]) {
           if (!t || isLeader) continue;
           if ((await rpc("is_in_downline", { p_leader: me, p_target: t })) === true) isLeader = true;

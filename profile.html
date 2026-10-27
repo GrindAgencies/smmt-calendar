@@ -253,7 +253,7 @@ function doDeleteAccount(){
    .catch(function(){btn.disabled=false;btn.textContent='Delete permanently';err.textContent='Network error — try again.';});
 }
 function signOut(){try{if(window.tsfgSession)tsfgSession.clear();}catch(e){}try{localStorage.removeItem('tsfg_code');localStorage.removeItem('tsfg_name');}catch(e){}location.href='index.html';}
-(function(){try{var t=localStorage.getItem('gfi_theme')||((function(){try{return (window.matchMedia&&(matchMedia('(display-mode: standalone)').matches||matchMedia('(max-width: 980px)').matches))||navigator.standalone===true;}catch(e){return false;}})()?'dark':'');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
+(function(){try{var t=localStorage.getItem('gfi_theme')||((function(){try{return (window.matchMedia&&(matchMedia('(display-mode: standalone)').matches||matchMedia('(max-width: 980px) and (pointer: coarse)').matches))||navigator.standalone===true;}catch(e){return false;}})()?'dark':'');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
 
 // ---- boot ----
 (function boot(){
@@ -1039,7 +1039,9 @@ function loadRoadSummary(){
      if(!r||!r.ok){el.innerHTML='';return;}
      window.BOARD=r;window.BYCODE={};
      var me=String(CODE).toUpperCase(),done=stagesDone(me),i=firstOpenStage(me),cnt=stageCount(me,i);
-     var pend=Object.keys(((r.pending||{})[me])||{}).length;
+     /* pending ticks for THIS stage only - the line below says "This stage" */
+     var pre=String((ROAD[i]&&ROAD[i].id)||'')+'.';
+     var pend=Object.keys(((r.pending||{})[me])||{}).filter(function(k){return k.indexOf(pre)===0;}).length;
      var all=done>=STAGES.length;
      var pct=Math.round(done/STAGES.length*100);
      el.innerHTML='<div class="sec"><div class="sech"><h2>Road to EMD</h2><span style="font-size:12px;color:var(--ink3);font-weight:700">Read only</span></div><div class="card">'

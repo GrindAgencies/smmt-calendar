@@ -1,4 +1,13 @@
-// ops-directory v29 — Operations Tracker API.
+// ops-directory v30 — Operations Tracker API.
+//
+// v30 (2026-10-26): A LEADER SEES THEIR OWN TREE, NOT THE COMPANY. An MD/EMD who opens the
+//   Tracker with their AGENT session is not an Operations seat, so ops_scope('', code) answered
+//   scoped:false and inScope() let every agent through: any MD could read every person's phone,
+//   email, licence number and notes, and write notes on anyone. Leaders on an agent session are
+//   now limited to themselves and their recursive downline (nb_scope_codes, the same tree New
+//   Business uses; the hierarchy root still gets everyone). Ops seats keep their bases-based
+//   scope and master seats (0000, C1991) and the platform builder are unchanged. edit_request,
+//   which never checked scope at all, now does too.
 //
 // v29 (2026-10-21): THE TRACKER SPLITS A SPLIT POLICY. Christopher: "operations tracker,
 //   split as normal." polByAgent() credited the writing agent 100% of a split and the
@@ -242,7 +251,16 @@ Deno.serve(async (req) => {
   const sc = await rpc("ops_scope", { p_token: opsTok, p_code: meCode });
   const scoped = !!(sc && sc.scoped);
   const allow = new Set<string>(((sc && Array.isArray(sc.bases)) ? sc.bases : []).map((b: string) => low(b)));
-  const inScope = (a: any) => !scoped || allow.has(low(a && a.baseshop));
+  /* v30: a leader on an agent session (not an Ops seat, not the platform builder) is held to
+     their own recursive downline. nb_scope_codes includes the leader and returns everyone for
+     the hierarchy root. A failed lookup yields an empty tree, so it fails closed. */
+  let tree: Set<string> | null = null;
+  if (!sessionOk && az.role !== "ops") {
+    const rows = await rpc("nb_scope_codes", { p_leader: meCode });
+    tree = new Set((Array.isArray(rows) ? rows : []).map((r: any) => norm(r && typeof r === "object" ? r.code : r)).filter(Boolean));
+  }
+  const limited = scoped || !!tree;
+  const inScope = (a: any) => tree ? tree.has(norm(a && a.code)) : (!scoped || allow.has(low(a && a.baseshop)));
   const visibleAgents = core.agents.filter(inScope);
 
   if (action === "tracker") {
@@ -453,6 +471,7 @@ Deno.serve(async (req) => {
 
   if (action === "edit_request") {
     const a = core.byCode[norm(code)]; if (!a) return json({ ok: false, error: "Agent not found." }, 404);
+    if (!inScope(a)) return json({ ok: false, error: "That agent is not in your baseshop." }, 403);
     const reqs = (await loadKey("ops_edit_requests")) || [];
     const arr = Array.isArray(reqs) ? reqs : [];
     arr.unshift({ id: crypto.randomUUID(), agent_code: a.code, agent_name: full(a), field: clean(body.field), note: clean(body.note), by_code: meCode, by_name: meName, by_role: az.role, ts: new Date().toISOString(), status: "pending" });
@@ -462,7 +481,7 @@ Deno.serve(async (req) => {
   if (action === "requests") {
     const reqs = (await loadKey("ops_edit_requests")) || [];
     const arr = Array.isArray(reqs) ? reqs.slice(0, 300) : [];
-    const mine = scoped ? arr.filter((r: any) => { const a = core.byCode[norm(r.agent_code)]; return a && inScope(a); }) : arr;
+    const mine = limited ? arr.filter((r: any) => { const a = core.byCode[norm(r.agent_code)]; return a && inScope(a); }) : arr;
     return json({ ok: true, can_edit: az.canEdit, requests: mine });
   }
   if (action === "resolve_request") {
@@ -481,7 +500,7 @@ Deno.serve(async (req) => {
     const start = ptToday().slice(0, 8) + "01";
     const codes = new Set(active.map((a: any) => norm(a.code)));
     const pols = await getJSON(`policies?submitted_date=gte.${start}&select=annual_premium,agent_code&limit=8000`);
-    const monthAP = pols.filter((p: any) => !scoped || codes.has(norm(p.agent_code))).reduce((t: number, p: any) => t + numOr(p.annual_premium), 0);
+    const monthAP = pols.filter((p: any) => !limited || codes.has(norm(p.agent_code))).reduce((t: number, p: any) => t + numOr(p.annual_premium), 0);
     // Was `licStatus(a) === "Licensed"` — a word no agent has ever carried. See licensedLabel().
     const licensed = active.filter((a: any) => isLicensed(licStatus(a), core.licStatuses)).length;
     const byBase: Record<string, number> = {}; active.forEach((a: any) => { const b = a.baseshop || "—"; byBase[b] = (byBase[b] || 0) + 1; });
