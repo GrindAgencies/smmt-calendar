@@ -1,3 +1,4 @@
+// ops-nbfeed (2026-10-28): MD/EMD agent sessions are scoped by agent_scope() — they read every shop before.
 // ops-nbfeed v24 — LIVE, TWO-WAY New Business feed.
 //
 // v23 (2026-10-21) — A PARTNER'S RATE MUST NEVER FALL BACK TO THE WRITER'S.
@@ -162,7 +163,14 @@ Deno.serve(async (req) => {
   if (!az.ok) return json({ ok: false, error: az.error || "unauthorized" }, 401);
   const tok = String(body.token || "").trim();
   const meCode = String(az.code || "");
-  const scope = await scopeOf(tok, meCode);
+  /* 2026-10-28: a leader on an agent session is not an Ops seat, so ops_scope() answered
+     "unscoped" and every MD/EMD read every baseshop's new business, client phones and emails
+     included. Leaders are scoped by agent_scope(); null (everything) only for the root/builder. */
+  let scope = await scopeOf(tok, meCode);
+  if (az.role !== "ops") {
+    const as = await rpc("agent_scope", { p_code: meCode });
+    scope = (as && as.ok === true && as.all === true) ? null : ((as && Array.isArray(as.bases)) ? as.bases.map((x: unknown) => String(x)) : []);
+  }
   const master = await isMasterSeat(tok, meCode);
   const byName = az.name || "Operations"; const byCode = norm(meCode);
 

@@ -1,3 +1,4 @@
+// tracker-occupancy (2026-10-28): non-Ops callers see their own baseshop(s) only.
 // tracker-occupancy v4 — who is parked on each My Tracker spot + how long they've been stuck.
 // Computes each broker's current level (same rules as roadmap-api compute()), maintains a
 // level_since timer (resets only when they actually advance), and returns per-spot rosters.
@@ -81,7 +82,16 @@ Deno.serve(async (req) => {
   }
 
   const photos = await photoSet();
-  const agents = await getJSON(`tracker_agents?status=neq.quit&select=code,first_name,last_name,progress,pathway,cashflow,contract_level,level_at,level_since`);
+  let agents = await getJSON(`tracker_agents?status=neq.quit&select=code,first_name,last_name,progress,pathway,cashflow,contract_level,level_at,level_since,baseshop`);
+  /* 2026-10-28: a senior member saw every broker in the COMPANY (name, spot, days stuck). They
+     now see their own baseshop(s) via agent_scope(); Operations and the root/builder see all. */
+  if (!isAdmin && code) {
+    const as = await rpc("agent_scope", { p_code: code });
+    if (!(as && as.ok === true && as.all === true)) {
+      const bases = new Set<string>(((as && Array.isArray(as.bases)) ? as.bases : []).map((b: unknown) => lo(b)));
+      agents = agents.filter((a: any) => bases.has(lo(a.baseshop)));
+    }
+  }
   const nowMs = Date.now();
   const occ: Record<string, any[]> = {}; const counts: Record<string, number> = {};
   for (const a of agents) {

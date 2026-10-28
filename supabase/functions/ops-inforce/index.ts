@@ -1,3 +1,4 @@
+// ops-inforce (2026-10-28): MD/EMD agent sessions are scoped by agent_scope() — they read every shop before.
 // ops-inforce v13 — policies that are ON THE BOOKS and still need tracking.
 // v5: `set_paid_date` action — Operations can manually set/clear a policy's Paid Out date.
 // v6 (2026-09-02): authorisation is an Operations session from ops-auth rather than the literal
@@ -91,7 +92,14 @@ Deno.serve(async (req) => {
   const meCode = String(az.code || "");
 
   /* Scope follows the verified identity, not a code typed into the body. */
-  const sc = await rpc("ops_scope", { p_token: String(body.token || ""), p_code: meCode });
+  let sc = await rpc("ops_scope", { p_token: String(body.token || ""), p_code: meCode });
+  /* 2026-10-28: ops_scope() only knows Operations seats, so it answered "unscoped" for an MD/EMD
+     on their agent session and every leader read every baseshop's in-force policies. A leader is
+     scoped by agent_scope(), the platform's one rule (the root and the builder still see all). */
+  if (az.role !== "ops") {
+    const as = await rpc("agent_scope", { p_code: meCode });
+    sc = { scoped: !(as && as.ok === true && as.all === true), bases: (as && Array.isArray(as.bases)) ? as.bases : [] };
+  }
   const scoped = !!(sc && sc.scoped);
   const allow = new Set<string>(((sc && Array.isArray(sc.bases)) ? sc.bases : []).map((b: string) => low(b)));
 

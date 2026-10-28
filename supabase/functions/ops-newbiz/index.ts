@@ -1,3 +1,4 @@
+// ops-newbiz (2026-10-28): leaders see and note only tickets naming someone in their agent_scope().
 // ops-newbiz v13 — MULTI-BOARD column-driven ticket boards. board='newbiz' or 'gfi'.
 // v8: authorisation is an Operations session rather than the literal "2026".
 //
@@ -48,6 +49,7 @@ const DEFAULT_GFI = [
   { key: "client_name", label: "Client / Agent", type: "text", options: [] }, { key: "leader", label: "Leader", type: "text", options: [] }, { key: "ticket", label: "Ticket #", type: "text", options: [] }, { key: "category", label: "Category", type: "select", options: GFI_CAT }, { key: "date", label: "Date Opened", type: "text", options: [] }, { key: "status", label: "Status", type: "select", options: GFI_STATUS }, { key: "description", label: "Description", type: "text", options: [] }
 ];
 const DBH = { apikey: KEY, Authorization: `Bearer ${KEY}`, "Content-Type": "application/json" };
+async function getRows(path: string) { try { const r = await fetch(`${SUPA}/rest/v1/${path}`, { headers: DBH }); const j = await r.json(); return Array.isArray(j) ? j : []; } catch (_) { return []; } }
 const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "*", "Access-Control-Allow-Methods": "POST, GET, OPTIONS" };
 function json(o: unknown, s = 200) { return new Response(JSON.stringify(o), { status: s, headers: { ...CORS, "Content-Type": "application/json" } }); }
 const norm = (c: unknown) => (c ?? "").toString().trim().toUpperCase();
@@ -146,8 +148,30 @@ Deno.serve(async (req) => {
   /* Note authorship is the verified identity. It used to be whatever the body claimed. */
   const byName = az.name || "Operations"; const byCode = norm(az.code || "");
 
+  /* 2026-10-28: A LEADER SEES ONLY THEIR OWN PEOPLE'S TICKETS. This is Operations' working board
+     (client names and Ops notes), and any MD/EMD from any shop read all of it and could note on
+     any ticket. A leader now sees a ticket only when a person named on it (writing agent, split
+     agent, leader, or the GFI "Client / Agent" field) is in their agent_scope(); a ticket naming
+     nobody in their shop is not shown. Operations is unchanged; the root/builder see all. */
+  let leaderNames: Set<string> | null = null;
+  if (az.role !== "ops") {
+    const as = await rpc("agent_scope", { p_code: String(az.code || "") });
+    if (!(as && as.ok === true && as.all === true)) {
+      const bases = (as && Array.isArray(as.bases)) ? as.bases.map((b: unknown) => String(b).toLowerCase()) : [];
+      const ppl = await getRows(`tracker_agents?select=first_name,last_name,baseshop&limit=5000`);
+      leaderNames = new Set(ppl.filter((p: any) => bases.indexOf(String(p.baseshop || "").toLowerCase()) >= 0)
+        .map((p: any) => `${p.first_name || ""} ${p.last_name || ""}`.trim().toLowerCase().replace(/\s+/g, " ")).filter(Boolean));
+    }
+  }
+  const visible = (t: any) => {
+    if (!leaderNames) return true;
+    const d = (t && t.data) || {};
+    return ["writing_agent", "split_agent", "leader", "agent", "agent_name", "client_name"].some((k) =>
+      leaderNames!.has(String(d[k] || "").trim().toLowerCase().replace(/\s+/g, " ")));
+  };
+
   if (action === "nb_list") {
-    const all = await tickets(KK); const wantArch = body.archived === true;
+    const all = (await tickets(KK)).filter(visible); const wantArch = body.archived === true;
     const shown = all.filter((t) => wantArch ? !!t.archived : !t.archived);
     return json({ ok: true, role: az.role, can_edit: az.canEdit, tickets: shown, columns: await columns(KC, KCbase, DEF), archived_count: all.filter((t) => !!t.archived).length, board_of: seat || "shared" });
   }
@@ -201,7 +225,7 @@ Deno.serve(async (req) => {
     return json({ ok: true, tickets: arr.filter((x) => !x.archived) });
   }
   if (action === "nb_note" || action === "nb_note_edit" || action === "nb_note_del") {
-    const arr = await tickets(KK); const t = arr.find((x) => x.id === String(body.id)); if (!t) return json({ ok: false, error: "Record not found." }, 404);
+    const arr = await tickets(KK); const t = arr.find((x) => x.id === String(body.id)); if (!t || !visible(t)) return json({ ok: false, error: "Record not found." }, 404);
     if (!Array.isArray(t.notes)) t.notes = [];
     if (action === "nb_note") {
       const text = clean(body.text); if (!text) return json({ ok: false, error: "Note is empty." });
