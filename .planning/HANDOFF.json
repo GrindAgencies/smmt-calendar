@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-10-23T22:26:34.565Z",
+  "timestamp": "2026-10-28T18:56:31.932Z",
   "source": "auto-postool",
   "partial": false,
   "phase": null,
@@ -19,16 +19,8 @@
     {
       "status": "M",
       "path": ".planning/HANDOFF.json"
-    },
-    {
-      "status": "M",
-      "path": "newbiz.html"
-    },
-    {
-      "status": "M",
-      "path": "supabase/functions/newbiz-api/index.ts"
     }
   ],
   "next_action": null,
-  "context_notes": "Recent commits:\nc9d2dc3 Target premium: column, field, validation and review — create path still pending\nc7de39c Road to EMD: the emblem stops eating the screen\n107f11c Home highlights: an uncaptioned slide no longer labels itself \"Team highlights\"\nf892e0f Home highlights: Manage sits beside the artwork instead of on top of it\n6299943 Home: the real transparent mark, and the profile gear section 3 asked for"
+  "context_notes": "Recent commits:\n418bbb3 Leads: a save can no longer overwrite a whole list from a failed load or another device's older copy\ne9acb79 Baseshop Settings: the team chat name an EMD sets is now used by The Hub (it was saved and never read)\n55b74e5 Leaderboard survives a stale remembered choice; 'am I a leader?' answered without a 403; pages read the actual answer\n69cc131 Profile: leader-only panels load only for leaders (agents made six refused calls per visit)\nac4e864 Scheduler: tapping an appointment in Week/list view opens it (the handler broke on every UUID)"
 }
