@@ -1,3 +1,5 @@
+// brain v9 (2026-10-28) — the dormancy sweep skips anyone reactivated inside the window
+//   (tracker_agents.reactivated_at, stamped by a trigger), so a restore is never undone overnight.
 // brain v8 (2026-10-26) — 'leaders' (everyone's app-usage counts) is Operations-only.
 // brain v7 — the Data Brain: usage tracking, real last-seen, dormancy sweep,
 // and Coach's next-level nudges.
@@ -243,12 +245,14 @@ Deno.serve(async (req) => {
       const days = Math.min(3650, Math.max(30, Number(body.days) || 90));
       const cutoff = new Date(Date.now() - days * 86400000).toISOString();
       const apply = body.apply === true;
-      const ex = await fetch(`${SUPA}/rest/v1/tracker_agents?select=code,first_name,last_name,status,last_seen,last_activity,created_at&code=neq.POOL&limit=5000`, { headers: DBH });
+      const ex = await fetch(`${SUPA}/rest/v1/tracker_agents?select=code,first_name,last_name,status,last_seen,last_activity,reactivated_at,created_at&code=neq.POOL&limit=5000`, { headers: DBH });
       const rows: Record<string, unknown>[] = (await ex.json()) || [];
       const targets = rows.filter((r) => {
         if (String(r.status || "active") !== "active") return false;
         const seen = r.last_seen || r.last_activity;
         if (!seen) return false;
+        // v9: someone Ops (or a sign-in) just brought back gets a fresh 90 days.
+        if (r.reactivated_at && String(r.reactivated_at) >= cutoff) return false;
         return String(seen) < cutoff;
       }).map((r) => ({ code: r.code, name: ((r.first_name || "") + " " + (r.last_name || "")).trim(), last: r.last_seen || r.last_activity }));
       if (apply) {
