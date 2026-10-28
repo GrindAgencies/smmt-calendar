@@ -492,7 +492,7 @@ var EMBTIER={bronze:'#c07f3a',silver:'#aab0bd',gold:'#e6c25a',platinum:'#a9c0e0'
 function miniEmb(code){var e=EMB[(code||'').toUpperCase()];if(!e||!e.icon)return '';var bg=EMBTIER[e.tier]||'#e6c25a';return '<span class="mn-emb" style="background:radial-gradient(circle at 38% 28%,rgba(255,255,255,.75),'+bg+')" title="Active emblem">'+e.icon+'</span>';}
 function loadEmblems(){fetch(EMBAPI,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'all_active'})}).then(function(r){return r.json();}).then(function(r){if(r&&r.emblems){var o={};Object.keys(r.emblems).forEach(function(k){o[k.toUpperCase()]=r.emblems[k];});EMB=o;if(typeof renderMsgs==='function')renderMsgs(false);}}).catch(function(){});}
 var BOT={ai:"<svg viewBox='0 0 40 40' style='width:100%;height:100%;border-radius:50%'><circle cx='20' cy='20' r='20' fill='#f7d94a'/><path d='M0 29 q20 9 40 0 v11 h-40 z' fill='#4a76b8'/><path d='M17 40 v-9 h6 v9' fill='#3a5f9e'/><path d='M18 5 q4 -4 4 1 q0 3 -3 2' stroke='#5a4a2a' stroke-width='1.5' fill='none' stroke-linecap='round'/><rect x='3' y='15.5' width='34' height='4' fill='#3b3b3b'/><circle cx='13.5' cy='17.5' r='6' fill='#d7dbe0' stroke='#3b3b3b' stroke-width='2'/><circle cx='26.5' cy='17.5' r='6' fill='#d7dbe0' stroke='#3b3b3b' stroke-width='2'/><circle cx='13.5' cy='17.5' r='3' fill='#fff'/><circle cx='26.5' cy='17.5' r='3' fill='#fff'/><circle cx='13.8' cy='17.5' r='1.7' fill='#2f8f4e'/><circle cx='26.8' cy='17.5' r='1.7' fill='#4b3a26'/><path d='M14 25 q6 5 12 0 z' fill='#7a3b2a'/></svg>",recognition:"<svg viewBox='0 0 40 40' style='width:100%;height:100%;border-radius:50%'><circle cx='20' cy='20' r='20' fill='#f7d94a'/><path d='M0 29 q20 9 40 0 v11 h-40 z' fill='#4a76b8'/><path d='M17 40 v-9 h6 v9' fill='#3a5f9e'/><path d='M13 5 l1.5 -4 M20 4 l0 -4.5 M27 5 l-1.5 -4' stroke='#5a4a2a' stroke-width='1.4' stroke-linecap='round'/><rect x='3' y='15.5' width='34' height='4' fill='#3b3b3b'/><circle cx='13.5' cy='17.5' r='6' fill='#d7dbe0' stroke='#3b3b3b' stroke-width='2'/><circle cx='26.5' cy='17.5' r='6' fill='#d7dbe0' stroke='#3b3b3b' stroke-width='2'/><circle cx='13.5' cy='17.5' r='3' fill='#fff'/><circle cx='26.5' cy='17.5' r='3' fill='#fff'/><circle cx='13.8' cy='17.5' r='1.6' fill='#4b3a26'/><circle cx='26.8' cy='17.5' r='1.6' fill='#4b3a26'/><path d='M14 26 q6 3.5 12 0' stroke='#6b5836' stroke-width='1.7' fill='none' stroke-linecap='round'/></svg>",announce:"<svg viewBox='0 0 40 40' style='width:100%;height:100%;border-radius:50%'><circle cx='20' cy='20' r='20' fill='#f7d94a'/><path d='M0 29 q20 9 40 0 v11 h-40 z' fill='#4a76b8'/><path d='M17 40 v-9 h6 v9' fill='#3a5f9e'/><path d='M11 6 q9 -5 18 0' stroke='#5a4a2a' stroke-width='2' fill='none' stroke-linecap='round'/><rect x='3' y='16' width='34' height='4' fill='#3b3b3b'/><circle cx='20' cy='18' r='7.5' fill='#d7dbe0' stroke='#3b3b3b' stroke-width='2.2'/><circle cx='20' cy='18' r='3.6' fill='#fff'/><circle cx='20.4' cy='18' r='1.9' fill='#4b3a26'/><path d='M15 27 h10' stroke='#6b5836' stroke-width='1.7' fill='none' stroke-linecap='round'/></svg>"};
-function avatarInner(code,name,kind){if(kind==='coach'||code==='KYLE')return '📣';if(kind==='system'||code==='OPSNOTE')return '🛡️';if(kind==='ai')return BOT.ai;if(kind==='recognition')return BOT.recognition;if(kind==='announce')return BOT.announce;if(AVATARS[code])return '<img src="'+AVATARS[code]+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';return initials(name);}
+function avatarInner(code,name,kind){if(kind==='groupbot'&&typeof gbBotAvatarHtml==='function')return gbBotAvatarHtml(CHAN);if(kind==='coach'||code==='KYLE')return '📣';if(kind==='system'||code==='OPSNOTE')return '🛡️';if(kind==='ai')return BOT.ai;if(kind==='recognition')return BOT.recognition;if(kind==='announce')return BOT.announce;if(AVATARS[code])return '<img src="'+AVATARS[code]+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';return initials(name);}
 var TA="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/tracker-api";
 var BASESHOP_LEADER="Elijah Cox";
 var CODE=null,NAME="",CHAN="main",CHANNELS=[],MEMBERS={},ONLINE={},LASTID=0,REPLYTO=null,PENDATTACH=null,RECPICK=null,POLL=null,MENSEL=0,MENITEMS=[];
@@ -842,7 +842,7 @@ function convRows(){
   var SUB={chat:'Base Shop Chat',announcements:'Announcements',cft:'CFT · Dial Room',training:'Training',licensing:'Licensing'};
   CHANNELS.forEach(function(c){
     var label=c.baseshop ? ((c.baseshopName||c.baseshop)+' · '+(SUB[c.sub]||c.name)) : c.name;
-    rows.push({id:c.id,label:label,icon:(c.icon||'#'),dm:false,unread:((CHAN===c.id&&VIEWING)?0:(UNREAD[c.id]||0))});
+    rows.push({id:c.id,label:label,icon:(c.icon||'#'),dm:false,muted:!!(window.MUTED&&MUTED[c.id]),unread:((CHAN===c.id&&VIEWING)?0:(UNREAD[c.id]||0))});
   });
   (THREADS||[]).forEach(function(t){
     rows.push({id:t.channel,label:(t.other_name||t.other_code||'Direct message'),icon:'',dm:true,
@@ -861,7 +861,9 @@ function convRows(){
   rows.sort(function(a,b){
     var pa=!!PINNED[a.id], pb=!!PINNED[b.id];
     if(pa!==pb) return pa?-1:1;
-    if(!!a.unread !== !!b.unread) return a.unread?-1:1;
+    /* A muted chat does not jump the queue for its unreads. */
+    var ua=!!a.unread&&!a.muted, ub=!!b.unread&&!b.muted;
+    if(ua !== ub) return ua?-1:1;
     return String(b.at||'').localeCompare(String(a.at||''));
   });
   return rows;
@@ -888,7 +890,8 @@ function convRowHtml(r){
     (pinned?'<span class="cv-pinmark" aria-label="Pinned">\u25C6</span>':'')+
     '<span class="cv-time">'+esc(whenOf(r.at))+'</span></div>'+
     '<div class="cv-prev">'+prev+'</div></div>'+
-    (r.unread?'<span class="cv-badge">'+(r.unread>99?'99+':r.unread)+'</span>':'')+
+    (r.muted?'<span class="cv-muted" aria-label="Muted">\ud83d\udd15</span>':'')+
+    (r.unread?'<span class="cv-badge'+(r.muted?' muted':'')+'">'+(r.unread>99?'99+':r.unread)+'</span>':'')+
     /* The gesture is a long press, but a gesture alone is unreachable for assistive
        technology, so the same menu has a real button behind it. */
     '<button class="sr-only cv-more" onclick="event.stopPropagation();openRowMenu(\''+r.id+'\')">More options for '+esc(r.label)+'</button>'+
@@ -1195,7 +1198,7 @@ function renderHead(){
                       +' onkeydown="if(event.key===\'Enter\'){openGroupDetails();}" title="Group details"' : '';
   syncComposer();
   var aoc=document.getElementById('askOpsChip'); if(aoc) aoc.style.display=isPrivateGroup(CHAN)&&!OPSMODE?'':'none';
-  $('chead').innerHTML='<div class="ci">'+icon+'</div><div'+tap+'><div class="cn">'+esc(nm)+'</div><div class="cs">'+esc(m.sub)+'</div></div><div class="presence"><span class="pd"></span>'+Object.keys(ONLINE).length+' online<div class="preslist"><div class="preshdr">Online now</div>'+presenceList()+'</div></div>'+del;
+  $('chead').innerHTML='<div class="ci">'+icon+'</div><div'+tap+'><div class="cn">'+esc(nm)+'</div><div class="cs">'+esc(m.sub)+'</div></div><div class="presence"><span class="pd"></span>'+Object.keys(ONLINE).length+' online<div class="preslist"><div class="preshdr">Online now</div>'+presenceList()+'</div></div>'+del+(isGroup&&!OPSMODE?'<button class="grpopt-d" onclick="openGroupOptions()" aria-label="Group members and options" title="Group members">'+(window.GBICON?GBICON.members:'')+'</button>':'');
 }
 
 /* ================= ROUND TWO tasks 5 & 6: group details =================
@@ -1609,7 +1612,7 @@ function loadUnread(){
   fetch(UNREADAPI,{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({code:CODE,read:readMap()})})
     .then(function(r){return r.json();})
-    .then(function(r){ if(r&&r.ok){ UNREAD=r.counts||{}; PREVIEW=r.preview||{}; HUB_LAST=r.last||{}; renderRooms(); paintTitle(r.total||0);
+    .then(function(r){ if(r&&r.ok){ UNREAD=r.counts||{}; PREVIEW=r.preview||{}; HUB_LAST=r.last||{}; renderRooms(); paintTitle(typeof gbUnmutedTotal==='function'?gbUnmutedTotal(r.total):(r.total||0));
       /* A hidden chat that has a real new message should come back without a reload. hub-prefs
          decides (by message id, never by typing) and clears the hide itself. Only ask when a
          hidden chat's newest id has moved since we last asked (HIDE_SEEN). */
@@ -1669,7 +1672,7 @@ function renderMsgs(scroll){
     }
     prev=m;
     var av='<div class="mav" onclick="openProfile(\''+m.author_code+'\')">'+avatarInner(m.author_code,m.author_name,m.kind)+'</div>';
-    var isBot=(m.kind==='ai'||m.kind==='recognition'||m.kind==='announce'||m.kind==='coach');var pname=isBot?(m.kind==='ai'?'Bob':(m.kind==='recognition'?'Kevin':(m.kind==='coach'?'Coach':'Stuart'))):(m.author_name||'—');var tag=isBot?'<span class="mc" style="background:var(--gold-soft);color:var(--gold)">BOT</span>':(m.kind==='system'?'<span class="mc" style="background:var(--gold-soft);color:var(--gold)">OPS</span>':'<span class="mc">'+esc(m.author_code||'')+'</span>');var head=cont?'':'<div class="mhead"><span class="mn" onclick="openProfile(\''+m.author_code+'\')">'+esc(pname)+'</span>'+(isBot?'':miniEmb(m.author_code))+tag+'<span class="mt">'+tstr(m.created_at)+(m.edited?' · edited':'')+'</span></div>';
+    var isBot=(m.kind==='ai'||m.kind==='recognition'||m.kind==='announce'||m.kind==='coach'||m.kind==='groupbot');var pname=m.kind==='groupbot'?(m.author_name||'Group Bot'):isBot?(m.kind==='ai'?'Bob':(m.kind==='recognition'?'Kevin':(m.kind==='coach'?'Coach':'Stuart'))):(m.author_name||'—');var tag=isBot?'<span class="mc" style="background:var(--gold-soft);color:var(--gold)">BOT</span>':(m.kind==='system'?'<span class="mc" style="background:var(--gold-soft);color:var(--gold)">OPS</span>':'<span class="mc">'+esc(m.author_code||'')+'</span>');var head=cont?'':'<div class="mhead"><span class="mn" onclick="openProfile(\''+m.author_code+'\')">'+esc(pname)+'</span>'+(isBot?'':miniEmb(m.author_code))+tag+'<span class="mt">'+tstr(m.created_at)+(m.edited?' · edited':'')+'</span></div>';
     var inner;
     if(m.deleted){inner='<div class="mtext del">message deleted</div>';}
     else if(m.kind==='recognition'){inner=collapsible('<div class="rcard"><div class="rt">🎉 Kevin · Recognition</div><div class="rb">'+linkify(m.body)+'</div></div>',m.body,m.id);}
@@ -2994,6 +2997,811 @@ body.phone .composer textarea{ border-radius:21px !important; padding:11px 15px 
   window.addEventListener('resize', function(){
     if(typeof applyConvFilter === 'function') applyConvFilter();
   });
+})();
+</script>
+<style id="hub-groupbot-css">
+/* ===== Group options · members · settings · bot (2026-10-28) =====
+   Built from the page's own tokens (--panel, --panel2, --ink*, --line, --cvgold) so it follows
+   light and dark mode exactly like the rest of the Hub. */
+/* The group-members control. In a phone conversation it sits in the top bar's upper-right
+   corner, where the bell used to be; on a two-pane desktop it sits at the right of the
+   conversation header. Never shown for a DM. */
+.grpopt{ display:none; }
+body.phone.chat-open.gb-group .top .grpopt{ display:flex; margin-left:auto; }
+body:not(.phone) .chead .grpopt-d{ display:flex; }
+.grpopt, .grpopt-d{ align-items:center; justify-content:center; width:38px; height:38px;
+  border-radius:50%; border:1px solid var(--line); background:var(--panel); color:var(--cvgold);
+  cursor:pointer; flex:0 0 auto; padding:0; }
+.grpopt svg, .grpopt-d svg{ width:20px; height:20px; }
+.grpopt-d{ display:none; margin-left:10px; }
+/* In a phone conversation the header is: back · (photo · theme) · group members. The
+   notification bell and the app Menu belong to the tools screens, not to a conversation. */
+body.phone.chat-open .top .ntf-btn,
+body.phone.chat-open .top .tsfg-menu{ display:none !important; }
+
+/* Full-screen panel used by Members, Group Settings, Manage Bot and the announcement editor. */
+.gb-ov{ position:fixed; inset:0; z-index:940; background:rgba(0,0,0,.55); display:none;
+  align-items:stretch; justify-content:center; }
+.gb-ov.on{ display:flex; }
+.gb-panel{ width:100%; max-width:560px; background:var(--bg); display:flex; flex-direction:column;
+  height:100%; border-left:1px solid var(--line); border-right:1px solid var(--line); }
+.gb-head{ display:grid; grid-template-columns:44px 1fr 44px; align-items:center; gap:6px;
+  padding:calc(env(safe-area-inset-top) + 8px) 10px 8px; border-bottom:1px solid var(--line);
+  background:var(--panel); }
+.gb-head h2{ margin:0; text-align:center; font-size:17px; font-weight:800; letter-spacing:-.01em;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.gb-back{ width:40px; height:40px; border:0; background:none; color:var(--cvgold); font-size:28px;
+  line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+.gb-body{ flex:1 1 auto; overflow-y:auto; padding:14px 14px calc(env(safe-area-inset-bottom) + 28px);
+  -webkit-overflow-scrolling:touch; }
+.gb-sec{ font-size:11.5px; font-weight:800; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--ink3); margin:18px 4px 8px; }
+.gb-card{ background:var(--panel); border:1px solid var(--line); border-radius:16px; overflow:hidden; }
+.gb-row{ display:flex; align-items:center; gap:12px; width:100%; padding:14px; border:0;
+  border-bottom:1px solid var(--line); background:none; color:var(--ink); font:inherit;
+  font-size:15px; text-align:left; cursor:pointer; }
+.gb-row:last-child{ border-bottom:0; }
+.gb-row:active{ background:var(--panel2); }
+.gb-row .ic{ width:34px; height:34px; border-radius:10px; flex:0 0 auto; display:flex; align-items:center;
+  justify-content:center; background:var(--gold-soft); color:var(--cvgold); font-size:17px; }
+.gb-row .tx{ flex:1 1 auto; min-width:0; }
+.gb-row .tx b{ display:block; font-weight:700; }
+.gb-row .tx span{ display:block; font-size:12.5px; color:var(--ink3); margin-top:2px; }
+.gb-row .chev{ color:var(--ink3); font-size:20px; flex:0 0 auto; }
+.gb-hero{ text-align:center; padding:6px 0 4px; }
+.gb-hero .av{ width:84px; height:84px; border-radius:50%; margin:0 auto 10px; overflow:hidden;
+  display:flex; align-items:center; justify-content:center; font-size:34px;
+  background:linear-gradient(145deg,var(--cvgold-br),var(--cvgold)); color:#17120a; border:0; padding:0; }
+.gb-hero .av img{ width:100%; height:100%; object-fit:cover; }
+.gb-hero h3{ margin:0; font-size:20px; font-weight:800; letter-spacing:-.02em; }
+.gb-hero p{ margin:4px 0 0; font-size:13px; color:var(--ink3); }
+.gb-note{ font-size:12.5px; color:var(--ink3); line-height:1.5; margin:10px 4px 0; }
+.gb-field{ margin:0 0 14px; }
+.gb-field label{ display:block; font-size:12.5px; font-weight:700; color:var(--ink2); margin:0 2px 6px; }
+.gb-field input[type=text], .gb-field input[type=date], .gb-field input[type=time],
+.gb-field input[type=search], .gb-field textarea{
+  width:100%; box-sizing:border-box; padding:12px 13px; font:inherit; font-size:16px;
+  background:var(--panel); color:var(--ink); border:1px solid var(--line); border-radius:12px; }
+.gb-field textarea{ min-height:120px; resize:vertical; line-height:1.45; }
+.gb-field input:focus, .gb-field textarea:focus{ outline:none; border-color:var(--cvgold); }
+.gb-count{ float:right; font-weight:600; color:var(--ink3); }
+.gb-btns{ display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; }
+.gb-btn{ flex:1 1 auto; padding:13px 16px; border-radius:13px; border:1px solid var(--line);
+  background:var(--panel); color:var(--ink); font:inherit; font-weight:800; font-size:14.5px; cursor:pointer;
+  display:inline-flex; align-items:center; justify-content:center; gap:7px; }
+.gb-btn.go{ background:var(--cvgold); color:#17120a; border-color:var(--cvgold); }
+.gb-btn.ghost{ background:none; color:var(--cvgold); border-color:var(--cvgold); }
+.gb-btn.danger{ background:none; color:#e5484d; border-color:rgba(229,72,77,.45); }
+.gb-btn[disabled]{ opacity:.55; cursor:default; }
+/* A real switch, driven by a checkbox so it is keyboard- and screen-reader-operable. */
+.gb-sw{ position:relative; width:50px; height:30px; flex:0 0 auto; }
+.gb-sw input{ position:absolute; opacity:0; width:100%; height:100%; margin:0; cursor:pointer; z-index:1; }
+.gb-sw i{ position:absolute; inset:0; border-radius:15px; background:var(--line2); transition:background .15s; }
+.gb-sw i:after{ content:''; position:absolute; top:3px; left:3px; width:24px; height:24px; border-radius:50%;
+  background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.3); transition:transform .15s; }
+.gb-sw input:checked + i{ background:var(--cvgold); }
+.gb-sw input:checked + i:after{ transform:translateX(20px); }
+.gb-sw input:focus-visible + i{ outline:2px solid var(--cvgold); outline-offset:2px; }
+
+/* Members */
+.gm-search{ position:sticky; top:-14px; z-index:2; background:var(--bg); padding:0 0 10px; margin-top:-2px; }
+.gm-row{ display:flex; align-items:center; gap:12px; padding:11px 12px; border-bottom:1px solid var(--line);
+  -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; cursor:default; }
+.gm-row:last-child{ border-bottom:0; }
+.gm-row.held{ background:var(--panel2); }
+.gm-av{ position:relative; width:44px; height:44px; flex:0 0 auto; }
+.gm-av .in{ width:44px; height:44px; border-radius:50%; overflow:hidden; display:flex; align-items:center;
+  justify-content:center; background:var(--panel2); color:var(--ink2); font-weight:800; font-size:15px; border:1px solid var(--line); }
+.gm-av .in img{ width:100%; height:100%; object-fit:cover; }
+.gm-dot{ position:absolute; right:0; bottom:0; width:12px; height:12px; border-radius:50%;
+  border:2px solid var(--panel); background:var(--ink3); }
+.gm-dot.on{ background:var(--green); }
+.gm-dot.away{ background:#e6a700; }
+.gm-mid{ flex:1 1 auto; min-width:0; }
+.gm-name{ font-weight:700; font-size:15px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.gm-sub{ font-size:12.5px; color:var(--ink3); margin-top:1px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.gm-role{ flex:0 0 auto; font-size:11px; font-weight:800; letter-spacing:.03em; text-transform:uppercase;
+  padding:4px 9px; border-radius:999px; background:var(--panel2); color:var(--ink3); border:1px solid var(--line); }
+.gm-role.owner{ background:var(--cvgold); color:#17120a; border-color:var(--cvgold); }
+.gm-role.admin{ background:var(--gold-soft); color:var(--cvgold); border-color:transparent; }
+.gm-more{ flex:0 0 auto; width:34px; height:34px; border-radius:50%; border:0; background:none;
+  color:var(--ink3); font-size:20px; cursor:pointer; line-height:1; }
+.gm-hint{ font-size:12px; color:var(--ink3); margin:8px 4px 0; line-height:1.45; }
+
+/* Announcement cards */
+.ga-card{ background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:14px;
+  margin-bottom:12px; display:grid; grid-template-columns:auto 1fr auto; gap:12px; align-items:start; }
+.ga-card.off{ opacity:.62; }
+.ga-thumb{ width:58px; height:58px; border-radius:10px; overflow:hidden; background:var(--panel2);
+  display:flex; align-items:center; justify-content:center; font-size:22px; border:1px solid var(--line); }
+.ga-thumb img{ width:100%; height:100%; object-fit:cover; }
+.ga-t{ font-weight:800; font-size:15px; letter-spacing:-.01em; }
+.ga-p{ font-size:13px; color:var(--ink2); margin-top:3px; line-height:1.4; display:-webkit-box;
+  -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; white-space:pre-line; }
+.ga-s{ font-size:12px; color:var(--cvgold); font-weight:700; margin-top:7px; }
+.ga-n{ font-size:11.5px; color:var(--ink3); margin-top:2px; }
+.ga-n.err{ color:#e5484d; }
+.ga-acts{ grid-column:1 / -1; display:flex; gap:8px; flex-wrap:wrap; border-top:1px solid var(--line); padding-top:10px; }
+.ga-acts button{ flex:1 1 auto; padding:9px 10px; border-radius:10px; border:1px solid var(--line);
+  background:var(--panel2); color:var(--ink); font:inherit; font-size:13px; font-weight:700; cursor:pointer; }
+.ga-acts button.del{ color:#e5484d; }
+.ga-empty{ text-align:center; padding:30px 16px; color:var(--ink3); font-size:14px; }
+.ga-empty b{ display:block; color:var(--ink); font-size:16px; margin-bottom:4px; }
+
+/* Editor: schedule */
+.gs-seg{ display:flex; background:var(--panel2); border:1px solid var(--line); border-radius:12px; padding:3px; gap:3px; }
+.gs-seg button{ flex:1; padding:10px 6px; border:0; border-radius:9px; background:none; color:var(--ink2);
+  font:inherit; font-weight:700; font-size:13.5px; cursor:pointer; }
+.gs-seg button.on{ background:var(--cvgold); color:#17120a; }
+.gs-days{ display:flex; gap:6px; justify-content:space-between; }
+.gs-days button{ flex:1; max-width:46px; aspect-ratio:1; border-radius:50%; border:1px solid var(--line);
+  background:var(--panel); color:var(--ink2); font:inherit; font-weight:800; font-size:13px; cursor:pointer; }
+.gs-days button.on{ background:var(--cvgold); border-color:var(--cvgold); color:#17120a; }
+.gs-two{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.gs-tz{ font-size:12px; color:var(--ink3); margin:-6px 2px 14px; }
+.gf-drop{ display:flex; align-items:center; gap:12px; padding:12px; border:1px dashed var(--line2);
+  border-radius:14px; background:var(--panel); }
+.gf-drop .th{ width:72px; height:72px; border-radius:10px; overflow:hidden; flex:0 0 auto;
+  background:var(--panel2); display:flex; align-items:center; justify-content:center; font-size:26px; color:var(--ink3); }
+.gf-drop .th img{ width:100%; height:100%; object-fit:cover; }
+.gf-drop .tx{ flex:1 1 auto; font-size:13px; color:var(--ink3); line-height:1.4; }
+.gf-drop .tx b{ display:block; color:var(--ink); font-size:14px; }
+.gp-wrap{ background:var(--panel2); border:1px solid var(--line); border-radius:16px; padding:12px; }
+.gp-msg{ display:flex; gap:9px; align-items:flex-start; }
+.gp-av{ width:34px; height:34px; border-radius:50%; overflow:hidden; flex:0 0 auto; display:flex; align-items:center;
+  justify-content:center; background:linear-gradient(145deg,var(--cvgold-br),var(--cvgold)); color:#17120a; font-size:17px; }
+.gp-av img{ width:100%; height:100%; object-fit:cover; }
+.gp-h{ font-size:12.5px; font-weight:800; }
+.gp-h .bt{ font-size:9.5px; font-weight:800; padding:2px 5px; border-radius:5px; background:var(--gold-soft); color:var(--cvgold); margin-left:5px; vertical-align:1px; }
+.gp-h .tm{ font-weight:500; color:var(--ink3); margin-left:6px; }
+.gp-b{ margin-top:4px; background:var(--panel); border:1px solid var(--line); border-radius:4px 16px 16px 16px;
+  padding:9px 12px; font-size:14.5px; line-height:1.45; white-space:pre-wrap; word-break:break-word; }
+.gp-b img{ display:block; max-width:100%; border-radius:10px; margin-top:8px; }
+.gp-b.empty{ color:var(--ink3); font-style:italic; }
+
+/* Bottom sheet above the panel (member actions, options). Same look as the row menu. */
+.gbs-ov{ position:fixed; inset:0; z-index:952; background:rgba(0,0,0,.6); display:none;
+  align-items:flex-end; justify-content:center; }
+.gbs-ov.on{ display:flex; }
+.gbs-ov .cvm .danger{ color:#e5484d; }
+.gbs-ov .cvm button[disabled]{ opacity:.5; }
+/* A muted chat keeps its count, greyed, with a bell-off mark. */
+.cv-badge.muted{ background:var(--ink3) !important; color:var(--panel) !important; }
+.cv-muted{ flex:0 0 auto; font-size:12px; opacity:.7; margin-left:4px; }
+</style>
+<script id="hub-groupbot">
+/* ===== Group options · Members · Group Settings · Manage Bot (2026-10-28) =====
+   Every permission shown here is the SERVER's answer (group-bot `ctx`/`members`, hub-groups
+   `get`), never a guess from rank or name. Hiding an admin control is a courtesy; group-bot and
+   hub-groups refuse the same action from anyone not entitled to it. */
+var GBAPI='https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/group-bot';
+var GBCTX={}, GBOTMETA={}, MUTED={};
+var GBSTACK=[], GBM=null, GBMQ='', GBANN=null, GBEDIT=null, GBBOT=null;
+var GB_DAYS=['S','M','T','W','T','F','S'], GB_DAYN=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+var GB_TZ='America/Los_Angeles';
+var GBICON={
+  members:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>'
+};
+function gbApi(b){
+  return fetch(GBAPI,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b||{})})
+    .then(function(r){ return r.json(); })
+    .catch(function(){ return {ok:false,error:'Network error — check your connection and try again.'}; });
+}
+function gbIsGroup(ch){ ch=String(ch||''); return !!ch && ch.indexOf('dm:')!==0; }
+
+/* ---------- per-conversation context: bot identity, mute, what this person may do ---------- */
+function gbLoadCtx(ch){
+  if(!gbIsGroup(ch) || OPSMODE) return Promise.resolve(null);
+  return gbApi({action:'ctx', channel:ch}).then(function(r){
+    if(!r || !r.ok) return null;
+    GBCTX[ch]=r; GBOTMETA[ch]=r.bot||{};
+    if(r.muted) MUTED[ch]=1; else delete MUTED[ch];
+    if(ch===CHAN){ try{ renderMsgs(false); }catch(e){} }
+    return r;
+  });
+}
+function gbLoadMutes(){
+  if(OPSMODE) return;
+  gbApi({action:'mutes', channel:'main'}).then(function(r){
+    if(!r || !r.ok || !Array.isArray(r.muted)) return;
+    MUTED={}; r.muted.forEach(function(c){ MUTED[c]=1; });
+    try{ renderRooms(); }catch(e){}
+  });
+}
+/* Muted chats keep their count in the list (greyed) but never raise the tab total. */
+function gbUnmutedTotal(total){
+  var t=Number(total)||0;
+  Object.keys(MUTED).forEach(function(c){ t-=(UNREAD[c]||0); });
+  return Math.max(0,t);
+}
+function gbBotAvatarHtml(ch){
+  var b=GBOTMETA[ch||CHAN]||{};
+  return b.avatar ? '<img src="'+esc(b.avatar)+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">' : '🤖';
+}
+
+/* ---------- the panel: a stack of screens with a back arrow ---------- */
+function gbOv(){
+  var ov=document.getElementById('gbOv');
+  if(!ov){
+    ov=document.createElement('div'); ov.id='gbOv'; ov.className='gb-ov';
+    ov.addEventListener('click',function(e){ if(e.target===ov) gbCloseAll(); });
+    document.body.appendChild(ov);
+  }
+  return ov;
+}
+function gbPush(fn){ GBSTACK.push(fn); gbPaint(); }
+function gbBack(){ GBSTACK.pop(); if(!GBSTACK.length){ gbCloseAll(); return; } gbPaint(); }
+function gbCloseAll(){ GBSTACK=[]; var ov=document.getElementById('gbOv'); if(ov){ ov.classList.remove('on'); ov.innerHTML=''; } gbSheetClose(); }
+function gbPaint(){
+  var fn=GBSTACK[GBSTACK.length-1]; if(!fn) return;
+  var ov=gbOv(), s=fn()||{};
+  var keep=ov.querySelector('.gb-body'), top=keep?keep.scrollTop:0, same=ov.getAttribute('data-screen')===s.id;
+  ov.innerHTML='<div class="gb-panel" role="dialog" aria-modal="true" aria-label="'+esc(s.title||'')+'">'+
+    '<div class="gb-head"><button class="gb-back" onclick="gbBack()" aria-label="Back">‹</button>'+
+    '<h2>'+esc(s.title||'')+'</h2><span></span></div>'+
+    '<div class="gb-body">'+(s.html||'')+'</div></div>';
+  ov.setAttribute('data-screen', s.id||'');
+  ov.classList.add('on');
+  if(same){ var b=ov.querySelector('.gb-body'); if(b) b.scrollTop=top; }
+  if(typeof s.after==='function') s.after();
+}
+function gbRepaint(id){ var ov=document.getElementById('gbOv'); if(ov && ov.classList.contains('on') && ov.getAttribute('data-screen')===id) gbPaint(); }
+
+/* A bottom sheet above the panel, for short choices. */
+function gbSheet(html){
+  var ov=document.getElementById('gbSheet');
+  if(!ov){
+    ov=document.createElement('div'); ov.id='gbSheet'; ov.className='gbs-ov';
+    ov.addEventListener('click',function(e){ if(e.target===ov) gbSheetClose(); });
+    document.body.appendChild(ov);
+  }
+  ov.innerHTML='<div class="cvm" role="dialog">'+html+'</div>';
+  ov.classList.add('on');
+}
+function gbSheetClose(){ var ov=document.getElementById('gbSheet'); if(ov) ov.classList.remove('on'); }
+/* In-app confirmation (never a browser dialog: those are bare system popups in the iOS app). */
+function gbConfirm(title, text, goLabel, danger, onGo){
+  window.__gbGo=onGo;
+  safetyModal('<h3 style="margin:0 0 8px">'+esc(title)+'</h3>'+
+    '<div style="color:var(--ink3);font-size:14px;line-height:1.45">'+text+'</div>'+
+    '<div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end">'+
+    '<button class="gbtn" onclick="closeSafety()">Cancel</button>'+
+    '<button class="gbtn" style="'+(danger?'background:#c0392b;color:#fff;border-color:#c0392b':'background:var(--cvgold);color:#17120a;border-color:var(--cvgold)')+'" '+
+    'onclick="closeSafety();var f=window.__gbGo;window.__gbGo=null;if(f)f();">'+esc(goLabel)+'</button></div>');
+}
+
+/* ===================== Screen 2: group options ===================== */
+function openGroupOptions(){
+  if(!gbIsGroup(CHAN)) return;
+  var ch=CHAN;
+  var paint=function(c){
+    var nm=groupNameOf(ch, chanMeta(ch).name);
+    var h='<h4>'+esc(nm)+'</h4>'+
+      '<button onclick="gbSheetClose();gbOpenMembers()"><i>👥</i>View members</button>'+
+      '<button onclick="gbSheetClose();gbOpenSettings()"><i>⚙️</i>Group settings</button>';
+    if(!OPSMODE) h+='<button onclick="gbToggleMute()"'+(c?'':' disabled')+'><i>'+(MUTED[ch]?'🔔':'🔕')+'</i>'+(MUTED[ch]?'Unmute notifications':'Mute notifications')+'</button>';
+    if(c && c.can_leave) h+='<div class="sep"></div><button class="danger" onclick="gbLeave()"><i>↪️</i>Leave group</button>';
+    h+='<div class="sep"></div><button onclick="gbSheetClose()"><i>←</i>Cancel</button>';
+    gbSheet(h);
+  };
+  paint(GBCTX[ch]||null);
+  gbLoadCtx(ch).then(function(c){ var ov=document.getElementById('gbSheet'); if(ch===CHAN && ov && ov.classList.contains('on') && !GBSTACK.length) paint(c); });
+}
+function gbToggleMute(){
+  var ch=CHAN, was=!!MUTED[ch];
+  if(was) delete MUTED[ch]; else MUTED[ch]=1;
+  gbSheetClose(); renderRooms(); gbRepaint('msgset');
+  gbApi({action: was?'unmute':'mute', channel:ch}).then(function(r){
+    if(!r || !r.ok){ if(was) MUTED[ch]=1; else delete MUTED[ch]; renderRooms(); gbRepaint('msgset'); toast((r&&r.error)||'Could not change notifications'); return; }
+    if(GBCTX[ch]) GBCTX[ch].muted=!was;
+    toast(was?'Notifications on':'Muted — @mentions still reach you');
+  });
+}
+function gbLeave(){
+  var ch=CHAN; gbSheetClose();
+  gbConfirm('Leave this group?', 'You will stop receiving its messages. A group admin can add you back later.', 'Leave', true, function(){
+    gbApi({action:'leave', channel:ch}).then(function(r){
+      if(!r || !r.ok){ toast((r&&r.error)||'Could not leave the group'); return; }
+      toast('You left the group'); gbCloseAll();
+      CHANNELS=(CHANNELS||[]).filter(function(c){ return c.id!==ch; });
+      document.body.classList.remove('chat-open');
+      try{ openChan('main',{quiet:true}); }catch(e){}
+      try{ if(typeof loadChannels==='function') loadChannels(); }catch(e){}
+    });
+  });
+}
+
+/* ===================== Screen 4: group members ===================== */
+function gbOpenMembers(){
+  GBM=null; GBMQ='';
+  gbPush(gbMembersScreen);
+  var ch=CHAN;
+  gbApi({action:'members', channel:ch}).then(function(r){ if(ch!==CHAN) return; GBM=r||{ok:false,error:'Could not load members.'}; gbRepaint('members'); });
+}
+function gbRoleLabel(m){ return m.role==='owner'?'Owner':(m.role==='admin'?'Admin':'Member'); }
+function gbMemberRowHtml(m){
+  var av=(typeof AVATARS!=='undefined' && AVATARS[m.code]) ? '<img src="'+esc(AVATARS[m.code])+'" alt="" loading="lazy">' : esc(initials(m.name));
+  var st=m.online?(m.away?'Away':'Online'):(m.last_seen?('Last seen '+timeAgo(m.last_seen)):'Offline');
+  var sub=st+(m.title?(' · '+m.title):'');
+  return '<div class="gm-row" data-code="'+esc(m.code)+'" data-q="'+esc((m.name+' '+m.code+' '+(m.title||'')).toLowerCase())+'">'+
+    '<div class="gm-av"><div class="in">'+av+'</div><span class="gm-dot'+(m.online?(m.away?' away':' on'):'')+'" aria-hidden="true"></span></div>'+
+    '<div class="gm-mid"><div class="gm-name">'+esc(m.name)+(m.code===CODE?' (you)':'')+'</div><div class="gm-sub">'+esc(sub)+'</div></div>'+
+    '<span class="gm-role '+esc(m.role)+'">'+gbRoleLabel(m)+'</span>'+
+    '<button class="gm-more" onclick="gbMemberMenu(\''+escJs(m.code)+'\')" aria-label="Options for '+esc(m.name)+'">⋯</button>'+
+  '</div>';
+}
+function gbMembersScreen(){
+  var h='';
+  if(!GBM) h='<p class="gb-note">Loading members…</p>';
+  else if(!GBM.ok) h='<p class="gb-note">'+esc(GBM.error||'Could not load members.')+'</p>';
+  else {
+    var on=GBM.members.filter(function(m){return m.online;}).length;
+    h+='<div class="gm-search gb-field" style="margin-bottom:0"><input type="search" id="gmQ" placeholder="Search '+GBM.count+' members" value="'+esc(GBMQ)+'" oninput="gbFilterMembers(this.value)" autocomplete="off" aria-label="Search members"></div>'+
+       '<div class="gb-sec" style="margin-top:6px">'+GBM.count+' member'+(GBM.count===1?'':'s')+(on?(' · '+on+' online'):'')+'</div>'+
+       '<div class="gb-card" id="gmList">'+GBM.members.map(gbMemberRowHtml).join('')+'</div>'+
+       '<p class="gm-none gb-note" id="gmNone" style="display:none">Nobody matches that.</p>';
+    if(GBM.can_assign) h+='<p class="gm-hint">Press and hold a member (or tap ⋯) to make them an admin. Admins can manage this group’s bot and announcements; only you can appoint or remove admins.</p>';
+    else h+='<p class="gm-hint">Press and hold a member (or tap ⋯) for options.</p>';
+    if(GBM.can_manage && GBM.from_list) h+='<div class="gb-btns"><button class="gb-btn ghost" onclick="gbCloseAll();openGroupDetails()">Add people</button></div>';
+  }
+  return {id:'members', title:'Group Members', html:h, after:function(){ if(GBMQ) gbFilterMembers(GBMQ); }};
+}
+function gbFilterMembers(q){
+  GBMQ=q||''; var s=GBMQ.trim().toLowerCase(), n=0;
+  document.querySelectorAll('#gmList .gm-row').forEach(function(r){ var hit=!s||r.getAttribute('data-q').indexOf(s)>=0; r.style.display=hit?'':'none'; if(hit)n++; });
+  var none=document.getElementById('gmNone'); if(none) none.style.display=n?'none':'';
+}
+function gbMemberMenu(code){
+  if(!GBM || !GBM.ok) return;
+  var m=GBM.members.filter(function(x){return x.code===code;})[0]; if(!m) return;
+  var h='<h4>'+esc(m.name)+' · '+gbRoleLabel(m)+'</h4>';
+  h+='<button onclick="gbSheetClose();openProfile(\''+escJs(code)+'\')"><i>👤</i>View profile</button>';
+  if(code!==CODE && !OPSMODE) h+='<button onclick="gbSheetClose();gbCloseAll();openChan(dmId(\''+escJs(code)+'\'))"><i>💬</i>Send a message</button>';
+  if(GBM.can_assign && m.role!=='owner' && code!==CODE){
+    h+='<div class="sep"></div>';
+    if(m.role==='admin' && m.creator) h+='<div class="note">'+esc(m.name)+' created this group, so they always administer it.</div>';
+    else if(m.role==='admin') h+='<button class="danger" onclick="gbSetAdmin(\''+escJs(code)+'\',false)"><i>✖</i>Remove admin</button>';
+    else h+='<button onclick="gbSetAdmin(\''+escJs(code)+'\',true)"><i>⭐</i>Make admin</button>';
+  }
+  if(GBM.can_manage && GBM.from_list && !m.creator && code!==CODE && m.role!=='owner'){
+    h+='<button class="danger" onclick="gbRemoveMember(\''+escJs(code)+'\')"><i>⊖</i>Remove from group</button>';
+  }
+  h+='<div class="sep"></div><button onclick="gbSheetClose()"><i>←</i>Cancel</button>';
+  gbSheet(h);
+}
+function gbSetAdmin(code, make){
+  gbSheetClose();
+  var m=(GBM.members||[]).filter(function(x){return x.code===code;})[0]||{name:code};
+  var nm=groupNameOf(CHAN, chanMeta(CHAN).name), ch=CHAN;
+  gbConfirm(make?('Make '+m.name+' an admin?'):('Remove '+m.name+' as admin?'),
+    make ? (esc(m.name)+' will be able to edit <b>'+esc(nm)+'</b> and manage its bot and announcements. They will not be able to appoint other admins.')
+         : (esc(m.name)+' will no longer be able to edit this group or manage its bot.'),
+    make?'Make admin':'Remove admin', !make, function(){
+      gdApi({action: make?'admin_add':'admin_remove', channel:ch, who:code}).then(function(r){
+        if(!r || !r.ok){ toast((r&&r.error)||'Could not change that'); return; }
+        toast(make?(m.name+' is now an admin'):(m.name+' is no longer an admin'));
+        /* Reflect it at once, then confirm against the server. */
+        m.role = make?'admin':'member'; gbRepaint('members');
+        gbApi({action:'members', channel:ch}).then(function(x){ if(x&&x.ok&&ch===CHAN){ GBM=x; gbRepaint('members'); } });
+      });
+    });
+}
+function gbRemoveMember(code){
+  gbSheetClose();
+  var m=(GBM.members||[]).filter(function(x){return x.code===code;})[0]||{name:code}, ch=CHAN;
+  gbConfirm('Remove '+m.name+'?', 'They will no longer be a member of this group.', 'Remove', true, function(){
+    gdApi({action:'member_remove', channel:ch, who:[code]}).then(function(r){
+      if(!r || !r.ok){ toast((r&&r.error)||'Could not remove them'); return; }
+      toast('Removed');
+      gbApi({action:'members', channel:ch}).then(function(x){ if(x&&x.ok&&ch===CHAN){ GBM=x; gbRepaint('members'); } });
+    });
+  });
+}
+/* Press and hold a member, as with a chat row. Movement cancels it (that is a scroll), and the
+   click a long press would otherwise deliver is swallowed. Right-click is the desktop path. */
+(function(){
+  var t=null, sx=0, sy=0, fired=false, held=null;
+  function rowOf(e){ var el=e.target; while(el && el!==document.body){ if(el.classList && el.classList.contains('gm-row')) return el; if(el.classList && el.classList.contains('gm-more')) return null; el=el.parentNode; } return null; }
+  function clear(){ clearTimeout(t); t=null; if(held){ held.classList.remove('held'); held=null; } }
+  document.addEventListener('touchstart', function(e){
+    var row=rowOf(e); if(!row) return;
+    var p=e.touches[0]; sx=p.clientX; sy=p.clientY; fired=false; held=row; row.classList.add('held');
+    clearTimeout(t);
+    t=setTimeout(function(){ fired=true; try{ if(navigator.vibrate) navigator.vibrate(8); }catch(_){} var c=row.getAttribute('data-code'); clear(); gbMemberMenu(c); }, 480);
+  }, {passive:true});
+  document.addEventListener('touchmove', function(e){ if(!t) return; var p=e.touches[0]; if(Math.abs(p.clientX-sx)>8||Math.abs(p.clientY-sy)>8) clear(); }, {passive:true});
+  document.addEventListener('touchend', clear, {passive:true});
+  document.addEventListener('touchcancel', clear, {passive:true});
+  document.addEventListener('contextmenu', function(e){ var row=rowOf(e); if(!row) return; e.preventDefault(); gbMemberMenu(row.getAttribute('data-code')); });
+  document.addEventListener('click', function(e){ if(fired && rowOf(e)){ fired=false; e.stopPropagation(); e.preventDefault(); } }, true);
+})();
+
+/* ===================== Screen 3: group settings ===================== */
+function gbOpenSettings(){ gbPush(gbSettingsScreen); gbLoadCtx(CHAN).then(function(){ gbRepaint('settings'); }); }
+function gbSettingsScreen(){
+  var ch=CHAN, c=GBCTX[ch], m=chanMeta(ch), nm=groupNameOf(ch, m.name), av=groupAvatarOf(ch);
+  var row=function(icon,title,sub,onclick){ return '<button class="gb-row" onclick="'+onclick+'"><span class="ic">'+icon+'</span><span class="tx"><b>'+title+'</b><span>'+sub+'</span></span><span class="chev">›</span></button>'; };
+  var h='<div class="gb-hero"><div class="av">'+(av?'<img src="'+esc(av)+'" alt="">':esc(m.icon||'#'))+'</div><h3>'+esc(nm)+'</h3><p>'+esc(m.sub||'')+'</p></div>';
+  h+='<div class="gb-sec">Group</div><div class="gb-card">'+
+     row('✏️','Group information','Name, description and photo','gbCloseAll();openGroupDetails()')+
+     row('👥','Manage members','See who is here'+(c&&c.can_assign?' and appoint admins':''),'gbOpenMembers()')+
+     '</div>';
+  if(c && c.can_manage_bot){
+    var b=c.bot||{};
+    h+='<div class="gb-sec">Automation</div><div class="gb-card">'+
+       row(b.avatar?'<img src="'+esc(b.avatar)+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:10px">':'🤖',
+           'Manage bot', esc(b.name||'Group Bot')+' · '+(b.enabled===false?'Off':'On')+' · scheduled announcements','gbOpenBot()')+
+       '</div>';
+  }
+  h+='<div class="gb-sec">Chat</div><div class="gb-card">'+
+     row('🔐','Chat permissions','Who can post, moderate and manage','gbPush(gbPermsScreen)')+
+     row('🔔','Message settings',(MUTED[ch]?'Muted':'Notifications on')+' · pin, history','gbPush(gbMsgScreen)')+
+     '</div>';
+  if(!c) h+='<p class="gb-note">Checking your access…</p>';
+  else if(!c.can_manage_bot) h+='<p class="gb-note">The group’s bot and announcements are managed by its admins.</p>';
+  return {id:'settings', title:'Group Settings', html:h};
+}
+function gbPermsScreen(){
+  var ch=CHAN, c=GBCTX[ch]||{}, priv=isPrivateGroup(ch), custom=String(ch).indexOf('c_')===0;
+  var li=function(t,s){ return '<div class="gb-row" style="cursor:default"><span class="tx"><b>'+t+'</b><span>'+s+'</span></span></div>'; };
+  var h='<div class="gb-card">'+
+    li('Who can read', custom ? (priv?'Members of this group only (plus Operations oversight).':'Everyone on the team can find and read it.') : (ch==='main'?'Everyone in the company.':'Everyone in this baseshop.'))+
+    li('Who can post','Every member.')+
+    li('Who manages the group','Its admins and the person who created it: name, photo, description'+(custom?', members':'')+', bot and announcements.')+
+    li('Who appoints admins','Only the owner (Elijah Cox). Admins cannot appoint other admins.')+
+    li('Moderation','Admins of this group can remove messages here. Reports go to Operations.')+
+    '</div>';
+  h+='<p class="gb-note">Your role here: <b>'+(c.can_assign?'Owner':(c.can_manage_bot?'Admin':'Member'))+'</b>.</p>';
+  return {id:'perms', title:'Chat Permissions', html:h};
+}
+function gbMsgScreen(){
+  var ch=CHAN, pinned=!!PINNED[ch];
+  var h='<div class="gb-card">'+
+    '<div class="gb-row" style="cursor:default"><span class="tx"><b>Mute notifications</b><span>Hide this chat’s unread count. @mentions still reach you.</span></span>'+
+      '<label class="gb-sw"><input type="checkbox" '+(MUTED[ch]?'checked':'')+' onchange="gbToggleMute()" aria-label="Mute notifications"><i></i></label></div>'+
+    '<div class="gb-row" style="cursor:default"><span class="tx"><b>Pin to top</b><span>Keep this chat at the top of your list.</span></span>'+
+      '<label class="gb-sw"><input type="checkbox" '+(pinned?'checked':'')+' onchange="CVMENU_FOR=CHAN;togglePin();setTimeout(function(){gbRepaint(\'msgset\')},50)" aria-label="Pin to top"><i></i></label></div>'+
+    '</div>'+
+    '<p class="gb-note">Messages are kept for 14 days. Pinned messages are kept until they are unpinned.</p>';
+  return {id:'msgset', title:'Message Settings', html:h};
+}
+
+/* ===================== Screen 5: manage bot ===================== */
+function gbOpenBot(){
+  GBBOT=null; GBANN=null;
+  gbPush(gbBotScreen);
+  var ch=CHAN;
+  gbApi({action:'ann_list', channel:ch}).then(function(r){
+    if(ch!==CHAN) return;
+    if(!r || !r.ok){ GBBOT={error:(r&&r.error)||'Could not load the bot.'}; gbRepaint('bot'); return; }
+    GBBOT=r.bot; GBANN=r.announcements||[]; gbRepaint('bot');
+  });
+}
+function gbBotScreen(){
+  if(!GBBOT) return {id:'bot', title:'Manage Bot', html:'<p class="gb-note">Loading…</p>'};
+  if(GBBOT.error) return {id:'bot', title:'Manage Bot', html:'<p class="gb-note">'+esc(GBBOT.error)+'</p>'};
+  var b=GBBOT, on=b.enabled!==false, n=(GBANN||[]).length, act=(GBANN||[]).filter(function(a){return a.enabled;}).length;
+  var h='<div class="gb-hero"><button class="av" onclick="document.getElementById(\'gbBotPic\').click()" aria-label="Change bot photo">'+
+        (b.avatar?'<img src="'+esc(b.avatar)+'" alt="">':'🤖')+'</button>'+
+        '<input type="file" id="gbBotPic" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="gbBotPhoto(event)">'+
+        '<button class="gb-btn ghost" style="flex:0 0 auto;padding:7px 14px;font-size:13px" onclick="document.getElementById(\'gbBotPic\').click()">Change photo</button>'+
+        (b.avatar?' <button class="gb-btn" style="flex:0 0 auto;padding:7px 14px;font-size:13px" onclick="gbBotSave({avatar:\'\'})">Remove</button>':'')+
+        '</div>';
+  h+='<div class="gb-sec">Bot profile</div>'+
+     '<div class="gb-field"><label for="gbBotName">Bot name</label><input type="text" id="gbBotName" maxlength="40" value="'+esc(b.name||'Group Bot')+'"></div>'+
+     '<div class="gb-field"><label for="gbBotDesc">Description <span style="font-weight:500;color:var(--ink3)">(optional)</span></label><textarea id="gbBotDesc" maxlength="200" style="min-height:70px" placeholder="What this bot posts">'+esc(b.description||'')+'</textarea></div>'+
+     '<div class="gb-btns" style="margin-top:0"><button class="gb-btn go" onclick="gbBotSaveProfile(this)">Save bot profile</button></div>';
+  h+='<div class="gb-sec">Controls</div><div class="gb-card">'+
+     '<div class="gb-row" style="cursor:default"><span class="tx"><b>Bot enabled</b><span>'+(on?'Scheduled announcements will post on time.':'Off — nothing will post until it is turned back on.')+'</span></span>'+
+       '<label class="gb-sw"><input type="checkbox" '+(on?'checked':'')+' onchange="gbBotToggle(this)" aria-label="Bot enabled"><i></i></label></div>'+
+     '<button class="gb-row" onclick="gbPush(gbAnnScreen)"><span class="ic">📣</span><span class="tx"><b>Automated announcements</b><span>'+
+       (n?(n+' scheduled · '+act+' active'):'None yet — create your first one')+'</span></span><span class="chev">›</span></button>'+
+     '<button class="gb-row" onclick="gbNewAnn()"><span class="ic">＋</span><span class="tx"><b>Create announcement</b><span>Message, flyer and schedule</span></span><span class="chev">›</span></button>'+
+     '</div>'+
+     '<p class="gb-note">Announcements post in this group only, as <b>'+esc(b.name||'Group Bot')+'</b>, in Pacific time — even when nobody is signed in. Turning the bot off stops every announcement; turning it back on does not replay ones it missed.</p>';
+  return {id:'bot', title:'Manage Bot', html:h};
+}
+function gbBotSave(patch, btn){
+  var ch=CHAN; if(btn){ btn.disabled=true; }
+  patch.action='bot_save'; patch.channel=ch;
+  return gbApi(patch).then(function(r){
+    if(btn) btn.disabled=false;
+    if(!r || !r.ok){ toast((r&&r.error)||'Could not save the bot'); gbRepaint('bot'); return null; }
+    GBBOT=r.bot; GBOTMETA[ch]={name:r.bot.name, avatar:r.bot.avatar, description:r.bot.description, enabled:r.bot.enabled};
+    if(GBCTX[ch]) GBCTX[ch].bot=GBOTMETA[ch];
+    gbRepaint('bot'); try{ renderMsgs(false); }catch(e){}
+    return r;
+  });
+}
+function gbBotSaveProfile(btn){
+  var nm=(document.getElementById('gbBotName')||{}).value||'', d=(document.getElementById('gbBotDesc')||{}).value||'';
+  if(!nm.trim()){ toast('Give the bot a name'); return; }
+  gbBotSave({name:nm.trim(), description:d.trim()}, btn).then(function(r){ if(r) toast('Bot profile saved'); });
+}
+function gbBotToggle(el){
+  var on=!!el.checked;
+  gbBotSave({enabled:on}).then(function(r){ if(r) toast(on?'Bot is on':'Bot is off — nothing will post'); });
+}
+function gbBotPhoto(ev){
+  var f=(ev.target.files||[])[0]; ev.target.value=''; if(!f) return;
+  if(!/^image\/(jpeg|png|webp)$/.test(f.type)){ toast('Use a JPG, PNG or WebP image'); return; }
+  var rd=new FileReader();
+  rd.onload=function(){
+    var img=new Image();
+    img.onerror=function(){ toast('That image could not be read'); };
+    img.onload=function(){
+      var S=256, c=document.createElement('canvas'); c.width=S; c.height=S;
+      var sq=Math.min(img.width,img.height);
+      c.getContext('2d').drawImage(img,(img.width-sq)/2,(img.height-sq)/2,sq,sq,0,0,S,S);
+      toast('Saving photo…');
+      gbBotSave({avatar:c.toDataURL('image/jpeg',0.84)}).then(function(r){ if(r) toast('Bot photo updated'); });
+    };
+    img.src=rd.result;
+  };
+  rd.readAsDataURL(f);
+}
+
+/* ===================== Screen 6: automated announcements ===================== */
+function gbFmtTime(t){ var p=String(t||'').split(':'), H=+p[0], M=p[1]||'00'; if(isNaN(H)) return t||''; return ((H%12)||12)+':'+M+' '+(H<12?'AM':'PM'); }
+function gbFmtDate(d){ if(!d) return ''; var x=new Date(d+'T12:00:00Z'); return x.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',timeZone:'UTC'}); }
+function gbFmtWhen(iso){ if(!iso) return ''; var d=new Date(iso); return d.toLocaleString('en-US',{weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit',timeZone:GB_TZ})+' PT'; }
+function gbSchedText(a){
+  var t=gbFmtTime(a.send_time)+' PT';
+  if(a.repeat==='once') return 'One time · '+gbFmtDate(a.start_date)+' at '+t;
+  if(a.repeat==='daily') return 'Every day at '+t;
+  var d=(a.weekdays||[]).slice().sort();
+  var names = d.length===7 ? 'day' : (d.join(',')==='1,2,3,4,5' ? 'weekday' : d.map(function(i){return GB_DAYN[i];}).join(', '));
+  return 'Every '+names+' at '+t;
+}
+function gbTodayPT(){ return new Intl.DateTimeFormat('en-CA',{timeZone:GB_TZ}).format(new Date()); }
+function gbAnnScreen(){
+  var list=GBANN||[];
+  var h='<div class="gb-btns" style="margin:0 0 14px"><button class="gb-btn go" onclick="gbNewAnn()">＋ New announcement</button></div>';
+  if(!list.length){
+    h+='<div class="ga-empty"><b>No announcements yet</b>Create one to post a message and flyer on a schedule — for example every Monday at 5:00 PM.</div>';
+  }
+  h+=list.map(function(a){
+    var st;
+    if(!a.enabled) st='<div class="ga-n">Paused</div>';
+    else if(GBBOT && GBBOT.enabled===false) st='<div class="ga-n err">Bot is off — will not post</div>';
+    else if(a.next_run_at) st='<div class="ga-n">Next: '+esc(gbFmtWhen(a.next_run_at))+'</div>';
+    else st='<div class="ga-n">No more sends scheduled</div>';
+    if(a.last_status==='failed') st+='<div class="ga-n err">Last send failed: '+esc(a.last_error||'')+'</div>';
+    else if(a.last_sent_at) st+='<div class="ga-n">Last sent '+esc(gbFmtWhen(a.last_sent_at))+'</div>';
+    return '<div class="ga-card'+(a.enabled?'':' off')+'">'+
+      '<div class="ga-thumb">'+(a.flyer_url?'<img src="'+esc(a.flyer_url)+'" alt="Flyer" loading="lazy">':'📣')+'</div>'+
+      '<div style="min-width:0"><div class="ga-t">'+esc(a.title)+'</div><div class="ga-p">'+esc(a.body||(a.flyer_url?'Flyer only':''))+'</div>'+
+        '<div class="ga-s">'+esc(gbSchedText(a))+'</div>'+st+'</div>'+
+      '<label class="gb-sw" title="'+(a.enabled?'On':'Off')+'"><input type="checkbox" '+(a.enabled?'checked':'')+' onchange="gbAnnToggle(\''+a.id+'\',this)" aria-label="Announcement on or off"><i></i></label>'+
+      '<div class="ga-acts"><button onclick="gbEditAnn(\''+a.id+'\')">Edit</button><button onclick="gbTestAnn(\''+a.id+'\',this)">Send test</button><button onclick="gbAnnHistory(\''+a.id+'\')">History</button><button class="del" onclick="gbDelAnn(\''+a.id+'\')">Delete</button></div>'+
+    '</div>';
+  }).join('');
+  return {id:'anns', title:'Automated Messages', html:h};
+}
+function gbAnnById(id){ return (GBANN||[]).filter(function(a){return a.id===id;})[0]; }
+function gbReplaceAnn(a){ var i=(GBANN||[]).findIndex(function(x){return x.id===a.id;}); if(i>=0) GBANN[i]=a; else (GBANN=GBANN||[]).push(a); }
+function gbAnnToggle(id, el){
+  var on=!!el.checked, ch=CHAN;
+  gbApi({action:'ann_toggle', channel:ch, id:id, enabled:on}).then(function(r){
+    if(!r || !r.ok){ el.checked=!on; toast((r&&r.error)||'Could not change that'); return; }
+    gbReplaceAnn(r.announcement); gbRepaint('anns'); gbRepaint('bot');
+    toast(on?'Announcement on':'Announcement paused');
+  });
+}
+function gbDelAnn(id){
+  var a=gbAnnById(id); if(!a) return; var ch=CHAN;
+  gbConfirm('Delete “'+a.title+'”?', 'It will stop posting for good. Messages it already posted stay in the chat.', 'Delete', true, function(){
+    gbApi({action:'ann_delete', channel:ch, id:id}).then(function(r){
+      if(!r || !r.ok){ toast((r&&r.error)||'Could not delete it'); return; }
+      GBANN=(GBANN||[]).filter(function(x){return x.id!==id;}); gbRepaint('anns'); gbRepaint('bot'); toast('Announcement deleted');
+    });
+  });
+}
+function gbTestAnn(id, btn){
+  var a=gbAnnById(id); if(!a) return; var ch=CHAN;
+  gbConfirm('Send a test now?', 'This posts “'+esc(a.title)+'” to <b>'+esc(groupNameOf(ch, chanMeta(ch).name))+'</b> right now, exactly as everyone will see it.', 'Send test', false, function(){
+    if(btn) btn.disabled=true;
+    gbApi({action:'ann_test', channel:ch, id:id}).then(function(r){
+      if(btn) btn.disabled=false;
+      if(!r || !r.ok){ toast((r&&r.error)||'The test could not be sent'); return; }
+      toast('Test posted to the group'); try{ loadMsgs(false); }catch(e){}
+    });
+  });
+}
+function gbAnnHistory(id){
+  var a=gbAnnById(id); if(!a) return; var ch=CHAN;
+  gbSheet('<h4>'+esc(a.title)+' · delivery history</h4><div class="note">Loading…</div>');
+  gbApi({action:'ann_runs', channel:ch, id:id}).then(function(r){
+    var rows=(r&&r.ok&&r.runs)||[];
+    var lab={sent:'✅ Sent', failed:'⚠️ Failed', skipped:'⏭ Skipped', test:'🧪 Test'};
+    var h='<h4>'+esc(a.title)+' · delivery history</h4>';
+    h+= rows.length ? rows.map(function(x){ return '<div class="note" style="padding:6px 12px;border-bottom:1px solid var(--line)"><b style="color:var(--ink)">'+(lab[x.status]||esc(x.status))+'</b> · '+esc(gbFmtWhen(x.status==='test'?x.created_at:x.slot_at))+(x.error?('<br>'+esc(x.error)):'')+'</div>'; }).join('')
+                    : '<div class="note">'+(r&&r.ok?'Nothing has been sent yet.':esc((r&&r.error)||'Could not load the history.'))+'</div>';
+    h+='<div class="sep"></div><button onclick="gbSheetClose()"><i>←</i>Close</button>';
+    gbSheet(h);
+  });
+}
+
+/* ===================== Screens 7 & 8: create / edit, with schedule ===================== */
+function gbNewAnn(){
+  GBEDIT={id:null, title:'', body:'', flyer_url:'', flyer_local:'', uploading:false, repeat:'weekly',
+          weekdays:[], start_date:gbTodayPT(), end_date:'', send_time:'17:00', enabled:true};
+  var dow=new Date(gbTodayPT()+'T12:00:00Z').getUTCDay(); GBEDIT.weekdays=[dow];
+  gbPush(gbEditScreen);
+}
+function gbEditAnn(id){
+  var a=gbAnnById(id); if(!a) return;
+  GBEDIT={id:a.id, title:a.title, body:a.body||'', flyer_url:a.flyer_url||'', flyer_local:'', uploading:false, repeat:a.repeat,
+          weekdays:(a.weekdays||[]).slice(), start_date:a.start_date, end_date:a.end_date||'', send_time:a.send_time, enabled:a.enabled};
+  gbPush(gbEditScreen);
+}
+/* Read the form back into GBEDIT before any repaint, so nothing typed is lost. */
+function gbEditSync(){
+  if(!GBEDIT) return;
+  var v=function(id){ var el=document.getElementById(id); return el?el.value:null; };
+  var t=v('gaTitle'); if(t!==null) GBEDIT.title=t;
+  var b=v('gaBody'); if(b!==null) GBEDIT.body=b;
+  var sd=v('gaStart'); if(sd!==null) GBEDIT.start_date=sd;
+  var ed=v('gaEnd'); if(ed!==null) GBEDIT.end_date=ed;
+  var tm=v('gaTime'); if(tm!==null) GBEDIT.send_time=tm;
+}
+function gbEditScreen(){
+  var e=GBEDIT||{}, thumb=e.flyer_local||e.flyer_url;
+  var h='';
+  h+='<div class="gb-field"><label for="gaTitle">Announcement title <span class="gb-count">only admins see this</span></label>'+
+     '<input type="text" id="gaTitle" maxlength="80" placeholder="e.g. Momentum Monday reminder" value="'+esc(e.title)+'"></div>';
+  h+='<div class="gb-field"><label for="gaBody">Message <span class="gb-count" id="gaBodyN">'+(e.body||'').length+'/2000</span></label>'+
+     '<textarea id="gaBody" maxlength="2000" placeholder="Write the message the bot will post… emojis welcome 🎉" oninput="document.getElementById(\'gaBodyN\').textContent=this.value.length+\'/2000\';gbEditSync();gbPreviewPaint()">'+esc(e.body)+'</textarea></div>';
+  h+='<div class="gb-field"><label>Flyer <span style="font-weight:500;color:var(--ink3)">(optional · JPG, PNG or WebP)</span></label>'+
+     '<div class="gf-drop" data-drop="gaFlyer"><div class="th">'+(thumb?'<img src="'+esc(thumb)+'" alt="Flyer preview">':'🖼️')+'</div>'+
+       '<div class="tx">'+(e.uploading?'<b>Uploading…</b>Hold on a moment.':(thumb?'<b>Flyer attached</b>It posts with the message.':'<b>No flyer</b>Add an image to post with the message.'))+'</div></div>'+
+     '<input type="file" id="gaFlyer" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="gbFlyerPick(event)">'+
+     '<div class="gb-btns" style="margin-top:8px"><button class="gb-btn ghost" onclick="document.getElementById(\'gaFlyer\').click()"'+(e.uploading?' disabled':'')+'>'+(thumb?'Replace flyer':'Upload flyer')+'</button>'+
+       (thumb&&!e.uploading?'<button class="gb-btn" onclick="gbEditSync();GBEDIT.flyer_url=\'\';GBEDIT.flyer_local=\'\';gbPaint()">Remove</button>':'')+'</div></div>';
+
+  /* Screen 8: the schedule */
+  h+='<div class="gb-sec">Schedule</div>';
+  h+='<div class="gb-field"><label>Repeat</label><div class="gs-seg" role="radiogroup" aria-label="Repeat">'+
+     [['once','One time'],['daily','Daily'],['weekly','Weekly']].map(function(o){ return '<button role="radio" aria-checked="'+(e.repeat===o[0])+'" class="'+(e.repeat===o[0]?'on':'')+'" onclick="gbEditSync();GBEDIT.repeat=\''+o[0]+'\';gbPaint()">'+o[1]+'</button>'; }).join('')+
+     '</div></div>';
+  if(e.repeat==='weekly'){
+    h+='<div class="gb-field"><label>On these days</label><div class="gs-days">'+
+       GB_DAYS.map(function(d,i){ var on=(e.weekdays||[]).indexOf(i)>=0; return '<button aria-pressed="'+on+'" aria-label="'+GB_DAYN[i]+'" class="'+(on?'on':'')+'" onclick="gbToggleDay('+i+')">'+d+'</button>'; }).join('')+
+       '</div></div>';
+  }
+  h+='<div class="gs-two"><div class="gb-field"><label for="gaStart">'+(e.repeat==='once'?'Date':'Starts')+'</label><input type="date" id="gaStart" value="'+esc(e.start_date)+'" onchange="gbEditSync();gbPreviewPaint()"></div>'+
+     '<div class="gb-field"><label for="gaTime">Send time</label><input type="time" id="gaTime" value="'+esc(e.send_time)+'" onchange="gbEditSync();gbPreviewPaint()"></div></div>';
+  if(e.repeat!=='once') h+='<div class="gb-field"><label for="gaEnd">Ends <span style="font-weight:500;color:var(--ink3)">(optional)</span></label><input type="date" id="gaEnd" value="'+esc(e.end_date)+'" onchange="gbEditSync();gbPreviewPaint()"></div>';
+  h+='<div class="gs-tz">Pacific time (PT) — daylight saving is handled automatically.</div>';
+  h+='<div class="gb-card"><div class="gb-row" style="cursor:default"><span class="tx"><b>Active</b><span>Off saves it without sending.</span></span>'+
+     '<label class="gb-sw"><input type="checkbox" '+(e.enabled?'checked':'')+' onchange="gbEditSync();GBEDIT.enabled=this.checked" aria-label="Active"><i></i></label></div></div>';
+
+  /* Preview, drawn the way the chat draws the bot. */
+  h+='<div class="gb-sec">Preview</div><div class="gp-wrap" id="gaPreview"></div>';
+  h+='<div class="gb-btns"><button class="gb-btn" onclick="gbBack()">Cancel</button>'+
+     '<button class="gb-btn ghost" onclick="gbEditTest(this)"'+(e.uploading?' disabled':'')+'>Send test</button>'+
+     '<button class="gb-btn go" onclick="gbEditSave(this)"'+(e.uploading?' disabled':'')+'>'+(e.id?'Save changes':'Save announcement')+'</button></div>';
+  return {id:'edit', title:e.id?'Edit Bot Message':'New Bot Message', html:h, after:gbPreviewPaint};
+}
+function gbToggleDay(i){
+  gbEditSync(); var d=GBEDIT.weekdays||[], k=d.indexOf(i);
+  if(k>=0) d.splice(k,1); else d.push(i); GBEDIT.weekdays=d.sort(); gbPaint();
+}
+function gbPreviewPaint(){
+  var host=document.getElementById('gaPreview'); if(!host||!GBEDIT) return;
+  var e=GBEDIT, b=GBOTMETA[CHAN]||GBBOT||{}, img=e.flyer_local||e.flyer_url;
+  var when = e.repeat==='weekly'&&!(e.weekdays||[]).length ? 'Pick a day' : gbSchedText(e);
+  host.innerHTML='<div class="gp-msg"><div class="gp-av">'+(b.avatar?'<img src="'+esc(b.avatar)+'" alt="">':'🤖')+'</div>'+
+    '<div style="flex:1;min-width:0"><div class="gp-h">'+esc(b.name||'Group Bot')+'<span class="bt">BOT</span><span class="tm">'+esc(gbFmtTime(e.send_time))+'</span></div>'+
+    '<div class="gp-b'+((e.body||'').trim()||img?'':' empty')+'">'+((e.body||'').trim()?linkify(e.body):(img?'':'Your message will appear here.'))+(img?'<img src="'+esc(img)+'" alt="Flyer">':'')+'</div></div></div>'+
+    '<div class="gb-note" style="margin-top:8px">📅 '+esc(when)+'</div>';
+}
+/* Flyers are checked here for type and size, re-encoded only when very large, then validated
+   again by group-bot by their actual bytes (a renamed file is refused there). */
+function gbFlyerPick(ev){
+  var f=(ev.target.files||[])[0]; ev.target.value=''; if(!f) return;
+  if(!/^image\/(jpeg|png|webp)$/.test(f.type)){ toast('Flyers must be JPG, PNG or WebP'); return; }
+  if(f.size>20*1024*1024){ toast('That image is too large (over 20 MB)'); return; }
+  gbEditSync(); var ch=CHAN;
+  var rd=new FileReader();
+  rd.onload=function(){
+    var src=rd.result;
+    var send=function(dataUrl){
+      GBEDIT.flyer_local=dataUrl; GBEDIT.uploading=true; gbPaint();
+      gbApi({action:'flyer', channel:ch, data_url:dataUrl}).then(function(r){
+        if(!GBEDIT) return; GBEDIT.uploading=false;
+        if(!r || !r.ok){ GBEDIT.flyer_local=''; gbPaint(); toast((r&&r.error)||'The flyer could not be uploaded'); return; }
+        GBEDIT.flyer_url=r.url; GBEDIT.flyer_local=''; gbPaint(); toast('Flyer uploaded');
+      });
+    };
+    if(f.size<=4*1024*1024){ send(src); return; }
+    var img=new Image();
+    img.onerror=function(){ toast('That image could not be read'); };
+    img.onload=function(){
+      var M=2000, w=img.width, hh=img.height, s=Math.min(1, M/Math.max(w,hh));
+      var c=document.createElement('canvas'); c.width=Math.round(w*s); c.height=Math.round(hh*s);
+      c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+      send(c.toDataURL('image/jpeg',0.86));
+    };
+    img.src=src;
+  };
+  rd.readAsDataURL(f);
+}
+function gbEditPayload(){
+  gbEditSync(); var e=GBEDIT;
+  return {channel:CHAN, id:e.id||undefined, title:(e.title||'').trim(), body:(e.body||'').trim(), flyer_url:e.flyer_url||'',
+          repeat:e.repeat, weekdays:e.weekdays||[], start_date:e.start_date, end_date:e.repeat==='once'?'':(e.end_date||''),
+          send_time:e.send_time, enabled:!!e.enabled};
+}
+function gbEditCheck(p){
+  if(!p.title) return 'Give the announcement a title.';
+  if(!p.body && !p.flyer_url) return 'Write a message or attach a flyer.';
+  if(p.repeat==='weekly' && !p.weekdays.length) return 'Pick at least one day.';
+  if(!p.start_date) return 'Choose a date.';
+  if(!p.send_time) return 'Choose a send time.';
+  if(p.end_date && p.end_date<p.start_date) return 'The end date is before the start date.';
+  return '';
+}
+function gbEditSave(btn){
+  var p=gbEditPayload(), err=gbEditCheck(p); if(err){ toast(err); return; }
+  if(GBEDIT.uploading){ toast('Wait for the flyer to finish uploading'); return; }
+  p.action='ann_save'; btn.disabled=true; btn.textContent='Saving…';
+  gbApi(p).then(function(r){
+    btn.disabled=false; btn.textContent=GBEDIT&&GBEDIT.id?'Save changes':'Save announcement';
+    if(!r || !r.ok){ toast((r&&r.error)||'Could not save it'); return; }
+    gbReplaceAnn(r.announcement); var a=r.announcement;
+    GBEDIT=null; GBSTACK.pop();
+    if(GBSTACK[GBSTACK.length-1]!==gbAnnScreen) GBSTACK.push(gbAnnScreen);
+    gbPaint();
+    toast(a.enabled && a.next_run_at ? ('Saved — next send '+gbFmtWhen(a.next_run_at)) : 'Saved');
+  });
+}
+function gbEditTest(btn){
+  var p=gbEditPayload();
+  if(!p.body && !p.flyer_url){ toast('Write a message or attach a flyer first'); return; }
+  if(GBEDIT.uploading){ toast('Wait for the flyer to finish uploading'); return; }
+  var ch=CHAN;
+  gbConfirm('Send a test now?', 'This posts the message'+(p.flyer_url?' and flyer':'')+' to <b>'+esc(groupNameOf(ch, chanMeta(ch).name))+'</b> right now, as everyone will see it. Nothing is saved.', 'Send test', false, function(){
+    btn.disabled=true;
+    gbApi({action:'ann_test', channel:ch, draft:true, id:p.id||'', body:p.body, flyer_url:p.flyer_url}).then(function(r){
+      btn.disabled=false;
+      if(!r || !r.ok){ toast((r&&r.error)||'The test could not be sent'); return; }
+      toast('Test posted to the group'); try{ loadMsgs(false); }catch(e){}
+    });
+  });
+}
+
+/* ---------- wiring into the page ---------- */
+(function(){
+  function hook(){
+    if(window.__gbHooked || typeof window.openChan!=='function') return;
+    var orig=window.openChan;
+    window.openChan=function(id){
+      var r=orig.apply(this,arguments);
+      document.body.classList.toggle('gb-group', gbIsGroup(id) && !OPSMODE);
+      if(gbIsGroup(id) && !GBCTX[id]) gbLoadCtx(id);
+      return r;
+    };
+    window.__gbHooked=true;
+    document.body.classList.toggle('gb-group', gbIsGroup(CHAN) && !OPSMODE);
+    if(gbIsGroup(CHAN)) gbLoadCtx(CHAN);
+  }
+  function init(){
+    hook();
+    var top=document.querySelector('.top');
+    if(top && !document.getElementById('grpOptBtn')){
+      var b=document.createElement('button');
+      b.type='button'; b.id='grpOptBtn'; b.className='grpopt';
+      b.setAttribute('aria-label','Group members and options'); b.title='Group members';
+      b.innerHTML=GBICON.members; b.onclick=openGroupOptions;
+      top.appendChild(b);
+    }
+    if(!window.__gbMutes){ window.__gbMutes=true; gbLoadMutes(); }
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', init); else init();
+  setTimeout(init,700); setTimeout(init,2000);
+  /* notif.js appends the bell after load; keep the members control as the last (upper-right) item. */
+  setTimeout(function(){ var b=document.getElementById('grpOptBtn'), top=document.querySelector('.top'); if(b&&top) top.appendChild(b); }, 2500);
 })();
 </script>
 </body>
