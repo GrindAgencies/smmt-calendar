@@ -1198,7 +1198,7 @@ function renderHead(){
                       +' onkeydown="if(event.key===\'Enter\'){openGroupDetails();}" title="Group details"' : '';
   syncComposer();
   var aoc=document.getElementById('askOpsChip'); if(aoc) aoc.style.display=isPrivateGroup(CHAN)&&!OPSMODE?'':'none';
-  $('chead').innerHTML='<div class="ci">'+icon+'</div><div'+tap+'><div class="cn">'+esc(nm)+'</div><div class="cs">'+esc(m.sub)+'</div></div><div class="presence"><span class="pd"></span>'+Object.keys(ONLINE).length+' online<div class="preslist"><div class="preshdr">Online now</div>'+presenceList()+'</div></div>'+del+(isGroup&&!OPSMODE?'<button class="grpopt-d" onclick="openGroupOptions()" aria-label="Group members and options" title="Group members">'+(window.GBICON?GBICON.members:'')+'</button>':'');
+  $('chead').innerHTML='<div class="ci">'+icon+'</div><div'+tap+'><div class="cn">'+esc(nm)+'</div><div class="cs">'+esc(m.sub)+'</div></div><div class="presence"><span class="pd"></span>'+Object.keys(ONLINE).length+' online<div class="preslist"><div class="preshdr">Online now</div>'+presenceList()+'</div></div>'+del+(isGroup?'<button class="grpopt-d" onclick="openGroupOptions()" aria-label="Group members and options" title="Group members">'+(window.GBICON?GBICON.members:'')+'</button>':'');
 }
 
 /* ================= ROUND TWO tasks 5 & 6: group details =================
@@ -1238,6 +1238,8 @@ function syncComposer(){
   } else if(!locked && note){ note.remove(); }
 }
 function gdApi(b){
+  /* 2026-10-28: the Operations oversight view has no agent session, only its Ops token. */
+  if(OPSMODE&&OPSTOKEN&&b&&b.token===undefined) b.token=OPSTOKEN;
   return fetch(HUBGROUPS,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b||{})})
     .then(function(r){ return r.json(); }).catch(function(){ return {ok:false,error:'Network error'}; });
 }
@@ -3168,6 +3170,17 @@ body.phone.chat-open .top .tsfg-menu{ display:none !important; }
 /* A muted chat keeps its count, greyed, with a bell-off mark. */
 .cv-badge.muted{ background:var(--ink3) !important; color:var(--panel) !important; }
 .cv-muted{ flex:0 0 auto; font-size:12px; opacity:.7; margin-left:4px; }
+/* Operations automations list */
+.gb-panel.wide{ max-width:980px; }
+.ga-sum{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin-bottom:10px; }
+.ga-sum div{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:12px; }
+.ga-sum b{ display:block; font-size:20px; font-weight:800; color:var(--cvgold); letter-spacing:-.02em; }
+.ga-sum span{ font-size:12px; color:var(--ink3); }
+.ga-g{ font-size:11.5px; font-weight:800; letter-spacing:.03em; text-transform:uppercase; color:var(--ink3); margin-bottom:2px; }
+.gb-row .tx .ga-pill{ display:inline-block; margin-top:0; }
+.ga-pill{ font-size:9.5px; font-weight:800; padding:2px 6px; border-radius:6px; margin-left:4px; vertical-align:1px; letter-spacing:.04em; }
+.ga-pill.on{ background:rgba(52,199,89,.16); color:#2fb350; }
+.ga-pill.off{ background:var(--panel2); color:var(--ink3); border:1px solid var(--line); }
 </style>
 <script id="hub-groupbot">
 /* ===== Group options · Members · Group Settings · Manage Bot (2026-10-28) =====
@@ -3183,6 +3196,7 @@ var GBICON={
   members:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>'
 };
 function gbApi(b){
+  if(OPSMODE&&OPSTOKEN&&b&&b.token===undefined) b.token=OPSTOKEN;
   return fetch(GBAPI,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b||{})})
     .then(function(r){ return r.json(); })
     .catch(function(){ return {ok:false,error:'Network error — check your connection and try again.'}; });
@@ -3191,9 +3205,11 @@ function gbIsGroup(ch){ ch=String(ch||''); return !!ch && ch.indexOf('dm:')!==0;
 
 /* ---------- per-conversation context: bot identity, mute, what this person may do ---------- */
 function gbLoadCtx(ch){
-  if(!gbIsGroup(ch) || OPSMODE) return Promise.resolve(null);
+  if(!gbIsGroup(ch)) return Promise.resolve(null);
   return gbApi({action:'ctx', channel:ch}).then(function(r){
     if(!r || !r.ok) return null;
+    /* Nothing automated may post in the Operations room, so it has no bot to manage. */
+    if(ch==='operations') r.can_manage_bot=false;
     GBCTX[ch]=r; GBOTMETA[ch]=r.bot||{};
     if(r.muted) MUTED[ch]=1; else delete MUTED[ch];
     if(ch===CHAN){ try{ renderMsgs(false); }catch(e){} }
@@ -3224,20 +3240,21 @@ function gbOv(){
   var ov=document.getElementById('gbOv');
   if(!ov){
     ov=document.createElement('div'); ov.id='gbOv'; ov.className='gb-ov';
-    ov.addEventListener('click',function(e){ if(e.target===ov) gbCloseAll(); });
+    ov.addEventListener('click',function(e){ if(e.target===ov && !window.GB_PIN_ROOT) gbCloseAll(); });
     document.body.appendChild(ov);
   }
   return ov;
 }
 function gbPush(fn){ GBSTACK.push(fn); gbPaint(); }
-function gbBack(){ GBSTACK.pop(); if(!GBSTACK.length){ gbCloseAll(); return; } gbPaint(); }
+function gbBack(){ GBSTACK.pop(); if(!GBSTACK.length){ if(window.GB_PIN_ROOT){ gbOpenAutomations(true); return; } gbCloseAll(); return; } gbPaint(); }
 function gbCloseAll(){ GBSTACK=[]; var ov=document.getElementById('gbOv'); if(ov){ ov.classList.remove('on'); ov.innerHTML=''; } gbSheetClose(); }
 function gbPaint(){
   var fn=GBSTACK[GBSTACK.length-1]; if(!fn) return;
   var ov=gbOv(), s=fn()||{};
   var keep=ov.querySelector('.gb-body'), top=keep?keep.scrollTop:0, same=ov.getAttribute('data-screen')===s.id;
-  ov.innerHTML='<div class="gb-panel" role="dialog" aria-modal="true" aria-label="'+esc(s.title||'')+'">'+
-    '<div class="gb-head"><button class="gb-back" onclick="gbBack()" aria-label="Back">‹</button>'+
+  var pinRoot=window.GB_PIN_ROOT && GBSTACK.length===1;
+  ov.innerHTML='<div class="gb-panel'+(s.wide?' wide':'')+'" role="dialog" aria-modal="true" aria-label="'+esc(s.title||'')+'">'+
+    '<div class="gb-head">'+(pinRoot?'<span></span>':'<button class="gb-back" onclick="gbBack()" aria-label="Back">‹</button>')+
     '<h2>'+esc(s.title||'')+'</h2><span></span></div>'+
     '<div class="gb-body">'+(s.html||'')+'</div></div>';
   ov.setAttribute('data-screen', s.id||'');
@@ -3771,6 +3788,156 @@ function gbEditTest(btn){
   });
 }
 
+/* ===================== Operations: every automation on the platform =====================
+   Christopher, 2026-10-28: "create a operations list of all automations that are currently
+   running ... so operations can see what is being done in the groupchat." One read
+   (group-bot ops_overview -> ops_automation_overview()), readable only by the Operations
+   master seat and the owners. Operations manages any group's bot from here with the same
+   screens a group admin uses; hub-groups gives the master seat owner powers. */
+var GBAUTO=null, GBAUTO_AT=0, GBAUTO_BUSY=false;
+var GB_JOBS={
+  'group-announcements-1min':['Group bot announcements','Posts every group’s scheduled announcements when they are due.',true],
+  'emd-broadcast-release':['EMD scheduled broadcasts','Posts announcements an EMD scheduled for later into their team chat.',true],
+  'watchtower-20min':['Watchtower health check','Checks the platform and posts NEW problems in the Operations room only.',true],
+  'dormancy-sweep-daily':['Dormancy sweep','Archives inactive agents daily. Its Coach DMs only post if Coach is switched on (it is off).',true],
+  'hub-msg-retention-14day':['Chat history clean-up','Removes chat messages older than 14 days unless pinned. Posts nothing.',false],
+  'hub-attachment-sweep-daily':['Attachment clean-up','Deletes uploaded chat files no message points to. Posts nothing.',false],
+  'push-fanout-1min':['Push notifications','Delivers phone notifications. Posts nothing in chats.',false],
+  'calendly-sync-refresh':['Calendly sync','Pulls bookings from Calendly. Posts nothing in chats while the Calendly bot is off.',false],
+  'atlas-reminder-tick':['Booking reminders','In-app booking reminders. Posts nothing in group chats.',false],
+  'cal-sync-refresh':['Calendar busy-sync','Imports busy times. Posts nothing.',false],
+  'task-automations-15min':['Task automations','Task due-dates and repeats. Posts nothing in chats.',false],
+  'task-due-digest-daily':['Task digest','Daily bell notification of due tasks. Posts nothing in chats.',false],
+  'cancel-followups-15min':['Cancellation follow-ups','Follow-up tasks after a cancelled booking. Posts nothing in chats.',false],
+  'gfi-stale-sweep':['GFI ticket sweep','Flags stale GFI tickets. Posts nothing in chats.',false]
+};
+function gbChanLabel(ch){
+  if(!ch) return '';
+  if(String(ch).indexOf('dm:')===0) return 'Direct message';
+  var nice=String(ch).replace(/^([a-z0-9]+)_chat$/i,function(_,b){ return b.toUpperCase()+' team chat'; }).replace(/^main$/,'Company Chat');
+  try{ var n=groupNameOf(ch, chanNameOf(ch)); return (n && n!==ch) ? n : nice; }catch(e){ return nice; }
+}
+function gbAgo(iso){ if(!iso) return 'never'; try{ return timeAgo(iso); }catch(e){ return gbFmtWhen(iso); } }
+function gbCron(s){
+  var m={'* * * * *':'every minute','*/5 * * * *':'every 5 minutes','*/15 * * * *':'every 15 minutes','*/20 * * * *':'every 20 minutes','*/30 * * * *':'every 30 minutes','0 * * * *':'hourly'};
+  if(m[s]) return m[s];
+  var p=String(s||'').split(' ');
+  if(p.length===5 && /^\d+$/.test(p[0]) && /^\d+$/.test(p[1]) && p[2]==='*'){ return 'daily ('+s+' UTC)'; }
+  if(p.length===5 && /^\d+$/.test(p[0]) && p[1]==='*') return 'hourly at :'+(p[0].length<2?'0':'')+p[0];
+  return s;
+}
+function gbOpenAutomations(pinned){
+  window.GB_PIN_ROOT=!!pinned;
+  GBSTACK=[]; gbPush(gbAutoScreen); gbAutoLoad(true);
+}
+function gbAutoLoad(force){
+  if(GBAUTO_BUSY) return; if(!force && Date.now()-GBAUTO_AT<4000) return;
+  GBAUTO_BUSY=true;
+  gbApi({action:'ops_overview', channel:'main'}).then(function(r){
+    GBAUTO_BUSY=false; GBAUTO_AT=Date.now(); GBAUTO=r||{ok:false,error:'Could not load the automations.'}; gbRepaint('auto');
+  });
+}
+function gbAutoScreen(){
+  var r=GBAUTO, h='';
+  if(!r){ return {id:'auto', title:'Automations', wide:true, html:'<p class="gb-note">Loading every automation…</p>'}; }
+  if(!r.ok){ return {id:'auto', title:'Automations', wide:true, html:'<p class="gb-note">'+esc(r.error||'Could not load the automations.')+'</p>'}; }
+  var anns=r.announcements||[], live=anns.filter(function(a){ return a.enabled && a.bot_enabled && r.group_bot_master!==false && a.next_run_at; });
+  var sys=(r.system_bots||[]).filter(function(b){ return b.code!=='GBOT'; }), sysOn=sys.filter(function(b){return b.enabled;});
+  var jobsPost=(r.jobs||[]).filter(function(j){ var k=GB_JOBS[j.name]; return k&&k[2]; });
+  var next=live.slice().sort(function(a,b){ return String(a.next_run_at).localeCompare(String(b.next_run_at)); })[0];
+  h+='<div class="ga-sum">'+
+     '<div><b>'+live.length+'</b><span>scheduled announcements running</span></div>'+
+     '<div><b>'+sysOn.length+'</b><span>built-in bots on</span></div>'+
+     '<div><b>'+(r.scheduled_broadcasts||[]).length+'</b><span>EMD broadcasts queued</span></div>'+
+     '<div><b>'+(next?esc(gbFmtWhen(next.next_run_at).replace(' PT','')):'—')+'</b><span>next automated post (PT)</span></div>'+
+     '</div>';
+  h+='<div class="gb-btns" style="margin:4px 0 0"><button class="gb-btn go" onclick="gbAutoNew()">＋ New automation in any group</button><button class="gb-btn" onclick="gbAutoLoad(true)">Refresh</button></div>';
+  if(r.group_bot_master===false) h+='<p class="gb-note" style="color:#e5484d">Group bots are switched off company-wide (the GBOT switch), so no group announcement will post.</p>';
+
+  /* 1. Group announcements */
+  h+='<div class="gb-sec">Scheduled group announcements · '+anns.length+'</div>';
+  if(!anns.length) h+='<div class="ga-empty"><b>None yet</b>Create one for any group with the button above.</div>';
+  h+=anns.map(function(a){
+    var state = !a.enabled ? 'Paused' : (!a.bot_enabled ? 'Bot off — will not post' : (a.next_run_at ? ('Next: '+gbFmtWhen(a.next_run_at)) : 'Finished'));
+    var bad = a.enabled && (!a.bot_enabled || r.group_bot_master===false);
+    return '<div class="ga-card'+(a.enabled&&a.bot_enabled?'':' off')+'">'+
+      '<div class="ga-thumb">'+(a.flyer_url?'<img src="'+esc(a.flyer_url)+'" alt="Flyer" loading="lazy">':'📣')+'</div>'+
+      '<div style="min-width:0"><div class="ga-g">'+esc(gbChanLabel(a.channel))+' · '+esc(a.bot_name||'Group Bot')+'</div>'+
+        '<div class="ga-t">'+esc(a.title)+'</div><div class="ga-p">'+esc(a.body||(a.flyer_url?'Flyer only':''))+'</div>'+
+        '<div class="ga-s">'+esc(gbSchedText(a))+'</div>'+
+        '<div class="ga-n'+(bad?' err':'')+'">'+esc(state)+'</div>'+
+        (a.last_status==='failed'?'<div class="ga-n err">Last send failed: '+esc(a.last_error||'')+'</div>':(a.last_sent_at?'<div class="ga-n">Last sent '+esc(gbFmtWhen(a.last_sent_at))+' · '+(a.sent_7d||0)+' in 7 days</div>':''))+
+        '<div class="ga-n">Set up by '+esc(a.created_by_name||(a.created_by==='setup'?'initial setup (sample)':(String(a.created_by||'').indexOf('OPS:')===0?'Operations':(a.created_by||'—'))))+'</div></div>'+
+      '<label class="gb-sw"><input type="checkbox" '+(a.enabled?'checked':'')+' onchange="gbAutoToggle(\''+a.id+'\',\''+escJs(a.channel)+'\',this)" aria-label="Announcement on or off"><i></i></label>'+
+      '<div class="ga-acts"><button onclick="gbAutoManage(\''+escJs(a.channel)+'\')">Manage this group’s bot</button></div>'+
+    '</div>';
+  }).join('');
+
+  /* 2. Group bots without announcements still show, so a bot that exists is never invisible. */
+  var withAnn={}; anns.forEach(function(a){ withAnn[a.channel]=1; });
+  var idle=(r.group_bots||[]).filter(function(b){ return !withAnn[b.channel]; });
+  if(idle.length){
+    h+='<div class="gb-sec">Group bots with nothing scheduled</div><div class="gb-card">'+idle.map(function(b){
+      return '<button class="gb-row" onclick="gbAutoManage(\''+escJs(b.channel)+'\')"><span class="ic">🤖</span><span class="tx"><b>'+esc(b.name)+'</b><span>'+esc(gbChanLabel(b.channel))+' · '+(b.enabled?'On':'Off')+'</span></span><span class="chev">›</span></button>';
+    }).join('')+'</div>';
+  }
+
+  /* 3. Built-in bots */
+  h+='<div class="gb-sec">Built-in bots</div><div class="gb-card">'+sys.map(function(b){
+    return '<div class="gb-row" style="cursor:default"><span class="ic">'+esc(b.emoji||'🤖')+'</span><span class="tx"><b>'+esc(b.name)+
+      ' <span class="ga-pill '+(b.enabled?'on':'off')+'">'+(b.enabled?'ON':'OFF')+'</span></b><span>'+esc(b.posts||b.role||'')+'</span>'+
+      '<span>Last post '+esc(gbAgo(b.last_post))+' · '+(b.posts_7d||0)+' in 7 days</span></span></div>';
+  }).join('')+'</div>';
+
+  /* 4. EMD broadcasts waiting to go out */
+  var bc=r.scheduled_broadcasts||[];
+  if(bc.length){
+    h+='<div class="gb-sec">EMD broadcasts scheduled</div><div class="gb-card">'+bc.map(function(n){
+      return '<div class="gb-row" style="cursor:default"><span class="ic">📢</span><span class="tx"><b>'+esc(n.title||'Announcement')+'</b><span>'+esc(n.baseshop||'')+' · '+esc(gbFmtWhen(n.send_at))+' · by '+esc(n.created_by_name||'')+'</span><span>'+esc((n.body||'').slice(0,140))+'</span></span></div>';
+    }).join('')+'</div>';
+  }
+
+  /* 5. Background jobs, in plain words */
+  h+='<div class="gb-sec">Background jobs</div><div class="gb-card">'+(r.jobs||[]).map(function(j){
+    var k=GB_JOBS[j.name]||[j.name,'',false];
+    var ok=j.last_status==='succeeded';
+    return '<div class="gb-row" style="cursor:default"><span class="ic">'+(k[2]?'💬':'⚙️')+'</span><span class="tx"><b>'+esc(k[0])+
+      ' <span class="ga-pill '+(j.active?'on':'off')+'">'+(j.active?'RUNNING':'STOPPED')+'</span></b><span>'+esc(k[1])+'</span>'+
+      '<span>Runs '+esc(gbCron(j.schedule))+' · last run '+esc(gbAgo(j.last_run))+(j.last_status&&!ok?(' · '+esc(j.last_status)):'')+'</span></span></div>';
+  }).join('')+'</div>';
+  h+='<p class="gb-note">💬 = can post into chats. Jobs marked ⚙️ run in the background and never post a message.</p>';
+
+  /* 6. What the bots actually said */
+  var posts=r.recent_posts||[];
+  h+='<div class="gb-sec">Recent automated posts · last 14 days</div><div class="gb-card">'+(posts.length?posts.map(function(p){
+    return '<div class="gb-row" style="cursor:default;align-items:flex-start"><span class="tx"><b>'+esc(p.author_name||p.author_code)+' <span style="font-weight:500;color:var(--ink3)">in '+esc(gbChanLabel(p.channel))+' · '+esc(gbFmtWhen(p.created_at))+'</span></b>'+
+      '<span style="white-space:pre-line">'+esc(p.body||'')+(p.has_image?' 🖼️':'')+'</span></span></div>';
+  }).join(''):'<p class="gb-note" style="padding:0 14px 12px">No automated posts in the last 14 days.</p>')+'</div>';
+  h+='<p class="gb-note">Updated '+esc(gbFmtWhen(r.generated_at))+'.</p>';
+  return {id:'auto', title:'Automations', wide:true, html:h, after:function(){ gbAutoLoad(false); }};
+}
+function gbAutoToggle(id, ch, el){
+  var on=!!el.checked;
+  gbApi({action:'ann_toggle', channel:ch, id:id, enabled:on}).then(function(r){
+    if(!r || !r.ok){ el.checked=!on; toast((r&&r.error)||'Could not change that'); return; }
+    toast(on?'Announcement on':'Announcement paused'); gbAutoLoad(true);
+  });
+}
+/* Open a group's Manage Bot from the list. CHAN is switched quietly so every bot screen (which
+   works on the open conversation) acts on that group. */
+function gbAutoManage(ch){
+  if(CHAN!==ch){ try{ openChan(ch,{quiet:true}); }catch(e){} }
+  gbLoadCtx(ch);
+  gbOpenBot();
+}
+function gbAutoNew(){
+  var list=(CHANNELS||[]).filter(function(c){ return c && c.id && String(c.id).indexOf('dm:')!==0 && c.id!=='operations'; });
+  var h='<h4>Which group should the announcement post in?</h4><div style="max-height:55vh;overflow-y:auto">'+
+    list.map(function(c){ return '<button onclick="gbSheetClose();gbAutoManage(\''+escJs(c.id)+'\');setTimeout(gbNewAnn,50)"><i>#</i>'+esc(gbChanLabel(c.id))+'</button>'; }).join('')+
+    '</div><div class="sep"></div><button onclick="gbSheetClose()"><i>←</i>Cancel</button>';
+  gbSheet(h);
+}
+
 /* ---------- wiring into the page ---------- */
 (function(){
   function hook(){
@@ -3778,12 +3945,12 @@ function gbEditTest(btn){
     var orig=window.openChan;
     window.openChan=function(id){
       var r=orig.apply(this,arguments);
-      document.body.classList.toggle('gb-group', gbIsGroup(id) && !OPSMODE);
+      document.body.classList.toggle('gb-group', gbIsGroup(id));
       if(gbIsGroup(id) && !GBCTX[id]) gbLoadCtx(id);
       return r;
     };
     window.__gbHooked=true;
-    document.body.classList.toggle('gb-group', gbIsGroup(CHAN) && !OPSMODE);
+    document.body.classList.toggle('gb-group', gbIsGroup(CHAN));
     if(gbIsGroup(CHAN)) gbLoadCtx(CHAN);
   }
   function init(){
@@ -3797,6 +3964,7 @@ function gbEditTest(btn){
       top.appendChild(b);
     }
     if(!window.__gbMutes){ window.__gbMutes=true; gbLoadMutes(); }
+    try{ if(!window.__gbAuto && new URLSearchParams(location.search).get('view')==='automations'){ window.__gbAuto=true; gbOpenAutomations(true); } }catch(e){}
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', init); else init();
   setTimeout(init,700); setTimeout(init,2000);

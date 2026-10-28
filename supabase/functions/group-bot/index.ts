@@ -1,3 +1,4 @@
+// group-bot v3 (2026-10-28) — adds ops_overview (Operations automations list). v2: mutes.
 // group-bot v1 (2026-10-28) — group options, members, mute/leave, and each group's own bot with
 // admin-scheduled announcements.
 //
@@ -171,6 +172,21 @@ Deno.serve(async (req) => {
   if (!me) return json({ ok: false, needs_session: true, error: "Please sign in again." }, 401);
   const action = String(body.action || "");
   const channel = String(body.channel ?? "").trim();
+  /* v3 (2026-10-28): the Operations "Automations" list — every automation that posts into the chat,
+     platform-wide. Readable by the Operations MASTER seat (0000) and the owner allow-list (Elijah,
+     Christopher); a per-baseshop Ops seat or anyone else is refused. Operations manages any group's
+     bot through the same actions below: hub-groups grants the master seat owner powers. */
+  if (action === "ops_overview") {
+    let allowed = false;
+    const t = String(body.token ?? "").trim();
+    if (t) { const r = await rpc("ops_authorize", { p_token: t }); allowed = !!(r && r.ok && r.master === true); }
+    if (!allowed && !me.startsWith("OPS:")) allowed = (await owners()).indexOf(me) >= 0;
+    if (!allowed) return json({ ok: false, error: "The automations list is for Operations and the owner." }, 403);
+    const data = await rpc("ops_automation_overview", {});
+    if (!data || typeof data !== "object" || Array.isArray(data)) return json({ ok: false, error: "Could not load the automations." }, 500);
+    return json({ ok: true, ...data });
+  }
+
   /* The caller's own muted conversations, for the chat list. Only ever their own rows. */
   if (action === "mutes") {
     const rows = await getJSON(`hub_mutes?code=eq.${enc(me)}&select=channel`);

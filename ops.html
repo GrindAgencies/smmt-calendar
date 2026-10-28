@@ -342,6 +342,7 @@ th.lockedcol{background:rgba(201,154,46,.14)!important;box-shadow:inset 0 -2px 0
         <button class="tgl" id="tg_bookings" onclick="setTab('bookings')">📅 Bookings</button>
         <button class="tgl" id="tg_fieldtraining" onclick="setTab('fieldtraining')">🎓 Field Training</button>
         <button class="tgl" id="tg_teamhub" onclick="setTab('teamhub')">💬 Team Hub</button>
+        <button class="tgl hide" id="tg_automations" onclick="setTab('automations')">🤖 Automations</button>
         <button class="tgl" id="tg_reports" onclick="setTab('reports')">📊 Reports</button>
       </div>
       <button class="addbtn hide" id="addBtn" onclick="openAddMenu()">＋ Add</button>
@@ -354,6 +355,7 @@ th.lockedcol{background:rgba(201,154,46,.14)!important;box-shadow:inset 0 -2px 0
     <div id="inforceHost" class="hide"></div>
     <div id="fieldtrainingHost" class="hide"></div>
     <div id="teamhubHost" class="hide"></div>
+    <div id="automationsHost" class="hide"></div>
     <div id="reportsHost" class="hide"></div>
     <div id="opsTiles"></div>
   </div>
@@ -815,16 +817,17 @@ function otToggle(code,cid,checked){var b={token:opsTok(),action:'set',code:code
 function otJumpGo(code){var sel=$('otJump');if(!sel||!sel.value)return;var opt=sel.options[sel.selectedIndex];var name=(opt?opt.text:'').replace(/^\s*\d+\.\s*/,'').replace(/ — auto from \$$/,'');otReset(code,sel.value,name);}
 function otReset(code,levelId,name){if(!confirm('Set “'+name+'” as this broker’s current spot?\n\nEverything up to and including it is marked done; everything after is cleared.'))return;
   fetch(OPSTRK,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:opsTok(),action:'reset_to',code:code,level_id:levelId})}).then(function(r){return r.json();}).then(function(d){if(d&&d.ok){toast('Reset to '+name+' ✓');loadAgentTracker(code,true);}else toast('Could not reset');}).catch(function(){toast('Network error');});}
-function setTab(t){TAB=t;['licensing','newbiz','faststart','bookings','appointed','inforce','gfi','fieldtraining','teamhub','reports'].forEach(function(x){var b=$('tg_'+x);if(b)b.classList.toggle('on',x===t);});
+function setTab(t){TAB=t;['licensing','newbiz','faststart','bookings','appointed','inforce','gfi','fieldtraining','teamhub','automations','reports'].forEach(function(x){var b=$('tg_'+x);if(b)b.classList.toggle('on',x===t);});
   var isB=(t==='bookings'),isNB=(t==='newbiz'||t==='gfi'),isIF=(t==='inforce'),isTH=(t==='teamhub'),isFT=(t==='fieldtraining');
-  var isRP=(t==='reports');
+  var isRP=(t==='reports'),isAU=(t==='automations');
+  var auh=$('automationsHost');if(auh)auh.classList.toggle('hide',!isAU);if(isAU)isTH=false;
   var tw=$('tableWrap'),bh=$('bookingsHost'),nh=$('newbizHost'),ifh=$('inforceHost'),thh=$('teamhubHost'),fth=$('fieldtrainingHost'),sb=$('search'),ab=$('addBtn');
   var rph=$('reportsHost');
-  if(tw)tw.classList.toggle('hide',isB||isNB||isIF||isTH||isFT||isRP);
+  if(tw)tw.classList.toggle('hide',isB||isNB||isIF||isTH||isFT||isRP||isAU);
   if(rph)rph.classList.toggle('hide',!isRP);if(bh)bh.classList.toggle('hide',!isB);if(nh)nh.classList.toggle('hide',!isNB);if(ifh)ifh.classList.toggle('hide',!isIF);if(thh)thh.classList.toggle('hide',!isTH);if(fth)fth.classList.toggle('hide',!isFT);
-  if(sb){sb.style.display=(isTH||isRP)?'none':'';sb.placeholder=isB?'Search bookings — name, type, agent…':(isNB?(t==='gfi'?'Search tickets — client, ticket #, category, status…':'Search records — client, agent, status…'):(isIF?'Search in-force — client, agent, carrier…':(isFT?'Search agents — name, baseshop, trainer…':'Search…')));}
-  if(ab)ab.classList.toggle('hide',isB||isIF||isTH||isFT||isRP||(t==='newbiz')||!canEdit());
-  if(isB)renderBookings();else if(isIF){IFARCH=false;renderInforce();}else if(isTH)renderTeamhub();else if(isFT)renderFieldtraining();else if(isRP)renderReports();else if(isNB){NBARCH=false;renderNewbiz();}else renderTab();}
+  if(sb){sb.style.display=(isTH||isRP||isAU)?'none':'';sb.placeholder=isB?'Search bookings — name, type, agent…':(isNB?(t==='gfi'?'Search tickets — client, ticket #, category, status…':'Search records — client, agent, status…'):(isIF?'Search in-force — client, agent, carrier…':(isFT?'Search agents — name, baseshop, trainer…':'Search…')));}
+  if(ab)ab.classList.toggle('hide',isB||isIF||isTH||isFT||isRP||isAU||(t==='newbiz')||!canEdit());
+  if(isAU)renderAutomations();else if(isB)renderBookings();else if(isIF){IFARCH=false;renderInforce();}else if(isTH)renderTeamhub();else if(isFT)renderFieldtraining();else if(isRP)renderReports();else if(isNB){NBARCH=false;renderNewbiz();}else renderTab();}
 /* ===== REPORTS ======================================================================
    Christopher: "create just a generate report button and have it pull current and all
    metrics... it doesnt need ot be tracked but when she clicks generate a report it
@@ -1141,6 +1144,13 @@ function opsHubBadge(){
 }
 setTimeout(opsHubBadge,4000);
 setInterval(function(){ if(!document.hidden) opsHubBadge(); },180000);
+/* 🤖 Automations (2026-10-28): every bot, scheduled announcement and background job that posts
+   into the chat, platform-wide, with the master seat able to create and manage any group's bot.
+   The list itself lives in the Team Hub page (its editor and bot screens are there); this tab opens
+   it straight on the list. group-bot ops_overview refuses anyone but the master seat and owners. */
+function renderAutomations(){var host=$('automationsHost');if(!host)return;if(host.getAttribute('data-loaded'))return;host.setAttribute('data-loaded','1');
+  var src='teamhub.html?ops=1&view=automations&code='+encodeURIComponent(OPS?OPS.code:'OPS')+'&name='+encodeURIComponent(OPS?OPS.name:'Operations');
+  host.innerHTML='<div style="font-size:12.5px;color:var(--ink3,#8e8e93);margin:0 0 8px">🤖 Everything that posts into the chat on its own: group bots and their schedules, built-in bots, EMD broadcasts and background jobs. Create or pause an automation in any group from here.</div><iframe src="'+esc(src)+'" style="width:100%;height:calc(100vh - 150px);min-height:560px;border:1px solid var(--line);border-radius:15px;background:var(--panel)" title="Automations"></iframe>';}
 function renderTeamhub(){var host=$('teamhubHost');if(!host)return;if(host.getAttribute('data-loaded'))return;host.setAttribute('data-loaded','1');
   var src='teamhub.html?ops=1&code='+encodeURIComponent(OPS?OPS.code:'OPS')+'&name='+encodeURIComponent(OPS?OPS.name:'Operations');
   host.innerHTML='<div style="font-size:12.5px;color:var(--ink3,#8e8e93);margin:0 0 8px">🛡️ Operations oversight — full access to every channel &amp; direct message, and all recognition/AI bot activity. You post as <b>'+esc((OPS&&OPS.name)||'Operations')+'</b>.</div><iframe src="'+esc(src)+'" style="width:100%;height:calc(100vh - 150px);min-height:560px;border:1px solid var(--line);border-radius:15px;background:var(--panel)" title="Team Hub" allow="clipboard-write"></iframe>';}
@@ -1967,7 +1977,7 @@ function doIssueSetup(code){
    for here. */
 var OPSMASTER=false,PLATADMIN=false;
 var PINAPI="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/pin";
-function paintSeatBtn(){var b=$('seatSetupBtn');if(b)b.classList.toggle('hide',!OPSMASTER);}
+function paintSeatBtn(){var b=$('seatSetupBtn');if(b)b.classList.toggle('hide',!OPSMASTER);var a=$('tg_automations');if(a)a.classList.toggle('hide',!OPSMASTER);}
 var OPS_SEATS=['0000','0001','0002','0003','0004','0005']; /* the seeded Operations seats */
 function openSeatSetup(){
   if(!OPSMASTER){toast('Only a master Operations seat can open setup.');return;}
