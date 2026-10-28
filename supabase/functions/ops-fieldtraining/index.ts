@@ -1,4 +1,5 @@
 // ops-fieldtraining — field-training tracker for Operations.
+// v7 (2026-10-28): booked / completed / cancelled from Calendly + in-app bookings (see ft_list).
 // v2 (2026-09-02): authorisation is an Operations session from ops-auth rather than the
 // literal "2026" that shipped inside ops.html.
 // v3 (2026-09-05): BASESHOP, PROPERLY. Two faults here:
@@ -62,53 +63,84 @@ Deno.serve(async (req) => {
 
     // Which baseshops may this caller see? Resolved from the verified identity.
     const sc = await rpc("ops_scope", { p_token: String(body.token || ""), p_code: az.code });
-    const scoped = !!(sc && sc.scoped);
-    const allow = new Set<string>(((sc && Array.isArray(sc.bases)) ? sc.bases : []).map((b: string) => low(b)));
+    let scoped = !!(sc && sc.scoped);
+    let allow = new Set<string>(((sc && Array.isArray(sc.bases)) ? sc.bases : []).map((b: string) => low(b)));
+    /* v7: ops_scope() answers "not scoped" for anybody who is not an Ops seat, so until now any
+       signed-in AGENT calling this directly received every shop's field trainings. A person who
+       is not an Ops seat is scoped by agent_scope() — the platform's one rule — so only the
+       hierarchy root and the platform builder see every shop. Client names go to Ops seats and
+       those two only. */
+    let fullView = az.ops;
+    if (!az.ops) {
+      const as = await rpc("agent_scope", { p_code: az.code });
+      if (as && as.ok === true && as.all === true) { fullView = true; }
+      else {
+        scoped = true;
+        allow = new Set<string>(((as && Array.isArray(as.bases)) ? as.bases : []).map((b: string) => low(b)));
+      }
+    }
 
     if (action === "ft_list") {
-      const q = `${SUPA}/rest/v1/bookings?or=(category.ilike.*field training*)&select=id,agent_code,agent_name,trainer_name,trainer_code,date,time,status,notes,category&order=date.desc`;
-      const ex = await fetch(q, { headers: DBH });
-      const rows: Record<string, unknown>[] = (await ex.json()) || [];
-      const rx = await fetch(`${SUPA}/rest/v1/tracker_agents?select=code,first_name,last_name,baseshop,emd,md,status`, { headers: DBH });
-      const roster: Record<string, unknown>[] = (await rx.json()) || [];
+      /* v7 (2026-10-28): BOOKED / COMPLETED / CANCELLED, FROM EVERY SOURCE.
+         Christopher: "adjust the metrics to booked / completed / cancelled so we can see ratio".
+         v6 read only `bookings`, whose copy of Calendly stopped around 11 Oct, so ~140 recent
+         Calendly field trainings were missing, and its Calendly rows have no agent (Calendly's
+         invitee is the CLIENT) so they were listed under the client's name as if an agent.
+         Now: Calendly field trainings come from calendly_events (the source of truth; every
+         mirrored bookings row exists there, verified), in-app bookings from `bookings` rows that
+         are NOT Calendly mirrors, so nothing is counted twice. Each session carries its trainer
+         (always known) and its agent (in-app only). The page groups and filters by period. */
+      const today = ptToday();
+      const nowIso = new Date().toISOString();
+      const getAll = async (path: string) => {
+        const out: Record<string, unknown>[] = [];
+        for (let off = 0; off < 50000; off += 1000) {
+          const r = await fetch(`${SUPA}/rest/v1/${path}&limit=1000&offset=${off}`, { headers: DBH });
+          const page = await r.json().catch(() => []);
+          if (!Array.isArray(page) || !page.length) break;
+          out.push(...page); if (page.length < 1000) break;
+        }
+        return out;
+      };
+      const roster = await getAll(`tracker_agents?select=code,first_name,last_name,baseshop,emd,md,status&order=code.asc`);
       const rmap: Record<string, Record<string, unknown>> = {};
       for (const a of roster) rmap[norm(a.code)] = a;
-      const today = ptToday();
-      const agents: Record<string, Record<string, unknown>> = {};
-      const sessions: Record<string, Record<string, unknown>[]> = {};
-      for (const b of rows) {
-        const ra = rmap[norm(b.agent_code)] || {};
-        // Drop other baseshops before they are ever assembled into a response.
-        if (scoped && !allow.has(low(ra.baseshop))) continue;
-        const code = norm(b.agent_code) || ("NAME:" + clean(b.agent_name).toLowerCase());
-        if (!agents[code]) {
-          agents[code] = {
-            agent_code: clean(b.agent_code), agent_name: clean(b.agent_name) || (ra.first_name ? (ra.first_name + " " + ra.last_name) : ""),
-            baseshop: clean(ra.baseshop) || "", md: clean(ra.md) || "", emd: clean(ra.emd) || "",
-            active: ra.status ? (ra.status === "active") : true,
-            completed: 0, upcoming: 0, canceled: 0, no_show: 0, total: 0, last_completed: "", next_date: "", trainers: {} as Record<string, number>
-          };
-          sessions[code] = [];
-        }
-        const a = agents[code]; const st = clean(b.status).toLowerCase(); const d = clean(b.date);
-        a.total = (a.total as number) + 1;
-        if (b.trainer_name) { const tn = clean(b.trainer_name); (a.trainers as Record<string, number>)[tn] = ((a.trainers as Record<string, number>)[tn] || 0) + 1; }
-        if (st === "completed") { a.completed = (a.completed as number) + 1; if (!a.last_completed || d > (a.last_completed as string)) a.last_completed = d; }
-        else if (st === "canceled" || st === "cancelled") a.canceled = (a.canceled as number) + 1;
-        else if (st === "no_show" || st === "noshow") a.no_show = (a.no_show as number) + 1;
-        else if (d >= today) { a.upcoming = (a.upcoming as number) + 1; if (!a.next_date || d < (a.next_date as string)) a.next_date = d; }
-        sessions[code].push({ id: b.id, date: d, time: clean(b.time), trainer: clean(b.trainer_name), status: st, notes: clean(b.notes) });
+      const nameOf = (code: string, fallback: string) => { const a = rmap[norm(code)]; return a ? `${a.first_name || ""} ${a.last_name || ""}`.trim() || fallback : fallback; };
+      const ptDate = (iso: string) => { try { return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles" }).format(new Date(iso)); } catch (_) { return ""; } };
+      const ptTime = (iso: string) => { try { return new Intl.DateTimeFormat("en-US", { timeZone: "America/Los_Angeles", hour: "numeric", minute: "2-digit" }).format(new Date(iso)); } catch (_) { return ""; } };
+
+      const sessions: Record<string, unknown>[] = [];
+      // 1) Calendly — trainer is the Calendly host; the invitee is the client.
+      const cev = await getAll(`calendly_events?or=(event_type_name.ilike.*field*,name.ilike.*field*)&select=event_uuid,agent_code,agent_name,invitee_name,start_time,status&order=start_time.asc,event_uuid.asc`);
+      for (const e of cev) {
+        const tc = norm(e.agent_code); const st = low(e.status);
+        const at = String(e.start_time || "");
+        const outcome = (st === "canceled" || st === "cancelled") ? "cancelled" : (at && at > nowIso ? "upcoming" : "completed");
+        sessions.push({ id: "c:" + e.event_uuid, source: "calendly", date: ptDate(at), time: ptTime(at), outcome,
+          trainer_code: tc, trainer: nameOf(tc, clean(e.agent_name)), agent_code: "", agent: "", client: fullView ? clean(e.invitee_name) : "",
+          baseshop: clean((rmap[tc] || {}).baseshop) });
       }
-      const list = Object.keys(agents).map((k) => {
-        const a = agents[k]; const tr = a.trainers as Record<string, number>;
-        a.trainer_list = Object.keys(tr).sort((x, y) => tr[y] - tr[x]);
-        a.sessions = sessions[k];
-        return a;
-      });
-      list.sort((x, y) => (y.completed as number) - (x.completed as number) || String(x.agent_name).localeCompare(String(y.agent_name)));
-      const shown = list.reduce((t, a) => t + (a.total as number), 0);
-      const totals = { agents: list.length, completed: list.reduce((t, a) => t + (a.completed as number), 0), upcoming: list.reduce((t, a) => t + (a.upcoming as number), 0), sessions: shown };
-      return json({ ok: true, scoped, agents: list, totals });
+      // 2) In-app bookings (not Calendly mirrors) — agent and trainer both known.
+      const bks = await getAll(`bookings?category=ilike.*field*training*&calendly_event_uuid=is.null&select=id,agent_code,agent_name,trainer_name,trainer_code,date,time,status,notes&order=id.asc`);
+      for (const b of bks) {
+        const st = low(b.status); const d = clean(b.date);
+        let outcome = "booked_unmarked";
+        if (st === "completed") outcome = "completed";
+        else if (st === "canceled" || st === "cancelled" || st === "declined") outcome = "cancelled";
+        else if (st === "no_show" || st === "noshow") outcome = "no_show";
+        else if (d >= today) outcome = "upcoming";
+        const ac = norm(b.agent_code), tc = norm(b.trainer_code);
+        sessions.push({ id: "b:" + b.id, source: "app", date: d, time: clean(b.time), outcome, status: st,
+          trainer_code: tc, trainer: clean(b.trainer_name) || nameOf(tc, ""), agent_code: ac, agent: clean(b.agent_name) || nameOf(ac, ""),
+          client: "", notes: clean(b.notes), baseshop: clean((rmap[ac] || rmap[tc] || {}).baseshop) });
+      }
+      // Baseshop seats see their own shop only, decided here, before anything is sent.
+      const shown = scoped ? sessions.filter((x) => allow.has(low(x.baseshop))) : sessions;
+      shown.sort((a, b) => String(b.date).localeCompare(String(a.date)));
+      const count = (k: string) => shown.filter((x) => x.outcome === k).length;
+      const totals = { booked: shown.length, completed: count("completed"), cancelled: count("cancelled"), upcoming: count("upcoming"),
+                       no_show: count("no_show"), unmarked: count("booked_unmarked"), calendly: shown.filter((x) => x.source === "calendly").length };
+      return json({ ok: true, v: 7, scoped, today, sessions: shown, totals });
     }
 
     return json({ ok: false, error: "unknown action" }, 400);
