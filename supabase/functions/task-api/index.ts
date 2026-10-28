@@ -1,3 +1,4 @@
+// task-api (2026-10-28): Operations completing a task auto-archives it (completed_at kept, recurrence still spawns).
 // task-api v10 — Task Management + AUTOMATIONS + per-task NOTES log. Tasks link to AGENTS and/or CLIENTS.
 // v4 FIX: for_client / for_policy PostgREST filters were missing the `=` (client_names.cs vs client_names=cs),
 //         so they silently returned EVERY task. Now correctly scoped to the specific client / policy.
@@ -241,7 +242,16 @@ Deno.serve(async (req) => {
           const cr = await ins.json(); spawned = Array.isArray(cr) ? cr[0] : cr;
         }
       }
-      return json({ ok: up.ok, task, spawned });
+      /* 2026-10-28 (Christopher): "when operations clears her tasks via the click button that
+         needs to trigger an automatic archive of the task". Operations completing a task files it
+         straight into Archived. The completion still counts: completed_at is kept, and a repeating
+         task has already scheduled its next copy above. Anyone else's Complete is unchanged. */
+      let archived = false;
+      if (up.ok && status === "complete" && who.ops && task) {
+        const ar = await fetch(`${SUPA}/rest/v1/tasks?id=eq.${encodeURIComponent(id)}`, { method: "PATCH", headers: { ...DBH, Prefer: "return=representation" }, body: JSON.stringify({ status: "archived", updated_at: new Date().toISOString() }) });
+        if (ar.ok) { const aj = await ar.json(); const at = Array.isArray(aj) ? aj[0] : aj; if (at) { archived = true; return json({ ok: true, task: at, spawned, archived }); } }
+      }
+      return json({ ok: up.ok, task, spawned, archived });
     }
     if (action === "delete") {
       const id = String(body.id || ""); if (!id) return json({ ok: false, error: "no id" });

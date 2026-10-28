@@ -1,3 +1,4 @@
+// ops-directory v31 (2026-10-28): tracker rows carry upline_md / upline_md_name, plus an upline_md map.
 // ops-directory v30 — Operations Tracker API.
 //
 // v30 (2026-10-26): A LEADER SEES THEIR OWN TREE, NOT THE COMPANY. An MD/EMD who opens the
@@ -265,12 +266,22 @@ Deno.serve(async (req) => {
 
   if (action === "tracker") {
     const nb = await polByAgent();
-    const rows = visibleAgents.filter((a: any) => low(a.status) !== "quit").map((a: any) => trackerRow(a, nb, core));
+    /* 2026-10-28: Upline MD - the person themselves if MD or higher, else the nearest MD-or-higher
+       above them on the org chart (upline_md_map()). On every row, plus a map for every visible
+       person (Alumni included) so the New Business, In Force and Field Training tabs can filter
+       by it too. Only visible people are in the map, so it reveals nothing new. */
+    const umd = (await rpc("upline_md_map", {})) || {};
+    const uplineMd: Record<string, { code: string; name: string }> = {};
+    for (const a of visibleAgents) { const c = norm(a.code); const m = umd[c]; if (m && m.code) uplineMd[c] = { code: norm(m.code), name: String(m.name || "") }; }
+    const rows = visibleAgents.filter((a: any) => low(a.status) !== "quit").map((a: any) => {
+      const r: any = trackerRow(a, nb, core); const m = uplineMd[norm(a.code)];
+      r.upline_md = m ? m.code : ""; r.upline_md_name = m ? m.name : ""; return r;
+    });
     rows.sort((x: any, y: any) => x.name.localeCompare(y.name));
     const reqs = (await loadKey("ops_edit_requests")) || [];
     const pending = Array.isArray(reqs) ? reqs.filter((r: any) => r.status === "pending").length : 0;
     const archived = visibleAgents.filter((a: any) => low(a.status) === "quit").length;
-    return json({ ok: true, role: az.role, can_edit: az.canEdit, scoped, bases: Array.from(allow), count: rows.length, rows, custom_columns: core.customCols, col_colors: core.colColors, status_colors: core.statusColors, license_statuses: core.licStatuses, pending_requests: pending, archived_count: archived });
+    return json({ ok: true, role: az.role, can_edit: az.canEdit, scoped, bases: Array.from(allow), count: rows.length, rows, upline_md: uplineMd, custom_columns: core.customCols, col_colors: core.colColors, status_colors: core.statusColors, license_statuses: core.licStatuses, pending_requests: pending, archived_count: archived });
   }
 
   if (action === "set_col_colors") {

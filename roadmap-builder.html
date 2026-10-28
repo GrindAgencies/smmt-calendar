@@ -130,14 +130,17 @@ function enter(){
   }
   TOKEN=t; $('gate').style.display='none'; $('app').classList.add('on'); load();
 }
+/* 2026-10-28: every call carries the Operations token. The road map read (`config`) was sent with
+   neither a token nor an agent session, so roadmap-api answered needs_session; for Operations (no
+   agent session) session.js then sent her to sign in, and the builder never loaded - a loop. */
 function load(){
-  fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'config'})}).then(function(r){return r.json();}).then(function(d){
+  fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'config',token:TOKEN})}).then(function(r){return r.json();}).then(function(d){
     if(!d||!d.ok){$('body').innerHTML='<div class="hint" style="padding:40px;text-align:center">Could not load roadmap.</div>';return;}
     CFG={version:d.version||1,xp_per_challenge:d.xp_per_challenge||25,xp_level_bonus:d.xp_level_bonus||100,worlds:d.worlds||[],levels:d.levels||[],labels:d.labels||{}};
     render();
   }).catch(function(){$('body').innerHTML='<div class="hint" style="padding:40px;text-align:center">Network error.</div>';});
-  fetch(EMB,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'get',code:'C1991'})}).then(function(r){return r.json();}).then(function(d){EMBLEMS=(d&&d.catalog)||[];}).catch(function(){});
-  fetch(HUB,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'hub_roster'})}).then(function(r){return r.json();}).then(function(d){
+  fetch(EMB,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'get',code:'C1991',token:TOKEN})}).then(function(r){return r.json();}).then(function(d){EMBLEMS=(d&&d.catalog)||[];}).catch(function(){});
+  fetch(HUB,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'hub_roster',token:TOKEN})}).then(function(r){return r.json();}).then(function(d){
     ROSTER=(d&&d.members)||[];var dl=$('agentlist');if(dl)dl.innerHTML=ROSTER.map(function(m){return '<option value="'+esc(m.name)+' ('+esc(m.code)+')"></option>';}).join('');
   }).catch(function(){});
 }
@@ -146,7 +149,7 @@ function toggleCash(on){$('cashpanel').style.display=on?'block':'none';$('body')
 function cfParseCode(v){var m=/\(([^)]+)\)\s*$/.exec(v||'');if(m)return m[1].trim().toUpperCase();var t=(v||'').trim().toUpperCase();var hit=ROSTER.filter(function(x){return (x.code||'').toUpperCase()===t;})[0];return hit?hit.code.toUpperCase():'';}
 function cfPick(){var code=cfParseCode($('cfAgent').value);if(!code){$('cfEdit').style.display='none';$('cfInfo').textContent='Pick an agent to see their current cashflow and rank.';CFCODE='';return;}
   CFCODE=code;$('cfInfo').textContent='Loading '+code+'…';$('cfResult').textContent='';
-  fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'player',code:code})}).then(function(r){return r.json();}).then(function(d){
+  fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'player',code:code,token:TOKEN})}).then(function(r){return r.json();}).then(function(d){
     if(!d||!d.ok||!d.player){$('cfEdit').style.display='none';$('cfInfo').textContent='Could not load '+code+'.';return;}
     var p=d.player;var cf=Number(p.cashflow)||0;
     var cur=(p.levels||[]).filter(function(l){return l.id===p.current_level;})[0];

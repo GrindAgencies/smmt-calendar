@@ -359,7 +359,8 @@ function quickDone(id,mk){setStatus(id,mk?'complete':'in_progress');}
 function setStatus(id,status){
   apiCall({action:'set_status',id:id,status:status}).then(function(r){
     if(!r||!r.ok){toast('Could not update');return;}
-    if(r.spawned)toast('Completed ✓ · next '+(r.task.recurrence)+' task scheduled '+r.spawned.due_date);
+    if(r.spawned)toast('Completed ✓'+(r.archived?' & archived':'')+' · next '+(r.task.recurrence)+' task scheduled '+r.spawned.due_date);
+    else if(r.archived)toast('Completed ✓ & archived');
     else toast('Task '+status.replace('_',' '));
     load();
   });
@@ -442,9 +443,15 @@ function saveTask(){
   if(ownerRaw)b.owner_code=(/operations|^ops$/i.test(ownerRaw)?'OPS':parseCode(ownerRaw));
   if(b.recurrence==='custom')b.recurrence_config={every:Number($('t_rec_every').value)||1,unit:$('t_rec_unit').value};
   if(EDIT)b.id=EDIT.id;
+  /* 2026-10-28: the server's update ignores `status`, so changing Status in this form never took
+     effect. A changed status now goes through set_status - the same path as the tick - so it gets
+     completed_at, the next copy of a repeating task, and Operations' auto-archive. */
+  var prevStatus=EDIT?EDIT.status:null, editId=EDIT?EDIT.id:null;
   apiCall(b).then(function(r){
     if(!r||!r.ok){toast((r&&r.error)||'Could not save');return;}
-    closeModal();toast(EDIT?'Task saved ✓':'Task created ✓');load();
+    closeModal();
+    if(editId&&b.status&&b.status!==prevStatus){setStatus(editId,b.status);return;}
+    toast(editId?'Task saved ✓':'Task created ✓');load();
   });
 }
 

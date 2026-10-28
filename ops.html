@@ -346,6 +346,7 @@ th.lockedcol{background:rgba(201,154,46,.14)!important;box-shadow:inset 0 -2px 0
         <button class="tgl" id="tg_reports" onclick="setTab('reports')">📊 Reports</button>
       </div>
       <button class="addbtn hide" id="addBtn" onclick="openAddMenu()">＋ Add</button>
+      <select class="searchbar" id="mdSel" onchange="onMdFilter(this.value)" title="Show one Upline Marketing Director's people and business" style="max-width:220px;flex:0 0 auto;cursor:pointer"><option value="">All Upline MDs</option></select>
       <input class="searchbar" id="search" placeholder="Search…" oninput="onSearch()">
     </div>
     <div class="tabhint">⠿ Drag tabs to reorder — put what matters most first. <a onclick="resetTabOrder()" style="color:var(--accent);cursor:pointer;font-weight:700;margin-left:4px">Reset order</a></div>
@@ -676,6 +677,7 @@ var COLS={
     {k:'name',l:'Agent',s:function(r){return low(r.name);},c:nameCell},
     {k:'code',l:'GFI Code',s:function(r){return r.code;},c:function(r){return esc(r.code);}},
     {k:'direct_to_name',l:'Direct Recruiter',s:function(r){return low(r.direct_to_name);},c:function(r){return r.direct_to_name?('<div class="twoline"><div class="tl1">'+esc(r.direct_to_name)+'</div>'+(r.direct_to?'<div class="sub">'+esc(r.direct_to)+'</div>':'')+'</div>'):'<span class="miss">—</span>';}},
+    {k:'upline_md_name',l:'Upline MD',s:function(r){return low(r.upline_md_name);},c:function(r){return r.upline_md_name?('<div class="twoline"><div class="tl1">'+esc(r.upline_md_name)+'</div>'+(r.upline_md&&r.upline_md!==r.code?'<div class="sub">'+esc(r.upline_md)+'</div>':'<div class="sub">self</div>')+'</div>'):'<span class="miss">—</span>';}},
     {k:'baseshop',l:'Baseshop',e:'text',s:function(r){return low(r.baseshop);}},
     {k:'ica_date',l:'ICA Date',e:'date',s:function(r){return r.ica_date||'';}},
     {k:'license_type',l:'License Type',e:'list',dl:'dl_license_type',s:function(r){return low(r.license_type);}},
@@ -718,11 +720,32 @@ function orderedCols(tab){
 function saveColOrder(tab,keys){try{localStorage.setItem(colOrderKey(tab),JSON.stringify(keys));}catch(e){}}
 function resetCols(){try{localStorage.removeItem(colOrderKey(TAB));}catch(e){}toast('Columns reset');renderTab();}
 
+/* ---- Upline MD filter (2026-10-28) ----------------------------------------------------------
+   Christopher: "add a new filter in OPERATIONS for Upline Marketing Director (Upline MD) so you can
+   sort by MD and their specific business". Upline MD = the person themselves if MD or higher, else
+   the nearest MD-or-higher above them on the org chart (ops-directory upline_md). One picker,
+   applied to Licensing, Fast Start, Licensed & Appointed, New Business, In Force and Field Training. */
+var UPMD={}, MDSEL='', UPMD_BYNAME={};
+function upmdOf(code){ return UPMD[String(code||'').toUpperCase()]||null; }
+function mdOkCode(code){ if(!MDSEL)return true; var m=upmdOf(code); return !!(m&&m.code===MDSEL); }
+function mdOkName(name){ if(!MDSEL)return true; var c=UPMD_BYNAME[String(name||'').replace(/\s+/g,' ').trim().toLowerCase()]; return !!c&&mdOkCode(c); }
+function mdBuild(rows){
+  UPMD_BYNAME={}; (rows||[]).forEach(function(r){ if(r&&r.name) UPMD_BYNAME[String(r.name).replace(/\s+/g,' ').trim().toLowerCase()]=String(r.code||'').toUpperCase(); });
+  var counts={}, names={};
+  (rows||[]).forEach(function(r){ var m=upmdOf(r.code); if(m){ counts[m.code]=(counts[m.code]||0)+1; names[m.code]=m.name; } });
+  var sel=$('mdSel'); if(!sel)return;
+  var opts=Object.keys(counts).sort(function(a,b){return String(names[a]).localeCompare(String(names[b]));});
+  sel.innerHTML='<option value="">All Upline MDs</option>'+opts.map(function(c){return '<option value="'+esc(c)+'"'+(c===MDSEL?' selected':'')+'>'+esc(names[c]||c)+' ('+counts[c]+')</option>';}).join('');
+  if(MDSEL&&!counts[MDSEL]){MDSEL='';sel.value='';}
+}
+function onMdFilter(v){ MDSEL=String(v||''); try{localStorage.setItem('tsfg_ops_mdsel',MDSEL);}catch(e){} onSearch(); }
+try{ MDSEL=localStorage.getItem('tsfg_ops_mdsel')||''; }catch(e){}
+
 /* ---- tracker ---- */
 function loadTracker(){
   api(auth({action:'tracker'})).then(function(r){
     if(!r||!r.ok){$('tableHost').innerHTML='<div class="empty">Could not load the tracker.</div>';return;}
-    ROWS=r.rows||[];
+    ROWS=r.rows||[];UPMD=(r.upline_md&&typeof r.upline_md==='object')?r.upline_md:{};mdBuild(ROWS);
     /* The tiles may have rendered before ROWS arrived; now that the split is knowable, redraw. */
     try{ if(typeof loadOverview==='function' && document.getElementById('statGrid') && document.getElementById('statGrid').innerHTML) loadOverview(); }catch(e){}
     CUSTOMCOLS=r.custom_columns||[];COLCOLORS=(r.col_colors&&typeof r.col_colors==='object')?r.col_colors:{};STATUSCOLORS=(r.status_colors&&typeof r.status_colors==='object')?r.status_colors:{};setLicStatuses(r.license_statuses);renderReqBanner(r.pending_requests||0);renderTab();
@@ -825,6 +848,7 @@ function setTab(t){TAB=t;['licensing','newbiz','faststart','bookings','appointed
   var rph=$('reportsHost');
   if(tw)tw.classList.toggle('hide',isB||isNB||isIF||isTH||isFT||isRP||isAU);
   if(rph)rph.classList.toggle('hide',!isRP);if(bh)bh.classList.toggle('hide',!isB);if(nh)nh.classList.toggle('hide',!isNB);if(ifh)ifh.classList.toggle('hide',!isIF);if(thh)thh.classList.toggle('hide',!isTH);if(fth)fth.classList.toggle('hide',!isFT);
+  var mds=$('mdSel');if(mds)mds.style.display=(isTH||isRP||isAU||isB||(t==='gfi'))?'none':'';
   if(sb){sb.style.display=(isTH||isRP||isAU)?'none':'';sb.placeholder=isB?'Search bookings — name, type, agent…':(isNB?(t==='gfi'?'Search tickets — client, ticket #, category, status…':'Search records — client, agent, status…'):(isIF?'Search in-force — client, agent, carrier…':(isFT?'Search agents — name, baseshop, trainer…':'Search…')));}
   if(ab)ab.classList.toggle('hide',isB||isIF||isTH||isFT||isRP||isAU||(t==='newbiz')||!canEdit());
   if(isAU)renderAutomations();else if(isB)renderBookings();else if(isIF){IFARCH=false;renderInforce();}else if(isTH)renderTeamhub();else if(isFT)renderFieldtraining();else if(isRP)renderReports();else if(isNB){NBARCH=false;renderNewbiz();}else renderTab();}
@@ -1180,6 +1204,8 @@ function renderNewbiz(){NBBOARD=(TAB==='gfi')?'gfi':'newbiz';NBLIVE=(TAB==='newb
 function nbToggleArch(){NBARCH=!NBARCH;renderNewbiz();}
 function nbFiltered(){var q=($('search').value||'').trim().toLowerCase();var a=NBT.slice();
   if(BSSCOPE)a=a.filter(function(t){return BSSCOPE.indexOf((t.data||{}).baseshop)>=0;});
+  /* Upline MD: a split policy shows under either writer's MD. Codes when the feed sends them, names otherwise. */
+  if(MDSEL)a=a.filter(function(t){var d=t.data||{};return (d.agent_code?mdOkCode(d.agent_code):mdOkName(d.agent))||(d.split_agent_code?mdOkCode(d.split_agent_code):mdOkName(String(d.split_agent||'').split(' \u00b7 ')[0]));});
   if(q)a=a.filter(function(t){var s=[];var dd=t.data||{};for(var k in dd){if(k!=='_color')s.push(dd[k]);}return s.join(' ').toLowerCase().indexOf(q)>=0;});
   var k=NBSORT.k,d=NBSORT.dir;
   var col=NBCOLS.filter(function(c){return c.key===k;})[0];
@@ -1500,7 +1526,7 @@ function ifToggleArch(){IFARCH=!IFARCH;renderInforce();}
    missing a date that means reading 85 lines looking for a blank, so the tab offers the
    filter the instruction implies. */
 function ifToggleMissing(){IFONLYMISS=!IFONLYMISS;paintInforce();}
-function ifFiltered(){var q=($('search').value||'').trim().toLowerCase();var a=IFP.slice();if(IFONLYMISS)a=a.filter(function(p){return !p.paid_out_date;});if(BSSCOPE)a=a.filter(function(p){return BSSCOPE.indexOf(p.baseshop)>=0;});if(q)a=a.filter(function(p){return (p.client+' '+p.agent+' '+p.carrier+' '+p.product+' '+(p.baseshop||'')).toLowerCase().indexOf(q)>=0;});
+function ifFiltered(){var q=($('search').value||'').trim().toLowerCase();var a=IFP.slice();if(IFONLYMISS)a=a.filter(function(p){return !p.paid_out_date;});if(BSSCOPE)a=a.filter(function(p){return BSSCOPE.indexOf(p.baseshop)>=0;});if(MDSEL)a=a.filter(function(p){return mdOkCode(p.agent_code);});if(q)a=a.filter(function(p){return (p.client+' '+p.agent+' '+p.carrier+' '+p.product+' '+(p.baseshop||'')).toLowerCase().indexOf(q)>=0;});
   var k=IFSORT.k,d=IFSORT.dir;a.sort(function(x,y){var xv=x[k],yv=y[k];if(typeof xv==='number'&&typeof yv==='number')return (xv-yv)*d;xv=String(xv||'').toLowerCase();yv=String(yv||'').toLowerCase();return xv<yv?-d:xv>yv?d:0;});return a;}
 function ifSort(k){if(IFSORT.k===k)IFSORT.dir=-IFSORT.dir;else{IFSORT.k=k;IFSORT.dir=1;}paintInforce();}
 function paintInforce(){var host=$('inforceHost');if(!host)return;var rows=ifFiltered();
@@ -1549,6 +1575,7 @@ function ftPeriodSessions(){var r=ftRange();var q=($('search').value||'').trim()
   return FTSESS.filter(function(s){if(!s.date||s.date<r[0]||s.date>r[1])return false;
     if(BSSCOPE&&BSSCOPE.indexOf(s.baseshop)<0)return false;
     if(FTVIEW==='agent'&&!s.agent_code&&!s.agent)return false;
+    if(MDSEL&&!mdOkCode(s.agent_code||s.trainer_code))return false;
     if(q&&((s.trainer||'')+' '+(s.agent||'')+' '+(s.client||'')+' '+(s.baseshop||'')+' '+(s.agent_code||'')+' '+(s.trainer_code||'')).toLowerCase().indexOf(q)<0)return false;
     return true;});}
 function ftTally(list){var t={booked:list.length,completed:0,cancelled:0,upcoming:0,no_show:0,unmarked:0};list.forEach(function(s){if(s.outcome==='completed')t.completed++;else if(s.outcome==='cancelled')t.cancelled++;else if(s.outcome==='upcoming')t.upcoming++;else if(s.outcome==='no_show')t.no_show++;else t.unmarked++;});
@@ -1612,13 +1639,14 @@ function openFtGroup(i){var a=FTGROUPS[i];if(!a)return;
 /* ---- New Business: column editor (add/rename/retype/recolor/reorder/delete anytime) ---- */
 function openNbCols(){NBCOLDRAFT=JSON.parse(JSON.stringify(NBCOLS));renderNbColsEditor();$('ov').classList.add('on');}
 function renderNbColsEditor(){
-  if(NBLIVE){
-    var lrows=NBCOLDRAFT.map(function(col,i){return '<div style="display:flex;align-items:center;gap:8px;border:1px solid var(--line2);border-radius:10px;padding:10px 12px;margin-bottom:7px"><span style="flex:1;font-weight:700">'+esc(col.label)+(col.ro?' <span style="font-size:11px;color:var(--ink3);font-weight:600">· derived / read-only</span>':'')+'</span><span onclick="nbColMove('+i+',-1)" title="Move up" style="cursor:pointer;font-size:13px">▲</span><span onclick="nbColMove('+i+',1)" title="Move down" style="cursor:pointer;font-size:13px">▼</span></div>';}).join('');
-    $('drawer').innerHTML='<div class="dhd"><div><h3>Reorder columns</h3><div class="sub">Arrange the New Business columns — the order saves for everyone</div></div><button class="x" onclick="closeDrawer()">✕</button></div><div class="dbody">'+lrows+'<button class="dbtn blue" style="width:100%;margin-top:6px" onclick="nbColsSave()">Save order ✓</button><div class="sub" style="margin-top:10px">These columns are live policy fields — you can reorder them; editing values happens right in the table.</div></div>';
-    return;
-  }
+  /* 2026-10-28 (Christopher: "allow operations to add a column for new business the same way she
+     can in Licensing"). On the live New Business board the built-in policy columns can be
+     reordered only (they ARE the policy's fields); Operations' own columns can be added, renamed,
+     retyped, recoloured and deleted like any other board's. Their values are stored per policy. */
+  var liveLocked=function(col,i){return '<div style="display:flex;align-items:center;gap:8px;border:1px solid var(--line2);border-radius:10px;padding:10px 12px;margin-bottom:7px"><span style="flex:1;font-weight:700">'+esc(col.label)+' <span style="font-size:11px;color:var(--ink3);font-weight:600">· policy field'+(col.ro?', read-only':'')+'</span></span><span onclick="nbColMove('+i+',-1)" title="Move up" style="cursor:pointer;font-size:13px">▲</span><span onclick="nbColMove('+i+',1)" title="Move down" style="cursor:pointer;font-size:13px">▼</span></div>';};
   var TYP=[['text','Text'],['select','Dropdown'],['money','Money'],['date','Date']];
   var rows=NBCOLDRAFT.map(function(col,i){
+    if(NBLIVE&&!col.custom)return liveLocked(col,i);
     var opts=(col.type==='select')?('<div style="margin-top:8px;padding-left:2px"><div style="font-size:11px;color:var(--ink3);margin-bottom:4px">Options — order = rank number (the table sorts &amp; groups by this). Each has its own color.</div>'+(col.options||[]).map(function(o,j){return '<div style="display:flex;gap:6px;align-items:center;margin-bottom:5px"><span style="min-width:18px;text-align:right;font-weight:800;color:var(--ink3);font-size:12px">'+(j+1)+'.</span><input type="color" value="'+esc(o.color||'#8e8e93')+'" oninput="NBCOLDRAFT['+i+'].options['+j+'].color=this.value" style="width:32px;height:28px;border:1px solid var(--line);border-radius:6px;padding:1px;cursor:pointer"><input class="cellin" style="flex:1;border:1px solid var(--line2)" value="'+esc(o.value)+'" oninput="NBCOLDRAFT['+i+'].options['+j+'].value=this.value" placeholder="Option name"><span onclick="nbColOptMove('+i+','+j+',-1)" title="Move up" style="cursor:pointer;font-size:12px">▲</span><span onclick="nbColOptMove('+i+','+j+',1)" title="Move down" style="cursor:pointer;font-size:12px">▼</span><span onclick="nbColOptDel('+i+','+j+')" title="Remove" style="cursor:pointer;color:var(--red);font-weight:800">✕</span></div>';}).join('')+'<button class="dbtn ghost" style="padding:5px 11px;font-size:12px;margin-top:2px" onclick="nbColOptAdd('+i+')">＋ Add option</button></div>'):'';
     return '<div style="border:1px solid var(--line2);border-radius:12px;padding:12px;margin-bottom:10px">'+
       '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'+
@@ -1641,8 +1669,8 @@ function nbColOptMove(i,j,d){var a=NBCOLDRAFT[i].options;var k=j+d;if(k<0||k>=a.
 function nbColClearHdr(i){NBCOLDRAFT[i].headerColor='';renderNbColsEditor();}
 function nbColMove(i,d){var j=i+d;if(j<0||j>=NBCOLDRAFT.length)return;var t=NBCOLDRAFT[i];NBCOLDRAFT[i]=NBCOLDRAFT[j];NBCOLDRAFT[j]=t;renderNbColsEditor();}
 function nbColDel(i){if(!confirm('Delete column "'+(NBCOLDRAFT[i].label||'')+'"? Its data is kept but the column is hidden.'))return;NBCOLDRAFT.splice(i,1);renderNbColsEditor();}
-function nbColAdd(){NBCOLDRAFT.push({key:'',label:'New Column',type:'text',options:[],headerColor:''});renderNbColsEditor();}
-function nbColsSave(){var cols=NBCOLDRAFT.filter(function(c){return (c.label||'').trim();}).map(function(c){return {key:c.key||'',label:c.label,type:c.type,options:(c.type==='select'?(c.options||[]).filter(function(o){return (o.value||'').trim();}):[]),headerColor:c.headerColor||''};});
+function nbColAdd(){NBCOLDRAFT.push({key:'',label:'New Column',type:'text',options:[],headerColor:'',custom:NBLIVE?true:undefined});renderNbColsEditor();}
+function nbColsSave(){var cols=NBCOLDRAFT.filter(function(c){return (c.label||'').trim();}).map(function(c){return {key:c.key||'',label:c.label,type:c.type,options:(c.type==='select'?(c.options||[]).filter(function(o){return (o.value||'').trim();}):[]),headerColor:c.headerColor||'',custom:!!c.custom};});
   if(!cols.length){toast('Keep at least one column');return;}
   nbApi({action:'nb_set_columns',columns:cols}).then(function(r){if(!r||!r.ok){toast((r&&r.error)||'Could not save');return;}NBCOLS=r.columns||cols;if(NBSORT.k!=='__notes'&&!NBCOLS.some(function(c){return c.key===NBSORT.k;}))NBSORT.k=(NBCOLS[0]&&NBCOLS[0].key)||'client_name';toast('Columns saved ✓');closeDrawer();paintNewbiz();});}
 /* ---- Calendly Command Center ---- */
@@ -1703,6 +1731,7 @@ function apptStatus(){return (LICSTATUS&&LICSTATUS.length)?LICSTATUS[LICSTATUS.l
 function filtered(){var q=($('search').value||'').trim().toLowerCase();var last=apptStatus();
   return ROWS.filter(function(r){
     if(BSSCOPE&&BSSCOPE.indexOf(r.baseshop)<0)return false;
+    if(MDSEL&&!mdOkCode(r.code))return false;
     if(TAB==='appointed'){if(!last||r.license_status!==last)return false;}
     else if(TAB==='licensing'){if(last&&r.license_status===last)return false;}
     if(!q)return true;

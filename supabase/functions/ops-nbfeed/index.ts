@@ -1,3 +1,4 @@
+// ops-nbfeed (2026-10-28 b): Operations' own custom columns on the live board; rows carry agent_code / split_agent_code.
 // ops-nbfeed (2026-10-28): MD/EMD agent sessions are scoped by agent_scope() — they read every shop before.
 // ops-nbfeed v24 — LIVE, TWO-WAY New Business feed.
 //
@@ -75,6 +76,21 @@ const SUPA = Deno.env.get("SUPABASE_URL")!;
 const KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const KTRACK = "ops_nb_tracking";
 const KORDER = "ops_nbfeed_order";
+/* 2026-10-28: Operations' OWN columns on the live board ("add a column for new business the same
+   way she can in Licensing"). Definitions here; each policy's values live in the tracking store
+   (KTRACK[id].custom[key]) beside its colour and notes, so nothing is written to the policy. */
+const KCUSTOM = "ops_nbfeed_custom_cols";
+const CTYPES = ["text", "select", "money", "date"];
+function hexOr(v: unknown) { const x = String(v ?? "").trim(); return /^#[0-9a-fA-F]{6}$/.test(x) ? x : ""; }
+function normCustom(c: any) {
+  const label = clean(c && c.label).slice(0, 40);
+  let key = String((c && c.key) || "").trim();
+  if (!/^c_[a-z0-9_]{1,40}$/.test(key)) key = "c_" + (label.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 24) || "col") + "_" + Math.random().toString(36).slice(2, 6);
+  const type = CTYPES.indexOf(String(c && c.type)) >= 0 ? String(c.type) : "text";
+  const options = type === "select" && Array.isArray(c.options) ? c.options.slice(0, 60).map((o: any) => ({ value: clean(o && o.value).slice(0, 60), color: hexOr(o && o.color) || "#8e8e93" })).filter((o: any) => o.value) : [];
+  return { key, label, type, options, headerColor: hexOr(c && c.headerColor), custom: true };
+}
+async function customCols(): Promise<any[]> { const raw = await loadKey(KCUSTOM); return Array.isArray(raw) ? raw.map(normCustom).filter((c: any) => c.label) : []; }
 const DBH = { apikey: KEY, Authorization: `Bearer ${KEY}`, "Content-Type": "application/json" };
 const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "*", "Access-Control-Allow-Methods": "POST, GET, OPTIONS" };
 function json(o: unknown, s = 200) { return new Response(JSON.stringify(o), { status: s, headers: { ...CORS, "Content-Type": "application/json" } }); }
@@ -153,7 +169,7 @@ const inScope = (scope: string[] | null, base: unknown) =>
   !scope || scope.some((s) => low(s) === low(base));
 
 async function track() { const raw = await loadKey(KTRACK); return (raw && typeof raw === "object") ? raw : {}; }
-async function columns() { const order = await loadKey(KORDER); if (!Array.isArray(order) || !order.length) return BASECOLS; const out: any[] = []; for (const k of order) { const c = BASECOLS.find((x) => x.key === k); if (c && out.indexOf(c) < 0) out.push(c); } for (const c of BASECOLS) if (out.indexOf(c) < 0) out.push(c); return out; }
+async function columns() { const all: any[] = (BASECOLS as any[]).concat(await customCols()); const order = await loadKey(KORDER); if (!Array.isArray(order) || !order.length) return all; const out: any[] = []; for (const k of order) { const c = all.find((x) => x.key === k); if (c && out.indexOf(c) < 0) out.push(c); } for (const c of all) if (out.indexOf(c) < 0) out.push(c); return out; }
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
@@ -236,6 +252,7 @@ Deno.serve(async (req) => {
     pols = pols.filter((p: any) => archived ? isDead(p) : isPipeline(p));
 
     const tk = await track();
+    const cdefs = await customCols();
     const tickets = pols.map((p: any) => {
       const a = byC[norm(p.agent_code)]; const t = tk[String(p.id)] || {};
       const home = a ? (a.baseshop || "") : "";
@@ -251,7 +268,7 @@ Deno.serve(async (req) => {
       return { id: String(p.id),
         shared_in: sIn ? { from: home, by: sIn.shared_by_name || "Operations", note: sIn.note || "" } : null,
         shared_with: sharedAny[String(p.id)] || [],
-        data: { client: p.client_name || "", state: p.state || "", phone: p.phone || "", email: p.email || "", agent: a ? `${a.first_name || ""} ${a.last_name || ""}`.trim() : (p.agent_code || ""), baseshop: home, carrier: p.carrier || "", product: p.product || "", ap: String(Math.round(numOr(p.annual_premium)) || ""), coverage: String(Math.round(numOr(p.coverage)) || ""), split_agent: splitAgent, split_pct: splitPct, status: STLABEL[low(p.status)] || p.status || "", date: p.submitted_date || "", policy_num: p.policy_number || "", _color: t.color || "" },
+        data: { client: p.client_name || "", state: p.state || "", phone: p.phone || "", email: p.email || "", agent: a ? `${a.first_name || ""} ${a.last_name || ""}`.trim() : (p.agent_code || ""), baseshop: home, carrier: p.carrier || "", product: p.product || "", ap: String(Math.round(numOr(p.annual_premium)) || ""), coverage: String(Math.round(numOr(p.coverage)) || ""), split_agent: splitAgent, split_pct: splitPct, status: STLABEL[low(p.status)] || p.status || "", date: p.submitted_date || "", policy_num: p.policy_number || "", _color: t.color || "", agent_code: norm(p.agent_code), split_agent_code: p.split_flag ? norm(p.split_agent_code) : "", ...Object.fromEntries(cdefs.map((c: any) => [c.key, String(((t.custom || {}) as any)[c.key] ?? "")])) },
         notes: Array.isArray(t.notes) ? t.notes : [] };
     });
     return json({ ok: true, role: az.role, can_edit: az.canEdit, live: true, tickets, columns: await columns(), archived_count, inforce_count, pipeline_count, scoped_to: scope, can_share: master });
@@ -259,8 +276,17 @@ Deno.serve(async (req) => {
 
   if (action === "nb_set_columns") {
     if (!az.canEdit) return json({ ok: false, error: "Operations only." }, 403);
-    const order = (Array.isArray(body.columns) ? body.columns : []).map((c: any) => String(c.key || c)).filter((k: string) => BASECOLS.some((b) => b.key === k));
-    if (!order.length) return json({ ok: false, error: "No columns." });
+    const incoming = (Array.isArray(body.columns) ? body.columns : []).slice(0, 80);
+    /* Custom columns: whatever the editor sent (new ones get a key here). One left out is deleted
+       from the board; its stored values are kept, like Licensing. Built-in columns only reorder. */
+    const customs: any[] = []; const order: string[] = [];
+    for (const c of incoming) {
+      const k = String((c && c.key) || c || "");
+      if (BASECOLS.some((b) => b.key === k)) { if (order.indexOf(k) < 0) order.push(k); continue; }
+      if (c && typeof c === "object" && (c.custom || /^c_/.test(k) || !k)) { const n = normCustom(c); if (n.label && !customs.some((x) => x.key === n.key)) { customs.push(n); order.push(n.key); } }
+    }
+    if (!order.some((k) => BASECOLS.some((b) => b.key === k))) return json({ ok: false, error: "No columns." });
+    await saveKey(KCUSTOM, customs);
     await saveKey(KORDER, order); return json({ ok: true, columns: await columns() });
   }
 
@@ -277,6 +303,14 @@ Deno.serve(async (req) => {
       }
     }
     const f = String(body.field || ""); const val = clean(body.value);
+    if (/^c_[a-z0-9_]{1,46}$/.test(f)) {
+      const def = (await customCols()).find((c: any) => c.key === f);
+      if (!def) return json({ ok: false, error: "That column no longer exists." }, 400);
+      const tk = await track(); if (!tk[id] || typeof tk[id] !== "object") tk[id] = {};
+      if (!tk[id].custom || typeof tk[id].custom !== "object") tk[id].custom = {};
+      tk[id].custom[f] = val.slice(0, 500);
+      await saveKey(KTRACK, tk); return json({ ok: true });
+    }
     if (f === "_color" || f === "process") {
       const tk = await track(); if (!tk[id] || typeof tk[id] !== "object") tk[id] = {};
       if (f === "_color") tk[id].color = val; else tk[id].process = val;
