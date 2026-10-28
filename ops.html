@@ -557,7 +557,9 @@ function showApp(){
       }).catch(paintSeatBtn);
     }).catch(paintSeatBtn);
   }
-  var fab=$('obotFab');if(fab)fab.classList.toggle('hide',!canEdit());
+  /* 2026-10-28: the assistant is for Operations AND leaders (MD/EMD); ops-bot scopes a leader to their own shop. */
+  var fab=$('obotFab');if(fab)fab.classList.toggle('hide',!OPS);
+  var tb=document.querySelector('.obot-hd button[onclick="obotTeach()"]');if(tb)tb.style.display=canEdit()?'':'none';
 }
 /* ===== Ops Assistant (Claude-backed) ===== */
 var OBOT="https://bmfqxtocxkjhsgfnndlo.supabase.co/functions/v1/ops-bot";
@@ -566,7 +568,7 @@ function obotBody(b){b=b||{};if(canEdit()&&opsTok())b.token=opsTok();if(OPS){b.c
 function obotToggle(open){$('obotPanel').classList.toggle('on',open);$('obotFab').classList.toggle('hide',open);if(open){if(!OBOTHIST.length)obotGreet();setTimeout(function(){$('obotIn').focus();},50);}}
 function obotGreet(){
   var first=((OPS&&OPS.name)||'').split(' ')[0]||'there';
-  obotPush('a','Hi '+first+" — I'm your Ops Assistant. Ask me anything about the business or the software, and I can create tasks or toggle automations for you. New to Ops? Ask me to walk you through how we work.");
+  obotPush('a',canEdit()?('Hi '+first+" — I'm your Ops Assistant. Ask me anything about the business or the software, and I can create tasks or toggle automations for you. New to Ops? Ask me to walk you through how we work."):('Hi '+first+" — I'm your assistant. Ask me about your baseshop's numbers, the business or the software, and I can create a task for you."));
   $('obotQuick').innerHTML=["What needs my attention today?","How many pending approvals?","How do commission splits work?","Onboard me — how does this business run?"].map(function(q){return '<span class="obot-chip" onclick="obotQuick(this)">'+esc(q)+'</span>';}).join('');
 }
 function obotQuick(el){$('obotIn').value=el.textContent;obotSend();}
@@ -677,6 +679,7 @@ var COLS={
     {k:'name',l:'Agent',s:function(r){return low(r.name);},c:nameCell},
     {k:'code',l:'GFI Code',s:function(r){return r.code;},c:function(r){return esc(r.code);}},
     {k:'direct_to_name',l:'Direct Recruiter',s:function(r){return low(r.direct_to_name);},c:function(r){return r.direct_to_name?('<div class="twoline"><div class="tl1">'+esc(r.direct_to_name)+'</div>'+(r.direct_to?'<div class="sub">'+esc(r.direct_to)+'</div>':'')+'</div>'):'<span class="miss">—</span>';}},
+    {k:'coaching',l:'Coaching priority',s:function(r){return r.coaching?r.coaching.score:-1;},c:function(r){var c=r.coaching;if(!c)return '<span class="miss">—</span>';var col={urgent:'#d9534f',high:'#e07a2f',medium:'#c99a2e',low:'#8e8e93'}[c.tier]||'#8e8e93';var st={recruit:'Recruit',licensed:'Licensed',first_sale:'First sale',recruiting:'Recruiting',cft_track:'Senior Associate',md:'MD+',dormant:'Dormant'}[c.stage]||c.stage;var rs=c.reasons||{};var tip='Score '+c.score+' · '+st+(rs.days_quiet!=null?(' · quiet '+rs.days_quiet+' days'):' · no activity on record')+' · brought to Christopher (2 wks): '+(rs.brought_to_focus_2wk||0)+' · ran themselves (2 wks): '+(rs.ran_themselves_2wk||0)+(rs.last_coached?(' · last coached '+String(rs.last_coached).slice(0,10)):' · never coached');return '<span class="cpill" title="'+esc(tip)+'" style="background:'+col+'22;color:'+col+';font-weight:800;text-transform:capitalize">'+esc(c.tier)+' · '+c.score+'</span><div class="sub">'+esc(st)+'</div>';}},
     {k:'upline_md_name',l:'Upline MD',s:function(r){return low(r.upline_md_name);},c:function(r){return r.upline_md_name?('<div class="twoline"><div class="tl1">'+esc(r.upline_md_name)+'</div>'+(r.upline_md&&r.upline_md!==r.code?'<div class="sub">'+esc(r.upline_md)+'</div>':'<div class="sub">self</div>')+'</div>'):'<span class="miss">—</span>';}},
     {k:'baseshop',l:'Baseshop',e:'text',s:function(r){return low(r.baseshop);}},
     {k:'ica_date',l:'ICA Date',e:'date',s:function(r){return r.ica_date||'';}},

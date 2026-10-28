@@ -1,3 +1,4 @@
+// newbiz-api (2026-10-28): split partners may be any roster person, active or not (writer unchanged).
 // newbiz-api v24 (2026-10-26) — HIERARCHY IS YOUR OWN TREE; NOBODY ELSE'S CLIENTS LEAVE THE SERVER.
 //      Brief section 8. `leader` could name anyone ABOVE the caller, and the page did exactly that:
 //      "View Hierarchy" asked for Elijah's book, which is the root, so every agent received all
@@ -333,9 +334,11 @@ async function checkSplit(raw: Record<string, unknown>, row: Record<string, unkn
   if (!pc) return "Pick the split agent from the list so the credit goes to the right person.";
   if (pc === norm(writer)) return "The split agent must be someone other than the writing agent.";
   const a = (await roster()).find((x) => norm(x.code) === pc);
-  /* The partner already on the record may have left since; correcting the share must still be
-     possible. Only a NEWLY chosen partner has to be active. */
-  if (!a || (a.archived_at && pc !== norm(keepCode))) return "That split agent is not an active account.";
+  /* 2026-10-28 (Christopher: "allow new business to split policies with non active agents but just
+     SPLIT agent"). The SPLIT partner only has to be a real person on the roster - active, archived
+     or departed - so a sale shared with someone who is not currently active can still credit them.
+     The WRITING agent is unchanged: that is the signed-in person or someone chosen for them. */
+  if (!a) return "That split agent is not on the roster. Pick them from the list.";
   return null;
 }
 /* split_pct is the writer's share: 100 leaves the partner nothing, which is no split at all. */

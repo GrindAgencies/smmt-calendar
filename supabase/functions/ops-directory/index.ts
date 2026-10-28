@@ -1,3 +1,4 @@
+// ops-directory v32 (2026-10-28): rows carry `coaching` (agent_coaching_priority).
 // ops-directory v31 (2026-10-28): tracker rows carry upline_md / upline_md_name, plus an upline_md map.
 // ops-directory v30 — Operations Tracker API.
 //
@@ -273,9 +274,15 @@ Deno.serve(async (req) => {
     const umd = (await rpc("upline_md_map", {})) || {};
     const uplineMd: Record<string, { code: string; name: string }> = {};
     for (const a of visibleAgents) { const c = norm(a.code); const m = umd[c]; if (m && m.code) uplineMd[c] = { code: norm(m.code), name: String(m.name || "") }; }
+    /* Coaching priority (agent_coaching_priority, refreshed daily) - same visible people only. */
+    const cp = await getJSON(`agent_coaching_priority?select=agent_code,score,tier,stage,reasons&limit=5000`);
+    const cpBy: Record<string, any> = {}; for (const c of (Array.isArray(cp) ? cp : [])) cpBy[norm(c.agent_code)] = c;
     const rows = visibleAgents.filter((a: any) => low(a.status) !== "quit").map((a: any) => {
       const r: any = trackerRow(a, nb, core); const m = uplineMd[norm(a.code)];
-      r.upline_md = m ? m.code : ""; r.upline_md_name = m ? m.name : ""; return r;
+      r.upline_md = m ? m.code : ""; r.upline_md_name = m ? m.name : "";
+      const c = cpBy[norm(a.code)];
+      r.coaching = c ? { score: c.score, tier: c.tier, stage: c.stage, reasons: c.reasons || {} } : null;
+      return r;
     });
     rows.sort((x: any, y: any) => x.name.localeCompare(y.name));
     const reqs = (await loadKey("ops_edit_requests")) || [];

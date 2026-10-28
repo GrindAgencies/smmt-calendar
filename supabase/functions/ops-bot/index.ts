@@ -1,3 +1,4 @@
+// ops-bot v8 (2026-10-28) — open to MDs, EMDs and Operations; leaders get their own baseshop's snapshot.
 // ops-bot v7 (2026-10-22) — Claude-backed Operations Assistant. Data-aware, can create tasks & toggle
 // automations, carries an editable knowledge base to debrief new Ops staff. High token ceiling.
 //
@@ -65,31 +66,48 @@ async function sessionCode(session: unknown): Promise<string> {
   const got = await rpc("agent_session_code", { p_token: v });
   return (typeof got === "string") ? norm(got) : "";
 }
-async function opsAuth(body: any): Promise<{ ok: boolean; name: string }> {
-  if (await opsAuthorized(body.token)) return { ok: true, name: clean(body.name) || "Operations" };
-  /* The leader branch. The code is the VERIFIED one now, never the typed one: a code off the
-     org chart is not a claim to rank. A seat code is not a credential either — there are six of
-     them and staff type theirs every morning — so there is no code fallback at all. */
-  const code = await sessionCode(body.session); if (!code) return { ok: false, name: "" };
-  if (/^\d{4}$/.test(code)) return { ok: false, name: "" };
+/* v8 (2026-10-28, Christopher: "Ops assistant needs to be used for all MDs EMDs and Operations").
+   Operations: company-wide. A leader (MD, EMD, NVP/SEVP, or a baseshop owner) on their own verified
+   session: allowed, but the snapshot is THEIR baseshop(s) via agent_scope() - the hierarchy root and
+   the platform builder still get everything. Leaders cannot switch the company-wide automations or
+   write to the shared knowledge base; a task a leader asks for is assigned to that leader. */
+type BotAuth = { ok: boolean; name: string; ops: boolean; code: string; bases: string[] | null; rank: string };
+async function opsAuth(body: any): Promise<BotAuth> {
+  const none: BotAuth = { ok: false, name: "", ops: false, code: "", bases: null, rank: "" };
+  if (await opsAuthorized(body.token)) return { ok: true, name: clean(body.name) || "Operations", ops: true, code: "OPS", bases: null, rank: "Operations" };
+  /* The code is the VERIFIED one, never typed; a seat code is not a credential either. */
+  const code = await sessionCode(body.session); if (!code) return none;
+  if (/^\d{4}$/.test(code)) return none;
   const bs = await loadKey("baseshops"); const list = (bs && Array.isArray(bs.bases)) ? bs.bases : [];
-  /* The roster is read once and the NAME comes from it either way. It used to come from the
-     request on the owner branch, and that name is stamped on every task this assistant creates
-     and on every line it writes into the shared knowledge base. */
   const a = (await getJSON(`tracker_agents?code=eq.${encodeURIComponent(code)}&select=first_name,last_name,contract_level&limit=1`))[0];
   const who = a ? `${a.first_name || ""} ${a.last_name || ""}`.trim() : "";
-  if (list.some((b: any) => norm(b.owner_code) === code)) return { ok: true, name: who || code };
-  if (a && /emd|executive|nvp|national vice|sevp/.test(low(a.contract_level))) return { ok: true, name: who };
-  return { ok: false, name: "" };
+  const owner = list.some((b: any) => norm(b.owner_code) === code);
+  const lvl = low(a && a.contract_level);
+  const leader = owner || /^(md|emd|nvp|sevp)$/.test(lvl) || /marketing director|national vice|senior executive/.test(lvl);
+  if (!leader) return none;
+  const sc = await rpc("agent_scope", { p_code: code });
+  const all = !!(sc && sc.ok === true && sc.all === true);
+  const bases = all ? null : ((sc && Array.isArray(sc.bases)) ? sc.bases.map((x: unknown) => String(x).toUpperCase()) : []);
+  return { ok: true, name: who || code, ops: false, code, bases, rank: (a && a.contract_level) || "Leader" };
 }
 
-async function snapshot(): Promise<string> {
-  const [agents, pols, tasks, access] = await Promise.all([
-    getJSON(`tracker_agents?select=code,contract_level,license_status,status&code=neq.POOL&limit=5000`),
-    getJSON(`policies?select=status,annual_premium,expected_commission&limit=20000`),
+async function snapshot(bases: string[] | null): Promise<string> {
+  let [agents, pols, tasks, access] = await Promise.all([
+    getJSON(`tracker_agents?select=code,contract_level,license_status,status,baseshop&code=neq.POOL&limit=5000`),
+    getJSON(`policies?select=status,annual_premium,expected_commission,agent_code&limit=20000`),
     getJSON(`tasks?select=status,due_date,category,priority&limit=20000`),
-    getJSON(`tracker_agents?select=code&access_status=eq.pending&code=neq.POOL&limit=5000`),
+    getJSON(`tracker_agents?select=code,baseshop&access_status=eq.pending&code=neq.POOL&limit=5000`),
   ]);
+  /* A leader's snapshot is their own baseshop(s): agents, their policies, their pending approvals.
+     The Operations task board is not theirs, so it is left out rather than shown company-wide. */
+  if (bases) {
+    const inB = (b: unknown) => bases.indexOf(String(b || "").toUpperCase()) >= 0;
+    const mine = new Set<string>(agents.filter((x: any) => inB(x.baseshop)).map((x: any) => norm(x.code)));
+    agents = agents.filter((x: any) => mine.has(norm(x.code)));
+    pols = pols.filter((p: any) => mine.has(norm(p.agent_code)));
+    access = access.filter((x: any) => inB(x.baseshop));
+    tasks = [];
+  }
   const active = agents.filter((a: any) => low(a.status) !== "quit");
   const licensed = active.filter((a: any) => { const s = low(a.license_status); return s.includes("licensed") || s.includes("appointed") || s.includes("passed exam"); }).length;
   const lvl: Record<string, number> = {}; active.forEach((a: any) => { const l = norm(a.contract_level) || "(none)"; lvl[l] = (lvl[l] || 0) + 1; });
@@ -103,10 +121,11 @@ async function snapshot(): Promise<string> {
   const auto = await loadKey("task_automations"); const rules = (auto && auto.rules) || {};
   return [
     `Today (PT): ${today}`,
+    `SCOPE: ${bases ? ("baseshop " + (bases.join(", ") || "(none)") + " only") : "whole company"}`,
     `AGENTS: ${active.length} active · ${licensed} licensed · by level: ${Object.entries(lvl).map(([k, v]) => k + " " + v).join(", ")}`,
     `POLICIES: ${pols.length} total · pending ${pc.pending}, approved ${pc.approved}, issued/in-force ${pc.issued}, closed ${pc.closed} · submitted AP ${money(subAP)} · PAID-OUT AP ${money(paidAP)} / est comm ${money(paidComm)}`,
     `PENDING ACCESS APPROVALS: ${access.length}`,
-    `TASKS: ${openT.length} open · ${overdueT} overdue`,
+    bases ? `TASKS: (the Operations task board is not included in a leader's snapshot)` : `TASKS: ${openT.length} open · ${overdueT} overdue`,
     `AUTOMATIONS (built-in, toggleable): paidout_thankyou=${rules.paidout_thankyou?.active !== false}, license_sendout=${rules.license_sendout?.active !== false}, net_gear=${rules.net_gear?.active !== false}`,
   ].join("\n");
 }
@@ -132,16 +151,17 @@ ACTIONS: When (and only when) the user clearly asks you to create a task or chan
 or {"do":"toggle_automation","rule":"paidout_thankyou|license_sendout|net_gear","active":true|false}
 If no action is needed, do NOT include an action block. Confirm what you did in plain language before the block.`;
 
-async function execAction(a: any, who: string): Promise<string> {
+async function execAction(a: any, who: string, au: BotAuth): Promise<string> {
   try {
     if (!a || typeof a !== "object") return "";
     if (a.do === "create_task") {
-      const row: any = { title: clean(a.title), kind: ["agent", "backoffice", "general"].includes(low(a.kind)) ? low(a.kind) : "general", priority: ["low", "medium", "high", "urgent"].includes(low(a.priority)) ? low(a.priority) : "medium", category: clean(a.category), status: "in_progress", owner_code: "OPS", owner_name: "Operations", due_date: clean(a.due_date) || null, recurrence: ["daily", "weekly", "monthly", "quarterly", "yearly"].includes(low(a.recurrence)) ? low(a.recurrence) : "", agent_codes: Array.isArray(a.agent_codes) ? a.agent_codes.map(norm).filter(Boolean) : [], client_names: Array.isArray(a.client_names) ? a.client_names.map((x: any) => clean(x)).filter(Boolean) : [], tags: [], policy_ids: [], notes: [], created_by: "OPSBOT", created_by_name: who, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+      const row: any = { title: clean(a.title), kind: ["agent", "backoffice", "general"].includes(low(a.kind)) ? low(a.kind) : "general", priority: ["low", "medium", "high", "urgent"].includes(low(a.priority)) ? low(a.priority) : "medium", category: clean(a.category), status: "in_progress", owner_code: au.ops ? "OPS" : au.code, owner_name: au.ops ? "Operations" : who, due_date: clean(a.due_date) || null, recurrence: ["daily", "weekly", "monthly", "quarterly", "yearly"].includes(low(a.recurrence)) ? low(a.recurrence) : "", agent_codes: Array.isArray(a.agent_codes) ? a.agent_codes.map(norm).filter(Boolean) : [], client_names: Array.isArray(a.client_names) ? a.client_names.map((x: any) => clean(x)).filter(Boolean) : [], tags: [], policy_ids: [], notes: [], created_by: "OPSBOT", created_by_name: who, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
       if (!row.title) return "⚠️ Could not create the task (no title).";
       const ins = await fetch(`${SUPA}/rest/v1/tasks`, { method: "POST", headers: { ...DBH, Prefer: "return=minimal" }, body: JSON.stringify(row) });
       return ins.ok ? `✅ Task created: “${row.title}”` : "⚠️ Failed to create the task.";
     }
     if (a.do === "toggle_automation") {
+      if (!au.ops) return "⚠️ Only Operations can switch the company-wide automations.";
       const rule = String(a.rule || ""); if (["paidout_thankyou", "license_sendout", "net_gear"].indexOf(rule) < 0) return "⚠️ Unknown automation.";
       const cfg = (await loadKey("task_automations")) || {}; if (!cfg.rules) cfg.rules = {};
       cfg.rules[rule] = { ...(cfg.rules[rule] || {}), active: !!a.active }; await saveKey("task_automations", cfg);
@@ -160,6 +180,7 @@ Deno.serve(async (req) => {
 
     if (action === "get_knowledge") { return json({ ok: true, knowledge: (await loadKey("ops_bot_knowledge")) || "" }); }
     if (action === "add_knowledge") {
+      if (!au.ops) return json({ ok: false, error: "Only Operations can add to the shared knowledge base." }, 403);
       const note = clean(body.note); if (!note) return json({ ok: false, error: "empty" });
       const cur = String((await loadKey("ops_bot_knowledge")) || "");
       const stamp = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles" }).format(new Date());
@@ -169,16 +190,20 @@ Deno.serve(async (req) => {
 
     if (action === "ask") {
       const q = clean(body.q); if (!q) return json({ ok: false, error: "empty question" });
-      const snap = await snapshot();
+      const snap = await snapshot(au.bases);
       const learned = String((await loadKey("ops_bot_knowledge")) || "").slice(0, 12000);
-      const sys = BASE_KNOWLEDGE + "\n\n=== LIVE SNAPSHOT ===\n" + snap + (learned ? ("\n\n=== TEAM-TAUGHT KNOWLEDGE (Ops added these) ===\n" + learned) : "");
+      const whoLine = au.ops ? "You are speaking with Operations (company-wide access)." : `You are speaking with ${au.name} (${au.rank}), a team leader. Their snapshot covers ${au.bases ? "their own baseshop only" : "the whole company"}. They cannot switch company-wide automations or edit the shared knowledge base; a task they ask for is assigned to them. Never speculate about other baseshops' people or numbers. Do NOT emit a toggle_automation action for them; if they ask, say only Operations can change automations.`;
+      const sys = BASE_KNOWLEDGE + "\n\n=== WHO YOU ARE HELPING ===\n" + whoLine + "\n\n=== LIVE SNAPSHOT ===\n" + snap + (learned ? ("\n\n=== TEAM-TAUGHT KNOWLEDGE (Ops added these) ===\n" + learned) : "");
       const hist = Array.isArray(body.history) ? body.history.slice(-10).map((m: any) => ({ role: (m.role === "assistant" ? "assistant" : "user"), content: clean(m.content) })) : [];
       const messages = hist.concat([{ role: "user", content: q }]);
       const r = await callClaude(sys, messages, 16000);
       if (!r.txt) return json({ ok: false, error: r.err || "no reply", answer: "I couldn't reach my brain just now — try again in a moment." });
       let answer = r.txt; let executed = "";
       const m = /```action\s*([\s\S]*?)```/.exec(r.txt);
-      if (m) { answer = r.txt.replace(m[0], "").trim(); try { executed = await execAction(JSON.parse(m[1].trim()), au.name); } catch (_) { executed = ""; } }
+      if (m) { answer = r.txt.replace(m[0], "").trim(); try { executed = await execAction(JSON.parse(m[1].trim()), au.name, au); } catch (_) { executed = ""; } }
+      /* The model writes its reply BEFORE the server decides. If the action was refused or failed,
+         the reply must not claim it happened: replace it with what actually occurred. */
+      if (executed.indexOf("⚠️") === 0) { answer = executed.replace(/^⚠️\s*/, "") + " Nothing was changed."; }
       return json({ ok: true, answer, executed, model: r.model });
     }
     return json({ ok: false, error: "unknown action" }, 400);
