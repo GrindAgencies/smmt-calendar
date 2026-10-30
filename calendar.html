@@ -519,11 +519,22 @@ var SBC=null,calChan=null,_syncT=null,_lastSync=0;
 /* Reload everything a calendar draws: my appointments, the ones I run, the team view, and the
    day's booked slots. Coalesced, because a handoff or a transfer fires several row changes in a
    row and each one should not cost four fetches. */
+/* NEVER REFRESH UNDER SOMEONE WHO IS FILLING IN A CARD (2026-10-30).
+   Christopher: "please remove the page timeout when scheduling the meeting time in the scheduler.
+   once clicked allow for adequate time for people to fill out the info card for booking"
+   The refresh above re-ran render(), and on the Book tab that re-picked the trainer, which wipes
+   the chosen meeting type and time. Anyone who took longer than ~90 seconds on the card (or
+   switched apps to copy a client's phone number, or had a colleague book anything meanwhile)
+   came back to "Pick a meeting type and a time first" and lost the slot. While any card is open
+   the refresh now waits, and runs the moment the card closes. */
+var _syncHeld=false;
+function cardOpen(){ var ov=$('bkOv'); return !!(ov&&ov.classList.contains('on')); }
 function syncCalendars(force){
   if(_syncT)clearTimeout(_syncT);
   _syncT=setTimeout(function(){
     _syncT=null;
     if(document.hidden&&!force)return;      /* a background tab catches up when it is looked at */
+    if(cardOpen()){ _syncHeld=true; return; }
     _lastSync=Date.now();
     DAYBOOKED=[];                            /* the cached day is what makes a slot look free */
     /* the same chain the page runs on load, so a live refresh and a reload agree */
@@ -544,6 +555,11 @@ function calRtSubscribe(){
    silently dies — availability being wrong is worse than one extra request a minute and a half. */
 document.addEventListener('visibilitychange',function(){ if(!document.hidden&&Date.now()-_lastSync>15000)syncCalendars(true); });
 setInterval(function(){ if(!document.hidden&&Date.now()-_lastSync>90000)syncCalendars(false); },90000);
+/* The held refresh runs as soon as the card closes, however it was closed. */
+(function(){ function watch(){ var ov=$('bkOv'); if(!ov||!window.MutationObserver)return;
+  new MutationObserver(function(){ if(_syncHeld&&!cardOpen()){ _syncHeld=false; syncCalendars(true); } })
+    .observe(ov,{attributes:true,attributeFilter:['class']}); }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',watch); else watch(); })();
 
 function loadDayBooked(dstr,cb){fetch(AT+'?action=atlas_day&date='+encodeURIComponent(dstr)).then(function(r){return r.json();}).then(function(r){DAYBOOKED=(r&&r.bookings)||[];cb&&cb();}).catch(function(){DAYBOOKED=[];cb&&cb();});}
 function setTab(t){TAB=t;['cal','dash','book','train','me','company','clients','ops','avail','xfer'].forEach(function(x){var el=$('tab_'+x);if(el)el.classList.toggle('on',x===t);});render();}
@@ -1352,7 +1368,7 @@ function cbLoadTrainers(){
     var host=$('cbTr'); if(!host)return;
     if(!r||!r.ok){host.innerHTML='<div class="empty">Could not load trainers.</div>';return;}
     CBTR=r.trainers||[]; CBWAIT=r.awaiting_connection||[];
-    if(SHOPONLY)CBTR=CBTR.filter(function(t){return sameShop(t);});
+    if(SHOPONLY){CBTR=CBTR.filter(function(t){return sameShop(t);});CBWAIT=CBWAIT.filter(function(t){return sameShop(t);});}
     if(!CBTR.length){
       host.innerHTML='<div class="empty" style="line-height:1.6">No trainer in '+esc(SHOPONLY?(myBase()||'your baseshop'):'the hierarchy')+' has connected their Calendly yet.'+
         (SHOPONLY?'<br><button class="x" style="margin-top:10px" onclick="setShopScope(false)">Show the whole hierarchy</button>':'')+'</div>';
@@ -1416,7 +1432,9 @@ function cbPickSlot(iso){
   if(!CBSLOT)return;
   cbConfirm();
 }
+var CBPICK=null;   /* what the open card is booking: fixed when the card opens, not the live selection */
 function cbConfirm(){
+  CBPICK={sel:CBSEL,type:CBTYPE,slot:CBSLOT,types:CBTYPES};
   var email=(PROFILE&&PROFILE.email)||'';
   $('bkDrawer').innerHTML='<div class="dh"><h3>Confirm your booking</h3><button class="x" onclick="$(\'bkOv\').classList.remove(\'on\')">Close</button></div>'+
     '<div class="confrow"><div class="cl">Trainer</div><div class="cv">'+esc(CBSEL.name)+'</div></div>'+
@@ -1427,16 +1445,20 @@ function cbConfirm(){
        "Your email" and send the signed-in agent's NAME alongside whatever was typed there - so
        booking a client put that client's address under Christopher's name and the Zoom room
        read as him meeting himself. Each person is now named and addressed separately. */
-    '<div style="margin-top:16px;font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3)">Who is being trained</div>'+
-    '<div style="margin-top:8px"><label style="'+_LST+'">Name</label><input id="cb_tname" value="'+esc(NAME||'')+'" placeholder="The agent being trained" style="'+_IST+'"></div>'+
-    '<div style="margin-top:10px"><label style="'+_LST+'">Email <span style="font-weight:600;color:var(--ink3)">(Calendly sends the invite here)</span></label><input id="cb_email" value="'+esc(email)+'" placeholder="agent@email.com" style="'+_IST+'"></div>'+
+    /* 2026-10-30, Christopher: "client email first, then agent then additional guests. as it reads
+       'whos being trained' is backwards". The client is who the meeting is FOR, so they lead; the
+       agent (whose name and email Calendly books under) follows; guests last. Same field ids. */
+    '<div style="margin-top:16px;font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3)">Client <span style="font-weight:600;text-transform:none;letter-spacing:0">(optional)</span></div>'+
+    '<div style="margin-top:8px"><label style="'+_LST+'">Client email</label><input id="cb_cemail" type="email" autocomplete="off" placeholder="client@email.com" style="'+_IST+'"></div>'+
+    '<div style="margin-top:10px"><label style="'+_LST+'">Client name</label><input id="cb_cname" autocomplete="off" placeholder="The client or prospect" style="'+_IST+'"></div>'+
+    '<div style="margin-top:10px"><label style="'+_LST+'">Client phone</label><input id="cb_cphone" inputmode="tel" autocomplete="off" placeholder="(555) 555-5555" style="'+_IST+'"></div>'+
 
-    '<div style="margin-top:18px;font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3)">Who you are meeting <span style="font-weight:600;text-transform:none;letter-spacing:0">(optional)</span></div>'+
-    '<div style="margin-top:8px"><label style="'+_LST+'">Client name</label><input id="cb_cname" placeholder="The client or prospect" style="'+_IST+'"></div>'+
-    '<div style="margin-top:10px"><label style="'+_LST+'">Client email</label><input id="cb_cemail" placeholder="client@email.com" style="'+_IST+'"></div>'+
-    '<div style="margin-top:10px"><label style="'+_LST+'">Client phone</label><input id="cb_cphone" inputmode="tel" placeholder="(555) 555-5555" style="'+_IST+'"></div>'+
+    '<div style="margin-top:18px;font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3)">Agent</div>'+
+    '<div style="margin-top:8px"><label style="'+_LST+'">Agent name</label><input id="cb_tname" value="'+esc(NAME||'')+'" placeholder="The agent on this appointment" style="'+_IST+'"></div>'+
+    '<div style="margin-top:10px"><label style="'+_LST+'">Agent email <span style="font-weight:600;color:var(--ink3)">(Calendly sends the invite here)</span></label><input id="cb_email" type="email" value="'+esc(email)+'" placeholder="agent@email.com" style="'+_IST+'"></div>'+
 
-    '<div style="margin-top:18px"><label style="'+_LST+'">Anyone else to copy in (comma separated)</label><input id="cb_guests" placeholder="teammate@email.com" style="'+_IST+'"></div>'+
+    '<div style="margin-top:18px;font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3)">Additional guests <span style="font-weight:600;text-transform:none;letter-spacing:0">(optional)</span></div>'+
+    '<div style="margin-top:8px"><label style="'+_LST+'">Guest emails (comma separated)</label><input id="cb_guests" placeholder="teammate@email.com" style="'+_IST+'"></div>'+
     '<div style="margin-top:10px"><label style="'+_LST+'">Anything they should know (optional)</label><input id="cb_notes" placeholder="What you want to cover" style="'+_IST+'"></div>'+
     '<div class="err" id="cb_err" style="color:var(--red);font-size:12.5px;margin-top:9px"></div>'+
     '<div class="dact" style="margin-top:16px"><button class="go" id="cb_btn" onclick="cbBook()">Confirm booking</button></div>'+
@@ -1451,14 +1473,16 @@ function cbBook(){
   var cemail=($('cb_cemail').value||'').trim();
   var cphone=($('cb_cphone').value||'').trim();
   var guests=($('cb_guests').value||'').trim(), notes=($('cb_notes').value||'').trim();
-  if(email.indexOf('@')<1){err.textContent='Add an email address so Calendly can send the invite.';return;}
+  if(email.indexOf('@')<1){err.textContent='Add the agent email so Calendly can send the invite.';return;}
   /* The name and the address have to describe the SAME person. Sending one person's name with
      another's address is the bug this form had. */
-  if(!tname){err.textContent='Add the name that goes with '+email+'.';return;}
+  if(!tname){err.textContent='Add the agent name that goes with '+email+'.';return;}
   if(cemail && cemail.indexOf('@')<1){err.textContent='That client email does not look right.';return;}
   /* Reading CBTYPE.uri with nothing picked threw, and the throw happened AFTER the button
      was disabled — so Confirm sat on "Booking in Calendly…" for ever with no error and no
      booking. Seen live on the real site. Check before touching the button. */
+  /* Book exactly what the card shows, even if the page behind it changed the selection. */
+  if(CBPICK&&CBPICK.sel&&CBPICK.type&&CBPICK.slot){CBSEL=CBPICK.sel;CBTYPE=CBPICK.type;CBSLOT=CBPICK.slot;if(CBPICK.types)CBTYPES=CBPICK.types;}
   if(!CBTYPE||!CBSLOT){err.textContent='Pick a meeting type and a time first.';return;}
   /* SNAPSHOT WHAT WE ARE BOOKING, BEFORE THE REQUEST LEAVES.
      CBSEL / CBTYPE / CBSLOT are shared selection state, and cbPickTrainer and cbPickType both

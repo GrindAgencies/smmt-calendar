@@ -1,3 +1,4 @@
+// calendly-book v6 (2026-10-30) — trainer shop read from the roster (SMMT→SUMMIT rename hid every SUMMIT trainer).
 // calendly-book v5 (2026-10-26) — ONE booking, made in Calendly, mirrored into TSFG.
 //
 // v5: OPERATIONS CAN BOOK AND CANCEL. An Ops seat has no agent code, so `cancel` refused it with
@@ -152,10 +153,24 @@ async function bookableTrainers() {
   const k = await db(`calendly_connections?select=code,cal_name,scheduling_url,token`);
   const conns: any[] = Array.isArray(k.body) ? k.body : [];
   const connected = new Set(conns.filter((c) => c.token).map((c) => norm(c.code)));
+  /* v6: the shop comes from the roster, not the label typed into this list. The list still said
+     "SMMT" for every SUMMIT trainer after the shop was renamed, and the Scheduler compares that
+     against the agent's own shop (SUMMIT) — so SUMMIT agents were told no trainer had connected.
+     The list's extra shops (baseshops) ride along too; the page already honours them. */
+  const codes = cfts.map((c) => norm(c.code)).filter(Boolean);
+  const shopOf: Record<string, string> = {};
+  if (codes.length) {
+    const t = await db(`tracker_agents?select=code,baseshop&code=in.(${codes.map(enc).join(",")})`);
+    for (const r of (Array.isArray(t.body) ? t.body : []) as any[]) shopOf[norm(r.code)] = String(r.baseshop || "").toUpperCase();
+  }
   const out = cfts.filter((c) => connected.has(norm(c.code))).map((c) => ({
-    name: c.name, code: norm(c.code), baseshop: c.baseshop || "", calendly_connected: true,
+    name: c.name, code: norm(c.code), baseshop: shopOf[norm(c.code)] || c.baseshop || "",
+    baseshops: Array.isArray(c.baseshops) ? c.baseshops : [], calendly_connected: true,
   }));
-  const waiting = cfts.filter((c) => !connected.has(norm(c.code))).map((c) => ({ name: c.name, code: norm(c.code) }));
+  const waiting = cfts.filter((c) => !connected.has(norm(c.code))).map((c) => ({
+    name: c.name, code: norm(c.code), baseshop: shopOf[norm(c.code)] || c.baseshop || "",
+    baseshops: Array.isArray(c.baseshops) ? c.baseshops : [],
+  }));
   return { trainers: out, awaiting_connection: waiting };
 }
 
